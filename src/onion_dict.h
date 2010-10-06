@@ -16,6 +16,9 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#ifndef __ONION_DICT__
+#define __ONION_DICT__
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -66,4 +69,6 @@ const char *onion_dict_get(onion_dict *dict, const char *key);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

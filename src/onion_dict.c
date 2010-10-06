@@ -61,7 +61,9 @@ void onion_dict_add(onion_dict *dict, const char *key, const char *value, int fl
 	
 	dup=onion_dict_find_node(dict, key, &where);
 	
-	if (dup){ // If dup, try again on lef tor right tree, it does not matter.
+	if (dup){ // If dup, try again on left or right tree, it does not matter.
+		if (!dup->left)
+			dup->left=onion_dict_new();
 		onion_dict_add(dup->left, key, value, flags);
 		return;
 	}

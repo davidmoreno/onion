@@ -159,10 +159,48 @@ void t03_create_and_free_a_lot_random(unsigned int n){
 	END_LOCAL();
 }
 
+void t04_create_and_free_a_dup(){
+	INIT_LOCAL();
+	onion_dict *dict;
+	const char *value;
+	
+	dict=onion_dict_new();
+	FAIL_IF_EQUAL(dict,NULL);
+
+	// Get before anything in
+	value=onion_dict_get(dict, "Request");
+	FAIL_IF_NOT_EQUAL(value,NULL);
+
+	// basic add
+	onion_dict_add(dict, "Request", "GET /", OD_DUP_ALL);
+	value=onion_dict_get(dict, "Request");
+	FAIL_IF_NOT_EQUAL_STR(value,"GET /");
+
+	onion_dict_add(dict, "Request", "GET /", OD_DUP_ALL);
+	value=onion_dict_get(dict, "Request");
+	FAIL_IF_NOT_EQUAL_STR(value,"GET /");
+	
+	// basic remove
+	onion_dict_remove(dict, "Request");
+	value=onion_dict_get(dict, "Request");
+	FAIL_IF_NOT_EQUAL_STR(value,"GET /");
+	
+	// basic remove
+	onion_dict_remove(dict, "Request");
+	value=onion_dict_get(dict, "Request");
+	FAIL_IF_NOT_EQUAL(value,NULL);
+
+	onion_dict_free(dict);
+	
+	END_LOCAL();
+}
+
+
 int main(int argc, char **argv){
 	t01_create_add_free();
 	t02_create_and_free_a_lot(100);
 	t03_create_and_free_a_lot_random(100);
+	t04_create_and_free_a_dup();
 	
 	END();
 }
