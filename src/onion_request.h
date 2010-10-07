@@ -47,13 +47,14 @@ struct onion_request_t{
 	int flags;
 	char *url;
 	onion_dict *query;
+	int socket;
 };
 
 typedef struct onion_request_t onion_request;
 
 
 /// Creates a request
-onion_request *onion_request_new();
+onion_request *onion_request_new(int socket);
 
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req);

@@ -23,12 +23,14 @@
 #include "onion_request.h"
 
 /// Creates a request
-onion_request *onion_request_new(){
+onion_request *onion_request_new(int socket){
 	onion_request *req;
 	req=malloc(sizeof(onion_request));
 	memset(req,0,sizeof(onion_request));
 	
 	req->headers=onion_dict_new();
+	
+	req->socket=socket;
 	
 	return req;
 }

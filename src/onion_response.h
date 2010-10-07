@@ -31,15 +31,34 @@ extern "C"{
 struct onion_response_t{
 	onion_dict *headers;
 	int code;
-	
-	void *data_generator;
-	void *priv_data;
-	void *priv_data_delete;
+	int flags;
 };
 
 typedef struct onion_response_t onion_response;
 
-typedef unsigned int (*onion_data_generator)(onion_response *response, char *data, unsigned int max_length);
+
+/**
+ * @short Possible flags
+ */
+enum onion_response_flags_e{
+	OR_KEEP_ALIVE=1,
+};
+
+typedef enum onion_response_flags_e onion_response_flags;
+
+/// Generates a new response object
+onion_response *onion_response_new();
+/// Frees the memory consumed by this object
+void onion_response_free(onion_response *);
+/// Adds a header to the response object
+void onion_response_set_header(onion_response *, const char *key, const char *value);
+/// Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
+void onion_response_set_length(onion_response *, int);
+/// Sets the return code
+void onion_response_set_code(onion_response *, int);
+
+/// Writes all the header to the given fd
+void onion_response_write(onion_response *, int fd);
 
 #ifdef __cplusplus
 }

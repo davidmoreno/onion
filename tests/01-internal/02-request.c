@@ -29,7 +29,9 @@ void t01_create_add_free(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new();
+	req=onion_request_new(111);
+	FAIL_IF_NOT_EQUAL(req->socket, 111);
+	
 	FAIL_IF_EQUAL(req,NULL);
 	
 	ok=onion_request_fill(req,"GET / HTTP/1.1\n");
@@ -46,7 +48,9 @@ void t02_create_add_free_overflow(){
 	onion_request *req;
 	int ok, i;
 	
-	req=onion_request_new();
+	req=onion_request_new(12);
+	FAIL_IF_NOT_EQUAL(req->socket, 12);
+
 	FAIL_IF_EQUAL(req,NULL);
 	
 	char of[4096];
@@ -68,8 +72,9 @@ void t03_create_add_free_full_flow(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new();
+	req=onion_request_new(0);
 	FAIL_IF_EQUAL(req,NULL);
+	FAIL_IF_NOT_EQUAL(req->socket, 0);
 	
 	ok=onion_request_fill(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.1\n");
 	FAIL_IF_NOT(ok);
@@ -88,7 +93,6 @@ void t03_create_add_free_full_flow(){
 	
 	FAIL_IF_NOT_EQUAL_STR(req->url,"/myurl /is/very/deeply/nested");
 
-	
 	FAIL_IF_EQUAL(req->query,NULL);
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"test"), "test");
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"query2"), "query 2");
@@ -108,7 +112,4 @@ int main(int argc, char **argv){
 	
 	END();
 }
-
-
-
 

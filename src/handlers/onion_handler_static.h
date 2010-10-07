@@ -25,8 +25,6 @@ extern "C"{
 
 #include <onion_handler.h>
 
-
-
 /// Creates an static handler. Returns some content from memory, like an error html.
 onion_handler *onion_handler_static(const char *text, int code);
 

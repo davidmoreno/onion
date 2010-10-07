@@ -28,8 +28,8 @@
  *
  * It checks this parser, and siblings.
  */
-onion_response *onion_handler_handle(onion_handler *handler, onion_request *request){
-	onion_response *res;
+int onion_handler_handle(onion_handler *handler, onion_request *request){
+	int res;
 	while (handler){
 	
 		if (handler->parser){
@@ -41,7 +41,7 @@ onion_response *onion_handler_handle(onion_handler *handler, onion_request *requ
 		
 		handler=handler->next;
 	}
-	return NULL;
+	return 0;
 }
 
 

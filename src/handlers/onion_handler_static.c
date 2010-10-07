@@ -18,6 +18,9 @@
 
 #include <string.h>
 #include <malloc.h>
+#include <unistd.h>
+
+#include <onion_response.h>
 
 #include "onion_handler_static.h"
 
@@ -28,26 +31,21 @@ struct onion_handler_static_data_t{
 
 typedef struct onion_handler_static_data_t onion_handler_static_data;
 
-void onion_handler_static_generator(onion_response *response, char *data, unsigned int max_length){
-	onion_handler_static_data *d=response->priv_data;
-	strncpy(data, d->data, max_length);
-}
-
-onion_response *onion_handler_static_parser(onion_handler *handler, onion_request *request){
-	onion_response *res=malloc(sizeof(onion_response));
-	memset(res,0,sizeof(res));
+int onion_handler_static_parser(onion_handler *handler, onion_request *request){
 	onion_handler_static_data *d=handler->priv_data;
+	onion_response *res=onion_response_new();
 
-	res->code=d->code;
-	res->data_generator=onion_handler_static_generator;
-	res->headers=onion_dict_new();
-	res->priv_data=d;
-	res->priv_data_delete=NULL;
+	int length=strlen(d->data);
+	onion_response_set_length(res, length);
+	onion_response_set_code(res, d->code);
 	
-	char s[256];
-	sprintf(s,"%ld",strlen(d->data));
-	onion_dict_add(res->headers, "Content-Length", s, OD_DUP_VALUE);
-	return res;
+	onion_response_write(res, request->socket);
+	
+	onion_response_free(res);
+	
+	write(request->socket, d->data, length);
+	
+	return 1;
 }
 
 
@@ -57,6 +55,9 @@ void onion_handler_static_delete(void *data){
 	free(d);
 }
 
+/**
+ * @short Creates a static handler that just writes some static data.
+ */
 onion_handler *onion_handler_static(const char *text, int code){
 	onion_handler *ret;
 	ret=malloc(sizeof(onion_handler));

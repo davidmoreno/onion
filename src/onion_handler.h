@@ -24,13 +24,6 @@ extern "C"{
 #endif
 
 #include "onion_request.h"
-#include "onion_response.h"
-
-enum onion_handler_code_enum{
-	OH_OK=200,
-	OH_REDIRECT=302,
-	OH_NOT_FOUND=404,
-};
 
 /**
  * @short Information about a handler for onion. A tree structure of handlers is what really serves the data.
@@ -47,11 +40,11 @@ struct onion_handler_t{
 
 typedef struct onion_handler_t onion_handler;
 
-typedef onion_response *(*onion_parser)(onion_handler *handler, onion_request *);
+typedef int (*onion_parser)(onion_handler *handler, onion_request *);
 
 
 /// checks that handler to handle the request
-onion_response *onion_handler_handle(onion_handler *handler, onion_request *request);
+int onion_handler_handle(onion_handler *handler, onion_request *request);
 
 
 #ifdef __cplusplus
