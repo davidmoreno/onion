@@ -42,6 +42,7 @@ typedef struct onion_response_t onion_response;
  */
 enum onion_response_flags_e{
 	OR_KEEP_ALIVE=1,
+	OR_LENGTH_SET=2,
 };
 
 typedef enum onion_response_flags_e onion_response_flags;

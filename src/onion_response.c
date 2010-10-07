@@ -51,6 +51,7 @@ void onion_response_set_length(onion_response *res, int len){
 	char tmp[16];
 	sprintf(tmp,"%d",len);
 	onion_response_set_header(res, "Content-Length", tmp);
+	res->flags|=OR_LENGTH_SET;
 }
 
 /// Sets the return code
