@@ -31,7 +31,7 @@ extern "C"{
 struct onion_handler_t{
 	const char *name;        /// Informatory only.
 	
-	void *parser;            /// callback that should return an onion_response object, or NULL if im not entitled to respnse this request.
+	void *handler;            /// callback that should return an onion_response object, or NULL if im not entitled to respnse this request.
 	void *priv_data;         /// Private data as needed by the parser
 	void *priv_data_delete;  /// When freeing some memory, how to remove the private memory.
 	

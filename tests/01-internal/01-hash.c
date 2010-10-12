@@ -199,12 +199,43 @@ void t04_create_and_free_a_dup(){
 	END_LOCAL();
 }
 
+void append_as_headers(const char *key, const char *value, void *data){
+	char *str=data;
+	char tmp[1024];
+	sprintf(tmp,"%s: %s\n", key, value);
+	strcat(str,tmp);
+}
+
+
+void t04_preorder(){
+	onion_dict *dict;
+	dict=onion_dict_new();
+	
+	onion_dict_add(dict,"A","B",0);
+	onion_dict_add(dict,"C","D",0);
+	onion_dict_add(dict,"E","F",0);
+	onion_dict_add(dict,"G","H",0);
+	onion_dict_add(dict,"I","J",0);
+	onion_dict_add(dict,"K","L",0);
+	onion_dict_add(dict,"M","N",0);
+	onion_dict_add(dict,"O","P",0);
+	onion_dict_add(dict,"Q","R",0);
+	onion_dict_add(dict,"S","T",0);
+	
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	onion_dict_preorder(dict, append_as_headers, buffer);
+	FAIL_IF_NOT_EQUAL_STR(buffer,"A: B\nC: D\nE: F\nG: H\nI: J\nK: L\nM: N\nO: P\nQ: R\nS: T\n");
+	
+	onion_dict_free(dict);
+}
 
 int main(int argc, char **argv){
 	t01_create_add_free();
 	t02_create_and_free_a_lot(100);
 	t03_create_and_free_a_lot_random(100);
 	t04_create_and_free_a_dup();
+	t04_preorder();
 	
 	END();
 }

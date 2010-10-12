@@ -31,7 +31,7 @@ struct onion_handler_static_data_t{
 
 typedef struct onion_handler_static_data_t onion_handler_static_data;
 
-int onion_handler_static_parser(onion_handler *handler, onion_request *request){
+int onion_handler_static_handler(onion_handler *handler, onion_request *request){
 	onion_handler_static_data *d=handler->priv_data;
 	onion_response *res=onion_response_new(request);
 
@@ -39,13 +39,11 @@ int onion_handler_static_parser(onion_handler *handler, onion_request *request){
 	onion_response_set_length(res, length);
 	onion_response_set_code(res, d->code);
 	
-	onion_response_write(res);
+	onion_response_write_headers(res);
 	
+	onion_response_write(res, d->data, length);
+
 	onion_response_free(res);
-	
-	onion_write write=onion_response_get_writer(res);
-	
-	write(onion_response_get_socket(res), d->data, length);
 	
 	return 1;
 }
@@ -69,7 +67,7 @@ onion_handler *onion_handler_static(const char *text, int code){
 	priv_data->code=code;
 	priv_data->data=strdup(text);
 	
-	ret->parser=onion_handler_static_parser;
+	ret->handler=onion_handler_static_handler;
 	ret->priv_data=priv_data;
 	ret->priv_data_delete=onion_handler_static_delete;
 	

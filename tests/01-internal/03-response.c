@@ -40,72 +40,49 @@ void t01_create_add_free(){
 	
 	END_LOCAL();
 }
-/*
-void t02_create_add_free_overflow(){
+
+/// Just appends to the handler. Must be big enought or segfault.. Just for tests.
+int write_append(void *handler, const char *data, unsigned int length){
+	char *str=handler;
+	int p=strlen(str);
+	strcat(str,data);
+	str[p+length]=0;
+	return length;
+}
+
+
+void t02_full_cycle(){
 	INIT_LOCAL();
 	
-	onion_request *req;
-	int ok, i;
+	onion_server server;
+	server.write=write_append;
+	onion_request *request;
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
 	
-	req=onion_request_new(12);
-	FAIL_IF_NOT_EQUAL(req->socket, 12);
+	request=onion_request_new(&server, buffer);
+	
+	onion_response *response=onion_response_new(request);
+	
+	onion_response_set_length(response, 30);
+	FAIL_IF_NOT_EQUAL(response->length,30);
+	onion_response_write_headers(response);
+	
+	onion_response_write(response,"123456789012345678901234567890",30);
+	
+	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
+	
+	onion_response_free(response);
+	onion_request_free(request);
 
-	FAIL_IF_EQUAL(req,NULL);
-	
-	char of[4096];
-	for (i=0;i<sizeof(of);i++)
-		of[i]='a'+i%26;
-	char get[4096*4];
-	sprintf(get,"%s %s %s",of,of,of);
-	ok=onion_request_fill(req,get);
-	FAIL_IF_NOT_EQUAL(ok,0);
-	
-	onion_request_free(req);
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 30\n\n123456789012345678901234567890\n\n");
 	
 	END_LOCAL();
 }
 
-void t03_create_add_free_full_flow(){
-	INIT_LOCAL();
-	
-	onion_request *req;
-	int ok;
-	
-	req=onion_request_new(0);
-	FAIL_IF_EQUAL(req,NULL);
-	FAIL_IF_NOT_EQUAL(req->socket, 0);
-	
-	ok=onion_request_fill(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.1\n");
-	FAIL_IF_NOT(ok);
-	ok=onion_request_fill(req,"Host: 127.0.0.1");
-	FAIL_IF_NOT(ok);
-	ok=onion_request_fill(req,"Other-Header: My header is very long and with spaces...\n");
-	FAIL_IF_NOT(ok);
-	
-	FAIL_IF_NOT_EQUAL(req->flags,OR_GET|OR_HTTP11);
-	
-	FAIL_IF_EQUAL(req->headers, NULL);
-	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Host"), "127.0.0.1");
-	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
-
-	onion_request_parse_query(req);
-	
-	FAIL_IF_NOT_EQUAL_STR(req->url,"/myurl /is/very/deeply/nested");
-
-	FAIL_IF_EQUAL(req->query,NULL);
-	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"test"), "test");
-	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"query2"), "query 2");
-	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"more_query"), " more query 10");
-	
-	
-	onion_request_free(req);
-	
-	END_LOCAL();
-}
-
-*/
 int main(int argc, char **argv){
 	t01_create_add_free();
+	t02_full_cycle();
 	
 	END();
 }

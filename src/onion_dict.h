@@ -70,6 +70,9 @@ const char *onion_dict_get(onion_dict *dict, const char *key);
 /// Prints a dot ready graph to stderr
 void onion_dict_print_dot(onion_dict *dict);
 
+/// Visits the full graph in preorder, calling that funciton on each node
+void onion_dict_preorder(onion_dict *dict, void *func, void *data);
+
 #ifdef __cplusplus
 }
 #endif

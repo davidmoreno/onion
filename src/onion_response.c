@@ -32,12 +32,17 @@ onion_response *onion_response_new(onion_request *req){
 	res->headers=onion_dict_new();
 	res->code=200; // The most normal code, so no need to overwrite it in other codes.
 	res->flags=OR_KEEP_ALIVE;
+	res->length=res->sent_bytes=0;
 	
 	return res;
 }
 
 /// Frees the memory consumed by this object
 void onion_response_free(onion_response *res){
+	if (res->flags&OR_LENGTH_SET && res->length==res->sent_bytes){
+		onion_response_write(res,"\n\n",2);
+	}
+	
 	onion_dict_free(res->headers);
 	free(res);
 }
@@ -48,10 +53,11 @@ void onion_response_set_header(onion_response *res, const char *key, const char 
 }
 
 /// Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
-void onion_response_set_length(onion_response *res, int len){
+void onion_response_set_length(onion_response *res, unsigned int len){
 	char tmp[16];
 	sprintf(tmp,"%d",len);
 	onion_response_set_header(res, "Content-Length", tmp);
+	res->length=len;
 	res->flags|=OR_LENGTH_SET;
 }
 
@@ -60,20 +66,38 @@ void onion_response_set_code(onion_response *res, int  code){
 	res->code=code;
 }
 
+#define W(...) { sprintf(tmp, __VA_ARGS__); write(fd, tmp, strlen(tmp)); write(fd,"\n",1); }
+/// Helper that is called on each header, and writes the header
+static void write_header(const char *key, const char *value, onion_response *res){
+	char tmp[1024];
+	void *fd=onion_response_get_socket(res);
+	onion_write write=onion_response_get_writer(res);
+	W("%s: %s",key, value);
+}
+
 /// Writes all the header to the given fd
-void onion_response_write(onion_response *res){
+void onion_response_write_headers(onion_response *res){
+	char tmp[1024];
 	void *fd=onion_response_get_socket(res);
 	onion_write write=onion_response_get_writer(res);
 	
-#define W(...) { sprintf(tmp, __VA_ARGS__); write(fd, tmp, strlen(tmp)); write(fd,"\n",1); }
-	char tmp[1024];
 
 	W("HTTP/1.1 %d %s",res->code, onion_response_code_description(res->code));
 	
-	// FIXME WRITE ALL HEADERS.
+	onion_dict_preorder(res->headers, write_header, res);
 	
-#undef W
+	write(fd, "\n", 1);
 }
+
+/// Straight write some data to the response. Only used for real data as it has info about sent bytes for keep alive.
+void onion_response_write(onion_response *res, const char *data, unsigned int length){
+	void *fd=onion_response_get_socket(res);
+	onion_write write=onion_response_get_writer(res);
+	write(fd, data, length);
+	res->sent_bytes+=length;
+}
+
+#undef W
 
 
 /**

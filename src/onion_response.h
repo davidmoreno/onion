@@ -34,6 +34,8 @@ struct onion_response_t{
 	onion_dict *headers;
 	int code;
 	int flags;
+	unsigned int length;
+	unsigned int sent_bytes;
 };
 
 typedef struct onion_response_t onion_response;
@@ -52,21 +54,23 @@ typedef enum onion_response_flags_e onion_response_flags;
 /// Generates a new response object
 onion_response *onion_response_new(onion_request *req);
 /// Frees the memory consumed by this object
-void onion_response_free(onion_response *);
+void onion_response_free(onion_response *res);
 /// Adds a header to the response object
-void onion_response_set_header(onion_response *, const char *key, const char *value);
+void onion_response_set_header(onion_response *res, const char *key, const char *value);
 /// Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
-void onion_response_set_length(onion_response *, int);
+void onion_response_set_length(onion_response *res, unsigned int length);
 /// Sets the return code
-void onion_response_set_code(onion_response *, int);
+void onion_response_set_code(onion_response *res, int code);
 
 /// Writes all the header to the given fd
-void onion_response_write(onion_response *);
+void onion_response_write_headers(onion_response *res);
+/// Writes some data to the response
+void onion_response_write(onion_response *res, const char *data, unsigned int length);
 
 /// Returns the write object.
-onion_write onion_response_get_writer(onion_response *);
+onion_write onion_response_get_writer(onion_response *res);
 /// Returns the writing handler, also known as socket object.
-void *onion_response_get_socket(onion_response *response);
+void *onion_response_get_socket(onion_response *res);
 
 #ifdef __cplusplus
 }

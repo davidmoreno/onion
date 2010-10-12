@@ -191,3 +191,16 @@ void onion_dict_print_dot(onion_dict *dict){
 	}
 }
 
+/**
+ * The funciton is of prototype void f(const char *key, const char *value, void *data);
+ */
+void onion_dict_preorder(onion_dict *dict, void *func, void *data){
+	void (*f)(const char *key, const char *value, void *data);
+	f=func;
+	if (dict->left)
+		onion_dict_preorder(dict->left, func, data);
+	if (!(dict->flags&OD_EMPTY))
+		f(dict->key, dict->value, data);
+	if (dict->right)
+		onion_dict_preorder(dict->right, func, data);
+}
