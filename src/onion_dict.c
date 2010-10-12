@@ -41,7 +41,6 @@ static onion_dict *onion_dict_find_node(onion_dict *dict, const char *key, onion
 		return NULL;
 	}
 	char cmp=strcmp(key, dict->key);
-	//fprintf(stderr,"Find %s, here %s, left %s, right %s, cmp %d\n",key,dict->key, dict->left ? dict->left->key : NULL, dict->right ? dict->right->key : NULL, cmp);
 	if (cmp==0)
 		return dict;
 	if (parent) *parent=dict;
@@ -57,7 +56,6 @@ static onion_dict *onion_dict_find_node(onion_dict *dict, const char *key, onion
  */
 void onion_dict_add(onion_dict *dict, const char *key, const char *value, int flags){
 	onion_dict *dup, *where=NULL;
-	//fprintf(stderr,"Add %s\n",key);
 	
 	dup=onion_dict_find_node(dict, key, &where);
 	
@@ -81,7 +79,6 @@ void onion_dict_add(onion_dict *dict, const char *key, const char *value, int fl
 
 	if ((flags&OD_DUP_KEY)==OD_DUP_KEY){ // not enought with flag, as its a multiple bit flag, with FREE included
 		where->key=strdup(key);
-		//fprintf(stderr,"%p create\n",where->key);
 	}
 	else
 		where->key=key;
@@ -95,7 +92,6 @@ void onion_dict_add(onion_dict *dict, const char *key, const char *value, int fl
 /// Frees the memory, if necesary of key and value
 static void onion_dict_free_node_kv(onion_dict *dict){
 	if (dict->flags&OD_FREE_KEY){
-		//fprintf(stderr,"%p free key\n",dict->key);
 		free((char*)dict->key);
 	}
 	if (dict->flags&OD_FREE_VALUE)
@@ -121,14 +117,11 @@ static void onion_dict_copy_data(onion_dict *src, onion_dict *dst){
 int onion_dict_remove(onion_dict *dict, const char *key){
 	onion_dict *parent=NULL;
 	dict=onion_dict_find_node(dict, key, &parent);
-	//fprintf(stderr,"rm %s\n",key);
-
 	
 	if (!dict)
 		return 0;
 	onion_dict_free_node_kv(dict);
 	if (dict->left && dict->right){ // I copy right here, and move left tree to leftmost branch of right branch.
-		//fprintf(stderr,"rm center\n");
 		onion_dict *left=dict->left;
 		onion_dict *right=dict->right;
 		onion_dict_copy_data(dict->right, dict);
@@ -137,19 +130,16 @@ int onion_dict_remove(onion_dict *dict, const char *key){
 		while (t->left) t=t->left;
 		
 		t->left=left;
-		//fprintf(stderr,"I set left (%s) at (%s)\n",left->key, t->key);
 		if (t!=right){
 			free(right); // right is now here. t is the leftmost branch of right
 		}
 	}
 	else if (dict->left){
-		//fprintf(stderr,"rm left\n");
 		onion_dict *t=dict->left;
 		onion_dict_copy_data(t, dict);
 		free(t);
 	}
 	else if (dict->right){
-		//fprintf(stderr,"rm right\n");
 		onion_dict *t=dict->right;
 		onion_dict_copy_data(t, dict);
 		free(t);
@@ -168,7 +158,6 @@ void onion_dict_free(onion_dict *dict){
 	if (dict->right)
 		onion_dict_free(dict->right);
 
-	//fprintf(stderr,"%p dictfree\n",dict);
 	onion_dict_free_node_kv(dict);
 	free(dict);
 }
@@ -176,7 +165,6 @@ void onion_dict_free(onion_dict *dict){
 /// Gets a value
 const char *onion_dict_get(onion_dict *dict, const char *key){
 	onion_dict *r;
-	//fprintf(stderr,"Get %s\n",key);
 	r=onion_dict_find_node(dict, key, NULL);
 	if (r)
 		return r->value;

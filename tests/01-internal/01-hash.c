@@ -80,11 +80,6 @@ void t02_create_and_free_a_lot(unsigned int n){
 
 	// remove all
 	for (i=0;i<n;i++){
-		/*
-		fprintf(stderr,"digraph G{\n");
-		onion_dict_print_dot(dict);
-		fprintf(stderr,"}\n");
-		*/
 		char key[16];
 		sprintf(key,"key %d",i);
 		
