@@ -45,8 +45,8 @@ enum onion_dict_flags_e{
 	OD_FREE_VALUE=4,   /// Whether the value has to be removed at free time
 	OD_FREE_ALL=6,     /// Whether both, the key and value have to be removed at free time. In any case its also marked for freeing later.
 	OD_DUP_KEY=0x12,   /// Whether the key has to be dupped
-	OD_DUP_VALUE=0x14, /// Whether the value has to be dupped
-	OD_DUP_ALL=0x16,   /// Whether both, the key and value have to be dupped. In any case its also marked for freeing later.
+	OD_DUP_VALUE=0x24, /// Whether the value has to be dupped
+	OD_DUP_ALL=0x36,   /// Whether both, the key and value have to be dupped. In any case its also marked for freeing later.
 };
 
 /// Wrapper to make it easier to use
@@ -66,6 +66,9 @@ void onion_dict_free(onion_dict *dict);
 
 /// Gets a value
 const char *onion_dict_get(onion_dict *dict, const char *key);
+
+/// Prints a dot ready graph to stderr
+void onion_dict_print_dot(onion_dict *dict);
 
 #ifdef __cplusplus
 }

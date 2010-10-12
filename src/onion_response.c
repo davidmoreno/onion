@@ -25,9 +25,10 @@
 const char *onion_response_code_description(int code);
 
 /// Generates a new response object
-onion_response *onion_response_new(){
+onion_response *onion_response_new(onion_request *req){
 	onion_response *res=malloc(sizeof(onion_response));
 	
+	res->request=req;
 	res->headers=onion_dict_new();
 	res->code=200; // The most normal code, so no need to overwrite it in other codes.
 	res->flags=OR_KEEP_ALIVE;
@@ -60,7 +61,10 @@ void onion_response_set_code(onion_response *res, int  code){
 }
 
 /// Writes all the header to the given fd
-void onion_response_write(onion_response *res, int fd){
+void onion_response_write(onion_response *res){
+	void *fd=onion_response_get_socket(res);
+	onion_write write=onion_response_get_writer(res);
+	
 #define W(...) { sprintf(tmp, __VA_ARGS__); write(fd, tmp, strlen(tmp)); write(fd,"\n",1); }
 	char tmp[1024];
 
@@ -69,6 +73,18 @@ void onion_response_write(onion_response *res, int fd){
 	// FIXME WRITE ALL HEADERS.
 	
 #undef W
+}
+
+
+/**
+ * Returns the writer method that can be used to write to the socket.
+ */
+onion_write onion_response_get_writer(onion_response *response){
+	return response->request->server->write;
+}
+
+void *onion_response_get_socket(onion_response *response){
+	return response->request->socket;
 }
 
 /**

@@ -23,12 +23,14 @@
 extern "C"{
 #endif
 
+#include "onion_request.h"
 #include "onion_dict.h"
 
 /**
  * @short The response
  */
 struct onion_response_t{
+	onion_request *request;
 	onion_dict *headers;
 	int code;
 	int flags;
@@ -48,7 +50,7 @@ enum onion_response_flags_e{
 typedef enum onion_response_flags_e onion_response_flags;
 
 /// Generates a new response object
-onion_response *onion_response_new();
+onion_response *onion_response_new(onion_request *req);
 /// Frees the memory consumed by this object
 void onion_response_free(onion_response *);
 /// Adds a header to the response object
@@ -59,7 +61,12 @@ void onion_response_set_length(onion_response *, int);
 void onion_response_set_code(onion_response *, int);
 
 /// Writes all the header to the given fd
-void onion_response_write(onion_response *, int fd);
+void onion_response_write(onion_response *);
+
+/// Returns the write object.
+onion_write onion_response_get_writer(onion_response *);
+/// Returns the writing handler, also known as socket object.
+void *onion_response_get_socket(onion_response *response);
 
 #ifdef __cplusplus
 }

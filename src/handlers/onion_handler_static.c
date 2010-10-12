@@ -33,17 +33,19 @@ typedef struct onion_handler_static_data_t onion_handler_static_data;
 
 int onion_handler_static_parser(onion_handler *handler, onion_request *request){
 	onion_handler_static_data *d=handler->priv_data;
-	onion_response *res=onion_response_new();
+	onion_response *res=onion_response_new(request);
 
 	int length=strlen(d->data);
 	onion_response_set_length(res, length);
 	onion_response_set_code(res, d->code);
 	
-	onion_response_write(res, request->socket);
+	onion_response_write(res);
 	
 	onion_response_free(res);
 	
-	write(request->socket, d->data, length);
+	onion_write write=onion_response_get_writer(res);
+	
+	write(onion_response_get_socket(res), d->data, length);
 	
 	return 1;
 }

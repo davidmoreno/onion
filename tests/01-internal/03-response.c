@@ -26,17 +26,17 @@
 void t01_create_add_free(){
 	INIT_LOCAL();
 	
-	onion_response *req;
+	onion_response *res;
 	
-	req=onion_response_new();
-	FAIL_IF_NOT_EQUAL(req->code, 200);
+	res=onion_response_new(NULL);
+	FAIL_IF_NOT_EQUAL(res->code, 200);
 	
-	FAIL_IF_EQUAL(req,NULL);
+	FAIL_IF_EQUAL(res,NULL);
 	
-	onion_response_set_length(req,1024);
-	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(req->headers,"Content-Length"),"1024");
+	onion_response_set_length(res,1024);
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(res->headers,"Content-Length"),"1024");
 	
-	onion_response_free(req);
+	onion_response_free(res);
 	
 	END_LOCAL();
 }

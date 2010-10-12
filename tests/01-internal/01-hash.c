@@ -65,7 +65,6 @@ void t02_create_and_free_a_lot(unsigned int n){
 		char key[16], val[16];
 		sprintf(key,"key %d",i);
 		sprintf(val,"val %d",i);
-		
 		onion_dict_add(dict, key, val, OD_DUP_ALL);
 	}
 
@@ -81,10 +80,16 @@ void t02_create_and_free_a_lot(unsigned int n){
 
 	// remove all
 	for (i=0;i<n;i++){
+		/*
+		fprintf(stderr,"digraph G{\n");
+		onion_dict_print_dot(dict);
+		fprintf(stderr,"}\n");
+		*/
 		char key[16];
 		sprintf(key,"key %d",i);
 		
-		onion_dict_remove(dict, key);
+		int ok=onion_dict_remove(dict, key);
+		FAIL_IF_NOT(ok);
 	}
 
 	// check removed all
@@ -98,6 +103,8 @@ void t02_create_and_free_a_lot(unsigned int n){
 		FAIL_IF_NOT_EQUAL(NULL,value);
 		FAIL_IF_NOT_EQUAL_STR(NULL,value);
 	}
+	
+	onion_dict_free(dict);
 	
 	END_LOCAL();
 }
@@ -155,6 +162,8 @@ void t03_create_and_free_a_lot_random(unsigned int n){
 		FAIL_IF_NOT_EQUAL(NULL,value);
 		FAIL_IF_NOT_EQUAL_STR(NULL,value);
 	}
+
+	onion_dict_free(dict);
 	
 	END_LOCAL();
 }

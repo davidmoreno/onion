@@ -78,12 +78,14 @@ void onion_dict_add(onion_dict *dict, const char *key, const char *value, int fl
 			where->right=dict;
 		where=dict;
 	}
-	
-	if (flags&OD_DUP_KEY)
+
+	if ((flags&OD_DUP_KEY)==OD_DUP_KEY){ // not enought with flag, as its a multiple bit flag, with FREE included
 		where->key=strdup(key);
+		//fprintf(stderr,"%p create\n",where->key);
+	}
 	else
 		where->key=key;
-	if (flags&OD_DUP_KEY)
+	if ((flags&OD_DUP_VALUE)==OD_DUP_VALUE)
 		where->value=strdup(value);
 	else
 		where->value=value;
@@ -92,9 +94,11 @@ void onion_dict_add(onion_dict *dict, const char *key, const char *value, int fl
 
 /// Frees the memory, if necesary of key and value
 static void onion_dict_free_node_kv(onion_dict *dict){
-	if (dict->flags&OD_DUP_KEY)
+	if (dict->flags&OD_FREE_KEY){
+		//fprintf(stderr,"%p free key\n",dict->key);
 		free((char*)dict->key);
-	if (dict->flags&OD_DUP_VALUE)
+	}
+	if (dict->flags&OD_FREE_VALUE)
 		free((char*)dict->value);
 }
 
@@ -117,24 +121,38 @@ static void onion_dict_copy_data(onion_dict *src, onion_dict *dst){
 int onion_dict_remove(onion_dict *dict, const char *key){
 	onion_dict *parent=NULL;
 	dict=onion_dict_find_node(dict, key, &parent);
+	//fprintf(stderr,"rm %s\n",key);
 
+	
 	if (!dict)
 		return 0;
 	onion_dict_free_node_kv(dict);
-	if (dict->left && dict->right){ // I copy right here, and move left tree to leftmost branch.
+	if (dict->left && dict->right){ // I copy right here, and move left tree to leftmost branch of right branch.
+		//fprintf(stderr,"rm center\n");
 		onion_dict *left=dict->left;
-		onion_dict *t=dict->right;
+		onion_dict *right=dict->right;
 		onion_dict_copy_data(dict->right, dict);
+		onion_dict *t=dict;
 		
 		while (t->left) t=t->left;
 		
 		t->left=left;
+		//fprintf(stderr,"I set left (%s) at (%s)\n",left->key, t->key);
+		if (t!=right){
+			free(right); // right is now here. t is the leftmost branch of right
+		}
 	}
 	else if (dict->left){
-		onion_dict_copy_data(dict->left, dict);
+		//fprintf(stderr,"rm left\n");
+		onion_dict *t=dict->left;
+		onion_dict_copy_data(t, dict);
+		free(t);
 	}
 	else if (dict->right){
-		onion_dict_copy_data(dict->right, dict);
+		//fprintf(stderr,"rm right\n");
+		onion_dict *t=dict->right;
+		onion_dict_copy_data(t, dict);
+		free(t);
 	}
 	else{
 		dict->flags=OD_EMPTY;
@@ -150,7 +168,9 @@ void onion_dict_free(onion_dict *dict){
 	if (dict->right)
 		onion_dict_free(dict->right);
 
+	//fprintf(stderr,"%p dictfree\n",dict);
 	onion_dict_free_node_kv(dict);
+	free(dict);
 }
 
 /// Gets a value
@@ -161,5 +181,25 @@ const char *onion_dict_get(onion_dict *dict, const char *key){
 	if (r)
 		return r->value;
 	return NULL;
+}
+
+/**
+ * Prints a graph on the form:
+ *
+ * key1 -> key0;
+ * key1 -> key2;
+ * ...
+ *
+ * User of this funciton has to write the 'digraph G{' and '}'
+ */
+void onion_dict_print_dot(onion_dict *dict){
+	if (dict->right){
+		fprintf(stderr,"\"%s\" -> \"%s\" [label=\"R\"];\n",dict->key, dict->right->key);
+		onion_dict_print_dot(dict->right);
+	}
+	if (dict->left){
+		fprintf(stderr,"\"%s\" -> \"%s\" [label=\"L\"];\n",dict->key, dict->left->key);
+		onion_dict_print_dot(dict->left);
+	}
 }
 

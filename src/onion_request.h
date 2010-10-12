@@ -23,8 +23,8 @@
 extern "C"{
 #endif
 
-
 #include "onion_dict.h"
+#include "onion_server.h"
 
 /**
  * @short Methods in which data can be asked.
@@ -43,18 +43,20 @@ typedef struct onion_request_method_e onion_request_method;
  * @short Basic information about a request
  */
 struct onion_request_t{
+	onion_server *server;
 	onion_dict *headers;
 	int flags;
 	char *url;
 	onion_dict *query;
-	int socket;
+	void *write;
+	void *socket;
 };
 
 typedef struct onion_request_t onion_request;
 
 
 /// Creates a request
-onion_request *onion_request_new(int socket);
+onion_request *onion_request_new(onion_server *server, void *socket);
 
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req);
