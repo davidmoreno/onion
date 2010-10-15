@@ -43,13 +43,14 @@ typedef struct onion_request_method_e onion_request_method;
  * @short Basic information about a request
  */
 struct onion_request_t{
-	onion_server *server;
-	onion_dict *headers;
-	int flags;
-	char *url;
-	onion_dict *query;
-	void *write;
-	void *socket;
+	onion_server *server; /// Server original data, like write function
+	onion_dict *headers;  /// Headers prepared for this response.
+	int flags;            /// Flags for this response. Ored onion_request_flags_e
+	char *fullpath;       /// Original path for the request
+	char *path;           /// Path at this level. Its actually a pointer inside fullpath, removing the leading parts already processed by handlers
+	onion_dict *query;    /// When the query (?q=query) is processed, the dict with the values @see onion_request_parse_query
+	void *write;          /// Write function
+	void *socket;         /// Write function handler
 };
 
 typedef struct onion_request_t onion_request;

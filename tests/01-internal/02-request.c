@@ -97,7 +97,8 @@ void t03_create_add_free_full_flow(){
 
 	onion_request_parse_query(req);
 	
-	FAIL_IF_NOT_EQUAL_STR(req->url,"/myurl /is/very/deeply/nested");
+	FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
+	FAIL_IF_NOT_EQUAL_STR(req->path,"/myurl /is/very/deeply/nested");
 
 	FAIL_IF_EQUAL(req->query,NULL);
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"test"), "test");

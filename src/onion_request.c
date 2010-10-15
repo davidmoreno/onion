@@ -39,8 +39,8 @@ onion_request *onion_request_new(onion_server *server, void *socket){
 void onion_request_free(onion_request *req){
 	onion_dict_free(req->headers);
 	
-	if (req->url)
-		free(req->url);
+	if (req->fullpath)
+		free(req->fullpath);
 	if (req->query)
 		onion_dict_free(req->query);
 	
@@ -49,7 +49,7 @@ void onion_request_free(onion_request *req){
 
 /// Partially fills a request. One line each time.
 int onion_request_fill(onion_request *req, const char *data){
-	if (!req->url){
+	if (!req->path){
 		char method[16], url[256], version[16];
 		sscanf(data,"%15s %255s %15s",method, url, version);
 
@@ -67,7 +67,8 @@ int onion_request_fill(onion_request *req, const char *data){
 		else
 			return 0;
 
-		req->url=strndup(url,sizeof(url));
+		req->path=strndup(url,sizeof(url));
+		req->fullpath=req->path;
 	}
 	else{
 		char header[32], value[256];
@@ -117,7 +118,7 @@ void onion_request_unquote(char *str){
 
 /// Parses a query string.
 int onion_request_parse_query(onion_request *req){
-	if (!req->url)
+	if (!req->path)
 		return 0;
 	if (req->query) // already done
 		return 1;
@@ -125,7 +126,7 @@ int onion_request_parse_query(onion_request *req){
 	char key[32], value[256];
 	char cleanurl[256];
 	int i=0;
-	char *p=req->url;
+	char *p=req->path;
 	while(*p){
 		//fprintf(stderr,"%d %c", *p, *p);
 		if (*p=='?')
@@ -177,7 +178,8 @@ int onion_request_parse_query(onion_request *req){
 			onion_dict_add(req->query, key, value, OD_DUP_ALL);
 		}
 	}
-	free(req->url);
-	req->url=strndup(cleanurl, sizeof(cleanurl));
+	free(req->fullpath);
+	req->fullpath=strndup(cleanurl, sizeof(cleanurl));
+	req->path=req->fullpath;
 	return 1;
 }

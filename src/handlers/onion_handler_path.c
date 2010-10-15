@@ -25,57 +25,45 @@
 
 #include "onion_handler_static.h"
 
-struct onion_handler_static_data_t{
-	int code;
-	const char *data;
+struct onion_handler_path_data_t{
 	regex_t path;
+	onion_handler *inside;
 };
 
-typedef struct onion_handler_static_data_t onion_handler_static_data;
+typedef struct onion_handler_path_data_t onion_handler_path_data;
 
-int onion_handler_static_handler(onion_handler *handler, onion_request *request){
-	onion_handler_static_data *d=handler->priv_data;
-
-	if (regexec(&d->path, request->path, 0, NULL, 0)!=0)
+int onion_handler_path_handler(onion_handler *handler, onion_request *request){
+	onion_handler_path_data *d=handler->priv_data;
+	regmatch_t match[1];
+	
+	if (regexec(&d->path, request->path, 1, match, 0)!=0)
 		return 0;
 	
-	onion_response *res=onion_response_new(request);
-
-	int length=strlen(d->data);
-	onion_response_set_length(res, length);
-	onion_response_set_code(res, d->code);
+	request->path=&request->path[match[0].rm_eo];
 	
-	onion_response_write_headers(res);
-	
-	onion_response_write(res, d->data, length);
-
-	onion_response_free(res);
-	
-	return 1;
+	return onion_handler_handle(d->inside, request);
 }
 
 
-void onion_handler_static_delete(void *data){
-	onion_handler_static_data *d=data;
-	free((char*)d->data);
+void onion_handler_path_delete(void *data){
+	onion_handler_path_data *d=data;
 	regfree(&d->path);
-	free(d);
+	onion_handler_free(d->inside);
 }
 
 /**
- * @short Creates a static handler that just writes some static data.
+ * @short Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
  *
- * Path is a regex for the url, as arrived here.
+ * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
  */
-onion_handler *onion_handler_static(const char *path, const char *text, int code){
+onion_handler *onion_handler_path(const char *path, onion_handler *inside_level){
 	onion_handler *ret;
 	ret=malloc(sizeof(onion_handler));
 	memset(ret,0,sizeof(onion_handler));
 	
-	onion_handler_static_data *priv_data=malloc(sizeof(onion_handler_static_data));
+	onion_handler_path_data *priv_data=malloc(sizeof(onion_handler_path_data));
 
-	priv_data->code=code;
-	priv_data->data=strdup(text);
+	priv_data->inside=inside_level;
 	
 	// Path is a little bit more complicated, its an regexp.
 	int err;
@@ -87,13 +75,13 @@ onion_handler *onion_handler_static(const char *path, const char *text, int code
 		char buffer[1024];
 		regerror(err, &priv_data->path, buffer, sizeof(buffer));
 		fprintf(stderr, "%s:%d Error analyzing regular expression '%s': %s.\n", __FILE__,__LINE__, path, buffer);
-		onion_handler_static_delete(priv_data);
+		onion_handler_path_delete(priv_data);
 		return NULL;
 	}
 	
-	ret->handler=onion_handler_static_handler;
+	ret->handler=onion_handler_path_handler;
 	ret->priv_data=priv_data;
-	ret->priv_data_delete=onion_handler_static_delete;
+	ret->priv_data_delete=onion_handler_path_delete;
 	
 	return ret;
 }

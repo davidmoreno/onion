@@ -22,6 +22,7 @@
 #include <onion_request.h>
 #include <onion_handler.h>
 #include <handlers/onion_handler_static.h>
+#include <handlers/onion_handler_path.h>
 
 #include "../test.h"
 
@@ -98,10 +99,53 @@ void t02_handle_generic_request(){
 	END_LOCAL();
 }
 
+void t03_handle_path_request(){
+	INIT_LOCAL();
+
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	onion_server server;
+	server.write=strncat;
+
+	onion_handler *test=onion_handler_static("^$", "Test index\n",200); // empty
+	onion_handler_add(test, onion_handler_static("index.html", "Index test", 200) );
+	
+	onion_handler *path=onion_handler_path("^/test/", test);
+	onion_handler_add(path, onion_handler_static(NULL, "Internal error", 500 ) );
+	
+	onion_request *request;
+	request=onion_request_new(&server, buffer);
+	onion_request_fill(request,"GET / HTTP/1.1");
+	onion_handler_handle(path, request);
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 500 INTERNAL ERROR\nContent-Length: 14\n\nInternal error");
+	onion_request_free(request);
+	
+	// gives error, as such url does not exist.
+	memset(buffer,0,sizeof(buffer));
+	request=onion_request_new(&server, buffer);
+	onion_request_fill(request,"GET /test/ HTTP/1.1");
+	onion_handler_handle(path, request);
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 11\n\nTest index\n");
+	onion_request_free(request);
+
+	memset(buffer,0,sizeof(buffer));
+	request=onion_request_new(&server, buffer);
+	onion_request_fill(request,"GET /test/index.html HTTP/1.1");
+	onion_handler_handle(path, request);
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 10\n\nIndex test");
+	onion_request_free(request);
+
+	onion_handler_free(path);
+
+	END_LOCAL();
+}
+
+
 
 int main(int argc, char **argv){
 	t01_handle_static_request();
 	t02_handle_generic_request();
+	t03_handle_path_request();
 	
 	END();
 }
