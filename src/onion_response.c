@@ -20,6 +20,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "onion_dict.h"
+#include "onion_request.h"
+#include "onion_server.h"
 #include "onion_response.h"
 
 const char *onion_response_code_description(int code);

@@ -19,6 +19,8 @@
 #ifndef __ONION_DICT__
 #define __ONION_DICT__
 
+#include "onion_types.h"
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -48,9 +50,6 @@ enum onion_dict_flags_e{
 	OD_DUP_VALUE=0x24, /// Whether the value has to be dupped
 	OD_DUP_ALL=0x36,   /// Whether both, the key and value have to be dupped. In any case its also marked for freeing later.
 };
-
-/// Wrapper to make it easier to use
-typedef struct onion_dict_t onion_dict;
 
 /// Initializes a dict.
 onion_dict *onion_dict_new();

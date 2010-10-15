@@ -16,14 +16,14 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_STATIC_HANDLER__
-#define __ONION_STATIC_HANDLER__
+#ifndef __ONION_HANDLER_STATIC__
+#define __ONION_HANDLER_STATIC__
+
+#include <onion_types.h>
 
 #ifdef __cplusplus
 extern "C"{
 #endif
-
-#include <onion_handler.h>
 
 /// Creates an static handler. Returns some content from memory, like an error html.
 onion_handler *onion_handler_static(const char *path, const char *text, int code);

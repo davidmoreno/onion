@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <regex.h>
 
+#include <onion_handler.h>
 #include <onion_response.h>
 
 #include "onion_handler_static.h"
@@ -49,6 +50,7 @@ void onion_handler_path_delete(void *data){
 	onion_handler_path_data *d=data;
 	regfree(&d->path);
 	onion_handler_free(d->inside);
+	free(data);
 }
 
 /**

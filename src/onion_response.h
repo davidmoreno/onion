@@ -19,12 +19,11 @@
 #ifndef __ONION_RESPONSE__
 #define __ONION_RESPONSE__
 
+#include "onion_types.h"
+
 #ifdef __cplusplus
 extern "C"{
 #endif
-
-#include "onion_request.h"
-#include "onion_dict.h"
 
 /**
  * @short The response
@@ -37,8 +36,6 @@ struct onion_response_t{
 	unsigned int length;
 	unsigned int sent_bytes;
 };
-
-typedef struct onion_response_t onion_response;
 
 
 /**

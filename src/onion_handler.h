@@ -16,14 +16,15 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION__
-#define __ONION__
+#ifndef __ONION_HANDLER__
+#define __ONION_HANDLER__
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
 #include "onion_request.h"
+#include "onion_types.h"
 
 /**
  * @short Information about a handler for onion. A tree structure of handlers is what really serves the data.
@@ -37,11 +38,6 @@ struct onion_handler_t{
 	
 	struct onion_handler_t *next; /// If parser returns null, i try next parser. If no next parser i go up, or return an error. @see onion_tree_parser
 };
-
-typedef struct onion_handler_t onion_handler;
-
-typedef int (*onion_parser)(onion_handler *handler, onion_request *);
-typedef int (*onion_handler_private_data_free)(void *privdata);
 
 
 /// checks that handler to handle the request

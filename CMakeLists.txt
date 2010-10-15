@@ -6,3 +6,5 @@ SET(CMAKE_C_FLAGS "-Wall -Werror")
 
 add_subdirectory(src)
 add_subdirectory(tests)
+
+add_subdirectory(examples)

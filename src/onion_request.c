@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "onion_dict.h"
 #include "onion_request.h"
 
 /// Creates a request

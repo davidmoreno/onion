@@ -16,20 +16,21 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_HANDLER_PATH__
-#define __ONION_HANDLER_PATH__
+#include <string.h>
 
-#include <onion_types.h>
+#include <onion.h>
+#include <onion_handler.h>
+#include <handlers/onion_handler_static.h>
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
-/// Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
-onion_handler *onion_handler_path(const char *path, onion_handler *inside_level);
-
-#ifdef __cplusplus
+int main(int argc, char **argv){
+	onion_handler *sttic=onion_handler_static(NULL,"Internal error", 500);
+	
+	onion *onion=onion_new(O_ONE);
+	onion_set_root_handler(onion, sttic);
+	
+	onion_listen(onion);
+	
+	onion_free(onion);
+	
+	return 0;
 }
-#endif
-
-#endif

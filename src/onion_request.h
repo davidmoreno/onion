@@ -19,12 +19,11 @@
 #ifndef __ONION_REQUEST__
 #define __ONION_REQUEST__
 
+#include "onion_types.h"
+
 #ifdef __cplusplus
 extern "C"{
 #endif
-
-#include "onion_dict.h"
-#include "onion_server.h"
 
 /**
  * @short Methods in which data can be asked.
@@ -53,7 +52,6 @@ struct onion_request_t{
 	void *socket;         /// Write function handler
 };
 
-typedef struct onion_request_t onion_request;
 
 
 /// Creates a request

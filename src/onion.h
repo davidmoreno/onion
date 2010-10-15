@@ -19,13 +19,15 @@
 #ifndef __ONION__
 #define __ONION__
 
+#include "onion_types.h"
+
 #ifdef __cplusplus
 extern "C"{
 #endif
 
 enum onion_mode_e{
-	ONE=1,
-	THREADED=2
+	O_ONE=1,
+	O_THREADED=2
 };
 
 typedef enum onion_mode_e onion_mode;
@@ -34,16 +36,24 @@ typedef enum onion_mode_e onion_mode;
  * @short Basic structure that contains the webserver info.
  */
 struct onion_t{
+	int flags;
 	int listenfd;
+	onion_handler *root_handler;
 };
 
 typedef struct onion_t onion;
 
 /// Creates the onion structure to fill with the server data, and later do the onion_listen()
-onion *onion_new();
+onion *onion_new(int flags);
 
 /// Performs the listening with the given mode
-int onion_listen(onion *server, onion_mode mode);
+int onion_listen(onion *server);
+
+/// Removes the allocated data
+void onion_free(onion *onion);
+
+/// Sets the root handler
+void onion_set_root_handler(onion *server, onion_handler *handler);
 
 #ifdef __cplusplus
 }

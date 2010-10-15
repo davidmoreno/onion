@@ -19,6 +19,9 @@
 #include <malloc.h>
 #include <string.h>
 
+#include <onion_dict.h>
+#include <onion_server.h>
+#include <onion_request.h>
 #include <onion_response.h>
 
 #include "../test.h"
