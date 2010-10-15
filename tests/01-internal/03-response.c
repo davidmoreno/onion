@@ -75,7 +75,7 @@ void t02_full_cycle(){
 	onion_response_free(response);
 	onion_request_free(request);
 
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 30\n\n123456789012345678901234567890\n\n");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 30\n\n123456789012345678901234567890");
 	
 	END_LOCAL();
 }

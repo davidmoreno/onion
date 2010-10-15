@@ -19,6 +19,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <unistd.h>
+#include <regex.h>
 
 #include <onion_response.h>
 
@@ -27,12 +28,17 @@
 struct onion_handler_static_data_t{
 	int code;
 	const char *data;
+	regex_t path;
 };
 
 typedef struct onion_handler_static_data_t onion_handler_static_data;
 
 int onion_handler_static_handler(onion_handler *handler, onion_request *request){
 	onion_handler_static_data *d=handler->priv_data;
+
+	if (regexec(&d->path, request->url, 0, NULL, 0)!=0)
+		return 0;
+	
 	onion_response *res=onion_response_new(request);
 
 	int length=strlen(d->data);
@@ -52,20 +58,38 @@ int onion_handler_static_handler(onion_handler *handler, onion_request *request)
 void onion_handler_static_delete(void *data){
 	onion_handler_static_data *d=data;
 	free((char*)d->data);
+	regfree(&d->path);
 	free(d);
 }
 
 /**
  * @short Creates a static handler that just writes some static data.
+ *
+ * Path is a regex for the url, as arrived here.
  */
-onion_handler *onion_handler_static(const char *text, int code){
+onion_handler *onion_handler_static(const char *path, const char *text, int code){
 	onion_handler *ret;
 	ret=malloc(sizeof(onion_handler));
 	memset(ret,0,sizeof(onion_handler));
 	
 	onion_handler_static_data *priv_data=malloc(sizeof(onion_handler_static_data));
+
 	priv_data->code=code;
 	priv_data->data=strdup(text);
+	
+	// Path is a little bit more complicated, its an regexp.
+	int err;
+	if (path)
+		err=regcomp(&priv_data->path, path, REG_EXTENDED);
+	else
+		err=regcomp(&priv_data->path, "", REG_EXTENDED); // empty regexp, always true. should be fast enough. 
+	if (err){
+		char buffer[1024];
+		regerror(err, &priv_data->path, buffer, sizeof(buffer));
+		fprintf(stderr, "%s:%d Error analyzing regular expression '%s': %s.\n", __FILE__,__LINE__, path, buffer);
+		onion_handler_static_delete(priv_data);
+		return NULL;
+	}
 	
 	ret->handler=onion_handler_static_handler;
 	ret->priv_data=priv_data;

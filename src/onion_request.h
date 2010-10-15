@@ -67,7 +67,6 @@ int onion_request_fill(onion_request *req, const char *data);
 /// Parses the query. Only called when really needs the query data. LAZY.
 int onion_request_parse_query(onion_request *req);
 
-
 #ifdef __cplusplus
 }
 #endif

@@ -39,9 +39,10 @@ onion_response *onion_response_new(onion_request *req){
 
 /// Frees the memory consumed by this object
 void onion_response_free(onion_response *res){
+	/*
 	if (res->flags&OR_LENGTH_SET && res->length==res->sent_bytes){
-		onion_response_write(res,"\n\n",2);
 	}
+	*/
 	
 	onion_dict_free(res->headers);
 	free(res);

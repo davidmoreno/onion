@@ -41,11 +41,17 @@ struct onion_handler_t{
 typedef struct onion_handler_t onion_handler;
 
 typedef int (*onion_parser)(onion_handler *handler, onion_request *);
+typedef int (*onion_handler_private_data_free)(void *privdata);
 
 
 /// checks that handler to handle the request
 int onion_handler_handle(onion_handler *handler, onion_request *request);
 
+/// Frees the memory of the handler
+int onion_handler_free(onion_handler *handler);
+
+/// Adds a handler to the list of handler of this level
+void onion_handler_add(onion_handler *base, onion_handler *new_handler);
 
 #ifdef __cplusplus
 }

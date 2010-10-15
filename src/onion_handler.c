@@ -30,19 +30,54 @@
  */
 int onion_handler_handle(onion_handler *handler, onion_request *request){
 	int res;
+	onion_parser parser;
 	while (handler){
-	
 		if (handler->handler){
-			onion_parser=handler->handler;
-			res=onion_parser(handler, request);
+			parser=handler->handler;
+			res=parser(handler, request);
 			if (res)
 				return res;
 		}
-		
 		handler=handler->next;
 	}
 	return 0;
 }
 
 
+/**
+ * @short Frees the memory used by this handler.
+ *
+ * It calls the private data handler free if available, and free the 'next' handler too.
+ *
+ * It should be called when this handler is not going to be used anymore. Most of the cases you
+ * call it over the root handler, and from there it removes all the handlers.
+ *
+ * Returns the number of handlers freed on this level.
+ */
+int onion_handler_free(onion_handler *handler){
+	int n=0;
+	onion_handler *next=handler;
+	while (next){
+		handler=next;
+		if (handler->priv_data_delete && handler->priv_data){
+			onion_handler_private_data_free f=handler->priv_data_delete;
+			f(handler->priv_data);
+		}
+		next=handler->next;
+		free(handler);
+		n++;
+	}
+	return n;
+}
 
+/**
+ * @short Adds a handler to the list of handlers of this level
+ *
+ * Adds a handler at the end of the list of handlers of this level. Each handler is called in order,
+ * until one of them succeds. So each handler is in charge of cheching if its itself who is being called.
+ */
+void onion_handler_add(onion_handler *base, onion_handler *new_handler){
+	while(base->next)
+		base=base->next;
+	base->next=new_handler;
+}

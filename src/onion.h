@@ -25,9 +25,7 @@ extern "C"{
 
 enum onion_mode_e{
 	ONE=1,
-	WAIT=2,
-	SELECT=3,
-	THREADED=4
+	THREADED=2
 };
 
 typedef enum onion_mode_e onion_mode;
