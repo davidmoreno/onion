@@ -33,7 +33,8 @@ enum onion_request_flags_e{
 	OR_POST=2,
 	OR_HEAD=4,
 	
-	OR_HTTP11=0x10
+	
+	OR_HTTP11=0x10,
 };
 
 typedef struct onion_request_method_e onion_request_method;
@@ -48,8 +49,10 @@ struct onion_request_t{
 	char *fullpath;       /// Original path for the request
 	char *path;           /// Path at this level. Its actually a pointer inside fullpath, removing the leading parts already processed by handlers
 	onion_dict *query;    /// When the query (?q=query) is processed, the dict with the values @see onion_request_parse_query
-	void *write;          /// Write function
+	onion_write write;    /// Write function
 	void *socket;         /// Write function handler
+	char buffer[128];     /// Buffer for queries. This should be enough. UGLY. FIXME.
+	int buffer_pos;
 };
 
 
@@ -62,6 +65,9 @@ void onion_request_free(onion_request *req);
 
 /// Partially fills a request. One line each time.
 int onion_request_fill(onion_request *req, const char *data);
+
+/// Reads some data from the input (net, file...) and performs the onion_request_fill
+int onion_request_write(onion_request *req, const char *data, unsigned int length);
 
 /// Parses the query. Only called when really needs the query data. LAZY.
 int onion_request_parse_query(onion_request *req);

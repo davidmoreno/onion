@@ -19,9 +19,12 @@
 #include <malloc.h>
 #include <string.h>
 #include <stdlib.h>
+#include <libgen.h>
 
 #include "onion_dict.h"
 #include "onion_request.h"
+#include "onion_handler.h"
+#include "onion_server.h"
 
 /// Creates a request
 onion_request *onion_request_new(onion_server *server, void *socket){
@@ -32,6 +35,7 @@ onion_request *onion_request_new(onion_server *server, void *socket){
 	req->server=server;
 	req->headers=onion_dict_new();
 	req->socket=socket;
+	req->buffer_pos=0;
 	
 	return req;
 }
@@ -183,4 +187,45 @@ int onion_request_parse_query(onion_request *req){
 	req->fullpath=strndup(cleanurl, sizeof(cleanurl));
 	req->path=req->fullpath;
 	return 1;
+}
+
+
+/**
+ * @short Write some data into the request, and performs the query if necesary.
+ *
+ * This is where alomst all logic has place: it reads from the given data until it has all the headers
+ * and launchs the root handler to perform the petition.
+ */
+int onion_request_write(onion_request *req, const char *data, unsigned int length){
+	int i;
+	char msgshown=0;
+	for (i=0;i<length;i++){
+		char c=data[i];
+		if (c=='\n'){
+			//fprintf(stderr,"newline\n");
+			if (req->buffer_pos==0){ // If true, then headers are over. Do the processing.
+				onion_handler_handle(req->server->root_handler, req);
+				// I do not stop as it might have more data: keep alive.
+			}
+			else{
+				req->buffer[req->buffer_pos]='\0';
+				onion_request_fill(req, req->buffer);
+				req->buffer_pos=0;
+			}
+		}
+		else{ 
+			//fprintf(stderr,"char %c %d\n",c,c);
+			req->buffer[req->buffer_pos]=c;
+			req->buffer_pos++;
+			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on headers
+				req->buffer_pos--;
+				if (!msgshown){
+					fprintf(stderr,"onion / %s:%d Header too long for me (max header length (per header) %ld chars). Ignoring from that byte on to the end of this line.\n",basename(__FILE__),__LINE__, sizeof(req->buffer));
+					fprintf(stderr,"onion / %s:%d Increase it at onion_request.h and recompile onion.\n",basename(__FILE__),__LINE__);
+					msgshown=1;
+				}
+			}
+		}
+	}
+	return i;
 }

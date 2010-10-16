@@ -30,11 +30,10 @@
  */
 int onion_handler_handle(onion_handler *handler, onion_request *request){
 	int res;
-	onion_parser parser;
 	while (handler){
 		if (handler->handler){
-			parser=handler->handler;
-			res=parser(handler, request);
+			
+			res=handler->handler(handler, request);
 			if (res)
 				return res;
 		}

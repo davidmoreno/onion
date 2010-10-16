@@ -9,3 +9,6 @@ target_link_libraries(03-response onion)
 
 add_executable(04-handler 04-handler.c)
 target_link_libraries(04-handler onion_handlers onion)
+
+add_executable(05-server 05-server.c)
+target_link_libraries(05-server onion_handlers onion)

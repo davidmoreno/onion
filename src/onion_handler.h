@@ -32,9 +32,9 @@ extern "C"{
 struct onion_handler_t{
 	const char *name;        /// Informatory only.
 	
-	void *handler;            /// callback that should return an onion_response object, or NULL if im not entitled to respnse this request.
-	void *priv_data;         /// Private data as needed by the parser
-	void *priv_data_delete;  /// When freeing some memory, how to remove the private memory.
+	onion_handler_handler handler;  /// callback that should return an onion_response object, or NULL if im not entitled to respnse this request.
+	onion_handler_private_data_free priv_data_delete;  /// When freeing some memory, how to remove the private memory.
+	void *priv_data;                /// Private data as needed by the parser
 	
 	struct onion_handler_t *next; /// If parser returns null, i try next parser. If no next parser i go up, or return an error. @see onion_tree_parser
 };

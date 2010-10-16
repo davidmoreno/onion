@@ -29,7 +29,8 @@ extern "C"{
  * @short Some configuration about the server that should arrive to all parts.
  */
 struct onion_server_t{
-	void *write; // of type onion_write
+	onion_write write; // of type onion_write
+	onion_handler *root_handler;
 };
 
 #ifdef __cplusplus

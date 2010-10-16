@@ -34,6 +34,9 @@ struct onion_handler_static_data_t{
 
 typedef struct onion_handler_static_data_t onion_handler_static_data;
 
+/**
+ * @short Performs the real request: checks if its for me, and then write the data.
+ */
 int onion_handler_static_handler(onion_handler *handler, onion_request *request){
 	onion_handler_static_data *d=handler->priv_data;
 
@@ -55,9 +58,8 @@ int onion_handler_static_handler(onion_handler *handler, onion_request *request)
 	return 1;
 }
 
-
-void onion_handler_static_delete(void *data){
-	onion_handler_static_data *d=data;
+/// Removes internal data for this handler.
+void onion_handler_static_delete(onion_handler_static_data *d){
 	free((char*)d->data);
 	regfree(&d->path);
 	free(d);
@@ -94,7 +96,7 @@ onion_handler *onion_handler_static(const char *path, const char *text, int code
 	
 	ret->handler=onion_handler_static_handler;
 	ret->priv_data=priv_data;
-	ret->priv_data_delete=onion_handler_static_delete;
+	ret->priv_data_delete=(onion_handler_private_data_free)onion_handler_static_delete;
 	
 	return ret;
 }

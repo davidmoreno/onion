@@ -31,8 +31,8 @@ struct onion_server_t;
 typedef struct onion_server_t onion_server;
 
 
-typedef int (*onion_parser)(onion_handler *handler, onion_request *);
-typedef int (*onion_handler_private_data_free)(void *privdata);
+typedef int (*onion_handler_handler)(onion_handler *handler, onion_request *);
+typedef void (*onion_handler_private_data_free)(void *privdata);
 
 /**
  * @short Prototype for the writing on the socket function.

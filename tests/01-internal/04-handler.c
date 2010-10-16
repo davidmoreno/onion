@@ -36,7 +36,7 @@ void t01_handle_static_request(){
 	char ok;
 	memset(buffer,0,sizeof(buffer));
 	onion_server server;
-	server.write=strncat;
+	server.write=(onion_write)strncat;
 	
 	onion_request *request=onion_request_new(&server, buffer);
 	onion_request_fill(request,"GET / HTTP/1.1");
@@ -60,7 +60,7 @@ void t02_handle_generic_request(){
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	onion_server server;
-	server.write=strncat;
+	server.write=(onion_write)strncat;
 	
 	onion_handler *handler=onion_handler_static("^/$", "Not ready",302);
 	FAIL_IF_NOT(handler);
@@ -108,7 +108,7 @@ void t03_handle_path_request(){
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	onion_server server;
-	server.write=strncat;
+	server.write=(onion_write)strncat;
 
 	onion_handler *test=onion_handler_static("^$", "Test index\n",200); // empty
 	onion_handler_add(test, onion_handler_static("index.html", "Index test", 200) );
