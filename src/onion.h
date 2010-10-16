@@ -33,15 +33,6 @@ enum onion_mode_e{
 
 typedef enum onion_mode_e onion_mode;
 
-/**
- * @short Basic structure that contains the webserver info.
- */
-struct onion_t{
-	int flags;
-	int listenfd;
-	onion_server *server;
-};
-
 typedef struct onion_t onion;
 
 /// Creates the onion structure to fill with the server data, and later do the onion_listen()
@@ -55,6 +46,9 @@ void onion_free(onion *onion);
 
 /// Sets the root handler
 void onion_set_root_handler(onion *server, onion_handler *handler);
+
+/// Sets the port to listen
+void onion_set_port(onion *server, int port);
 
 #ifdef __cplusplus
 }

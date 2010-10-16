@@ -17,18 +17,23 @@
 	*/
 
 #include <string.h>
+#include <stdio.h>
 
 #include <onion.h>
 #include <onion_handler.h>
 #include <handlers/onion_handler_static.h>
 
 int main(int argc, char **argv){
-	onion_handler *sttic=onion_handler_static(NULL,"Internal error", 500);
+	onion_handler *sttic=onion_handler_static(NULL,"<h1>200 OK</h1>", 200);
 	
 	onion *onion=onion_new(O_ONE_LOOP);
 	onion_set_root_handler(onion, sttic);
+	onion_set_port(onion, 8082);
 	
-	onion_listen(onion);
+	int error=onion_listen(onion);
+	if (error){
+		perror("Cant create the server");
+	}
 	
 	onion_free(onion);
 	

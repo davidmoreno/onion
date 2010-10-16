@@ -42,9 +42,9 @@ void t01_server_min(){
 	onion_request *req=onion_request_new(server, buffer);
 	onion_request_write(req, "GET ",4);
 	onion_request_write(req, "/",1);
-	onion_request_write(req, " HTTP/1.1\n",10);
+	onion_request_write(req, " HTTP/1.1\r\n",11);
 	
-	onion_request_write(req, "\n",1);
+	onion_request_write(req, "\r\n",2);
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
 	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\n\nSuccedded");
@@ -65,7 +65,7 @@ void t02_server_full(){
 	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
 	onion_request *req=onion_request_new(server, buffer);
-#define S "GET / HTTP/1.1\nHeader-1: This is header1\nHeader-2: This is header 2\n"
+#define S "GET / HTTP/1.1\r\nHeader-1: This is header1\r\nHeader-2: This is header 2\r\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");

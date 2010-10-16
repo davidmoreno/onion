@@ -214,6 +214,9 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 				req->buffer_pos=0;
 			}
 		}
+		else if (c=='\r'){ // Just skip it when in headers
+			//fprintf(stderr,"SKIP char %d\n",c);
+		}
 		else{ 
 			//fprintf(stderr,"char %c %d\n",c,c);
 			req->buffer[req->buffer_pos]=c;

@@ -38,6 +38,16 @@ struct onion_dict_t{
 	struct onion_dict_t *right;
 };
 
+/**
+ * @short Basic structure that contains the webserver info.
+ */
+struct onion_t{
+	int flags;
+	int listenfd;
+	onion_server *server;
+	int port;
+};
+
 
 /**
  * @short Some configuration about the server that should arrive to all parts.
