@@ -23,6 +23,7 @@
 #include <onion_server.h>
 #include <onion_request.h>
 #include <onion_response.h>
+#include <onion_types_internal.h>
 
 #include "../test.h"
 
@@ -57,13 +58,13 @@ int write_append(void *handler, const char *data, unsigned int length){
 void t02_full_cycle(){
 	INIT_LOCAL();
 	
-	onion_server server;
-	server.write=write_append;
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, write_append);
 	onion_request *request;
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	request=onion_request_new(&server, buffer);
+	request=onion_request_new(server, buffer);
 	
 	onion_response *response=onion_response_new(request);
 	
@@ -77,7 +78,8 @@ void t02_full_cycle(){
 	
 	onion_response_free(response);
 	onion_request_free(request);
-
+	onion_server_free(server);
+	
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 30\n\n123456789012345678901234567890");
 	
 	END_LOCAL();

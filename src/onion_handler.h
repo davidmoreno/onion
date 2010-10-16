@@ -39,7 +39,6 @@ struct onion_handler_t{
 	struct onion_handler_t *next; /// If parser returns null, i try next parser. If no next parser i go up, or return an error. @see onion_tree_parser
 };
 
-
 /// checks that handler to handle the request
 int onion_handler_handle(onion_handler *handler, onion_request *request);
 

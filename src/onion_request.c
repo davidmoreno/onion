@@ -25,6 +25,7 @@
 #include "onion_request.h"
 #include "onion_handler.h"
 #include "onion_server.h"
+#include "onion_types_internal.h"
 
 /// Creates a request
 onion_request *onion_request_new(onion_server *server, void *socket){
@@ -228,4 +229,14 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 		}
 	}
 	return i;
+}
+
+/// Returns a pointer to the string with the current path. Its a const and should not be trusted for long time.
+const char *onion_request_get_path(onion_request *req){
+	return req->path;
+}
+
+/// Moves the pointer inside fullpath to this new position, relative to current path.
+void onion_request_advance_path(onion_request *req, int addtopos){
+	req->path=&req->path[addtopos];
 }

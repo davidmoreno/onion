@@ -20,13 +20,16 @@
 
 #include "onion.h"
 #include "onion_handler.h"
+#include "onion_server.h"
+#include "onion_types_internal.h"
 
 /// Creates the onion structure to fill with the server data, and later do the onion_listen()
 onion *onion_new(int flags){
 	onion *o=malloc(sizeof(onion));
 	o->flags=flags;
 	o->listenfd=0;
-	o->root_handler=NULL;
+	o->server=malloc(sizeof(onion_server));
+	o->server->root_handler=NULL;
 	
 	return o;
 }
@@ -38,12 +41,11 @@ int onion_listen(onion *server){
 
 /// Removes the allocated data
 void onion_free(onion *onion){
-	if (onion->root_handler)
-		onion_handler_free(onion->root_handler);
+	onion_server_free(onion->server);
 	free(onion);
 }
 
 /// Sets the root handler
 void onion_set_root_handler(onion *onion, onion_handler *handler){
-	onion->root_handler=handler;
+	onion->server->root_handler=handler;
 }

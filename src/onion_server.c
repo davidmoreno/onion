@@ -16,29 +16,29 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_SERVER__
-#define __ONION_SERVER__
+#include <malloc.h>
 
-#include "onion_types.h"
+#include "onion_server.h"
+#include "onion_handler.h"
+#include "onion_types_internal.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
-/// creates a new onion server
-onion_server *onion_server_new();
-
-/// frees the server.
-void onion_server_free(onion_server *server);
-
-/// Sets the write function
-void onion_server_set_write(onion_server *server, onion_write write);
-
-/// Sets the root handler
-void onion_server_set_root_handler(onion_server *server, onion_handler *handler);
-
-#ifdef __cplusplus
+onion_server *onion_server_new(void){
+	onion_server *ret=malloc(sizeof(onion_server));
+	ret->root_handler=NULL;
+	ret->write=NULL;
+	return ret;
 }
-#endif
 
-#endif
+void onion_server_free(onion_server *server){
+	if (server->root_handler)
+		onion_handler_free(server->root_handler);
+	free(server);
+}
+
+void onion_server_set_write(onion_server *server, onion_write write){
+	server->write=write;
+}
+
+void onion_server_set_root_handler(onion_server *server, onion_handler *handler){
+	server->root_handler=handler;
+}

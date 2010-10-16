@@ -25,18 +25,6 @@
 extern "C"{
 #endif
 
-/**
- * @short The response
- */
-struct onion_response_t{
-	onion_request *request;
-	onion_dict *headers;
-	int code;
-	int flags;
-	unsigned int length;
-	unsigned int sent_bytes;
-};
-
 
 /**
  * @short Possible flags

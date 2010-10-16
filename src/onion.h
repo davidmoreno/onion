@@ -27,7 +27,8 @@ extern "C"{
 
 enum onion_mode_e{
 	O_ONE=1,
-	O_THREADED=2
+	O_ONE_LOOP=3,
+	O_THREADED=4
 };
 
 typedef enum onion_mode_e onion_mode;
@@ -38,7 +39,7 @@ typedef enum onion_mode_e onion_mode;
 struct onion_t{
 	int flags;
 	int listenfd;
-	onion_handler *root_handler;
+	onion_server *server;
 };
 
 typedef struct onion_t onion;

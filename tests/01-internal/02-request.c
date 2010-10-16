@@ -22,13 +22,18 @@
 #include <onion_dict.h>
 #include <onion_server.h>
 #include <onion_request.h>
+#include <onion_types_internal.h>
 
 #include "../test.h"
 
-onion_server server;
+onion_server *server;
 
 void setup(){
-	server.write=NULL;
+	server=onion_server_new();
+}
+
+void teardown(){
+	onion_server_free(server);
 }
 
 void t01_create_add_free(){
@@ -37,7 +42,7 @@ void t01_create_add_free(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(&server, (void*)111);
+	req=onion_request_new(server, (void*)111);
 	FAIL_IF_NOT_EQUAL(req->socket, (void*)111);
 	
 	FAIL_IF_EQUAL(req,NULL);
@@ -56,7 +61,7 @@ void t02_create_add_free_overflow(){
 	onion_request *req;
 	int ok, i;
 	
-	req=onion_request_new(&server, NULL);
+	req=onion_request_new(server, NULL);
 	FAIL_IF_NOT_EQUAL(req->socket, NULL);
 
 	FAIL_IF_EQUAL(req,NULL);
@@ -80,7 +85,7 @@ void t03_create_add_free_full_flow(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(&server, 0);
+	req=onion_request_new(server, 0);
 	FAIL_IF_EQUAL(req,NULL);
 	FAIL_IF_NOT_EQUAL(req->socket, 0);
 	
@@ -119,7 +124,7 @@ int main(int argc, char **argv){
 	t01_create_add_free();
 	t02_create_add_free_overflow();
 	t03_create_add_free_full_flow();
-	
+	teardown();
 	END();
 }
 

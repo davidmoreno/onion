@@ -40,7 +40,7 @@ typedef struct onion_handler_static_data_t onion_handler_static_data;
 int onion_handler_static_handler(onion_handler *handler, onion_request *request){
 	onion_handler_static_data *d=handler->priv_data;
 
-	if (regexec(&d->path, request->path, 0, NULL, 0)!=0)
+	if (regexec(&d->path, onion_request_get_path(request), 0, NULL, 0)!=0)
 		return 0;
 	
 	onion_response *res=onion_response_new(request);

@@ -26,19 +26,6 @@ extern "C"{
 #endif
 
 /**
- * @short A 'char *' to 'char *' dicitonary.
- *
- * Internally its structured as a binary tree.
- */
-struct onion_dict_t{
-	const char *key;
-	const char *value;
-	char flags;
-	struct onion_dict_t *left;
-	struct onion_dict_t *right;
-};
-
-/**
  * @short Flags to change some parameters of each key.
  */
 enum onion_dict_flags_e{

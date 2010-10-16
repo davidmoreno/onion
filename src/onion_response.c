@@ -24,6 +24,7 @@
 #include "onion_request.h"
 #include "onion_server.h"
 #include "onion_response.h"
+#include "onion_types_internal.h"
 
 const char *onion_response_code_description(int code);
 

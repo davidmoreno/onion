@@ -25,7 +25,7 @@
 int main(int argc, char **argv){
 	onion_handler *sttic=onion_handler_static(NULL,"Internal error", 500);
 	
-	onion *onion=onion_new(O_ONE);
+	onion *onion=onion_new(O_ONE_LOOP);
 	onion_set_root_handler(onion, sttic);
 	
 	onion_listen(onion);

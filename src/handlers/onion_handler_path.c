@@ -36,11 +36,12 @@ typedef struct onion_handler_path_data_t onion_handler_path_data;
 int onion_handler_path_handler(onion_handler *handler, onion_request *request){
 	onion_handler_path_data *d=handler->priv_data;
 	regmatch_t match[1];
+	const char *path=onion_request_get_path(request);
 	
-	if (regexec(&d->path, request->path, 1, match, 0)!=0)
+	if (regexec(&d->path, path, 1, match, 0)!=0)
 		return 0;
 	
-	request->path=&request->path[match[0].rm_eo];
+	onion_request_advance_path(request, match[0].rm_eo);
 	
 	return onion_handler_handle(d->inside, request);
 }

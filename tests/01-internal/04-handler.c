@@ -35,21 +35,22 @@ void t01_handle_static_request(){
 	char buffer[4096];
 	char ok;
 	memset(buffer,0,sizeof(buffer));
-	onion_server server;
-	server.write=(onion_write)strncat;
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)strncat);
 	
-	onion_request *request=onion_request_new(&server, buffer);
+	onion_request *request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET / HTTP/1.1");
 	
 	onion_handler *handler=onion_handler_static(NULL, "Not ready",302);
 	FAIL_IF_NOT(handler);
-
+	onion_server_set_root_handler(server, handler);
+	
 	ok=onion_handler_handle(handler, request);
 	FAIL_IF_NOT(ok);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 302 REDIRECT\nContent-Length: 9\n\nNot ready");
 	
-	onion_handler_free(handler);
 	onion_request_free(request);
+	onion_server_free(server);
 	
 	END_LOCAL();
 }
@@ -59,8 +60,8 @@ void t02_handle_generic_request(){
 
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
-	onion_server server;
-	server.write=(onion_write)strncat;
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)strncat);
 	
 	onion_handler *handler=onion_handler_static("^/$", "Not ready",302);
 	FAIL_IF_NOT(handler);
@@ -73,10 +74,11 @@ void t02_handle_generic_request(){
 
 	onion_handler_add(handler, handler2);
 	onion_handler_add(handler, handler3);
+	onion_server_set_root_handler(server, handler);
 	
 	onion_request *request;
 
-	request=onion_request_new(&server, buffer);
+	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET / HTTP/1.1");
 	onion_handler_handle(handler, request);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 302 REDIRECT\nContent-Length: 9\n\nNot ready");
@@ -84,20 +86,20 @@ void t02_handle_generic_request(){
 	
 	// gives error, as such url does not exist.
 	memset(buffer,0,sizeof(buffer));
-	request=onion_request_new(&server, buffer);
+	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET /error HTTP/1.1");
 	onion_handler_handle(handler, request);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 500 INTERNAL ERROR\nContent-Length: 14\n\nInternal error");
 	onion_request_free(request);
 
 	memset(buffer,0,sizeof(buffer));
-	request=onion_request_new(&server, buffer);
+	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET /any HTTP/1.1");
 	onion_handler_handle(handler, request);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 3\n\nany");
 	onion_request_free(request);
 
-	onion_handler_free(handler);
+	onion_server_free(server);
 
 	END_LOCAL();
 }
@@ -107,17 +109,18 @@ void t03_handle_path_request(){
 
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
-	onion_server server;
-	server.write=(onion_write)strncat;
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)strncat);
 
 	onion_handler *test=onion_handler_static("^$", "Test index\n",200); // empty
 	onion_handler_add(test, onion_handler_static("index.html", "Index test", 200) );
 	
 	onion_handler *path=onion_handler_path("^/test/", test);
 	onion_handler_add(path, onion_handler_static(NULL, "Internal error", 500 ) );
+	onion_server_set_root_handler(server, path);
 	
 	onion_request *request;
-	request=onion_request_new(&server, buffer);
+	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET / HTTP/1.1");
 	onion_handler_handle(path, request);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 500 INTERNAL ERROR\nContent-Length: 14\n\nInternal error");
@@ -125,20 +128,20 @@ void t03_handle_path_request(){
 	
 	// gives error, as such url does not exist.
 	memset(buffer,0,sizeof(buffer));
-	request=onion_request_new(&server, buffer);
+	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET /test/ HTTP/1.1");
 	onion_handler_handle(path, request);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 11\n\nTest index\n");
 	onion_request_free(request);
 
 	memset(buffer,0,sizeof(buffer));
-	request=onion_request_new(&server, buffer);
+	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET /test/index.html HTTP/1.1");
 	onion_handler_handle(path, request);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 10\n\nIndex test");
 	onion_request_free(request);
 
-	onion_handler_free(path);
+	onion_server_free(server);
 
 	END_LOCAL();
 }

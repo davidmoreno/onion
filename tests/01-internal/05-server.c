@@ -35,11 +35,11 @@ void t01_server_min(){
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	onion_server server;
-	server.write=(onion_write)strncat;
-	server.root_handler=onion_handler_static("", "Succedded", 200);
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)strncat);
+	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
-	onion_request *req=onion_request_new(&server, buffer);
+	onion_request *req=onion_request_new(server, buffer);
 	onion_request_write(req, "GET ",4);
 	onion_request_write(req, "/",1);
 	onion_request_write(req, " HTTP/1.1\n",10);
@@ -50,7 +50,7 @@ void t01_server_min(){
 	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\n\nSuccedded");
 	
 	onion_request_free(req);
-	onion_handler_free(server.root_handler);
+	onion_server_free(server);
 	
 	END_LOCAL();
 }
@@ -60,11 +60,11 @@ void t02_server_full(){
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	onion_server server;
-	server.write=(onion_write)strncat;
-	server.root_handler=onion_handler_static("", "Succedded", 200);
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)strncat);
+	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
-	onion_request *req=onion_request_new(&server, buffer);
+	onion_request *req=onion_request_new(server, buffer);
 #define S "GET / HTTP/1.1\nHeader-1: This is header1\nHeader-2: This is header 2\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
@@ -75,7 +75,7 @@ void t02_server_full(){
 	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\n\nSuccedded");
 
 	onion_request_free(req);
-	onion_handler_free(server.root_handler);
+	onion_server_free(server);
 
 	END_LOCAL();
 }
@@ -85,11 +85,11 @@ void t03_server_no_overflow(){
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	onion_server server;
-	server.write=(onion_write)strncat;
-	server.root_handler=onion_handler_static("", "Succedded", 200);
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)strncat);
+	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
-	onion_request *req=onion_request_new(&server, buffer);
+	onion_request *req=onion_request_new(server, buffer);
 #define S "GET / HTTP/1.1\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
@@ -100,7 +100,7 @@ void t03_server_no_overflow(){
 	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\n\nSuccedded");
 
 	onion_request_free(req);
-	onion_handler_free(server.root_handler);
+	onion_server_free(server);
 
 	END_LOCAL();
 }
@@ -110,11 +110,11 @@ void t04_server_overflow(){
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	onion_server server;
-	server.write=(onion_write)strncat;
-	server.root_handler=onion_handler_static("", "Succedded", 200);
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)strncat);
+	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
-	onion_request *req=onion_request_new(&server, buffer);
+	onion_request *req=onion_request_new(server, buffer);
 #define S "GET / HTTP/1.1\nHeader-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
@@ -125,7 +125,7 @@ void t04_server_overflow(){
 	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\n\nSuccedded");
 
 	onion_request_free(req);
-	onion_handler_free(server.root_handler);
+	onion_server_free(server);
 
 	END_LOCAL();
 }
@@ -138,14 +138,14 @@ int write_p(int *p, const char *data, unsigned length){
 void t05_server_with_pipes(){
 	INIT_LOCAL();
 	
-	onion_server server;
-	server.write=(onion_write)write_p;
-	server.root_handler=onion_handler_static("", "Works with pipes", 200);
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)write_p);
+	onion_server_set_root_handler(server, onion_handler_static("", "Works with pipes", 200));
 	
 	int p[2];
 	pipe(p);
 	
-	onion_request *req=onion_request_new(&server, &p[1]);
+	onion_request *req=onion_request_new(server, &p[1]);
 #define S "GET / HTTP/1.1\n\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
@@ -159,7 +159,7 @@ void t05_server_with_pipes(){
 	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 16\n\nWorks with pipes");
 
 	onion_request_free(req);
-	onion_handler_free(server.root_handler);
+	onion_server_free(server);
 
 	END_LOCAL();
 }
