@@ -85,7 +85,7 @@ onion_handler *onion_handler_static(const char *path, const char *text, int code
 	if (path)
 		err=regcomp(&priv_data->path, path, REG_EXTENDED);
 	else
-		err=regcomp(&priv_data->path, "", REG_EXTENDED); // empty regexp, always true. should be fast enough. 
+		err=regcomp(&priv_data->path, ".*", REG_EXTENDED); // empty regexp, always true. should be fast enough. 
 	if (err){
 		char buffer[1024];
 		regerror(err, &priv_data->path, buffer, sizeof(buffer));

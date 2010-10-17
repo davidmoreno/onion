@@ -28,7 +28,7 @@ int main(int argc, char **argv){
 	
 	onion *onion=onion_new(O_ONE_LOOP);
 	onion_set_root_handler(onion, sttic);
-	onion_set_port(onion, 8082);
+	onion_set_port(onion, 8080);
 	
 	int error=onion_listen(onion);
 	if (error){

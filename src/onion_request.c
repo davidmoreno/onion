@@ -55,10 +55,17 @@ void onion_request_free(onion_request *req){
 
 /// Partially fills a request. One line each time.
 int onion_request_fill(onion_request *req, const char *data){
+	//fprintf(stderr, "fill %s\n",data);
 	if (!req->path){
 		char method[16], url[256], version[16];
 		sscanf(data,"%15s %255s %15s",method, url, version);
 
+		/*
+		fprintf(stderr, "'%s' %d\n", method, strcmp(method,"GET"));
+		fprintf(stderr, "'%s'\n", url);
+		fprintf(stderr, "'%s'\n", version);
+		*/
+		
 		if (strcmp(method,"GET")==0)
 			req->flags=OR_GET;
 		else if (strcmp(method,"POST")==0)
@@ -70,8 +77,6 @@ int onion_request_fill(onion_request *req, const char *data){
 
 		if (strcmp(version,"HTTP/1.1")==0)
 			req->flags|=OR_HTTP11;
-		else
-			return 0;
 
 		req->path=strndup(url,sizeof(url));
 		req->fullpath=req->path;
@@ -205,7 +210,10 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 		if (c=='\n'){
 			//fprintf(stderr,"newline\n");
 			if (req->buffer_pos==0){ // If true, then headers are over. Do the processing.
+				fprintf(stderr, "%s:%d GET %s\n",__FILE__,__LINE__,req->fullpath);
+
 				onion_handler_handle(req->server->root_handler, req);
+				return -i;
 				// I do not stop as it might have more data: keep alive.
 			}
 			else{
@@ -217,7 +225,7 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 		else if (c=='\r'){ // Just skip it when in headers
 			//fprintf(stderr,"SKIP char %d\n",c);
 		}
-		else{ 
+		else{
 			//fprintf(stderr,"char %c %d\n",c,c);
 			req->buffer[req->buffer_pos]=c;
 			req->buffer_pos++;

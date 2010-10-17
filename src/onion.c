@@ -31,6 +31,9 @@
 #include "onion_server.h"
 #include "onion_types_internal.h"
 
+/// Internal processor of just one request.
+static void onion_process_request(onion *o, int clientfd);
+
 /// Creates the onion structure to fill with the server data, and later do the onion_listen()
 onion *onion_new(int flags){
 	onion *o=malloc(sizeof(onion));
@@ -70,16 +73,22 @@ int onion_listen(onion *o){
 		return errno;
 	listen(sockfd,1);
   socklen_t clilen = sizeof(cli_addr);
-	int clientfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
-	int r;
-	onion_request *req=onion_request_new(o->server, &clientfd);
-	char buffer[1024];
-	onion_server_set_write(o->server, (onion_write)write_to_socket);
-	while ( ( r=read(clientfd, buffer, sizeof(buffer)) ) >0){
-		onion_request_write(req, buffer, r);
+	if (o->flags&O_ONE){
+		int clientfd;
+		if (o->flags&O_ONE_LOOP){
+			while(1){
+				clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+				onion_process_request(o, clientfd);
+				close(clientfd);
+			}
+		}
+		else{
+			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+			onion_process_request(o, clientfd);
+			close(clientfd);
+		}
 	}
-	close(clientfd);
 	close(sockfd);
 	return 0;
 }
@@ -97,4 +106,23 @@ void onion_set_root_handler(onion *onion, onion_handler *handler){
 
 void onion_set_port(onion *server, int port){
 	server->port=port;
+}
+
+/**
+ * @short Internal processor of just one request.
+ *
+ * It can be used on one processing, on threaded, on one_loop...
+ */
+static void onion_process_request(onion *o, int clientfd){
+	int r,w;
+	char buffer[1024];
+	onion_request *req=onion_request_new(o->server, &clientfd);
+	onion_server_set_write(o->server, (onion_write)write_to_socket);
+	while ( ( r=read(clientfd, buffer, sizeof(buffer)) ) >0){
+		//fprintf(stderr, "%s:%d Read %d bytes\n",__FILE__,__LINE__,r);
+		w=onion_request_write(req, buffer, r);
+		if (w<0){ // request processed.
+			return;
+		}
+	}
 }

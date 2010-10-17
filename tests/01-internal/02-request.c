@@ -89,14 +89,14 @@ void t03_create_add_free_full_flow(){
 	FAIL_IF_EQUAL(req,NULL);
 	FAIL_IF_NOT_EQUAL(req->socket, 0);
 	
-	ok=onion_request_fill(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.1\n");
+	ok=onion_request_fill(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n");
 	FAIL_IF_NOT(ok);
 	ok=onion_request_fill(req,"Host: 127.0.0.1");
 	FAIL_IF_NOT(ok);
 	ok=onion_request_fill(req,"Other-Header: My header is very long and with spaces...\n");
 	FAIL_IF_NOT(ok);
 	
-	FAIL_IF_NOT_EQUAL(req->flags,OR_GET|OR_HTTP11);
+	FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 	
 	FAIL_IF_EQUAL(req->headers, NULL);
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Host"), "127.0.0.1");
