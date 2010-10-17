@@ -22,6 +22,7 @@
 #include <regex.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
 #include <onion_handler.h>
 #include <onion_response.h>
@@ -46,10 +47,15 @@ int onion_handler_directory_handler(onion_handler *handler, onion_request *reque
 	onion_request_advance_path(request, match[0].rm_eo);
 
 	char tmp[1024];
+	char realp[1024];
 	sprintf(tmp,"%s/%s",d->localpath,onion_request_get_path(request));
 
+	realpath(tmp, realp);
+	if (strncmp(realp, d->localpath, strlen(d->localpath))!=0) // out of secured dir.
+		return 0;
+	
 
-	int fd=open(tmp,O_RDONLY);
+	int fd=open(realp,O_RDONLY);
 	if (fd<0){ // cant open. Continue on next. Quite probably a custom error.
 		return 0;
 	}
