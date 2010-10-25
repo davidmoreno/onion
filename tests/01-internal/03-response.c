@@ -72,7 +72,7 @@ void t02_full_cycle(){
 	FAIL_IF_NOT_EQUAL(response->length,30);
 	onion_response_write_headers(response);
 	
-	onion_response_write(response,"123456789012345678901234567890",30);
+	onion_response_write0(response,"123456789012345678901234567890");
 	
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	

@@ -1,0 +1,68 @@
+<html>
+ <header>
+  <title>Onion Top</title>
+  <script src="http://code.jquery.com/jquery-1.4.3.min.js"></script>
+<style>
+body{
+	background: #555;
+	font-family: sans-serif;
+}
+
+table{
+	background: white;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	width: 100%;
+}
+
+table th{
+	background: #eee;
+}
+
+table td:hover{
+	background: yellow;
+}
+
+</style>
+ </header>
+<body>
+<h1>Onion Top</h1>
+
+<table id="process">
+<thead>
+<tr><th>PID</th><th>Command</th></tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+
+
+<script>
+$(document).ready(function(){
+	updateTop()
+})
+
+/**
+ * @short Updates the top list.
+ */
+updateTop = function(){
+	var p=$('#process tbody')
+	var X=window.pageXOffset
+	var Y=window.pageYOffset
+	p.html('')
+	$.get('/ps/', function(d){
+		$(d.split('\n')).each(function(){
+			var l=this.split(' ')
+			var tr=$('<tr>')
+			tr.append($('<td>').text(l[0]))
+			tr.append($('<td>').text(l[1]))
+			p.append(tr)
+		})
+	},'plain')
+
+	window.scrollTo(X,Y)
+	setTimeout(updateTop,10*1000)
+}
+</script>
+
+</body>

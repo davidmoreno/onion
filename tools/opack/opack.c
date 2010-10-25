@@ -19,6 +19,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <libgen.h>
 
 void print_help();
 char *funcname(const char *filename);
@@ -97,7 +98,7 @@ void parse_file(const char *filename, FILE *outfd){
 		perror("");
 		exit(3);
 	}
-	char *fname=funcname(filename);
+	char *fname=funcname(basename((char*)filename));
 	char buffer[1024];
 	
 	fprintf(stderr, "Parsing: %s to 'int %s(onion_response *res);'.\n",filename, fname);

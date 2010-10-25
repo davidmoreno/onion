@@ -1,5 +1,11 @@
 include_directories (${CMAKE_SOURCE_DIR}/src) 
 
-add_executable(otop otop.c)
-target_link_libraries(otop onion)
+add_custom_command(
+   OUTPUT otop_data.c
+   COMMAND opack ${CMAKE_CURRENT_SOURCE_DIR}/index.html -o ${CMAKE_CURRENT_BINARY_DIR}/otop_data.c
+   DEPENDS opack ${CMAKE_CURRENT_SOURCE_DIR}/index.html
+   )
+
+add_executable(otop otop.c otop_data.c)
+target_link_libraries(otop onion onion_handlers )
 

@@ -103,6 +103,12 @@ int onion_response_write(onion_response *res, const char *data, unsigned int len
 	return w;
 }
 
+/// Writes a 0-ended string to the response.
+int onion_response_write0(onion_response *res, const char *data){
+	return onion_response_write(res, data, strlen(data));
+}
+
+
 #undef W
 
 

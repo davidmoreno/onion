@@ -210,7 +210,7 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 		if (c=='\n'){
 			//fprintf(stderr,"newline\n");
 			if (req->buffer_pos==0){ // If true, then headers are over. Do the processing.
-				fprintf(stderr, "%s:%d GET %s\n",__FILE__,__LINE__,req->fullpath);
+				fprintf(stderr, "%s:%d GET %s\n",__FILE__,__LINE__,req->fullpath); // FIXME! This is no proper logging at all. Maybe a handler.
 
 				onion_handler_handle(req->server->root_handler, req);
 				return -i;
@@ -232,7 +232,7 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on headers
 				req->buffer_pos--;
 				if (!msgshown){
-					fprintf(stderr,"onion / %s:%d Header too long for me (max header length (per header) %ld chars). Ignoring from that byte on to the end of this line.\n",basename(__FILE__),__LINE__, sizeof(req->buffer));
+					fprintf(stderr,"onion / %s:%d Header too long for me (max header length (per header) %ld chars). Ignoring from that byte on to the end of this line. (%16s...)\n",basename(__FILE__),__LINE__, sizeof(req->buffer),req->buffer);
 					fprintf(stderr,"onion / %s:%d Increase it at onion_request.h and recompile onion.\n",basename(__FILE__),__LINE__);
 					msgshown=1;
 				}
