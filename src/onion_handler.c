@@ -33,7 +33,6 @@ int onion_handler_handle(onion_handler *handler, onion_request *request){
 	int res;
 	while (handler){
 		if (handler->handler){
-			
 			res=handler->handler(handler->priv_data, request);
 			if (res)
 				return res;

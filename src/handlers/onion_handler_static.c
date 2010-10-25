@@ -48,7 +48,7 @@ int onion_handler_static_handler(onion_handler_static_data *d, onion_request *re
 	onion_response_set_code(res, d->code);
 	
 	onion_response_write_headers(res);
-	
+	fprintf(stderr,"Write %d bytes\n",length);
 	onion_response_write(res, d->data, length);
 
 	onion_response_free(res);
@@ -89,7 +89,7 @@ onion_handler *onion_handler_static(const char *path, const char *text, int code
 		return NULL;
 	}
 
-	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_static,
+	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_static_handler,
 																			 priv_data,(onion_handler_private_data_free) onion_handler_static_delete);
 	return ret;
 }

@@ -5,6 +5,7 @@ project (onion)
 SET(CMAKE_C_FLAGS "-Wall -Werror")
 
 add_subdirectory(src)
-add_subdirectory(tests)
+add_subdirectory(tools)
 
 add_subdirectory(examples)
+add_subdirectory(tests)
