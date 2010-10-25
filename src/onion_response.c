@@ -95,11 +95,12 @@ void onion_response_write_headers(onion_response *res){
 }
 
 /// Straight write some data to the response. Only used for real data as it has info about sent bytes for keep alive.
-void onion_response_write(onion_response *res, const char *data, unsigned int length){
+int onion_response_write(onion_response *res, const char *data, unsigned int length){
 	void *fd=onion_response_get_socket(res);
 	onion_write write=onion_response_get_writer(res);
-	write(fd, data, length);
+	int w=write(fd, data, length);
 	res->sent_bytes+=length;
+	return w;
 }
 
 #undef W

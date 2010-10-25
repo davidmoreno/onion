@@ -37,9 +37,7 @@ typedef struct onion_handler_static_data_t onion_handler_static_data;
 /**
  * @short Performs the real request: checks if its for me, and then write the data.
  */
-int onion_handler_static_handler(onion_handler *handler, onion_request *request){
-	onion_handler_static_data *d=handler->priv_data;
-
+int onion_handler_static_handler(onion_handler_static_data *d, onion_request *request){
 	if (regexec(&d->path, onion_request_get_path(request), 0, NULL, 0)!=0)
 		return 0;
 	
@@ -71,9 +69,6 @@ void onion_handler_static_delete(onion_handler_static_data *d){
  * Path is a regex for the url, as arrived here.
  */
 onion_handler *onion_handler_static(const char *path, const char *text, int code){
-	onion_handler *ret;
-	ret=malloc(sizeof(onion_handler));
-	memset(ret,0,sizeof(onion_handler));
 	
 	onion_handler_static_data *priv_data=malloc(sizeof(onion_handler_static_data));
 
@@ -93,11 +88,9 @@ onion_handler *onion_handler_static(const char *path, const char *text, int code
 		onion_handler_static_delete(priv_data);
 		return NULL;
 	}
-	
-	ret->handler=onion_handler_static_handler;
-	ret->priv_data=priv_data;
-	ret->priv_data_delete=(onion_handler_private_data_free)onion_handler_static_delete;
-	
+
+	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_static,
+																			 priv_data,(onion_handler_private_data_free) onion_handler_static_delete);
 	return ret;
 }
 

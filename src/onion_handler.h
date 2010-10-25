@@ -26,21 +26,11 @@ extern "C"{
 #include "onion_request.h"
 #include "onion_types.h"
 
-/**
- * @short Information about a handler for onion. A tree structure of handlers is what really serves the data.
- */
-struct onion_handler_t{
-	const char *name;        /// Informatory only.
-	
-	onion_handler_handler handler;  /// callback that should return an onion_response object, or NULL if im not entitled to respnse this request.
-	onion_handler_private_data_free priv_data_delete;  /// When freeing some memory, how to remove the private memory.
-	void *priv_data;                /// Private data as needed by the parser
-	
-	struct onion_handler_t *next; /// If parser returns null, i try next parser. If no next parser i go up, or return an error. @see onion_tree_parser
-};
-
 /// checks that handler to handle the request
 int onion_handler_handle(onion_handler *handler, onion_request *request);
+
+/// Creates an onion handler with that private datas.
+onion_handler *onion_handler_new(onion_handler_handler handler, void *privdata, onion_handler_private_data_free priv_data_free);
 
 /// Frees the memory of the handler
 int onion_handler_free(onion_handler *handler);

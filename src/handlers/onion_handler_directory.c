@@ -36,8 +36,7 @@ struct onion_handler_directory_data_t{
 
 typedef struct onion_handler_directory_data_t onion_handler_directory_data;
 
-int onion_handler_directory_handler(onion_handler *handler, onion_request *request){
-	onion_handler_directory_data *d=handler->priv_data;
+int onion_handler_directory_handler(onion_handler_directory_data *d, onion_request *request){
 	regmatch_t match[1];
 	const char *path=onion_request_get_path(request);
 	
@@ -84,10 +83,6 @@ void onion_handler_directory_delete(void *data){
  * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
  */
 onion_handler *onion_handler_directory(const char *path, const char *localpath){
-	onion_handler *ret;
-	ret=malloc(sizeof(onion_handler));
-	memset(ret,0,sizeof(onion_handler));
-	
 	onion_handler_directory_data *priv_data=malloc(sizeof(onion_handler_directory_data));
 
 	priv_data->localpath=strdup(localpath);
@@ -106,10 +101,8 @@ onion_handler *onion_handler_directory(const char *path, const char *localpath){
 		return NULL;
 	}
 	
-	ret->handler=onion_handler_directory_handler;
-	ret->priv_data=priv_data;
-	ret->priv_data_delete=onion_handler_directory_delete;
-	
+	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_directory_handler,
+																			 priv_data,(onion_handler_private_data_free) onion_handler_directory_delete);
 	return ret;
 }
 

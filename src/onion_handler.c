@@ -34,7 +34,7 @@ int onion_handler_handle(onion_handler *handler, onion_request *request){
 	while (handler){
 		if (handler->handler){
 			
-			res=handler->handler(handler, request);
+			res=handler->handler(handler->priv_data, request);
 			if (res)
 				return res;
 		}
@@ -43,6 +43,19 @@ int onion_handler_handle(onion_handler *handler, onion_request *request){
 	return 0;
 }
 
+
+/** 
+ * @short Creates an onion handler with that private datas.
+ *
+ */
+onion_handler *onion_handler_new(onion_handler_handler handler, void *priv_data, onion_handler_private_data_free priv_data_free){
+	onion_handler *phandler=malloc(sizeof(onion_handler));
+	memset(phandler,0,sizeof(onion_handler));
+	phandler->handler=handler;
+	phandler->priv_data=priv_data;
+	phandler->priv_data_free=priv_data_free;
+	return phandler;
+}
 
 /**
  * @short Frees the memory used by this handler.
@@ -59,9 +72,8 @@ int onion_handler_free(onion_handler *handler){
 	onion_handler *next=handler;
 	while (next){
 		handler=next;
-		if (handler->priv_data_delete && handler->priv_data){
-			onion_handler_private_data_free f=handler->priv_data_delete;
-			f(handler->priv_data);
+		if (handler->priv_data_free && handler->priv_data){
+			handler->priv_data_free(handler->priv_data);
 		}
 		next=handler->next;
 		free(handler);

@@ -50,7 +50,7 @@ void onion_response_set_code(onion_response *res, int code);
 /// Writes all the header to the given fd
 void onion_response_write_headers(onion_response *res);
 /// Writes some data to the response
-void onion_response_write(onion_response *res, const char *data, unsigned int length);
+int onion_response_write(onion_response *res, const char *data, unsigned int length);
 
 /// Returns the write object.
 onion_write onion_response_get_writer(onion_response *res);
