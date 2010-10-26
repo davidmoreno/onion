@@ -62,6 +62,9 @@ const char *onion_request_get_path(onion_request *req);
 /// Moves the path pointer to later in the fullpath
 void onion_request_advance_path(onion_request *req, int addtopos);
 
+/// Gets a header data
+const char *onion_request_get_header(onion_request *req, const char *header);
+
 #ifdef __cplusplus
 }
 #endif

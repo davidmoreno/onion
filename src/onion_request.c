@@ -251,3 +251,9 @@ const char *onion_request_get_path(onion_request *req){
 void onion_request_advance_path(onion_request *req, int addtopos){
 	req->path=&req->path[addtopos];
 }
+
+/// Gets a header data
+const char *onion_request_get_header(onion_request *req, const char *header){
+	return onion_dict_get(req->headers, header);
+}
+

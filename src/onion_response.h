@@ -25,6 +25,16 @@
 extern "C"{
 #endif
 
+enum onion_response_codes_e{
+	HTTP_OK=200,
+	HTTP_REDIRECT=302,
+	HTTP_UNAUTHORIZED=401,
+	HTTP_NOT_FOUND=404,
+};
+
+
+typedef enum onion_response_codes_e onion_response_codes;
+
 
 /**
  * @short Possible flags

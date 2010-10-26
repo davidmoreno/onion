@@ -27,7 +27,7 @@
 #include <onion_handler.h>
 #include <onion_response.h>
 #include <handlers/onion_handler_path.h>
-#include <handlers/onion_handler_static.h>
+#include <handlers/onion_handler_auth_pam.h>
 
 onion_handler *otop_handler_new();
 void otop_write_process_data(onion_response *res, int pid);
@@ -38,11 +38,13 @@ int otop_handler(void *d, onion_request *req);
  * @short Exports a top like structure
  */
 int main(int argc, char **argv){
-	onion_handler *otop=onion_handler_path("/ps/",
+	// Setup the server layout
+	onion_handler *withauth=onion_handler_path("/ps/",
 																				onion_handler_new((onion_handler_handler)otop_handler, NULL, NULL));
-	onion_handler_add(otop, onion_handler_new((onion_handler_handler)otop_index, NULL, NULL));
+	onion_handler_add(withauth, onion_handler_new((onion_handler_handler)otop_index, NULL, NULL));
+	onion_handler *otop=onion_handler_auth_pam("Onion Top", "login", withauth);
 	
-	
+	// Create server and setup
 	onion *onion=onion_new(O_ONE);
 	onion_set_root_handler(onion, otop);
 	
@@ -51,14 +53,16 @@ int main(int argc, char **argv){
 	else
 		onion_set_port(onion, 8080);
 	
+	// Listen.
 	int error=onion_listen(onion);
 	if (error){
 		perror("Cant create the server");
 	}
 	
+	// done
 	onion_free(onion);
 	
-	return 0;
+	return !error;
 }
 
 /// The handler created here.
