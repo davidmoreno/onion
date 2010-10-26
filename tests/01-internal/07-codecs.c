@@ -26,7 +26,16 @@
 
 void t01_codecs_base64_decode(){
 	INIT_LOCAL();
+	{
+	/// Text from wikipedia. Leviathan by Hobbes.
+	char *orig ="dGVzdDphYWE=";
+	char *realtext="test:aaa";
 	
+	char *res=onion_base64_decode(orig, NULL);
+	FAIL_IF_NOT_EQUAL_STR(res,realtext);
+	free(res);
+	}
+	{
 	/// Text from wikipedia. Leviathan by Hobbes.
 	char *orig ="TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz\n"
 							"IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg\n"
@@ -39,16 +48,16 @@ void t01_codecs_base64_decode(){
 	
 	int l;
 	char *res=onion_base64_decode(orig, &l);
+	//fprintf(stderr,"l %d len %ld\n",l,strlen(realtext));
 	FAIL_IF_NOT_EQUAL(l,strlen(realtext));
 	FAIL_IF_NOT_EQUAL_STR(res,realtext);
 	free(res);
-	
+	}
 	END_LOCAL();
 }
 
 void t02_codecs_base64_encode(){
 	INIT_LOCAL();
-	
 	/// Text from wikipedia. Leviathan by Hobbes.
 	char *orig ="TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz\n"
 							"IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg\n"
@@ -64,7 +73,7 @@ void t02_codecs_base64_encode(){
 	FAIL_IF_NOT_EQUAL(strlen(res),strlen(orig));
 	FAIL_IF_NOT_EQUAL_STR(res,orig);
 	free(res);
-	
+
 	END_LOCAL();
 }
 
@@ -75,9 +84,10 @@ void t03_codecs_base64_encode_decode_10(){
 	int i,j;
 	int l;
 	for (i=0;i<10;i++){
-		memset(text,0,sizeof(text));
+		//memset(text,0,sizeof(text));
 		for (j=0;j<i;j++)
 			text[j]='1'+j;
+		text[j]='\0';
 		
 		char *enc=onion_base64_encode(text, i);
 		char *res=onion_base64_decode(enc, &l);
@@ -94,7 +104,7 @@ void t03_codecs_base64_encode_decode_10(){
 void t04_codecs_base64_encode_decode(){
 	INIT_LOCAL();
 
-	char text[1024];
+	char text[1025];
 	int tlength=0;
 	int i,j;
 	int l;
@@ -102,6 +112,7 @@ void t04_codecs_base64_encode_decode(){
 		tlength=1024*(rand()/((double)RAND_MAX));
 		for (j=0;j<tlength;j++)
 			text[j]=rand()&0x0FF;
+		text[j]=0;
 		char *enc=onion_base64_encode(text, tlength);
 		char *res=onion_base64_decode(enc, &l);
 		FAIL_IF_NOT_EQUAL(l,tlength);

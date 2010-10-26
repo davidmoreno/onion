@@ -25,7 +25,7 @@
 
 #include <onion_handler.h>
 #include <onion_response.h>
-//#include <onion_codecs.h>
+#include <onion_codecs.h>
 
 int authorize(const char *pamname, const char *username, const char *password);
 
@@ -39,16 +39,35 @@ struct onion_handler_auth_pam_data_t{
 typedef struct onion_handler_auth_pam_data_t onion_handler_auth_pam_data;
 
 int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request *request){
-	//int l;
-	char *auth=NULL;//onion_base64_decode(onion_request_get_header(request, "Authorization"), &l);
-	
-	if (auth){
-		fprintf(stderr, "%s:%d auth %s\n",__FILE__,__LINE__,auth);
-		
-		
-		
-		return onion_handler_handle(d->inside, request);
+	const char *o=onion_request_get_header(request, "Authorization");
+	char *auth=NULL;
+	char *username=NULL;
+	char *passwd=NULL;
+	if (o && strncmp(o,"Basic",5)==0){
+		//fprintf(stderr,"auth: '%s'\n",&o[6]);
+		auth=onion_base64_decode(&o[6], NULL);
+		username=auth;
+		int i=0;
+		while (auth[i]!='\0' && auth[i]!=':') i++;
+		if (auth[i]==':'){
+			auth[i]='\0'; // so i have user ready
+			passwd=&auth[i+1];
+		}
+		else
+			passwd=NULL;
 	}
+	
+	// I have my data, try to authorize
+	if (username && passwd){
+		int ok=authorize(d->pamname, username, passwd);
+		
+		free(auth);
+		if (ok)
+			return onion_handler_handle(d->inside, request);
+	}
+	if (auth)
+		free(auth);
+
 	
 	// Not authorized. Ask for it.
 	onion_response *res=onion_response_new(request);

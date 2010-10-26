@@ -51,7 +51,13 @@ void printf_bin(const char c, int n){
  * The buffer might be sligthly bigger (up to 3 bytes), but length is always right.
  */
 char *onion_base64_decode(const char *orig, int *length){
+	if (orig==NULL)
+		return NULL;
 	int ol=strlen(orig)-1;
+	while ((ol>=3) && (orig[ol]=='\n' || orig[ol]=='\r' || orig[ol]=='\0')) ol--; // go to real end, and set to next. Order of the && is important.
+	ol++;
+	
+	//fprintf(stderr,"ol %d\n",ol);
 	int l=ol*3/4;
 	char *ret=malloc(l+1);
 	
@@ -69,25 +75,40 @@ char *onion_base64_decode(const char *orig, int *length){
 		int k;
 		for (k=0;k<4;k++){
 			while ( (i+k)<ol && ((c=db64[(int)orig[i+k]]) & 192) ) i++;
+			//fprintf(stderr,"%c ",orig[i+k]);
 			o[k]=c;
 		}
 		
 		ret[j]  =((o[0]&0x3F)<<2)+((o[1]&0x30)>>4);
 		ret[j+1]=((o[1]&0x0F)<<4)+((o[2]&0x3C)>>2);
 		ret[j+2]=((o[2]&0x03)<<6)+(o[3]);
+		/*
+		printf_bin(o[0], 6);
+		printf_bin(o[1], 6);
+		printf_bin(o[2], 6);
+		printf_bin(o[3], 6);
+		fprintf(stderr," -> ");
+		printf_bin(ret[j], 8);
+		printf_bin(ret[j+1], 8);
+		printf_bin(ret[j+2], 8);
+		fprintf(stderr,"\n");
+		*/
 	}
 	if (length){ // Set the right size.. only if i need it.
 		*length=j;
 		//fprintf(stderr, "ol-2 %d, length %d\n",ol-2,j);
-		if (orig[ol-2]=='='){
+		if (orig[ol-2]=='=')
 			*length=j-2;
-		}
-		else if (orig[ol-1]=='='){
+		else if (orig[ol-1]=='=')
 			*length=j-1;
-		}
-			
-		ret[*length]=0;
 	}
+	if (orig[ol-1]=='=')
+		ret[j-1]=0;
+	/*
+	else if (orig[ol]=='=')
+		ret[j]=0;*/
+	else
+		ret[j]=0;
 	
 	return ret;
 }
@@ -97,6 +118,8 @@ char *onion_base64_decode(const char *orig, int *length){
  * @short Encodes a byte array to a base64 into a new char* (must be freed later).
  */
 char *onion_base64_encode(const char *orig, int length){
+	if (orig==NULL)
+		return NULL;
 	/// that chars + \n one per every 57 + \n\0 at end, and maybe two '='
 	char *ret=malloc(((length*4)/3) + (length/57) + 2 + 3 );
 	if (length==0){ // easy case.. here.

@@ -7,5 +7,5 @@ add_custom_command(
    )
 
 add_executable(otop otop.c otop_data.c)
-target_link_libraries(otop onion onion_handlers )
+target_link_libraries(otop onion_handlers onion  )
 

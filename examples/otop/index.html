@@ -19,6 +19,14 @@ table th{
 	background: #eee;
 }
 
+table tbody tr.removed{
+	background: red;
+}
+
+table tbody tr.new{
+	background: green;
+}
+
 table tbody tr:hover{
 	background: yellow;
 }
@@ -49,19 +57,29 @@ updateTop = function(){
 	var p=$('#process tbody')
 	var X=window.pageXOffset
 	var Y=window.pageYOffset
-	p.html('')
 	$.get('/ps/', function(d){
+		$('tr.removed').remove()
+		var lines=p.children('tr')
+		lines.removeClass('new','slow')
 		$(d.split('\n')).each(function(){
 			var l=this.split(' ')
-			var tr=$('<tr>')
-			tr.append($('<td>').text(l[0]))
-			tr.append($('<td>').text(l[1]))
-			p.append(tr)
+			if (l[0]){
+				if (lines.filter('#'+l[0]).length){ // already here
+					lines=lines.not('#'+l[0])
+				}
+				else{
+					var tr=$('<tr>').attr('id',l[0]).addClass('new').fadeIn('slow')
+					tr.append($('<td>').text(l[0]))
+					tr.append($('<td>').text(l[1]))
+					p.append(tr)
+				}
+			}
 		})
+		lines.addClass('removed').fadeOut('slow')
 	},'plain')
 
 	window.scrollTo(X,Y)
-	setTimeout(updateTop,10*1000)
+	setTimeout(updateTop,2*1000)
 }
 </script>
 
