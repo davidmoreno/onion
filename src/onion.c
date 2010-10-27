@@ -122,6 +122,7 @@ static void onion_process_request(onion *o, int clientfd){
 		//fprintf(stderr, "%s:%d Read %d bytes\n",__FILE__,__LINE__,r);
 		w=onion_request_write(req, buffer, r);
 		if (w<0){ // request processed.
+			onion_request_free(req);
 			return;
 		}
 	}

@@ -19,6 +19,8 @@
 #include <malloc.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 #include "onion_dict.h"
 #include "onion_request.h"
@@ -106,6 +108,17 @@ int onion_response_write(onion_response *res, const char *data, unsigned int len
 /// Writes a 0-ended string to the response.
 int onion_response_write0(onion_response *res, const char *data){
 	return onion_response_write(res, data, strlen(data));
+}
+
+/// Writes some data to the response. Using sprintf format strings. Max final string size: 1024
+int onion_response_printf(onion_response *res, const char *fmt, ...){
+	char temp[1024];
+	va_list ap;
+	va_start(ap, fmt);
+	int l=vsnprintf(temp, sizeof(temp)-1, fmt, ap);
+	va_end(ap);
+	onion_response_write(res, temp, l);
+	return l;
 }
 
 

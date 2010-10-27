@@ -26,7 +26,7 @@ extern "C"{
 #endif
 
 /// Creates an directory handler. When path matches, it returns a file from localpath (final localpath + path). No dir listing.
-onion_handler *onion_handler_directory(const char *path, const char *localpath);
+onion_handler *onion_handler_directory(const char *localpath);
 
 #ifdef __cplusplus
 }

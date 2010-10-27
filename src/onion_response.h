@@ -63,6 +63,8 @@ void onion_response_write_headers(onion_response *res);
 int onion_response_write(onion_response *res, const char *data, unsigned int length);
 /// Writes some data to the response. \0 ended string
 int onion_response_write0(onion_response *res, const char *data);
+/// Writes some data to the response. Using sprintf format strings.
+int onion_response_printf(onion_response *res, const char *fmt, ...);
 
 /// Returns the write object.
 onion_write onion_response_get_writer(onion_response *res);

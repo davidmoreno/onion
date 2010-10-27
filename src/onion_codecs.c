@@ -18,6 +18,10 @@
 
 #include <string.h>
 #include <malloc.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+#include "onion_codecs.h"
 
 /// Decode table. Its the inverse of the code table. (cb64).
 static const char db64[]={ // 16 bytes each line, 8 lines. Only 128 registers
@@ -200,4 +204,80 @@ char *onion_base64_encode(const char *orig, int length){
 		r[j]='\0';
 	}
 	return ret;
+}
+
+
+/**
+ * @short Performs unquote inplace.
+ *
+ * It can be inplace as char position is always at least in the same on the destination than in the origin
+ */
+void onion_unquote_inplace(char *str){
+	char *r=str;
+	char *w=str;
+	char tmp[3]={0,0,0};
+	while (*r){
+		if (*r == '%'){
+			r++;
+			tmp[0]=*r++;
+			tmp[1]=*r;
+			*w=strtol(tmp, (char **)NULL, 16);
+		}
+		else if (*r=='+'){
+			*w=' ';
+		}
+		else{
+			*w=*r;
+		}
+		r++;
+		w++;
+	}
+	*w='\0';
+}
+
+/**
+ * @short Performs URL quoting, memory is allocated and has to be freed.
+ *
+ * As size necesary is dificult to measure, it first check how many should be encoded, and on a second round it encodes it.
+ */
+char *onion_quote_new(const char *str){
+	int i;
+	int l=strlen(str);
+	int nl=1;
+	for (i=0;i<l;i++){
+		if (!isalnum(str[i]))
+			nl+=3;
+		else
+			nl++;
+	}
+	// Now do the quotation part
+	char *ret=malloc(nl);
+	onion_quote(str, ret, nl);
+	return ret;
+}
+
+
+/// Performs URL quoting, uses auxiliary res, with maxlength size. If more, do up to where I can, and cut it with \0.
+int onion_quote(const char *str, char *res, int maxlength){
+	static char hex[]="0123456789ABCDEF";
+	int nl=0;
+	int l=strlen(str);
+	int i;
+	for (i=0;i<l;i++){
+		if (i>=maxlength)
+			break;
+		char c=str[i];
+		if (isalnum(c))
+			res[nl++]=c;
+		else{
+			if (i+2>=maxlength)
+				break;
+
+			res[nl++]='%';
+			res[nl++]=hex[(c>>4)&0x0F];
+			res[nl++]=hex[c&0x0F];
+		}
+	}
+	res[nl]=0;
+	return nl;
 }

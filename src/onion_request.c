@@ -26,6 +26,7 @@
 #include "onion_handler.h"
 #include "onion_server.h"
 #include "onion_types_internal.h"
+#include "onion_codecs.h"
 
 /// Creates a request
 onion_request *onion_request_new(onion_server *server, void *socket){
@@ -80,6 +81,7 @@ int onion_request_fill(onion_request *req, const char *data){
 
 		req->path=strndup(url,sizeof(url));
 		req->fullpath=req->path;
+		onion_request_parse_query(req); // maybe it consumes some CPU and not always needed.. but I need the unquotation.
 	}
 	else{
 		char header[32], value[256];
@@ -97,34 +99,6 @@ int onion_request_fill(onion_request *req, const char *data){
 		onion_dict_add(req->headers, header, value, OD_DUP_ALL);
 	}
 	return 1;
-}
-
-/**
- * @short Performs unquote inplace.
- *
- * It can be inplace as char position is always at least in the same on the destination than in the origin
- */
-void onion_request_unquote(char *str){
-	char *r=str;
-	char *w=str;
-	char tmp[3]={0,0,0};
-	while (*r){
-		if (*r == '%'){
-			r++;
-			tmp[0]=*r++;
-			tmp[1]=*r;
-			*w=strtol(tmp, (char **)NULL, 16);
-		}
-		else if (*r=='+'){
-			*w=' ';
-		}
-		else{
-			*w=*r;
-		}
-		r++;
-		w++;
-	}
-	*w='\0';
 }
 
 /// Parses a query string.
@@ -146,7 +120,7 @@ int onion_request_parse_query(onion_request *req){
 		p++;
 	}
 	cleanurl[i++]='\0';
-	onion_request_unquote(cleanurl);
+	onion_unquote_inplace(cleanurl);
 	if (*p){ // There are querys.
 		p++;
 		req->query=onion_dict_new();
@@ -165,8 +139,8 @@ int onion_request_parse_query(onion_request *req){
 			else{
 				if (*p=='&'){
 					value[i]='\0';
-					onion_request_unquote(key);
-					onion_request_unquote(value);
+					onion_unquote_inplace(key);
+					onion_unquote_inplace(value);
 					onion_dict_add(req->query, key, value, OD_DUP_ALL);
 					state=0;
 					i=-1;
@@ -184,8 +158,8 @@ int onion_request_parse_query(onion_request *req){
 				key[i]='\0';
 			else
 				value[i]='\0';
-			onion_request_unquote(key);
-			onion_request_unquote(value);
+			onion_unquote_inplace(key);
+			onion_unquote_inplace(value);
 			onion_dict_add(req->query, key, value, OD_DUP_ALL);
 		}
 	}

@@ -30,6 +30,15 @@ char *onion_base64_decode(const char *orig, int *length);
 /// Encodes a byte array to a base64 into a new char* (must be freed later).
 char *onion_base64_encode(const char *orig, int length);
 
+/// Performs URL unquoting
+void onion_unquote_inplace(char *str);
+
+/// Performs URL quoting, memory is allocated and has to be freed.
+char *onion_quote_new(const char *str);
+
+/// Performs URL quoting, uses auxiliary res, with maxlength size. If more, do up to where I can, and cut it with \0.
+int onion_quote(const char *str, char *res, int maxlength);
+
 #ifdef __cplusplus
 }
 #endif

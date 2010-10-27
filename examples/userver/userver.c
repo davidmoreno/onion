@@ -18,26 +18,37 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
 
 #include <onion.h>
 #include <onion_handler.h>
 #include <handlers/onion_handler_directory.h>
 #include <handlers/onion_handler_static.h>
 
+onion *o=NULL;
+
+void free_onion(){
+	fprintf(stderr,"\nClosing connections.\n");
+	onion_free(o);
+	exit(0);
+}
+
 int main(int argc, char **argv){
-	onion_handler *dir=onion_handler_directory(NULL, argc==2 ? argv[1] : ".");
-	onion_handler_add(dir, onion_handler_static(NULL,"<h1>500 Internal error. File not found.</h1>", 500) );
+	onion_handler *dir=onion_handler_directory(argc==2 ? argv[1] : ".");
+	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
 	
-	onion *onion=onion_new(O_ONE);
-	onion_set_root_handler(onion, dir);
-	onion_set_port(onion, 8080);
+	o=onion_new(O_ONE);
+	onion_set_root_handler(o, dir);
+	onion_set_port(o, 8080);
 	
-	int error=onion_listen(onion);
+	signal(SIGINT, free_onion);
+	int error=onion_listen(o);
 	if (error){
 		perror("Cant create the server");
 	}
 	
-	onion_free(onion);
+	onion_free(o);
 	
 	return 0;
 }
