@@ -99,7 +99,7 @@ int onion_ssl_use_certificate(onion_ssl *onion, onion_ssl_certificate_type type,
 			fprintf(stderr,"%s:%d Set unknown type of certificate: %d\n", basename(__FILE__), __LINE__, type);
 	}
 	if (r<0){
-	  fprintf (stderr, "*** Handshake has failed (%s)\n\n",
+	  fprintf (stderr, "%s:%d Error setting the certificate (%s)\n\n", basename(__FILE__), __LINE__,
 		   gnutls_strerror (r));
 	}
 	return r;
@@ -186,7 +186,7 @@ void onion_ssl_process_request(onion_ssl *server, int clientfd){
 	gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)(long) clientfd);
 	int ret = gnutls_handshake (session);
 	if (ret<0){ // could not handshake. assume an error.
-	  fprintf (stderr, "*** Handshake has failed (%s)\n\n",
+	  fprintf (stderr, "%s:%d Handshake has failed (%s)\n\n", basename(__FILE__), __LINE__,
 		   gnutls_strerror (ret));
 		return;
 	}
