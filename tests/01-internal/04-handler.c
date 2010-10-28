@@ -24,8 +24,8 @@
 #include <onion_request.h>
 #include <onion_response.h>
 #include <onion_handler.h>
-#include <handlers/onion_handler_static.h>
-#include <handlers/onion_handler_path.h>
+#include <onion_handler_static.h>
+#include <onion_handler_path.h>
 
 #include "../test.h"
 

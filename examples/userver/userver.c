@@ -23,8 +23,8 @@
 
 #include <onion.h>
 #include <onion_handler.h>
-#include <handlers/onion_handler_directory.h>
-#include <handlers/onion_handler_static.h>
+#include <onion_handler_directory.h>
+#include <onion_handler_static.h>
 
 onion *o=NULL;
 

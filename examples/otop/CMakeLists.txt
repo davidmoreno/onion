@@ -1,4 +1,4 @@
-include_directories (${CMAKE_SOURCE_DIR}/src) 
+include_directories (${CMAKE_SOURCE_DIR}/src/onion/ ${CMAKE_SOURCE_DIR}/src/handlers/) 
 
 add_custom_command(
    OUTPUT otop_data.c

@@ -26,8 +26,8 @@
 #include <onion.h>
 #include <onion_handler.h>
 #include <onion_response.h>
-#include <handlers/onion_handler_path.h>
-#include <handlers/onion_handler_auth_pam.h>
+#include <onion_handler_path.h>
+#include <onion_handler_auth_pam.h>
 
 onion_handler *otop_handler_new();
 void otop_write_process_data(onion_response *res, int pid);
