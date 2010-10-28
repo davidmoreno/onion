@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
+//#include <time.h>
 
 #include "onion_dict.h"
 #include "onion_request.h"
@@ -39,6 +40,11 @@ onion_response *onion_response_new(onion_request *req){
 	res->code=200; // The most normal code, so no need to overwrite it in other codes.
 	res->flags=OR_KEEP_ALIVE;
 	res->length=res->sent_bytes=0;
+	
+	// Sorry for the publicity.
+	onion_dict_add(res->headers, "Server", "Onion lib - 0.1. http://coralbits.com", 0);
+	//time_t t=time(NULL);
+	//onion_dict_add(res->headers, "Date", asctime(localtime(&t)), OD_DUP_VALUE);
 	
 	return res;
 }

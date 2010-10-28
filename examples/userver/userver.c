@@ -40,7 +40,11 @@ int main(int argc, char **argv){
 	
 	o=onion_new(O_ONE);
 	onion_set_root_handler(o, dir);
-	onion_set_port(o, 8080);
+	int port=8080;
+	if (getenv("ONION_PORT"))
+		port=atoi(getenv("ONION_PORT"));
+	
+	onion_set_port(o, port);
 	
 	signal(SIGINT, free_onion);
 	int error=onion_listen(o);

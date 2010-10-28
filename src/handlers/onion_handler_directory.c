@@ -95,22 +95,27 @@ int onion_handler_directory_handler_directory(const char *realp, onion_request *
 	if (!dir) // Continue on next. Quite probably a custom error.
 		return 0;
 	onion_response *res=onion_response_new(req);
+	onion_response_set_header(res, "Content-Type", "text/html; charset=utf-8");
 	onion_response_write_headers(res);
 	
-	onion_response_write0(res,"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n");
-	onion_response_write0(res,"<html>\n"
+	onion_response_write0(res,"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n"
+														"<html>\n"
 														" <head><meta content=\"text/html; charset=UTF-8\" http-equiv=\"content-type\"/>\n");
 	onion_response_printf(res,"<title>%s</title>\n",realp);
 	onion_response_write0(res,"</head>\n" 
-														" <body>\n  ");
-	onion_response_write0(res,"<style>body{ background: #555; font-family: sans-serif}"
-														" table{ background: white; width: 100%; border-radius: 5px; -moz-border-radius: 5px; } "
-														" th{	background: #eee; } tbody tr:hover td{ background: yellow; } tr.dir td{ background: #faa; }"
-														" table a{ display: block; } th{ cursor: pointer} h1{ color: white; }</style>\n");
-	onion_response_write0(res,"<script src=\"http://code.jquery.com/jquery-1.4.3.min.js\"></script>\n");
-	onion_response_write0(res,"<script src=\"http://tablesorter.com/jquery.tablesorter.min.js\"></script>\n");
-	onion_response_write0(res,"<script>$(document).ready(function(){ $('table').tablesorter({sortList: [ [0,0] ] }); });</script>\n");
+														" <body>\n"
+														"<style>body{ background: #fefefe; font-family: sans-serif; margin: 5%; }"
+														" table{ background: white; width: 100%; border: 1px solid #aaa; border-radius: 5px; -mox-border-radius: 5px; } "
+														" th{	background: #eee; } tbody tr:hover td{ background: yellow; } tr.dir td{ background: #D4F0FF; }"
+														" table a{ display: block; } th{ cursor: pointer} h1,h2{ color: black; text-align: center; } "
+														" a{ color: red; text-decoration: none; }</style>\n"
+														"<script src=\"http://code.jquery.com/jquery-1.4.3.min.js\"></script>\n"
+														"<script src=\"http://tablesorter.com/jquery.tablesorter.min.js\"></script>\n"
+														"<script>$(document).ready(function(){ $('table').tablesorter({sortList: [ [0,0] ] }); });</script>\n");
 	onion_response_printf(res,"<h1>Listing of directory %s</h1>\n",realp);
+	
+	onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
+	
 	onion_response_write0(res,"<table>\n<thead><tr><th>Filename</th><th>Size</th><th>Owner</th></tr></thead>\n<tbody>\n");
 	
 	struct dirent *fi;
@@ -133,7 +138,9 @@ int onion_handler_directory_handler_directory(const char *realp, onion_request *
 		free(quotedName);
 	}
 
-	onion_response_write0(res,"</tbody>\n</table>\n</body>\n</html>\n");
+	onion_response_write0(res,"</tbody>\n</table>\n</body>\n");
+	onion_response_write0(res,"<h2>Onion directory list. (C) 2010 <a href=\"http://www.coralbits.com\">CoralBits</a>. "
+														"Under <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPL 3.0.</a> License.</h2>\n</html>");
 
 	onion_response_free(res);
 	

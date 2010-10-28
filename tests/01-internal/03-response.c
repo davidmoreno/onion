@@ -80,7 +80,7 @@ void t02_full_cycle(){
 	onion_request_free(request);
 	onion_server_free(server);
 	
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 30\n\n123456789012345678901234567890");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 30\nServer: Onion lib - 0.1. http://coralbits.com\n\n123456789012345678901234567890");
 	
 	END_LOCAL();
 }

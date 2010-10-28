@@ -47,7 +47,7 @@ void t01_server_min(){
 	onion_request_write(req, "\r\n",2);
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\n\nSuccedded");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nSuccedded");
 	
 	onion_request_free(req);
 	onion_server_free(server);
@@ -72,7 +72,7 @@ void t02_server_full(){
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\n\nSuccedded");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nSuccedded");
 
 	onion_request_free(req);
 	onion_server_free(server);
@@ -97,7 +97,7 @@ void t03_server_no_overflow(){
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\n\nSuccedded");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nSuccedded");
 
 	onion_request_free(req);
 	onion_server_free(server);
@@ -122,7 +122,7 @@ void t04_server_overflow(){
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\n\nSuccedded");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nSuccedded");
 
 	onion_request_free(req);
 	onion_server_free(server);
@@ -156,7 +156,7 @@ void t05_server_with_pipes(){
 	read(p[0], buffer, sizeof(buffer));
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 16\n\nWorks with pipes");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 16\nServer: Onion lib - 0.1. http://coralbits.com\n\nWorks with pipes");
 
 	onion_request_free(req);
 	onion_server_free(server);

@@ -47,7 +47,7 @@ void t01_handle_static_request(){
 	
 	ok=onion_handler_handle(handler, request);
 	FAIL_IF_NOT(ok);
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 302 REDIRECT\nContent-Length: 9\n\nNot ready");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 302 REDIRECT\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nNot ready");
 	
 	onion_request_free(request);
 	onion_server_free(server);
@@ -81,7 +81,7 @@ void t02_handle_generic_request(){
 	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET / HTTP/1.1");
 	onion_handler_handle(handler, request);
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 302 REDIRECT\nContent-Length: 9\n\nNot ready");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 302 REDIRECT\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nNot ready");
 	onion_request_free(request);
 	
 	// gives error, as such url does not exist.
@@ -89,14 +89,14 @@ void t02_handle_generic_request(){
 	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET /error HTTP/1.1");
 	onion_handler_handle(handler, request);
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 500 INTERNAL ERROR\nContent-Length: 14\n\nInternal error");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 500 INTERNAL ERROR\nContent-Length: 14\nServer: Onion lib - 0.1. http://coralbits.com\n\nInternal error");
 	onion_request_free(request);
 
 	memset(buffer,0,sizeof(buffer));
 	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET /any HTTP/1.1");
 	onion_handler_handle(handler, request);
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 3\n\nany");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 3\nServer: Onion lib - 0.1. http://coralbits.com\n\nany");
 	onion_request_free(request);
 
 	onion_server_free(server);
@@ -123,7 +123,7 @@ void t03_handle_path_request(){
 	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET / HTTP/1.1");
 	onion_handler_handle(path, request);
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 500 INTERNAL ERROR\nContent-Length: 14\n\nInternal error");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 500 INTERNAL ERROR\nContent-Length: 14\nServer: Onion lib - 0.1. http://coralbits.com\n\nInternal error");
 	onion_request_free(request);
 	
 	// gives error, as such url does not exist.
@@ -131,14 +131,14 @@ void t03_handle_path_request(){
 	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET /test/ HTTP/1.1");
 	onion_handler_handle(path, request);
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 11\n\nTest index\n");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 11\nServer: Onion lib - 0.1. http://coralbits.com\n\nTest index\n");
 	onion_request_free(request);
 
 	memset(buffer,0,sizeof(buffer));
 	request=onion_request_new(server, buffer);
 	onion_request_fill(request,"GET /test/index.html HTTP/1.1");
 	onion_handler_handle(path, request);
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 10\n\nIndex test");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 10\nServer: Onion lib - 0.1. http://coralbits.com\n\nIndex test");
 	onion_request_free(request);
 
 	onion_server_free(server);
