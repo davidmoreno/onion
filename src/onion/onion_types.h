@@ -29,6 +29,8 @@ struct onion_response_t;
 typedef struct onion_response_t onion_response;
 struct onion_server_t;
 typedef struct onion_server_t onion_server;
+struct onion_t;
+typedef struct onion_t onion;
 
 
 typedef int (*onion_handler_handler)(onion_handler *handler, onion_request *);
@@ -43,6 +45,14 @@ typedef void (*onion_handler_private_data_free)(void *privdata);
  */
 typedef int (*onion_write)(void *handler, const char *data, unsigned int length);
 
+/// Flags for the mode of operation of the onion server.
+enum onion_mode_e{
+	O_ONE=1,
+	O_ONE_LOOP=3,
+	O_THREADED=4
+};
+
+typedef enum onion_mode_e onion_mode;
 
 
 #endif

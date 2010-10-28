@@ -25,16 +25,6 @@
 extern "C"{
 #endif
 
-enum onion_mode_e{
-	O_ONE=1,
-	O_ONE_LOOP=3,
-	O_THREADED=4
-};
-
-typedef enum onion_mode_e onion_mode;
-
-typedef struct onion_t onion;
-
 /// Creates the onion structure to fill with the server data, and later do the onion_listen()
 onion *onion_new(int flags);
 

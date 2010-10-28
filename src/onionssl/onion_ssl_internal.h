@@ -15,25 +15,27 @@
 	You should have received a copy of the GNU Affero General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
-
-#ifndef __ONION_SSL__
-#define __ONION_SSL__
+#ifndef __ONION_SSL_INTERNAL__
+#define __ONION_SSL_INTERNAL__
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
+#include <gnutls/gnutls.h>
+
+#include <onion_types.h>
+
 /// Basic data for the SSL connections
 struct onion_ssl_t{
+	onion *o; /// first the original onion structure, as all in there fits here.
+	gnutls_certificate_credentials_t x509_cred;
+	gnutls_dh_params_t dh_params;
+	gnutls_priority_t priority_cache;
 };
 
-typedef struct onion_ssl_t onion_ssl;
-
-/// Creates the onion structure to fill with the server data, and later do the onion_listen()
-onion_ssl *onion_ssl_new(int flags);
-
 #ifdef __cplusplus
-}
+extern "C"{
 #endif
 
 #endif
