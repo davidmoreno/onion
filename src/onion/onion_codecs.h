@@ -39,6 +39,12 @@ char *onion_quote_new(const char *str);
 /// Performs URL quoting, uses auxiliary res, with maxlength size. If more, do up to where I can, and cut it with \0.
 int onion_quote(const char *str, char *res, int maxlength);
 
+/// Performs C quotation: changes " for \". Usefull when sending data to be interpreted as JSON.
+char *onion_c_quote_new(const char *str);
+
+/// Performs the C quotation on the ret str. Max length is l.
+char *onion_c_quote(const char *str, char *ret, int l);
+	
 #ifdef __cplusplus
 }
 #endif

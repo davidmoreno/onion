@@ -22,12 +22,17 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #include <onion.h>
 #include <onion_handler.h>
 #include <onion_response.h>
 #include <onion_handler_path.h>
+#include <onion_handler_directory.h>
 #include <onion_handler_auth_pam.h>
+#include <onion_codecs.h>
 
 onion_handler *otop_handler_new();
 void otop_write_process_data(onion_response *res, int pid);
@@ -41,12 +46,13 @@ int main(int argc, char **argv){
 	// Setup the server layout
 	onion_handler *withauth=onion_handler_path("/ps/",
 																				onion_handler_new((onion_handler_handler)otop_handler, NULL, NULL));
+	onion_handler_add(withauth, onion_handler_path("/static/", onion_handler_directory(".")));
 	onion_handler_add(withauth, onion_handler_new((onion_handler_handler)otop_index, NULL, NULL));
-	onion_handler *otop=onion_handler_auth_pam("Onion Top", "login", withauth);
+	//onion_handler *otop=onion_handler_auth_pam("Onion Top", "login", withauth);
 	
 	// Create server and setup
 	onion *onion=onion_new(O_ONE);
-	onion_set_root_handler(onion, otop);
+	onion_set_root_handler(onion, withauth); // should be onion to ask for user.
 	
 	if (argc>1)
 		onion_set_port(onion, atoi(argv[1]));
@@ -76,17 +82,23 @@ int otop_handler(void *d, onion_request *req){
 		onion_response_write_headers(res);
 		return 1;
 	}
+	onion_response_set_header(res, "Content-Type","text/html; charset: utf-8");
 	onion_response_write_headers(res);
 	
+	onion_response_write0(res,"{");
 	struct dirent *fi;
+	int n=0;
 	while ((fi = readdir(dir)) != NULL){
 		char *p=NULL;
 		int pid=strtol(fi->d_name, &p, 10);
 		if (*p=='\0'){ // this means I converted it all to an integer.
+			n++;
+			//if (n>0 && n<10)
 			otop_write_process_data(res, pid);
 		}
 	}
 	closedir(dir);
+	onion_response_write0(res,"\"-1\":{}}");
 	
 	onion_response_free(res);
 	
@@ -96,23 +108,80 @@ int otop_handler(void *d, onion_request *req){
 
 void otop_write_process_data(onion_response *res, int pid){
 	char temp[1024];
+	char temp2[1024];
 	FILE *fd;
-	sprintf(temp, "%d ", pid);
-	onion_response_write0(res, temp);
-
-	// read cmdline. Only first arg.
-	sprintf(temp, "/proc/%d/cmdline", pid);
+	onion_response_printf(res,"\"%d\":{",pid);
+	
+	sprintf(temp, "/proc/%d/status", pid);
 	fd=fopen(temp,"r");
 	if (!fd){ // Error.
-		fprintf(stderr,"%s:%d Could not open %s proc file.\n",__FILE__,__LINE__,temp);
+		fprintf(stderr,"%s:%d Could not open %s proc status file.\n",__FILE__,__LINE__,temp);
+		onion_response_write0(res,"},");
 		return;
 	}
-	fscanf(fd,"%s",temp);
-	onion_response_write0(res, temp);
 	
+	size_t l=sizeof(temp);
+	char *t=temp;
+	char prev=0;
+	while (getline(&t,&l,fd)>0){
+		char *p=temp;
+		while(*p++!=':');
+		p--;
+		*p='\0';
+		p++;
+		char *val=p;
+		while(*p!='\n' && *p!='\0') p++;
+		*p='\0';
+		if (strcmp(temp,"Name")==0){
+			if (prev) onion_response_write(res,",",1);
+			while(*val =='\t' || *val==' ') val++;
+			onion_c_quote(val, temp2, sizeof(temp2));
+			onion_response_printf(res,"\"%s\":%s",temp, temp2);
+			prev=1;
+		}
+		else if (strcmp(temp,"PPid")==0){
+			if (prev) onion_response_write(res,",",1);
+			while(*val =='\t' || *val==' ') val++;
+			onion_c_quote(val, temp2, sizeof(temp2));
+			onion_response_printf(res,"\"%s\":%s",temp, temp2);
+			prev=1;
+		}
+		else if (strcmp(temp,"Uid")==0){
+			if (prev) onion_response_write(res,",",1);
+			while(*val =='\t' || *val==' ') val++;
+			struct passwd pw, *ok;
+			getpwuid_r(atoi(val), &pw, temp2, sizeof(temp2), &ok);
+			if (NULL==ok)
+				continue;
+
+			onion_response_printf(res,"\"%s\":\"%s\"",temp, pw.pw_name);
+			prev=1;
+		}
+		else if (strcmp(temp,"VmRSS")==0){
+			if (prev) onion_response_write(res,",",1);
+			while(*val =='\t' || *val==' ') val++;
+			onion_c_quote(val, temp2, sizeof(temp2));
+			onion_response_printf(res,"\"%s\":%s",temp, temp2);
+			prev=1;
+		}
+		else if (strcmp(temp,"VmData")==0){
+			if (prev) onion_response_write(res,",",1);
+			while(*val =='\t' || *val==' ') val++;
+			onion_c_quote(val, temp2, sizeof(temp2));
+			onion_response_printf(res,"\"%s\":%s",temp, temp2);
+			prev=1;
+		}
+		else if (strcmp(temp,"VmLib")==0){
+			if (prev) onion_response_write(res,",",1);
+			while(*val =='\t' || *val==' ') val++;
+			onion_c_quote(val, temp2, sizeof(temp2));
+			onion_response_printf(res,"\"%s\":%s",temp, temp2);
+			prev=1;
+		}
+	}
 	fclose(fd);
 	
-	onion_response_write(res, "\n", 1);
+	onion_response_write0(res,"}, ");
 }
 
 void opack_index_html(onion_response *res);

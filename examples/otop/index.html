@@ -4,19 +4,46 @@
   <script src="http://code.jquery.com/jquery-1.4.3.min.js"></script>
 <style>
 body{
-	background: #555;
+	background: #fefefe;
 	font-family: sans-serif;
 }
 
+h1{
+	color: black;
+	text-align: center;
+}
+
+#process{
+	overflow: hidden;
+}
+
 table{
+	width: 100%;
+	border: 1px solid #aaa; 
 	background: white;
 	border-radius: 5px;
 	-moz-border-radius: 5px;
-	width: 100%;
 }
 
 table th{
 	background: #eee;
+}
+
+table th, table td{
+	width: 10em;
+}
+
+table .uid{
+	width: 15em;
+}
+
+table thead{
+	display: block;
+	width: 100%;
+}
+table tbody{
+	overflow: auto;
+	display: block;
 }
 
 table tbody tr.removed{
@@ -31,19 +58,21 @@ table tbody tr:hover{
 	background: yellow;
 }
 
+
 </style>
  </header>
 <body>
 <h1>Onion Top</h1>
 
-<table id="process">
+<div id="process">
+<table>
 <thead>
-<tr><th>PID</th><th>Command</th></tr>
+<tr><th class="pid">PID</th><th class="name">Command</th><th class="uid">Uid</th><th>PPid</th><th>RSS</th><th>Data</th><th>Lib</th><td></tr>
 </thead>
 <tbody>
 </tbody>
 </table>
-
+</div>
 
 <script>
 $(document).ready(function(){
@@ -57,30 +86,55 @@ updateTop = function(){
 	var p=$('#process tbody')
 	var X=window.pageXOffset
 	var Y=window.pageYOffset
-	$.get('/ps/', function(d){
+	$.get('/ps/', function(orig){
+		o=orig
+		d=$.parseJSON(orig)
 		$('tr.removed').remove()
 		var lines=p.children('tr')
 		lines.removeClass('new','slow')
-		$(d.split('\n')).each(function(){
-			var l=this.split(' ')
-			if (l[0]){
-				if (lines.filter('#'+l[0]).length){ // already here
-					lines=lines.not('#'+l[0])
+
+		for(k in d){
+			var l=d[k]
+			if (k!=-1){
+				if (lines.filter('#'+k).length){ // already here
+					lines=lines.not('#'+k)
 				}
 				else{
-					var tr=$('<tr>').attr('id',l[0]).addClass('new').fadeIn('slow')
-					tr.append($('<td>').text(l[0]))
-					tr.append($('<td>').text(l[1]))
+					var tr=$('<tr>').attr('id',k).addClass('new').fadeIn('slow')
+					tr.append($('<td class="pid">').text(k))
+					tr.append($('<td class="name">').text(l['Name']))
+					tr.append($('<td class="uid">').text(l['Uid']))
+					tr.append($('<td>').text(l['PPid']))
+					tr.append($('<td>').text(l['VmRSS']))
+					tr.append($('<td>').text(l['VmData']))
+					tr.append($('<td>').text(l['VmLib']))
 					p.append(tr)
 				}
 			}
-		})
+		}
+
 		lines.addClass('removed').fadeOut('slow')
+
+		// copy from the header.
+		$('#process tbody td').width($('#process th.pid').width()+3)
+		$('#process tbody td.uid').width($('#process th.uid').width())
+		$('#process tbody .name').width($('#process thead .name').width())
 	},'plain')
+	
+	checkSize();
+	$(window).resize(checkSize)
 
 	window.scrollTo(X,Y)
 	setTimeout(updateTop,2*1000)
 }
+
+checkSize = function(){
+	//$('#process').height(window.innerHeight-100);
+	$('#process tbody').height(window.innerHeight-$('.tableContainer thead').height()-115);
+	$('#process thead .name').width($('#process').width())
+
+}
+
 </script>
 
 </body>

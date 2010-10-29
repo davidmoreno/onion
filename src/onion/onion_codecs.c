@@ -281,3 +281,66 @@ int onion_quote(const char *str, char *res, int maxlength){
 	res[nl]=0;
 	return nl;
 }
+
+
+/// Performs C quotation: changes " for \". Usefull when sending data to be interpreted as JSON. Returned data must be freed.
+char *onion_c_quote_new(const char *str){
+	char *ret;
+	int l=0, i=0;
+	const char *p=str;
+	while( *p != '\0'){ 
+		if (*p=='\n' || *p=='\r' || *p=='"' || *p=='\\' || *p=='\t')
+			l++;
+		i++; p++;
+	}
+	ret=malloc(i+l+2);
+	onion_c_quote(str, ret, l);
+	return ret;
+}
+
+/// Performs the C quotation on the ret str. Max length is l.
+char *onion_c_quote(const char *str, char *ret, int l){
+	const char *p=str;
+	char *r=ret;
+	*r++='"';
+	l-=3; // both " at start and end, and \0
+	while( *p != '\0'){ 
+		if (*p=='\n'){ 
+			*r='\\'; 
+			r++; 
+			*r='n'; 
+		} 
+		else if (*p=='\r'){
+			*r='\\'; 
+			r++; 
+			*r='n'; 
+		}
+		else if (*p=='"'){
+			*r='\\'; 
+			r++; 
+			*r='"'; 
+		}
+		else if (*p=='\\'){
+			*r='\\'; 
+			r++; 
+			*r='\\'; 
+		}
+		else if (*p=='\t'){
+			*r='\\'; 
+			r++; 
+			*r='t'; 
+		}
+		else{
+			*r=*p;
+		}
+		r++; p++; 
+		l--;
+		if (l<=0){
+			*r='\0';
+			break;
+		}
+	}
+	*r++='"';
+	*r++='\0';
+	return ret;
+}

@@ -114,8 +114,7 @@ int onion_response_printf(onion_response *res, const char *fmt, ...){
 	va_start(ap, fmt);
 	int l=vsnprintf(temp, sizeof(temp)-1, fmt, ap);
 	va_end(ap);
-	onion_response_write(res, temp, l);
-	return l;
+	return onion_response_write(res, temp, l);
 }
 
 
