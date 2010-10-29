@@ -79,27 +79,18 @@ void onion_response_set_code(onion_response *res, int  code){
 	res->code=code;
 }
 
-#define W(...) { sprintf(tmp, __VA_ARGS__); write(fd, tmp, strlen(tmp)); write(fd,"\n",1); }
 /// Helper that is called on each header, and writes the header
 static void write_header(const char *key, const char *value, onion_response *res){
-	char tmp[1024];
-	void *fd=onion_response_get_socket(res);
-	onion_write write=onion_response_get_writer(res);
-	W("%s: %s",key, value);
+	onion_response_printf(res, "%s: %s\n",key, value);
 }
 
 /// Writes all the header to the given fd
 void onion_response_write_headers(onion_response *res){
-	char tmp[1024];
-	void *fd=onion_response_get_socket(res);
-	onion_write write=onion_response_get_writer(res);
-	
-
-	W("HTTP/1.1 %d %s",res->code, onion_response_code_description(res->code));
+	onion_response_printf(res, "HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
 	
 	onion_dict_preorder(res->headers, write_header, res);
 	
-	write(fd, "\n", 1);
+	onion_response_write(res,"\n",1);
 }
 
 /// Straight write some data to the response. Only used for real data as it has info about sent bytes for keep alive.
@@ -127,8 +118,6 @@ int onion_response_printf(onion_response *res, const char *fmt, ...){
 	return l;
 }
 
-
-#undef W
 
 
 /**

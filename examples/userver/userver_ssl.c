@@ -47,7 +47,7 @@ int main(int argc, char **argv){
 	onion_ssl_set_port(o, port);
 	
 	
-	int ok=onion_ssl_use_certificate(o, O_SSL_CERTIFICATE_KEY, "/etc/pki/tls/certs/pound.pem", "/etc/pki/tls/certs/pound.pem");
+	int ok=onion_ssl_use_certificate(o, O_SSL_CERTIFICATE_KEY, "/etc/pki/tls/certs/pound.pem", "/etc/pki/tls/certs/pound.key");
 	if (ok<0){
 		fprintf(stderr,"Error setting the certificate: %d\n",ok);
 		exit(1);

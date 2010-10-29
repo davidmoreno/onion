@@ -40,7 +40,7 @@ struct onion_handler_directory_data_t{
 
 typedef struct onion_handler_directory_data_t onion_handler_directory_data;
 
-int onion_handler_directory_handler_directory(const char *realp, onion_request *req);
+int onion_handler_directory_handler_directory(const char *realp, const char *showpath, onion_request *req);
 int onion_handler_directory_handler_file(const char *realp, struct stat *reals, onion_request *request);
 
 int onion_handler_directory_handler(onion_handler_directory_data *d, onion_request *request){
@@ -52,14 +52,14 @@ int onion_handler_directory_handler(onion_handler_directory_data *d, onion_reque
 	if (strncmp(realp, d->localpath, strlen(d->localpath))!=0) // out of secured dir.
 		return 0;
 
-	fprintf(stderr,"%s\n",realp);
+	//fprintf(stderr,"%s\n",realp);
 	struct stat reals;
 	int ok=stat(realp,&reals);
 	if (ok<0) // Cant open for even stat
 		return 0;
 
 	if (S_ISDIR(reals.st_mode)){
-		return onion_handler_directory_handler_directory(realp, request);
+		return onion_handler_directory_handler_directory(realp, onion_request_get_path(request), request);
 	}
 	else if (S_ISREG(reals.st_mode)){
 		return onion_handler_directory_handler_file(realp, &reals, request);
@@ -90,7 +90,7 @@ int onion_handler_directory_handler_file(const char *realp, struct stat *reals, 
 /**
  * @short Returns the directory listing
  */
-int onion_handler_directory_handler_directory(const char *realp, onion_request *req){
+int onion_handler_directory_handler_directory(const char *realp, const char *showpath, onion_request *req){
 	DIR *dir=opendir(realp);
 	if (!dir) // Continue on next. Quite probably a custom error.
 		return 0;
@@ -101,20 +101,21 @@ int onion_handler_directory_handler_directory(const char *realp, onion_request *
 	onion_response_write0(res,"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n"
 														"<html>\n"
 														" <head><meta content=\"text/html; charset=UTF-8\" http-equiv=\"content-type\"/>\n");
-	onion_response_printf(res,"<title>%s</title>\n",realp);
+	onion_response_printf(res,"<title>Directory listing of %s</title>\n",showpath);
 	onion_response_write0(res,"</head>\n" 
 														" <body>\n"
-														"<style>body{ background: #fefefe; font-family: sans-serif; margin: 5%; }"
-														" table{ background: white; width: 100%; border: 1px solid #aaa; border-radius: 5px; -mox-border-radius: 5px; } "
+														"<style>body{ background: #fefefe; font-family: sans-serif; margin-left: 5%; margin-right: 5%; }"
+														" table{ background: white; width: 100%; border: 1px solid #aaa; border-radius: 5px; -moz-border-radius: 5px; } "
 														" th{	background: #eee; } tbody tr:hover td{ background: yellow; } tr.dir td{ background: #D4F0FF; }"
 														" table a{ display: block; } th{ cursor: pointer} h1,h2{ color: black; text-align: center; } "
 														" a{ color: red; text-decoration: none; }</style>\n"
 														"<script src=\"http://code.jquery.com/jquery-1.4.3.min.js\"></script>\n"
 														"<script src=\"http://tablesorter.com/jquery.tablesorter.min.js\"></script>\n"
 														"<script>$(document).ready(function(){ $('table').tablesorter({sortList: [ [0,0] ] }); });</script>\n");
-	onion_response_printf(res,"<h1>Listing of directory %s</h1>\n",realp);
+	onion_response_printf(res,"<h1>Listing of directory %s</h1>\n",showpath);
 	
-	onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
+	if (showpath[1]!='\0') // It will be 0, when showpath is "/"
+		onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
 	
 	onion_response_write0(res,"<table>\n<thead><tr><th>Filename</th><th>Size</th><th>Owner</th></tr></thead>\n<tbody>\n");
 	

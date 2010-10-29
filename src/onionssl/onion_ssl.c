@@ -146,6 +146,7 @@ int onion_ssl_listen(onion_ssl *server){
 void onion_ssl_free(onion_ssl *onion){
 	gnutls_certificate_free_credentials (onion->x509_cred);
 	gnutls_dh_params_deinit(onion->dh_params);
+  gnutls_priority_deinit (onion->priority_cache);
 	if (!(onion->o->flags&O_SSL_NO_DEINIT))
 		gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
 	onion_free(onion->o);
@@ -186,8 +187,9 @@ void onion_ssl_process_request(onion_ssl *server, int clientfd){
 	gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)(long) clientfd);
 	int ret = gnutls_handshake (session);
 	if (ret<0){ // could not handshake. assume an error.
-	  fprintf (stderr, "%s:%d Handshake has failed (%s)\n\n", basename(__FILE__), __LINE__,
+	  fprintf (stderr, "%s:%d Handshake has failed (%s)\n", basename(__FILE__), __LINE__,
 		   gnutls_strerror (ret));
+		gnutls_deinit (session);
 		return;
 	}
 	
@@ -205,6 +207,7 @@ void onion_ssl_process_request(onion_ssl *server, int clientfd){
 			return;
 		}
 	}
+	onion_request_free(req);
 	/// error on transmission or other end closed...
 	gnutls_deinit (session);
 }

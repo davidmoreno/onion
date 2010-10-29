@@ -48,7 +48,7 @@ int onion_handler_static_handler(onion_handler_static_data *d, onion_request *re
 	onion_response_set_code(res, d->code);
 	
 	onion_response_write_headers(res);
-	fprintf(stderr,"Write %d bytes\n",length);
+	//fprintf(stderr,"Write %d bytes\n",length);
 	onion_response_write(res, d->data, length);
 
 	onion_response_free(res);
