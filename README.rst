@@ -12,5 +12,5 @@ to serve, and serve it.
 
 Its not a web server per se, as it is not an executable.
 
-If you wan tto compare to a web server, a web server would use a module or plugin to add 
-some functionality. With libonion yo uhave the functionality and add the webserver as a plugin.
+If you want to compare to a web server, a web server would use a module or plugin to add 
+some functionality. With libonion you have the functionality and add the webserver as a plugin.
