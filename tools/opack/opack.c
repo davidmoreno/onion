@@ -75,7 +75,7 @@ int main(int argc, char **argv){
 
 /// Parses a filename to a function name (changes non allowed chars to _)
 char *funcname(const char *filename){
-	char *ret=malloc(strlen(filename)+6);
+	char *ret=malloc(strlen(filename)+7);
 	strcpy(ret,"opack_");
 	int i=0;
 	while(filename[i]!='\0'){
@@ -85,6 +85,7 @@ char *funcname(const char *filename){
 			ret[i+6]=filename[i];
 		i++;
 	}
+	ret[i+6]='\0';
 	return ret;
 }
 
