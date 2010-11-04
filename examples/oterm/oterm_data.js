@@ -20,6 +20,10 @@
 
 On this file it is defined all behavioural things about terminal. This is for linux terminal, but other terminals should use something similar.
 
+Quite important link:
+
+http://www.databeast.com/datacomet/Documents/1.1._VT100_Command_Set.txt
+
 */
 /**
  * Messages I dont know
@@ -48,7 +52,8 @@ classesAttr={ 1: 'bright',
 							3: 'underline',
 							5: 'blink',
 							7: 'reverse',
-							8: 'hidden'
+							8: 'hidden',
+							27: 'reverse-off'
 }
 classesBg={	40:'bg-black',
 						41:'bg-red',
@@ -73,8 +78,24 @@ classesColor={
 }
 
 specialFuncs={
+						'm':setColorStatus,
+						'H':setPositionStatus,
+						'P':removeCharsStatus,
 						'K':removeOneChar,
-						'2J':clearScreen
+						'J':clearScreen,
+						'@':scrollLeft,
+						'D':scrollLeft,
+						'C':scrollRight,
+						'd':setVerticalPosition,
+						'G':setHorizontalPosition,
+						"'":setHorizontalPosition,
+						'`':setHorizontalPosition,
+						'?1h':cursorKeyModeApplication,
+						'?1l':cursorKeyModeCursor,
+						'?12l':remoteEcho,
+						'?12h':localEcho,
+						'?25l':hideCursor,
+						'?25h':showCursor
 }
 
 ignoreType1 = [ 'C' ]

@@ -55,7 +55,7 @@ keypress = function(event){
 		//addText("&nbsp;")
 		keyValue=keyCodesToValues[keyCode]
 	}
-	else if (keyCode>=65 && keyCode<=90 && (!event.shift)){
+	else if (keyCode>=65 && keyCode<=90 && (!shift)){
 		keyCode+32
 		keyValue=String.fromCharCode(keyCode+32)
 	}

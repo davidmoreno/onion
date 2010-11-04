@@ -26,8 +26,8 @@ currentBg=''
 currentColor=''
 currentClass='' // just the cached sum of all before here.
 /// Current line position
-posColumn=0
-posRow=0
+posColumn=1
+posRow=1
 /// Initial timeout and default
 defaultTimeout=100
 timeout=defaultTimeout
@@ -47,6 +47,11 @@ charHeight=8
 
 /// Set to true whenclass changed and need a new span. Else just use latest span to add text.
 changedClass=false
+
+/// Not used yet. FIXME.
+echoLocal=false
+/// Not used yet. FIXME.
+cursorKeyModeApp=true
 
 /// Parses input data and set the screen status as needed.
 updateData = function(text){
@@ -149,35 +154,51 @@ setStatus = function(st){
 	if (st in specialFuncs){
 		specialFuncs[st]()
 	}
-	else if (st.substr(-1)=='m'){
-		setColorStatus(st.substr(0,st.length-1))
-	}
-	else if (st.substr(-1)=='H'){
-		var p=st.substr(0,st.length-1).split(';')
-		setPosition(Number(p[0]),Number(p[1]))
-	}
-	else if (st.substr(-1)=='P'){
-		var n=Number(st.substr(0,st.length-1))+1
-		for (i=0;i<n;i++){
-			removeOneChar()
-		}
+	else if (st.substr(-1) in specialFuncs){
+		specialFuncs[st.substr(-1)]( st.substr(0,st.length-1) )
 	}
 	else if (ignoreType1.indexOf(st)>=0) // Just ignore.. i dont know what are they
 		return
 	else
-		showMsg('unknown code <'+st+'>')
+		showMsg('unknown code <['+st+'>')
 }
 
 /// Sets an status of type2: ]
 setStatusType2 = function(st){
 	if (ignoreType2.indexOf(st)) // Just ignore.. i dont know what are they
 		return
-	showMsg('unknown code type2 <'+st+'>')
+	showMsg('unknown code type2 <]'+st+'>')
 }
 
+/// Parses the status as given from status
+setPositionStatus = function(st){
+	var p
+	if (!st){
+		p=[1,1] // FIXME, no position, so cant do much
+		clearScreen()
+		return
+	}
+	else{
+		p=st.substr(0,st.length-1).split(';')
+		p[0]=Number(p[0])
+		p[1]=Number(p[1])
+	}
+	setPosition(p[0],p[1])
+}
+
+removeCharsStatus = function(st){
+	var n=Number(st.substr(0,st.length-1))+1
+	for (i=0;i<n;i++){
+		removeOneChar()
+	}
+}
 
 /// Sets the color status
 setColorStatus = function(st){
+	if (!st){ // empty means reset.
+		st='0'
+	}
+	
 	var l=st.split(';')
 	for (var v in l){
 		v=Number(l[v])
@@ -190,7 +211,19 @@ setColorStatus = function(st){
 			currentColor=classesColor[v]
 		}
 		else if (v in classesAttr){
-			currentAttr=classesAttr[v]
+			currentAttr+=' '+classesAttr[v]
+			if ('reverse'==classesAttr[v]){
+				var color=currentColor
+				var bg=currentBg
+				if (color=='')
+					currentBg='bg-white'
+				else
+					currentBg='bg-'+color
+				if (bg=='')
+					currentColor='black'
+				else
+					currentColor=bg.substr(3)
+			}
 		}
 		else if (v in classesBg){
 			currentBg=classesBg[v]
@@ -215,16 +248,20 @@ removeOneChar = function(){
 	if (sp.html()=='')
 		sp.remove()
 	posColumn--;
-	if (posColumn<0)
-		posColumn=0
+	if (posColumn<1)
+		posColumn=1
 	updateCursor()
 }
 
 /// Clears visible screen. Now it clears it all.
-clearScreen = function(){
-	$('#term').html('')
-	posRow=0
-	newLine()
+clearScreen = function(t){
+	if (!t || t=='2'){
+		$('#term').html('')
+		posRow=0
+		newLine()
+	}
+	else
+		showMsg('Clear screen unknown '+t)
 }
 
 /// Goes to top left position
@@ -241,7 +278,7 @@ setPosition = function(row,col){
 	}
 	/*/
 	posRow=row
-	posCol=col
+	posColumn=col
 	updateCursor()
 }
 
@@ -316,7 +353,6 @@ showHex = function(){
 	}
 	return s
 }
-
 /// visual beep
 beep = function(){
 	$('body').css('background','yellow')
@@ -324,12 +360,80 @@ beep = function(){
 	posRow++
 }
 
+/// Hides the cursor
+hideCursor = function(){
+	$('span#cursor').fadeOut()
+}
+
+/// shows the cursor
+showCursor = function(){
+	$('span#cursor').fadeIn()
+}
+
+/// Activates remote echo; no local echo
+remoteEcho = function(){
+	echoLocal=false
+}
+
+/// Activates remote echo; no local echo
+localEcho = function(){
+	echoLocal=true
+}
+
+
+/// Activates remote echo; no local echo
+cursorKeyModeApplication = function(){
+	cursorKeyModeApp=true
+}
+
+/// Activates remote echo; no local echo
+cursorKeyModeCursor = function(){
+	cursorKeyModeApp=false
+}
+
+/// Moves left some positions
+scrollLeft = function(st){
+	var l
+	if (!st)
+		l=1
+	else
+		l=Number(st)
+	setPosition(posRow, posColumn-l)
+}
+
+/// Moves left some positions
+scrollRight = function(st){
+	var r
+	if (!st)
+		r=1
+	else
+		r=Number(st)
+	setPosition(posRow, posColumn+l)
+}
+
+
+
+/// Sets the vertical position
+setVerticalPosition = function(st){
+	setPosition(Number(st), posColumn)
+}
+
+/// Sets the vertical position
+setHorizontalPosition = function(st){
+	setPosition(posRow, Number(st))
+}
 
 showMsg = function(msg){
 	var d=$('<div>').text(msg).fadeIn()
 	setTimeout(function(){ d.fadeOut(function(){ $(this).remove() }) }, 10000)
 
 	$('#msg').append(d)
+}
+
+/// Calcualtes current terminal size, in characters, [ rows, cols ]
+getSize = function(){
+	var t=$(document)
+	return [ t.height()/charHeight, t.width()/charWidth]
 }
 
 /// Prepares basic status of the document: keydown are processed, and starts the updatedata.
@@ -350,7 +454,11 @@ $(document).ready(function(){
 		showAndScroll: function() {/*
 				$(this).show();
 				if( $(this).position()['top'] )*/
-					window.scrollTo(0, $(this).position()['top']);
+					try{ // just try, no big deal if can not.
+						window.scrollTo(0, $(this).position()['top']);
+					}
+					catch(e){
+					}
 				}
 	});
 
