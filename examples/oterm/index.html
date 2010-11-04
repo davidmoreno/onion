@@ -1,8 +1,27 @@
+<!--
+	Onion HTTP terminal
+	Copyright (C) 2010 David Moreno Montero
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as
+	published by the Free Software Foundation, either version 3 of the
+	License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU Affero General Public License for more details.
+
+	You should have received a copy of the GNU Affero General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
 <html>
  <head>
   <title>Oterm -- Onion based terminal emulator over HTTP</title>
   <script src="http://code.jquery.com/jquery-1.4.3.min.js"></script>
   <script src="oterm.js"></script>
+  <script src="oterm_input.js"></script>
   <script src="oterm_data.js"></script>
 <style>
 body{
@@ -37,13 +56,30 @@ span#msg{
 	position: fixed;
 	top: 2em;
 	right: 2em;
-	background: #f66;
-	color: black;
+	background: #66f;
+	opacity: 0.8;
+	font-weight: bold;
+	color: white;
 	vertical-align: center;
 	text-align: center;
 	border: 1px solid white;
 	padding: 1em;
 	border-radius: 5px;
+}
+
+/** style attrs */
+div#term span.bright{
+	font-weight: bold;
+}
+
+div#term span.dim{
+	font-weight: light;
+}
+div#term span.underline{
+	text-decoration: underline;
+}
+div#term span.blink{
+	text-decoration: blink;
 }
 
 /** foreground */

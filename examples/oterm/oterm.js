@@ -1,14 +1,30 @@
+/*
+	Onion HTTP terminal
+	Copyright (C) 2010 David Moreno Montero
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as
+	published by the Free Software Foundation, either version 3 of the
+	License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU Affero General Public License for more details.
+
+	You should have received a copy of the GNU Affero General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	*/
+
+/**
+ * On this file lies all the parsing of terminal data, to make it work on a HTML.
+ */
+
 /// As the state machines changes and finds [0..m it can change the class.
 currentAttr=''
 currentBg=''
 currentColor=''
 currentClass='' // just the cached sum of all before here.
-// Normal shift status
-shift=false
-// alt gr status
-altgr=false
-/// Control status. this is a switch
-cntrl=false
 /// Current line position
 posColumn=0
 posRow=0
@@ -31,57 +47,6 @@ charHeight=8
 
 /// Set to true whenclass changed and need a new span. Else just use latest span to add text.
 changedClass=false
-
-
-/// Parses key presses.
-keypress = function(event){
-	var keyCode=event.keyCode
-	//showMsg('Key pressed '+keyCode)
-	var keyValue=''
-	if (keyCode==13){
-		keyValue='\n'
-	}
-	else{
-		if (keyCode==16){
-			shift=true
-		}
-		else if (keyCode==17){
-			cntrl=!cntrl
-			if (cntrl)
-				showMsg('Control ON')
-			else
-				showMsg('Control OFF')
-		}
-		else if (cntrl && keyCode){
-			keyValue='\0'+(keyCode-64).toString(8)
-			cntrl=false
-			showMsg('Sent control '+String.fromCharCode(keyCode))
-		}
-		else if (shift && keyCode in keyCodesToValuesShift){
-			keyValue=keyCodesToValuesShift[keyCode]
-		}
-		else if (keyCode in keyCodesToValues){
-			//addText("&nbsp;")
-			keyValue=keyCodesToValues[keyCode]
-		}
-		else if (keyCode>=65 && keyCode<=90 && (!event.shift)){
-			keyCode+32
-			keyValue=String.fromCharCode(keyCode+32)
-		}
-		else
-			keyValue=String.fromCharCode(keyCode)
-	}
-	//addText(keyValue)
-	if (keyValue) // there are some silent codes
-		$.get('/term',{type:keyValue},updateDataTimeout,'plain')
-}
-
-/// We also have to think about some keys taht can be released later, like shift.
-keyrelease = function(event){
-	var keyCode=event.keyCode
-	if (keyCode==16)
-		shift=false
-}
 
 /// Parses input data and set the screen status as needed.
 updateData = function(text){
@@ -148,7 +113,7 @@ updateData = function(text){
 		}
 		else if (parserStatus==2){
 			str+=c
-			if ('0123456789;'.indexOf(c)<0){
+			if ('0123456789;?'.indexOf(c)<0){
 				setStatus(str)
 				str=''
 				parserStatus=0
@@ -296,25 +261,51 @@ addText = function(text, length){
 	updateCursor()
 }
 
-/// Request new data, and do the timeout for next petition
-requestNewDataTimeout = function(){
-	$.get('/term',updateDataTimeout,'plain')
+cacheSendKeys=''
+onpetition=false // no two petitions at the same time.
+
+/**
+ * @short Request new data, and do the timeout for next petition
+ *
+ * Data send is serialized: only one peittion can be on the air. If a new petition is done, then 
+ * it must wait until the reponse of latest arrives, and then make a new one. This helps a lot the interactivity, and solves
+ * serialization problems.
+ */
+requestNewData = function(keyvalue){
+	if (keyvalue)
+		cacheSendKeys+=keyvalue
+	if (onpetition){
+		return
+	}
+	
+	onpetition=true
+	if (cacheSendKeys!=''){
+		$.get('/term',{type:cacheSendKeys}, updateDataTimeout,'plain')
+		cacheSendKeys=''
+	}
+	else
+		$.get('/term',updateDataTimeout,'plain')
 }
 
-/// Sets the result of data load, and set a new timeout for later.
+/// Sets the result of data load, and set a new timeout for later. If there is data to send, do it now.
 updateDataTimeout = function(text){
 	clearTimeout(timeoutId)
 	updateData(text)
 	
-	/// Update timeout times, incremental as important things use to be at the same times, and then big times of nothing
-	if (text && text!='')
-		timeout=defaultTimeout
+	onpetition=false
+	if (cacheSendKeys!='')
+		requestNewData()
 	else{
-		if (timeout<=5000)
-			timeout=timeout*2.5
-	}
+		/// Update timeout times, incremental as important things use to be at the same times, and then big times of nothing
+		if (text && text!='')
+			timeout=defaultTimeout
+		else{
+			if (timeout<=5000)
+				timeout=timeout*2.5
+		}
 
-	timeoutId=setTimeout(requestNewDataTimeout, timeout)
+		timeoutId=setTimeout(requestNewData, timeout)
+	}
 }
 
 showHex = function(){
@@ -333,18 +324,16 @@ beep = function(){
 	posRow++
 }
 
+
 showMsg = function(msg){
-	$('#msg').text(msg).fadeIn()
-	if (msgTimeout)
-		clearTimeout(msgTimeout)
-	msgTimeout=setTimeout(function(){ $('#msg').fadeOut() }, 2000)
+	var d=$('<div>').text(msg).fadeIn()
+	setTimeout(function(){ d.fadeOut(function(){ $(this).remove() }) }, 10000)
+
+	$('#msg').append(d)
 }
 
 /// Prepares basic status of the document: keydown are processed, and starts the updatedata.
 $(document).ready(function(){
-	$(document).keydown(keypress)
-	$(document).keyup(keyrelease)
-	
 	var t=$('#term span')
 	charWidth=(t.width()/t.text().length)
 	charHeight=t.height()-3
@@ -353,9 +342,9 @@ $(document).ready(function(){
 	
 	$('#term').html('')
 	newLine()
-	requestNewDataTimeout()
+	requestNewData()
 	
-	$('#msg').fadeOut()
+	$('#msg').html('')
 	
 	$.fn.extend({
 		showAndScroll: function() {/*
