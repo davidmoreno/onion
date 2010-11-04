@@ -231,3 +231,10 @@ const char *onion_request_get_header(onion_request *req, const char *header){
 	return onion_dict_get(req->headers, header);
 }
 
+/// Gets a query data
+const char *onion_request_get_query(onion_request *req, const char *query){
+	if (req->query)
+		return onion_dict_get(req->query, query);
+	return NULL;
+}
+

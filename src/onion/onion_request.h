@@ -65,6 +65,9 @@ void onion_request_advance_path(onion_request *req, int addtopos);
 /// Gets a header data
 const char *onion_request_get_header(onion_request *req, const char *header);
 
+/// Gets query data
+const char *onion_request_get_query(onion_request *req, const char *query);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,0 +1,111 @@
+<html>
+ <head>
+  <title>Oterm -- Onion based terminal emulator over HTTP</title>
+  <script src="http://code.jquery.com/jquery-1.4.3.min.js"></script>
+  <script src="oterm.js"></script>
+  <script src="oterm_data.js"></script>
+<style>
+body{
+	margin: 0px;
+	padding: 0px;
+	background: black;
+	color: white;
+	font-family: Fixed, monospace;
+}
+
+div#term p{
+	margin: 0px;
+	padding: 0px;
+	border: 0px;
+}
+
+span#cursor{
+	position: absolute;
+	left: 3em;
+	top: 1em;
+	width: 0.5em;
+	height: 1em;
+	background: white;
+}
+
+div#term p{
+	height: 1em;
+}
+
+span#msg{
+	font-family: sans-serif;
+	position: fixed;
+	top: 2em;
+	right: 2em;
+	background: #f66;
+	color: black;
+	vertical-align: center;
+	text-align: center;
+	border: 1px solid white;
+	padding: 1em;
+	border-radius: 5px;
+}
+
+/** foreground */
+div#term span.black{
+	color: black;
+}
+div#term span.red{
+	color: red;
+}
+div#term span.green{
+	color: #4DEA4D;
+}
+div#term span.yellow{
+	color: yellow;
+}
+div#term span.blue{
+	color: #5454FF;
+}
+div#term span.magenta{
+	color: #FF54FF;
+}
+div#term span.cyan{
+	color: cyan;
+}
+div#term span.white{
+	color: white;
+}
+/* background */
+div#term span.bg-black{
+	background-color: black;
+}
+div#term span.bg-red{
+	background-color: red;
+}
+div#term span.bg-green{
+	background-color: #4DEA4D;
+}
+div#term span.bg-yellow{
+	background-color: yellow;
+}
+div#term span.bg-blue{
+	background-color: #5454FF;
+}
+div#term span.bg-magenta{
+	background-color: #FF54FF;
+}
+div#term span.bg-cyan{
+	background-color: cyan;
+}
+div#term span.bg-white{
+	background-color: white;
+}
+
+
+
+</style>
+ </head>
+ <body>
+<span id="msg">Loading...</span>
+<span id="cursor">&nbsp;</span>
+   <div id="term">
+    <p><span>Connecting...</span></p>
+   </div>
+ </body>
+</html>
