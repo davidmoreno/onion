@@ -19,7 +19,7 @@
 <html>
  <head>
   <title>Oterm -- Onion based terminal emulator over HTTP</title>
-  <script src="http://code.jquery.com/jquery-1.4.3.min.js"></script>
+  <script src="jquery-1.4.3.min.js"></script>
   <script src="oterm.js"></script>
   <script src="oterm_input.js"></script>
   <script src="oterm_data.js"></script>
@@ -40,6 +40,7 @@ div#term p{
 
 span#cursor{
 	position: absolute;
+	opacity: 0.6;
 	left: 3em;
 	top: 1em;
 	width: 0.5em;
@@ -69,6 +70,11 @@ span#msg div{
 	border: 1px solid white;
 	padding: 1em;
 	border-radius: 5px;
+	cursor: pointer;
+}
+
+.current_line{
+	background: blue;
 }
 
 /** style attrs */

@@ -80,26 +80,43 @@ classesColor={
 specialFuncs={
 						'm':setColorStatus,
 						'H':setPositionStatus,
+						'r':setPositionStatus,
 						'P':removeCharsStatus,
-						'K':removeOneChar,
+						'K':removeToEOL,
 						'J':clearScreen,
 						'@':scrollLeft,
 						'D':scrollLeft,
-						'C':scrollRight,
+						'C':scrollRight , // right
 						'd':setVerticalPosition,
 						'G':setHorizontalPosition,
 						"'":setHorizontalPosition,
 						'`':setHorizontalPosition,
-						'?1h':cursorKeyModeApplication,
-						'?1l':cursorKeyModeCursor,
-						'?12l':remoteEcho,
-						'?12h':localEcho,
-						'?25l':hideCursor,
-						'?25h':showCursor
+						'l':lowModeStatus,
+						'h':highModeStatus,
+						'>':keyPadModeNumeric,
+						'=':keyPadModeApplication,
+						'?1049h':clearScreen
 }
 
-ignoreType1 = [ 'C' ]
-ignoreType2 = [ 0 ]
+
+lowModeFuncs={
+	'1':cursorKeyModeCursor,
+	'4':overwriteMode,
+	'7':autowrapOff,
+	'12':remoteEcho,
+	'25':hideCursor
+
+}
+highModeFuncs={
+	'1':cursorKeyModeApplication,
+	'4':insertMode,
+	'7':autowrapOn,
+	'12':localEcho,
+	'25':showCursor
+}
+
+ignoreType1 = [ ]
+ignoreType2 = [ ]
 
 
 /**
@@ -121,10 +138,12 @@ keyCodesToValues={
 										187: '=',
 										188: ',',
 										190: '.',
-										38: '\033[A',
+										38: '\033[A', // key up, left, down, right
 										37: '\033[D',
 										40: '\033[B',
-										39: '\033[C'
+										39: '\033[C',
+										46: '\033[3~'  // supr.
+
 }
 
 /// Im getting inside key mapping stuff. Should be configurable, or even better get it from config.
@@ -140,7 +159,6 @@ keyCodesToValuesShift={
 	48: ')',
 	188: '<', // not sure this one.. this is from the US mapping
 	190: '>'
-
 }
 
 /// Im getting inside key mapping stuff. Should be configurable, or even better get it from config.

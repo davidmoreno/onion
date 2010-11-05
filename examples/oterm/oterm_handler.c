@@ -65,12 +65,12 @@ int oterm_data(oterm_t *o, onion_request *req){
 	// Write data, if any
 	const char *data=onion_request_get_query(req,"type");
 	if (data){
-		fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
+		//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
 		write(o->fd, data, strlen(data));
 	}
 	
 	// read data, if any. Else return inmediately empty.
-	char buffer[1024];
+	char buffer[4096];
 	int n;
 	struct pollfd p;
 	p.fd=o->fd;
@@ -78,9 +78,9 @@ int oterm_data(oterm_t *o, onion_request *req){
 	
 	if (poll(&p,1,500)>0){
 		if (p.revents==POLLIN){
-			fprintf(stderr,"%s:%d read...\n",__FILE__,__LINE__);
+			//fprintf(stderr,"%s:%d read...\n",__FILE__,__LINE__);
 			n=read(o->fd, buffer, sizeof(buffer));
-			fprintf(stderr,"%s:%d read ok, %d bytes\n",__FILE__,__LINE__,n);
+			//fprintf(stderr,"%s:%d read ok, %d bytes\n",__FILE__,__LINE__,n);
 		}
 	}
 	else
