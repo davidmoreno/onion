@@ -221,10 +221,19 @@ updateData = function(text){
 				setPosition(posRow, posColumn-1)
 			}
 			else if (c=='\015'){
+				addText(str,length) // flush, and  move
+				str=''
+				length=0
+
 				setPosition(posRow, 1)
 			}
 			else if (c=='\007'){
-				//beep()
+				addText(str,length) // flush, and  remove
+				str=''
+				length=0
+
+				removeFromSOL() //beep()
+				setPosition(posRow, 1)
 			}
 			else{
 				length++
@@ -579,6 +588,23 @@ removeToEOL = function(){
 	while(span.length!=0){
 		span.remove()
 		span=span.next()
+	}
+}
+
+/// Removes all line from start of line to current position. Current position is moved.
+removeFromSOL = function(){
+	var sn=getCurrentColumnSpan()
+	if (!sn){
+		$('.current_line span').remove()
+		return
+	}
+	var span=sn[0]
+	var h=span.text() // it can be text, and not html, as all the &amp; will be translated, so we have proper size.
+	span.text(h.substr(sn[1]))
+	span=span.prev()
+	while(span.length!=0){
+		span.remove()
+		span=span.prev()
 	}
 }
 
