@@ -491,8 +491,6 @@ setPosition = function(row,col){
 	gotoRow(row)
 	gotoCol(col)
 	
-	$('.current_line').removeClass('current_line')
-	$('#row_'+posRow).addClass('current_line')
 	updateCursor()
 }
 
@@ -511,8 +509,8 @@ gotoRow = function(rn){
 		var p=$('<p>').attr('id','row_'+maxRow)
 		changedClass=false
 		$('#term').append(p)
-		posColumn=1
 	}
+	
 	var r=$('#row_'+rn)
 	r.addClass('current_line')
 	posRow=rn
