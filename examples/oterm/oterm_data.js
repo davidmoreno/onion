@@ -82,11 +82,14 @@ specialFuncs={
 						'H':setPositionStatus,
 						'r':setPositionStatus,
 						'P':removeCharsStatus,
+						'X':eraseCharacters,
 						'K':removeToEOL,
 						'J':clearScreen,
 						'@':scrollLeft,
 						'D':scrollLeft,
-						'C':scrollRight , // right
+						'C':scrollRight, 
+						'T':scrollDown,
+						'S':scrollUp,
 						'd':setVerticalPosition,
 						'G':setHorizontalPosition,
 						"'":setHorizontalPosition,
@@ -173,4 +176,34 @@ keyCodesToValuesAltgr={
 	57: '[',
 	48: ']',
 	49: '}'
+}
+
+/// Im getting inside key mapping stuff. Should be configurable, or even better get it from config.
+keyCodesToValuesControl={
+	'A':'\001',
+	'B':'\002',
+	'C':'\003',
+	'D':'\004',
+	'E':'\005',
+	'F':'\006',
+	'G':'\007',
+	'H':'\010',
+	'I':'\011',
+	'J':'\012',
+	'K':'\013',
+	'L':'\014',
+	'M':'\015',
+	'N':'\016',
+	'O':'\017',
+	'P':'\020',
+	'Q':'\021',
+	'R':'\022',
+	'S':'\023',
+	'T':'\024',
+	'U':'\025',
+	'V':'\026',
+	'W':'\027',
+	'X':'\030',
+	'Y':'\031',
+	'Z':'\032'
 }

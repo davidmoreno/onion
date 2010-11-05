@@ -44,7 +44,7 @@ keypress = function(event){
 			showMsg('Control OFF')
 	}
 	else if (cntrl && keyCode){
-		keyValue='\033'+String.fromCharCode(keyCode) //(keyCode-65).toString(8)
+		keyValue=keyCodesToValuesControl[String.fromCharCode(keyCode)]
 		cntrl=false
 		showMsg('Sent control '+String.fromCharCode(keyCode))
 	}

@@ -589,6 +589,27 @@ scrollRight = function(st){
 	setPosition(posRow, posColumn+r)
 }
 
+/// Moves down some positions
+scrollDown = function(st){
+	var d
+	if (!st)
+		d=1
+	else
+		d=Number(st)
+	setPosition(posRow+d, posColumn)
+}
+
+/// Moves down some positions
+scrollUp = function(st){
+	var u
+	if (!st)
+		u=1
+	else
+		u=Number(st)
+	setPosition(posRow-u, posColumn)
+}
+
+
 /// Sets the vertical position
 setVerticalPosition = function(st){
 	setPosition(Number(st), posColumn)
@@ -655,6 +676,20 @@ removeFromSOL = function(){
 		span=span.prev()
 	}
 }
+
+/// Writes ' ' for some time
+eraseCharacters = function(n){
+	if (n)
+		n=Number(n)
+	else
+		n=1
+	var s=''
+	for (var i=0;i<n;i++){
+		s+='&nbsp;'
+	}
+	addText(s,n);
+}
+
 
 /**
  * @return returns the current span and position inside span.
