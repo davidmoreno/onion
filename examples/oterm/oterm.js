@@ -125,6 +125,7 @@ addText = function(text, length){
 		var sp=getCurrentColumnSpan()
 		if (!sp){
 			$('.current_line').append( $('<span>').html(text).addClass(currentClass) ).showAndScroll()
+			posColumn+=length
 			return
 		}
 		var p=sp[1]
