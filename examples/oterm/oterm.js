@@ -327,20 +327,7 @@ updateData = function(text){
 
 newLine = function(){
 	posRow++;
-	if (posRow>maxRow){
-		dataAddEasy=true
-		maxRow++;
-
-		$('.current_line').removeClass('current_line')
-		var p=$('<p>').addClass('current_line').attr('id','row_'+posRow) //.append($('<span>').addClass(currentClass))
-		changedClass=false
-		$('#term').append(p)
-		posColumn=1
-	}
-	else{
-		$('.current_line').removeClass('current_line')
-		$('#row_'+posRow).addClass('current_line')
-	}
+	setPosition(posRow, posColumn)
 }
 
 /// From a status message, changes the style or status of the console, type 1: [
@@ -504,6 +491,8 @@ setPosition = function(row,col){
 	gotoRow(row)
 	gotoCol(col)
 	
+	$('.current_line').removeClass('current_line')
+	$('#row_'+posRow).addClass('current_line')
 	updateCursor()
 }
 
@@ -515,9 +504,14 @@ gotoRow = function(rn){
 	alert(maxRow)
 	alert(rn)
 	*/
-	while (maxRow<rn){
-		//showMsg('Adding line to get to row '+rn)
-		newLine()
+	while (rn>maxRow){
+		dataAddEasy=true
+		maxRow++;
+
+		var p=$('<p>').attr('id','row_'+maxRow)
+		changedClass=false
+		$('#term').append(p)
+		posColumn=1
 	}
 	var r=$('#row_'+rn)
 	r.addClass('current_line')
