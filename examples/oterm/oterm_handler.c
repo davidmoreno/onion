@@ -69,9 +69,24 @@ typedef struct{
 }oterm_t;
 
 int oterm_data(oterm_t *o, onion_request *req){
+
+	const char *data=onion_request_get_query(req,"resize");
+	if (data){
+		int ok=kill(o->pid, SIGWINCH);
+		
+		onion_response *res=onion_response_new(req);
+		onion_response_write_headers(res);
+		if (ok==0)
+			onion_response_write0(res,"OK");
+		else
+			onion_response_printf(res, "Error %d",ok);
+		onion_response_free(res);
+		return 1;
+	}
+
 	
 	// Write data, if any
-	const char *data=onion_request_get_query(req,"type");
+	data=onion_request_get_query(req,"type");
 	if (data){
 		//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
 		write(o->fd, data, strlen(data));

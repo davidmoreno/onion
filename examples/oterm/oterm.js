@@ -41,9 +41,6 @@ msgTimeout=0
 /// Status of the parser: 0 normal, 1 set status type 1, 2 set status type 2.
 parserStatus=0
 
-/// All data readen so far. For debugging. FIXME
-allData=''
-
 /// Stupid guess, changed at load time.
 charWidth=8
 charHeight=8
@@ -63,6 +60,12 @@ editModeInsert=false
 autowrapMode=true
 /// If the keypad is numeric
 keypadNumeric=true
+/// Mouse support
+mouseSupport=false
+
+/// Current screen size
+nrRows=0
+nrCols=0
 
 /// returns a substring, but the size of each character is the screen size: &nbsp; is 1 not 5
 substr = function(text, i, l){
@@ -126,6 +129,7 @@ addText = function(text, length){
 		if (!sp){
 			$('.current_line').append( $('<span>').html(text).addClass(currentClass) ).showAndScroll()
 			posColumn+=length
+			updateCursor()
 			return
 		}
 		var p=sp[1]
@@ -202,129 +206,7 @@ updateDataTimeout = function(text){
 	}
 }
 
-showHex = function(){
-	var s=''
-	for (var i in allData){
-		var v=allData.charCodeAt(i)
-		s+=allData[i]+" 0"+v.toString(8)+"\n"
-	}
-	return s
-}
-
-/// Parses input data and set the screen status as needed.
-updateData = function(text){
-	if (text=='')
-		return
-	//showMsg(text)
-	allData+=text
-	
-	var clear = function(){
-			length=0
-			str=''
-	}
-	
-	var flush = function(){
-			addText(str,length)
-			length=0
-			str=''
-	}
-	
-	var str=''
-	length=0
-	for (var c in text){
-		c=text[c]
-		if (c=='\n'){ // basic carriage return
-			flush()
-			column=posColumn
-			newLine()
-			setPosition(posRow, column)
-		}
-		else if (c=='\r'){
-			flush()
-			setPosition(posRow, 1)
-		}
-		else if (parserStatus==0){
-			if (c=='\033'){
-				parserStatus=1
-				flush()
-			}
-			else if (c=='\t'){
-				var n=8-(posColumn%8)
-				for (var i=0;i<n;i++){
-					str+='&nbsp;'
-					length++
-				}
-			}
-			else if (c==' '){
-				length++
-				str+='&nbsp;'
-			}
-			else if (c=='&'){
-				length++
-				str+='&and;'
-			}
-			else if (c=='<'){
-				length++
-				str+='&lt;'
-			}
-			else if (c=='>'){
-				length++
-				str+='&gt;'
-			}
-			else if (c=='\010'){
-				flush()
-				setPosition(posRow, posColumn-1)
-			}
-			else if (c=='\015'){
-				flush()
-				setPosition(posRow, 1)
-			}
-			else if (c=='\007'){
-				flush()
-				beep()
-				//removeFromSOL() //
-				//setPosition(posRow, 1)
-			}
-			else{
-				length++
-				str+=c
-			}
-		}
-		else if (parserStatus==1){
-			if (c=='['){
-				parserStatus=2
-			}
-			else if (c==']'){
-				parserStatus=3
-			}
-		}
-		else if (parserStatus==2){
-			str+=c
-			if ('0123456789;?'.indexOf(c)<0){
-				try{
-					setStatus(str)
-				}
-				catch(e){
-					showMsg("Exception trying to set a status!");
-				}
-				clear()
-				parserStatus=0
-			}
-		}
-		else if (parserStatus==3){
-			if (c==';'){
-				setStatusType2(str)
-				clear()
-				parserStatus=0
-			}
-			else
-				str+=c
-		}
-	}
-	addText(str,length)
-}
-
-
+/// Moves to the next line.
 newLine = function(){
 	posRow++;
 	setPosition(posRow, posColumn)
@@ -428,8 +310,11 @@ setColorStatus = function(st){
 /// Places the cursor on its place
 updateCursor = function(){
 	$('span#cursor').css('top',1+(posRow-1)*charHeight).css('left',(posColumn-1)*charWidth)
-	$('.current_line').removeClass('current_line')
-	$('#row_'+posRow).addClass('current_line')
+	var nr=$('#row_'+posRow)
+	if (!nr.hasClass('current_line')){
+		$('.current_line').removeClass('current_line')
+		nr.addClass('current_line')
+	}
 }
 
 /// Removes a character, or several, from here on, passed as number + control char
@@ -455,7 +340,49 @@ removeOneChar = function(){
 
 /// Clears visible screen. Now it clears it all.
 clearScreen = function(t){
-	if (!t || t=='2'){
+	if (!t || t=='0'){ // from cursor to end of screen
+		var sp=getCurrentColumnSpan()
+		if (!sp)
+			return
+		sp[0].html(substr(sp[0].html(), 0, sp[1])) // on current span, remove leading text
+		
+		// leading spans
+		var n=sp[0].next()
+		while (n.length!=0){
+			var nn=n.next()
+			n.remove()
+			n=nn
+		}
+		// leading lines
+		var n=$('.current_line').next()
+		while (n.length!=0){
+			var nn=n.next()
+			n.remove()
+			n=nn
+		}
+	}
+	else if (t=='1'){ // from cursor to start of screen
+		var sp=getCurrentColumnSpan()
+		if (!sp)
+			return
+		sp[0].html(substr(sp[0].html(), sp[1])) // on current span, remove leading text
+		
+		// prev spans
+		var n=sp[0].prev()
+		while (n.length!=0){
+			var nn=n.prev()
+			n.remove()
+			n=nn
+		}
+		// prev lines
+		var n=$('.current_line').prev()
+		while (n.length!=0){
+			var nn=n.prev()
+			n.remove()
+			n=nn
+		}
+	}
+	else if (t=='2'){
 		$('#term').html($('<p id="row_1" class="current_line">'))
 		maxRow=1 // I already created one
 	}
@@ -490,12 +417,14 @@ setPosition = function(row,col){
 	
 	gotoRow(row)
 	gotoCol(col)
-	
+
 	updateCursor()
 }
 
 /// Goes to that row, ensuring it exists
 gotoRow = function(rn){
+	if ($('#row_'+rn+'.current_line').length==1)
+		return
 	$('.current_line').removeClass('current_line')
 	dataAddEasy=false
 	/*
@@ -645,6 +574,16 @@ keyPadModeApplication = function(){
 	keypadNumeric=false
 }
 
+mouseSupportOn = function(){
+	mouseSupport=true
+	showMsg('Enabled mouse support')
+}
+
+mouseSupportOff = function(){
+	mouseSupport=false
+	showMsg('Disabled mouse support')
+}
+
 /// Removes from the cursor position to the end of the line.
 removeToEOL = function(){
 	var sn=getCurrentColumnSpan()
@@ -736,9 +675,14 @@ getSize = function(){
 
 updateGeometry = function(){
 	var t=$(document)
-	nrRows = t.height()/charHeight
-	nrCols = t.width()/charWidth
-	showMsg('New geometry is '+nrRows+' rows, '+nrCols+' columns.')
+	var r = parseInt(t.height()/charHeight)
+	var c = parseInt(t.width()/charWidth)
+	if (r!=nrRows || c!=nrCols){
+		nrRows=r
+		nrCols=c
+		showMsg('New geometry is '+nrRows+' rows, '+nrCols+' columns.')
+		$.get('/term',{resize:nrRows})
+	}
 }
 
 /// Prepares basic status of the document: keydown are processed, and starts the updatedata.

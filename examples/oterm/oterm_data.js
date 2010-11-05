@@ -97,8 +97,7 @@ specialFuncs={
 						'l':lowModeStatus,
 						'h':highModeStatus,
 						'>':keyPadModeNumeric,
-						'=':keyPadModeApplication,
-						'?1049h':clearScreen
+						'=':keyPadModeApplication
 }
 
 
@@ -107,15 +106,18 @@ lowModeFuncs={
 	'4':overwriteMode,
 	'7':autowrapOff,
 	'12':remoteEcho,
-	'25':hideCursor
-
+	'25':hideCursor,
+	'1000':mouseSupportOff,
+	'1049':function(){ clearScreen('2') }
 }
 highModeFuncs={
 	'1':cursorKeyModeApplication,
 	'4':insertMode,
 	'7':autowrapOn,
 	'12':localEcho,
-	'25':showCursor
+	'25':showCursor,
+	'1000':mouseSupportOn,
+	'1049':function(){ clearScreen('2') }
 }
 
 ignoreType1 = [ ]
