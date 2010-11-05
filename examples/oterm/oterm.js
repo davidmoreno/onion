@@ -64,6 +64,44 @@ autowrapMode=true
 /// If the keypad is numeric
 keypadNumeric=true
 
+/// returns a substring, but the size of each character is the screen size: &nbsp; is 1 not 5
+substr = function(text, i, l){
+	// go to the desired char
+	var op=0 // real position
+	var p    // position to ret, with &..; only one char. Actually more like characters already skipped on this segment.
+	for (p=0;p<i;p++){
+		if (text[op]=='&'){
+			while (text[op]!=';'){ if (op>text.length) return ''; op++; }
+		}
+		op++;
+	}
+	
+	// Now to end
+	if (!l && l!=0)
+		return text.substr(op)
+		
+	var ip=op
+	op=0
+	for (p=0;p<l;p++){
+		if (text[ip+op]=='&'){
+			while (text[ip+op]!=';'){ if (ip+op>text.length) return ''; op++; }
+		}
+		op++;
+	}
+	return text.substr(ip,op)
+}
+
+/// Real length, changing all entities to 1 byte
+elength = function(text){
+	var l=0
+	for (var i=0;i<text.length;i++){
+		l++;
+		if (text[i]=='&')
+			while (text[i]!=';'){ if (i>text.length) return l; i++; }
+	}
+	return l
+}
+
 /// Adds a simple text to current line
 addText = function(text, length){
 	if (!text || text=='')
@@ -92,19 +130,24 @@ addText = function(text, length){
 		var p=sp[1]
 		sp=sp[0]
 
+		var tlength=elength(text)
 		var t=sp.text()
-		var ps
+		var ps // I will keep data from here on. If insert its all data, if overwrite, is from the proper position, to overwrite data.
 		if (editModeInsert)
 			ps=p
 		else
-			ps=p+t.length
-		if (ps>t.length){
-			sp.html(t.substr(0,p)+text.substr(0,t.length-p) )
-			addText(text.substr(t.length-p), text.length-(t.length-p) )
-			
-			showMsg('Care here, maybe has to overwrite from next span too. for this: "'+t.substr(0,p)+text.substr(0,t.length-p)+'" for next "'+ text.substr(t.length-p) +'"')
+			ps=p+tlength
+		if (ps>tlength && sp.next().length!=0){
+			var now=sp.text().length-p // number of overwrites
+			sp.html(substr(sp.html(),0,p)+substr(text,0,now ))
+			posColumn+=now
+			var tt=substr(text,now)
+			addText(tt, tlength-now)
+			return
+//			showMsg('Care here, maybe has to overwrite from next span too. for this: "'+t.substr(0,p)+text.substr(0,t.length-p)+'" for next "'+ text.substr(t.length-p) +'"')
 		}
-		sp.html(t.substr(0,p)+text+t.substr(ps))
+		else
+			sp.html(substr(t,0,p)+text+substr(t,ps))
 	}
 	posColumn+=length
 	
@@ -173,22 +216,36 @@ updateData = function(text){
 		return
 	//showMsg(text)
 	allData+=text
-	var str=''
-	length=0
-	for (c in text){
-		c=text[c]
-		if (c=='\n'){ // basic carriage return
+	
+	var clear = function(){
+			length=0
+			str=''
+	}
+	
+	var flush = function(){
 			addText(str,length)
 			length=0
 			str=''
+	}
+	
+	var str=''
+	length=0
+	for (var c in text){
+		c=text[c]
+		if (c=='\n'){ // basic carriage return
+			flush()
+			column=posColumn
 			newLine()
+			setPosition(posRow, column)
+		}
+		else if (c=='\r'){
+			flush()
+			setPosition(posRow, 1)
 		}
 		else if (parserStatus==0){
 			if (c=='\033'){
 				parserStatus=1
-				addText(str,length)
-				str=''
-				length=0
+				flush()
 			}
 			else if (c=='\t'){
 				var n=8-(posColumn%8)
@@ -214,26 +271,18 @@ updateData = function(text){
 				str+='&gt;'
 			}
 			else if (c=='\010'){
-				addText(str,length) // flush, and  move
-				str=''
-				length=0
-
+				flush()
 				setPosition(posRow, posColumn-1)
 			}
 			else if (c=='\015'){
-				addText(str,length) // flush, and  move
-				str=''
-				length=0
-
+				flush()
 				setPosition(posRow, 1)
 			}
 			else if (c=='\007'){
-				addText(str,length) // flush, and  remove
-				str=''
-				length=0
-
-				removeFromSOL() //beep()
-				setPosition(posRow, 1)
+				flush()
+				beep()
+				//removeFromSOL() //
+				//setPosition(posRow, 1)
 			}
 			else{
 				length++
@@ -257,14 +306,14 @@ updateData = function(text){
 				catch(e){
 					showMsg("Exception trying to set a status!");
 				}
-				str=''
+				clear()
 				parserStatus=0
 			}
 		}
 		else if (parserStatus==3){
 			if (c==';'){
 				setStatusType2(str)
-				str=''
+				clear()
 				parserStatus=0
 			}
 			else
@@ -286,6 +335,10 @@ newLine = function(){
 		changedClass=false
 		$('#term').append(p)
 		posColumn=1
+	}
+	else{
+		$('.current_line').removeClass('current_line')
+		$('#row_'+posRow).addClass('current_line')
 	}
 }
 
@@ -387,6 +440,8 @@ setColorStatus = function(st){
 /// Places the cursor on its place
 updateCursor = function(){
 	$('span#cursor').css('top',1+(posRow-1)*charHeight).css('left',(posColumn-1)*charWidth)
+	$('.current_line').removeClass('current_line')
+	$('#row_'+posRow).addClass('current_line')
 }
 
 /// Removes a character, or several, from here on, passed as number + control char
@@ -413,8 +468,8 @@ removeOneChar = function(){
 /// Clears visible screen. Now it clears it all.
 clearScreen = function(t){
 	if (!t || t=='2'){
-		$('#term').html('')
-		maxRow=0
+		$('#term').html($('<p id="row_1" class="current_line">'))
+		maxRow=1 // I already created one
 	}
 	else
 		showMsg('Clear screen unknown '+t)
@@ -471,7 +526,7 @@ gotoRow = function(rn){
 
 /// Goes to the given column
 gotoCol = function(cn){
-	var l=$('.current_line').text().length+1
+	var l=elength($('.current_line').text())+1
 	if (cn>l){
 		
 		var s=''
@@ -485,19 +540,19 @@ gotoCol = function(cn){
 
 /// visual beep
 beep = function(){
-	$('body').css('background','yellow')
-	setTimeout(function(){ $('body').css('background','') }, 200)
+	$('#cursor').css('background','yellow')
+	setTimeout(function(){ $('#cursor').css('background','') }, 500)
 	//posRow++
 }
 
 /// Hides the cursor
 hideCursor = function(){
-	$('span#cursor').fadeOut()
+	$('span#cursor').css('background','red').css('opacity','0.8')
 }
 
 /// shows the cursor
 showCursor = function(){
-	$('span#cursor').fadeIn()
+	$('span#cursor').css('background','white').css('opacity','0.8')
 }
 
 /// Activates remote echo; no local echo
