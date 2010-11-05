@@ -33,6 +33,9 @@
 
 void opack_index_html(onion_response *res);
 void opack_oterm_js(onion_response *res);
+void opack_oterm_input_js(onion_response *res);
+void opack_oterm_data_js(onion_response *res);
+void opack_jquery_1_4_3_min_js(onion_response *res);
 
 int oterm_index(void *d, onion_request *req){
 	onion_response *res=onion_response_new(req);
@@ -44,7 +47,12 @@ int oterm_oterm(void *d, onion_request *req){
 	onion_response *res=onion_response_new(req);
 	onion_response_set_header(res,"Content-Type","text/javascript");
 	onion_response_write_headers(res);
+
+	opack_jquery_1_4_3_min_js(res);
 	opack_oterm_js(res);
+	opack_oterm_input_js(res);
+	opack_oterm_data_js(res);
+	
 	return 1;
 }
 onion_handler *oterm_handler_index(){

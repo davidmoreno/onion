@@ -79,7 +79,7 @@ char *funcname(const char *filename){
 	strcpy(ret,"opack_");
 	int i=0;
 	while(filename[i]!='\0'){
-		if (!((filename[i]>='a' && filename[i]<='z') || (filename[i]>='A' && filename[i]<='Z')))
+		if ( !((filename[i]>='a' && filename[i]<='z') || (filename[i]>='A' && filename[i]<='Z') || (filename[i]>='0' && filename[i]<='9')) )
 			ret[i+6]='_';
 		else
 			ret[i+6]=filename[i];
