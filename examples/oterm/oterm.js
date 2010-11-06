@@ -20,6 +20,9 @@
  * On this file lies all the parsing of terminal data, to make it work on a HTML.
  */
 
+/// A list of processed received status changes
+statusLog=[]
+
 /// As the state machines changes and finds [0..m it can change the class.
 currentAttr=''
 currentBg=''
@@ -62,6 +65,9 @@ autowrapMode=true
 keypadNumeric=true
 /// Mouse support
 mouseSupport=false
+
+/// Current line, instead of always search for it, here it is. always.
+current_line=$('')
 
 /// Current screen size
 nrRows=0
@@ -110,49 +116,103 @@ addText = function(text, length){
 	if (!text || text=='')
 		return
 
-	if ($('.current_line').length==0) // I need to write somewhere
+	if (current_line.length==0) // I need to write somewhere
 		setPosition(posRow, posColumn)
 
-	if ($('.current_line span').length==0) // I need to write somewhere
-		$('.current_line').append($('<span>'))
+	if (current_line.find('span').length==0) // I need to write somewhere
+		current_line.append($('<span>'))
 		
-	if (dataAddEasy){
+	easyAdd = function(){
 		if (changedClass)
-			$('.current_line').append( $('<span>').html(text).addClass(currentClass) ).showAndScroll()
+			current_line.append( $('<span>').html(text).addClass(currentClass) ).showAndScroll()
 		else{
-			var l=$('.current_line span:last')
+			var l=current_line.find('span:last')
 			l.html( $('<span>').html(l.html()+text) ).showAndScroll()
 		}
+	}
+		
+	if (dataAddEasy){
+		easyAdd()
 	}
 	else{
 		var sp=getCurrentColumnSpan()
 		if (!sp){
-			$('.current_line').append( $('<span>').html(text).addClass(currentClass) ).showAndScroll()
-			posColumn+=length
-			updateCursor()
-			return
+			easyAdd()
 		}
-		var p=sp[1]
-		sp=sp[0]
+		else{
+			var head_pos=sp[1]
+			var head=sp[0]
 
-		var tlength=elength(text)
-		var t=sp.text()
-		var ps // I will keep data from here on. If insert its all data, if overwrite, is from the proper position, to overwrite data.
-		if (editModeInsert)
-			ps=p
-		else
-			ps=p+tlength
-		if (ps>tlength && sp.next().length!=0){
-			var now=sp.text().length-p // number of overwrites
-			sp.html(substr(sp.html(),0,p)+substr(text,0,now ))
-			posColumn+=now
-			var tt=substr(text,now)
-			addText(tt, tlength-now)
-			return
-//			showMsg('Care here, maybe has to overwrite from next span too. for this: "'+t.substr(0,p)+text.substr(0,t.length-p)+'" for next "'+ text.substr(t.length-p) +'"')
+
+			var my_length=elength(text)
+			var head_text=head.text()
+				
+			var insert_point // Where to insert remaining data, position in line
+			if (editModeInsert)
+				insert_point=posColumn
+			else
+				insert_point=posColumn+my_length
+
+
+// options
+// 1. same class, fits inside
+// 2. diferent class, fits inside
+// 3. same class, do not fit inside. fits with dest class
+// 3. same class, do not fit inside. do not fits with dest class
+// 4. diferent class, do not fit inside. fits with dest class
+// 4. diferent class, do not fit inside. do not fits with dest class
+
+			var head_end=head_text.length+posColumn-head_pos
+			if (insert_point<=head_end){ // fits inside
+				var insert_point_at_head=insert_point-(head_end-head_text.length)
+				// first remove the not wanted anymore characters
+				var p1=substr(head_text, 0, head_pos)
+				var p2=substr(head_text, insert_point_at_head)
+				if (head.attr('class')==currentClass){ // same class, just concat
+					head.html(p1 + text + p2)
+				}
+				else{ // diferent class, make 3 spans
+					head.html(p1)
+					var me=$('<span>').html(text).addClass(currentClass)
+					head.after(me)
+					var tail=$('<span>').html(p2).addClass(head.attr('class'))
+					me.after(tail)
+				}
+			}
+			else{ // do not fit inside
+				// first remove unnecesary spans and leading and tailing text, to leave a blank of tlength spaces
+				head.html(substr(head.html(),0,head_pos))
+				var removedChars=head_text.length-head_pos
+				var n=head.next()
+				while (removedChars+n.text().length<my_length){ // remove the middle spans
+					if (n.length==0)
+						break
+					removedChars+=n.text().length
+					var nn=n.next()
+					n.remove()
+					n=nn
+				}
+				var tail=n
+				// and remove tailing leftovers. 
+				if (tail.length!=0)
+					tail.html(substr(tail.html(), my_length-removedChars))
+				
+				/// if fits with sp class
+				var me=head
+				if (currentClass==head.attr('class')){
+					head.html(head.html()+text)
+				}
+				else{
+					me=$('<span>').html(text).addClass(currentClass)
+					head.after(me)
+				}
+				// if me has same class as n, join us
+				if (tail.length!=0 && tail.attr('class')==currentClass){
+					me.html(me.html()+tail.html())
+					tail.remove()
+				}
+			}
 		}
-		else
-			sp.html(substr(t,0,p)+text+substr(t,ps))
 	}
 	posColumn+=length
 	
@@ -217,6 +277,9 @@ setStatus = function(st){
 	//showMsg('Set status ['+st)
 	if (!st || st=='')
 		return
+		
+	statusLog.push(st)
+		
 	if (st in specialFuncs){
 		specialFuncs[st]()
 	}
@@ -312,8 +375,9 @@ updateCursor = function(){
 	$('span#cursor').css('top',1+(posRow-1)*charHeight).css('left',(posColumn-1)*charWidth)
 	var nr=$('#row_'+posRow)
 	if (!nr.hasClass('current_line')){
-		$('.current_line').removeClass('current_line')
+		current_line.removeClass('current_line')
 		nr.addClass('current_line')
+		current_line=nr
 	}
 }
 
@@ -354,7 +418,7 @@ clearScreen = function(t){
 			n=nn
 		}
 		// leading lines
-		var n=$('.current_line').next()
+		var n=current_line.next()
 		while (n.length!=0){
 			var nn=n.next()
 			n.remove()
@@ -375,7 +439,7 @@ clearScreen = function(t){
 			n=nn
 		}
 		// prev lines
-		var n=$('.current_line').prev()
+		var n=current_line.prev()
 		while (n.length!=0){
 			var nn=n.prev()
 			n.remove()
@@ -383,7 +447,8 @@ clearScreen = function(t){
 		}
 	}
 	else if (t=='2'){
-		$('#term').html($('<p id="row_1" class="current_line">'))
+		current_line=$('<p id="row_1" class="current_line">')
+		$('#term').html(current_line)
 		maxRow=1 // I already created one
 	}
 	else
@@ -423,9 +488,9 @@ setPosition = function(row,col){
 
 /// Goes to that row, ensuring it exists
 gotoRow = function(rn){
-	if ($('#row_'+rn+'.current_line').length==1)
+	if (current_line.attr('id')=='row_'+rn)
 		return
-	$('.current_line').removeClass('current_line')
+	current_line.removeClass('current_line')
 	dataAddEasy=false
 	/*
 	alert(maxRow)
@@ -442,13 +507,14 @@ gotoRow = function(rn){
 	
 	var r=$('#row_'+rn)
 	r.addClass('current_line')
+	current_line=r
 	posRow=rn
 }
 
 
 /// Goes to the given column
 gotoCol = function(cn){
-	var l=elength($('.current_line').text())+1
+	var l=elength(current_line.text())+1
 	if (cn>l){
 		
 		var s=''
@@ -603,7 +669,7 @@ removeToEOL = function(){
 removeFromSOL = function(){
 	var sn=getCurrentColumnSpan()
 	if (!sn){
-		$('.current_line span').remove()
+		current_line.find('span').remove()
 		return
 	}
 	var span=sn[0]
@@ -637,7 +703,7 @@ getCurrentColumnSpan = function(){
 	var i=0
 	var m=posColumn
 	var ret=false
-	$('.current_line > span').each(function(){
+	current_line.find('> span').each(function(){
 		if (ret!=false)
 			return
 		var t=$(this)
@@ -669,10 +735,7 @@ showMsg = function(msg){
 	$('#msg').append(d)
 }
 
-/// Calcualtes current terminal size, in characters, [ rows, cols ]
-getSize = function(){
-}
-
+/// Updates the geometry, and sends a message if necessary.
 updateGeometry = function(){
 	var t=$(document)
 	var r = parseInt(t.height()/charHeight)
