@@ -20,71 +20,37 @@
  * Input from the browser that will be sned to the remote terminal.
  */
 
-// Normal shift status
-shift=false
-// alt gr status
-altgr=false
-/// Control status.
-cntrl=false
-
-
 /// Parses key presses.
 keypress = function(event){
 	var keyCode=event.keyCode
 	event.preventDefault()
 	//showMsg('Key pressed '+keyCode)
-	var keyValue=''
-	if (keyCode==16){
-		shift=true
-	}
-	else if (keyCode==17){
-		cntrl=true
-	}
-	else if (keyCode==0){
-		altgr=true
-	}
-	else if (cntrl && keyCode){
-		keyValue=keyCodesToValuesControl[String.fromCharCode(keyCode)]
-		//showMsg('Sent control '+String.fromCharCode(keyCode))
-	}
-	else if (shift && keyCode in keyCodesToValuesShift){
-		keyValue=keyCodesToValuesShift[keyCode]
-	}
-	else if (altgr && keyCode in keyCodesToValuesAltgr){
-		keyValue=keyCodesToValuesAltgr[keyCode]
-	}
-	else if (keyCode in keyCodesToValues){
-		//addText("&nbsp;")
-		keyValue=keyCodesToValues[keyCode]
-	}
-	else if (keyCode>=65 && keyCode<=90 && (!shift)){
-		keyCode+32
-		keyValue=String.fromCharCode(keyCode+32)
-	}
-	else
-		keyValue=String.fromCharCode(keyCode)
+	var keyValue=keyValue=String.fromCharCode(event.charCode)
 	
 	/// If any text, do the petition.
 	requestNewData(keyValue)
 }
 
-/// We also have to think about some keys that can be released later, like shift.
-keyrelease = function(event){
+/// Some keys must be prevented to act, like FX
+keydown = function(event){
 	var keyCode=event.keyCode
-	switch(keyCode){
-		case 16:
-			shift=false
-			break
-		case 17:
-			cntrl=false
-			break
-		case 0:
-			altgr=true
-			break
+	var keyValue=''
+
+	if (keyCode in keyCodesToValues){
+		keyValue=keyCodesToValues[keyCode]
+	}
+	else if (event.ctrlKey && keyCode){
+		keyValue=keyCodesToValuesControl[String.fromCharCode(keyCode)]
+		//showMsg('Sent control '+String.fromCharCode(keyCode))
+	}
+	
+	if (keyValue!=''){
+		event.preventDefault()
+		requestNewData(keyValue)
 	}
 }
 
 $(document).ready(function(){
-	$(document).keydown(keypress)
-	$(document).keyup(keyrelease)
+	$(document).keydown(keydown)
+	$(document).keypress(keypress)
 })
