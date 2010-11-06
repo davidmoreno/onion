@@ -66,7 +66,11 @@ onion_ssl *onion_ssl_new(int flags){
 }
 
 
-/// Set a certificate for use in the connection
+/**
+ * @short Set a certificate for use in the connection
+ *
+ * Returns the error code. If 0, no error.
+ */
 int onion_ssl_use_certificate(onion_ssl *onion, onion_ssl_certificate_type type, const char *filename, ...){
 	int r=-1;
 	switch(type&0x0FF){

@@ -14,5 +14,5 @@ add_custom_command(
    )
 
 add_executable(oterm oterm.c oterm_handler.c oterm_data.c)
-target_link_libraries(oterm onion_handlers onion util)
+target_link_libraries(oterm onion_handlers onion_ssl onion util)
 

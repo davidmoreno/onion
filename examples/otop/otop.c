@@ -48,7 +48,7 @@ int main(int argc, char **argv){
 																				onion_handler_new((onion_handler_handler)otop_handler, NULL, NULL));
 	onion_handler_add(withauth, onion_handler_path("/static/", onion_handler_directory(".")));
 	onion_handler_add(withauth, onion_handler_new((onion_handler_handler)otop_index, NULL, NULL));
-	//onion_handler *otop=onion_handler_auth_pam("Onion Top", "login", withauth);
+	onion_handler *otop=onion_handler_auth_pam("Onion Top", "login", withauth);
 	
 	// Create server and setup
 	onion *onion=onion_new(O_ONE);
