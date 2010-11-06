@@ -40,12 +40,18 @@ keypress = function(event){
 	else if (keyCode==17){
 		cntrl=true
 	}
+	else if (keyCode==0){
+		altgr=true
+	}
 	else if (cntrl && keyCode){
 		keyValue=keyCodesToValuesControl[String.fromCharCode(keyCode)]
 		//showMsg('Sent control '+String.fromCharCode(keyCode))
 	}
 	else if (shift && keyCode in keyCodesToValuesShift){
 		keyValue=keyCodesToValuesShift[keyCode]
+	}
+	else if (altgr && keyCode in keyCodesToValuesAltgr){
+		keyValue=keyCodesToValuesAltgr[keyCode]
 	}
 	else if (keyCode in keyCodesToValues){
 		//addText("&nbsp;")
@@ -65,10 +71,17 @@ keypress = function(event){
 /// We also have to think about some keys that can be released later, like shift.
 keyrelease = function(event){
 	var keyCode=event.keyCode
-	if (keyCode==16)
-		shift=false
-	if (keyCode==17)
-		cntrl=false
+	switch(keyCode){
+		case 16:
+			shift=false
+			break
+		case 17:
+			cntrl=false
+			break
+		case 0:
+			altgr=true
+			break
+	}
 }
 
 $(document).ready(function(){

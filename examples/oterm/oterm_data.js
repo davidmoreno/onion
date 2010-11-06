@@ -148,7 +148,7 @@ keyCodesToValues={
 
 }
 
-/// Im getting inside key mapping stuff. Should be configurable, or even better get it from config.
+/// shift + v
 keyCodesToValuesShift={
 	49: '!',
 	50: '"',
@@ -163,7 +163,7 @@ keyCodesToValuesShift={
 	190: '>'
 }
 
-/// Im getting inside key mapping stuff. Should be configurable, or even better get it from config.
+/// altgs + v
 keyCodesToValuesAltgr={
 	49: '|',
 	50: '@',
@@ -177,7 +177,9 @@ keyCodesToValuesAltgr={
 	49: '}'
 }
 
-/// Im getting inside key mapping stuff. Should be configurable, or even better get it from config.
+
+
+/// When press control and another key
 keyCodesToValuesControl={
 	'A':'\001',
 	'B':'\002',
