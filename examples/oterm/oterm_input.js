@@ -24,29 +24,25 @@
 shift=false
 // alt gr status
 altgr=false
-/// Control status. this is a switch
+/// Control status.
 cntrl=false
 
 
 /// Parses key presses.
 keypress = function(event){
 	var keyCode=event.keyCode
+	event.preventDefault()
 	//showMsg('Key pressed '+keyCode)
 	var keyValue=''
 	if (keyCode==16){
 		shift=true
 	}
 	else if (keyCode==17){
-		cntrl=!cntrl
-		if (cntrl)
-			showMsg('Control ON')
-		else
-			showMsg('Control OFF')
+		cntrl=true
 	}
 	else if (cntrl && keyCode){
 		keyValue=keyCodesToValuesControl[String.fromCharCode(keyCode)]
-		cntrl=false
-		showMsg('Sent control '+String.fromCharCode(keyCode))
+		//showMsg('Sent control '+String.fromCharCode(keyCode))
 	}
 	else if (shift && keyCode in keyCodesToValuesShift){
 		keyValue=keyCodesToValuesShift[keyCode]
@@ -71,6 +67,8 @@ keyrelease = function(event){
 	var keyCode=event.keyCode
 	if (keyCode==16)
 		shift=false
+	if (keyCode==17)
+		cntrl=false
 }
 
 $(document).ready(function(){
