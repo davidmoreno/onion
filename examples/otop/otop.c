@@ -52,7 +52,7 @@ int main(int argc, char **argv){
 	
 	// Create server and setup
 	onion *onion=onion_new(O_ONE);
-	onion_set_root_handler(onion, withauth); // should be onion to ask for user.
+	onion_set_root_handler(onion, otop); // should be onion to ask for user.
 	
 	if (argc>1)
 		onion_set_port(onion, atoi(argv[1]));
