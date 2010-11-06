@@ -27,10 +27,21 @@
 #include <onion_handler_path.h>
 #include <onion_handler_static.h>
 #include <onion_handler_auth_pam.h>
+#include <onion_handler_opack.h>
 
+#ifdef __DEBUG__
+#include <onion_handler_directory.h>
+#endif 
 
 #include "oterm_handler.h"
-#include <onion_handler_directory.h>
+
+
+void opack_index_html(onion_response *res);
+void opack_oterm_js(onion_response *res);
+void opack_oterm_input_js(onion_response *res);
+void opack_oterm_data_js(onion_response *res);
+void opack_oterm_parser_js(onion_response *res);
+void opack_jquery_1_4_3_min_js(onion_response *res);
 
 onion_ssl *o=NULL;
 
@@ -95,8 +106,12 @@ int main(int argc, char **argv){
 #ifdef __DEBUG__
 	onion_handler *dir=onion_handler_directory(".");
 #else
-	onion_handler *dir=onion_handler_path("^/$",oterm_handler_index());
-	onion_handler_add(dir, onion_handler_path("^/oterm.js$",oterm_handler_oterm()));
+	onion_handler *dir=onion_handler_opack("/",opack_index_html);
+	onion_handler_add(dir, onion_handler_opack("/jquery-1.4.3.min.js",opack_jquery_1_4_3_min_js));
+	onion_handler_add(dir, onion_handler_opack("/oterm.js",opack_oterm_js));
+	onion_handler_add(dir, onion_handler_opack("/oterm_input.js",opack_oterm_input_js));
+	onion_handler_add(dir, onion_handler_opack("/oterm_parser.js",opack_oterm_parser_js));
+	onion_handler_add(dir, onion_handler_opack("/oterm_data.js",opack_oterm_data_js));
 #endif
 
 	onion_handler_add(dir, onion_handler_path("^/term$",oterm_handler_data()));

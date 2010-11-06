@@ -21,7 +21,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
-//#include <time.h>
+#include <libgen.h>
 
 #include "onion_dict.h"
 #include "onion_request.h"
@@ -97,7 +97,16 @@ void onion_response_write_headers(onion_response *res){
 int onion_response_write(onion_response *res, const char *data, unsigned int length){
 	void *fd=onion_response_get_socket(res);
 	onion_write write=onion_response_get_writer(res);
-	int w=write(fd, data, length);
+	int w;
+	int pos=0;
+	while ( (w=write(fd, &data[pos], length)) != length){
+		if (w==0){
+			fprintf(stderr,"%s:%d Error writing. Maybe closed connection.\n",basename(__FILE__),__LINE__);
+			break;
+		}
+		pos+=w;
+		length-=w;
+	}
 	res->sent_bytes+=length;
 	return w;
 }

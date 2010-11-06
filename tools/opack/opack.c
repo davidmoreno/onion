@@ -100,12 +100,13 @@ void parse_file(const char *filename, FILE *outfd){
 		exit(3);
 	}
 	char *fname=funcname(basename((char*)filename));
-	char buffer[1024];
+	char buffer[4097];
+	buffer[4096]=0;
 	
 	fprintf(stderr, "Parsing: %s to 'int %s(onion_response *res);'.\n",filename, fname);
 	fprintf(outfd,"int %s(onion_response *res){\n  char data[]={\n",fname);
 	int r, i;
-	while ( (r=fread(buffer,1,sizeof(buffer),fd)) !=0 ){
+	while ( (r=fread(buffer,1,sizeof(buffer)-1,fd)) !=0 ){
 		for (i=0;i<r;i++){
 			fprintf(outfd,"0x%02X, ", buffer[i]&0x0FF);
 		}
@@ -128,3 +129,4 @@ void print_help(const char *name){
 	fprintf(stderr,"This way this function is very easily used from onion handlers as needed.\n");
 	exit(1);
 }
+
