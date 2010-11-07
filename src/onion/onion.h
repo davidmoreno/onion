@@ -40,6 +40,12 @@ void onion_set_root_handler(onion *server, onion_handler *handler);
 /// Sets the port to listen
 void onion_set_port(onion *server, int port);
 
+/// Set a certificate for use in the connection
+int onion_use_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...);
+
+/// Gets the current flags, for example to check SSL support.
+int onion_flags(onion *onion);
+
 #ifdef __cplusplus
 }
 #endif

@@ -21,6 +21,10 @@
 
 #include "onion_types.h"
 
+#ifdef HAVE_GNUTLS
+#include <gnutls/gnutls.h>
+#endif
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -46,6 +50,11 @@ struct onion_t{
 	int listenfd;
 	onion_server *server;
 	int port;
+#ifdef HAVE_GNUTLS
+	gnutls_certificate_credentials_t x509_cred;
+	gnutls_dh_params_t dh_params;
+	gnutls_priority_t priority_cache;
+#endif
 };
 
 

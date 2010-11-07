@@ -49,10 +49,32 @@ typedef int (*onion_write)(void *handler, const char *data, unsigned int length)
 enum onion_mode_e{
 	O_ONE=1,
 	O_ONE_LOOP=3,
-	O_THREADED=4
+	O_THREADED=4,
+	O_SSL_AVAILABLE=0x10, /// This is set by the library when creating the onion object, if SSL support is available.
+	O_SSL_ENABLED=0x20, /// This is set by the library when setting the certificates, if SSL is available.
 };
 
 typedef enum onion_mode_e onion_mode;
+
+/// Flags for the SSL connection.
+enum onion_ssl_flags_e{
+	O_USE_DEV_RANDOM=0x0100,
+};
+
+typedef enum onion_ssl_flags_e onion_ssl_flags;
+
+/// Types of certificate onionssl knows: key, cert and intermediate
+enum onion_ssl_certificate_type_t{
+	O_SSL_CERTIFICATE_KEY=1,		/// The certfile, and the key file. 
+	O_SSL_CERTIFICATE_CRL=2,		/// Certificate revocation list
+	O_SSL_CERTIFICATE_TRUST=3,	/// The list of trusted CAs, also known as intermediaries.
+	O_SSL_CERTIFICATE_PKCS12=4,	/// The certificate is in a PKCS12. Needs the PKCS12 file and the password. Set password=NULL if none.
+	
+	O_SSL_DER=0x0100, 					/// The certificate is in memory, not in a file. Default is PEM.
+	O_SSL_NO_DEINIT=0x0200, 		/// Should not deinit GnuTLS at free. Use only if there are more users of GnuTLS on this executable. Saves some memory on free.
+};
+
+typedef enum onion_ssl_certificate_type_t onion_ssl_certificate_type;
 
 
 #endif

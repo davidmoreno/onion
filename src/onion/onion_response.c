@@ -100,8 +100,12 @@ int onion_response_write(onion_response *res, const char *data, unsigned int len
 	int w;
 	int pos=0;
 	while ( (w=write(fd, &data[pos], length)) != length){
-		if (w==0){
-			fprintf(stderr,"%s:%d Error writing. Maybe closed connection.\n",basename(__FILE__),__LINE__);
+		fprintf(stderr, "wrote  %d/%d bytes\n",w,length);
+		if (w<=0){
+			fprintf(stderr,"%s:%d Error writing. Maybe closed connection. Code %d.\n",basename(__FILE__),__LINE__,w);
+#ifdef HAVE_GNUTLS
+			fprintf(stderr,"%s:%d %s\n",basename(__FILE__),__LINE__, gnutls_strerror (w));
+#endif
 			break;
 		}
 		pos+=w;

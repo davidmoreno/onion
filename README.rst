@@ -14,3 +14,21 @@ Its not a web server per se, as it is not an executable.
 
 If you want to compare to a web server, a web server would use a module or plugin to add 
 some functionality. With libonion you have the functionality and add the webserver as a plugin.
+
+
+SSL Support
+-----------
+
+If at compile time it finds the gnutls libraries, SSL support is compiled in. It can be 
+deactivated anyway at ./CMakeLists.txt. 
+
+To use it you have to set the certificates, and you can check if its on, checking the flag
+O_SSL_ACTIVATED.
+
+If support is not in, then the library will not use, but for the user of the library the
+interface is the same; it will only change that when trying to set the certificates it 
+will fail. Anwyay for clients its just to use the interface and they dont care at all
+if suport is in or not. No more than beign able to use SSL.
+
+this is this way, and not mandatory as ther may be moments where the program user do not
+want to support SSL for whatever reasons, for example speed.

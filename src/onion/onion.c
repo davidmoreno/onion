@@ -25,11 +25,26 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdarg.h>
+#include <libgen.h>
+
+#ifdef HAVE_GNUTLS
+#include <gcrypt.h>		/* for gcry_control */
+#include <gnutls/gnutls.h>
+#endif
 
 #include "onion.h"
 #include "onion_handler.h"
 #include "onion_server.h"
 #include "onion_types_internal.h"
+
+
+
+#ifdef HAVE_GNUTLS
+static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);
+static void onion_enable_tls(onion *o);
+#endif
+
 
 /// Internal processor of just one request.
 static void onion_process_request(onion *o, int clientfd);
@@ -37,11 +52,14 @@ static void onion_process_request(onion *o, int clientfd);
 /// Creates the onion structure to fill with the server data, and later do the onion_listen()
 onion *onion_new(int flags){
 	onion *o=malloc(sizeof(onion));
-	o->flags=flags;
+	o->flags=flags&0x0FF;
 	o->listenfd=0;
 	o->server=malloc(sizeof(onion_server));
 	o->server->root_handler=NULL;
 	o->port=8080;
+#ifdef HAVE_GNUTLS
+	o->flags|=O_SSL_AVAILABLE;
+#endif
 	
 	return o;
 }
@@ -95,6 +113,15 @@ int onion_listen(onion *o){
 
 /// Removes the allocated data
 void onion_free(onion *onion){
+#ifdef HAVE_GNUTLS
+	if (onion->flags&O_SSL_ENABLED){
+		gnutls_certificate_free_credentials (onion->x509_cred);
+		gnutls_dh_params_deinit(onion->dh_params);
+		gnutls_priority_deinit (onion->priority_cache);
+		if (!(onion->flags&O_SSL_NO_DEINIT))
+			gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
+	}
+#endif
 	onion_server_free(onion->server);
 	free(onion);
 }
@@ -114,16 +141,144 @@ void onion_set_port(onion *server, int port){
  * It can be used on one processing, on threaded, on one_loop...
  */
 static void onion_process_request(onion *o, int clientfd){
+	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
+#ifdef HAVE_GNUTLS
+	gnutls_session_t session;
+	if (o->flags&O_SSL_ENABLED){
+		session=onion_prepare_gnutls_session(o, clientfd);
+		if (session==NULL)
+			return;
+	}
+#endif
 	int r,w;
 	char buffer[1024];
-	onion_request *req=onion_request_new(o->server, &clientfd);
+	onion_request *req;
+#ifdef HAVE_GNUTLS
+	if (o->flags&O_SSL_ENABLED){
+		onion_server_set_write(o->server, (onion_write)gnutls_record_send); // Im lucky, has the same signature.
+		req=onion_request_new(o->server, session);
+	}
+	else{
+		onion_server_set_write(o->server, (onion_write)write_to_socket);
+		req=onion_request_new(o->server, &clientfd);
+	}
+	while ( ( r = (o->flags&O_SSL_ENABLED)
+							? gnutls_record_recv (session, buffer, sizeof(buffer))
+							: read(clientfd, buffer, sizeof(buffer))
+					) >0 ){
+#else
+	req=onion_request_new(o->server, &clientfd);
 	onion_server_set_write(o->server, (onion_write)write_to_socket);
 	while ( ( r=read(clientfd, buffer, sizeof(buffer)) ) >0){
+#endif
 		//fprintf(stderr, "%s:%d Read %d bytes\n",__FILE__,__LINE__,r);
 		w=onion_request_write(req, buffer, r);
 		if (w<0){ // request processed.
-			onion_request_free(req);
-			return;
+			break;
 		}
 	}
+	onion_request_free(req);
+#ifdef HAVE_GNUTLS
+	if (o->flags&O_SSL_ENABLED){
+		gnutls_bye (session, GNUTLS_SHUT_WR);
+		gnutls_deinit (session);
+	}
+#endif
+}
+
+/// Returns the current flags
+int onion_flags(onion *onion){
+	return onion->flags;
+}
+
+
+#ifdef HAVE_GNUTLS
+static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd){
+	gnutls_session_t session;
+
+  gnutls_init (&session, GNUTLS_SERVER);
+  gnutls_priority_set (session, o->priority_cache);
+  gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, o->x509_cred);
+  /* request client certificate if any.
+   */
+  gnutls_certificate_server_set_request (session, GNUTLS_CERT_REQUEST);
+  /* Set maximum compatibility mode. This is only suggested on public webservers
+   * that need to trade security for compatibility
+   */
+  gnutls_session_enable_compatibility_mode (session);
+
+	gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)(long) clientfd);
+	int ret = gnutls_handshake (session);
+	if (ret<0){ // could not handshake. assume an error.
+	  fprintf (stderr, "%s:%d Handshake has failed (%s)\n", basename(__FILE__), __LINE__, gnutls_strerror (ret));
+		gnutls_deinit (session);
+		return NULL;
+	}
+	return session;
+}
+
+static void onion_enable_tls(onion *o){
+	if (!(o->flags&O_USE_DEV_RANDOM)){
+		gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+	}
+	gnutls_global_init ();
+  gnutls_certificate_allocate_credentials (&o->x509_cred);
+
+	gnutls_dh_params_init (&o->dh_params);
+  gnutls_dh_params_generate2 (o->dh_params, 1024);
+  gnutls_certificate_set_dh_params (o->x509_cred, o->dh_params);
+  gnutls_priority_init (&o->priority_cache, "NORMAL", NULL);
+	
+	o->flags|=O_SSL_ENABLED;
+}
+#endif
+
+
+/**
+ * @short Set a certificate for use in the connection
+ *
+ * Returns the error code. If 0, no error.
+ */
+int onion_use_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
+#if HAVE_GNUTLS
+	if (!(onion->flags&O_SSL_ENABLED))
+		onion_enable_tls(onion);
+	int r=-1;
+	switch(type&0x0FF){
+		case O_SSL_CERTIFICATE_CRL:
+			r=gnutls_certificate_set_x509_crl_file(onion->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
+			break;
+		case O_SSL_CERTIFICATE_KEY:
+		{
+			va_list va;
+			va_start(va, filename);
+			r=gnutls_certificate_set_x509_key_file(onion->x509_cred, filename, va_arg(va, const char *), 
+																									(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
+			va_end(va);
+		}
+			break;
+		case O_SSL_CERTIFICATE_TRUST:
+			r=gnutls_certificate_set_x509_trust_file(onion->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
+			break;
+		case O_SSL_CERTIFICATE_PKCS12:
+		{
+			va_list va;
+			va_start(va, filename);
+			r=gnutls_certificate_set_x509_simple_pkcs12_file(onion->x509_cred, filename,
+																														(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM,
+																														va_arg(va, const char *));
+			va_end(va);
+		}
+			break;
+		default:
+			fprintf(stderr,"%s:%d Set unknown type of certificate: %d\n", basename(__FILE__), __LINE__, type);
+	}
+	if (r<0){
+	  fprintf (stderr, "%s:%d Error setting the certificate (%s)\n\n", basename(__FILE__), __LINE__,
+		   gnutls_strerror (r));
+	}
+	return r;
+#else
+	return -1; /// Support not available
+#endif
 }

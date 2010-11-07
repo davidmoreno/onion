@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include <onion_ssl.h>
+#include <onion.h>
 #include <onion_handler.h>
 #include <onion_handler_path.h>
 #include <onion_handler_static.h>
@@ -43,7 +43,7 @@ void opack_oterm_data_js(onion_response *res);
 void opack_oterm_parser_js(onion_response *res);
 void opack_jquery_1_4_3_min_js(onion_response *res);
 
-onion_ssl *o=NULL;
+onion *o=NULL;
 
 /// Prints some help to stderr
 void show_help(){
@@ -53,12 +53,13 @@ void show_help(){
 								 "   -p|--port <port_number>      -- Set the port number to use. Default 8080\n"
 								 "   -c|--cert <certificate file> -- Set the SSL certificate file. Default: /etc/pki/tls/certs/pound.pem\n"
 								 "   -k|--key  <key file>         -- Set the SSL key file. Default: /etc/pki/tls/certs/pound.key\n"
+								 "   --no-ssl                     -- Do not uses SSL. WARNING! Very unsecure\n"
 								 "\n");
 }
 
 void free_onion(){
 	fprintf(stderr,"\nClosing connections.\n");
-	onion_ssl_free(o);
+	onion_free(o);
 	exit(0);
 }
 
@@ -66,8 +67,10 @@ int main(int argc, char **argv){
 	int port=8080;
 	const char *certificatefile="/etc/pki/tls/certs/pound.pem";
 	const char *keyfile="/etc/pki/tls/certs/pound.key";
-	
+	int error;
 	int i;
+	int ssl=1;
+	
 	for (i=1;i<argc;i++){
 		if (strcmp(argv[i],"--help")==0){
 			show_help();
@@ -89,7 +92,7 @@ int main(int argc, char **argv){
 				exit(1);
 			}
 			certificatefile=argv[++i];
-			fprintf(stderr, "Using port %d\n",port);
+			fprintf(stderr, "Using certificate %s\n",certificatefile);
 		}
 		else if(strcmp(argv[i],"-k")==0 || strcmp(argv[i],"--key")==0){
 			if (i+1>argc){
@@ -98,7 +101,11 @@ int main(int argc, char **argv){
 				exit(1);
 			}
 			keyfile=argv[++i];
-			fprintf(stderr, "Using port %d\n",port);
+			fprintf(stderr, "Using certificate key %s\n",keyfile);
+		}
+		else if(strcmp(argv[i],"--no-ssl")==0){
+			ssl=0;
+			fprintf(stderr, "Disabling SSL!\n");
 		}
 	}
 	
@@ -119,28 +126,33 @@ int main(int argc, char **argv){
 
 	onion_handler *oterm=onion_handler_auth_pam("Onion Terminal", "login", dir);
 
-
 	
-	o=onion_ssl_new(O_ONE);
-	onion_ssl_set_root_handler(o, oterm);
-	int error=onion_ssl_use_certificate(o, O_SSL_CERTIFICATE_KEY, certificatefile, keyfile);
-	if (error){
-		fprintf(stderr, "Cant set certificate and key files (%s, %s)\n",certificatefile, keyfile);
-		show_help();
-		exit(1);
+	o=onion_new(O_ONE);
+	onion_set_root_handler(o, oterm);
+
+	if (!(onion_flags(o)&O_SSL_AVAILABLE)){
+		fprintf(stderr,"SSL support is not available. Oterm is in unsecure mode!\n");
+	}
+	else if (ssl){ // Not necesary the else, as onion_use_certificate would just return an error. But then it will exit.
+		error=onion_use_certificate(o, O_SSL_CERTIFICATE_KEY, certificatefile, keyfile);
+		if (error){
+			fprintf(stderr, "Cant set certificate and key files (%s, %s)\n",certificatefile, keyfile);
+			show_help();
+			exit(1);
+		}
 	}
 	
-	onion_ssl_set_port(o, port);
+	onion_set_port(o, port);
 	
 	signal(SIGINT, free_onion);
 	signal(SIGPIPE, SIG_IGN);
 	fprintf(stderr, "Listening at %d\n",port);
-	error=onion_ssl_listen(o);
+	error=onion_listen(o);
 	if (error){
 		perror("Cant create the server");
 	}
 	
-	onion_ssl_free(o);
+	onion_free(o);
 	
 	return 0;
 }
