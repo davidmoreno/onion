@@ -34,11 +34,6 @@ posRow=0
 /// Max created row number
 maxRow=0
 
-/// Initial timeout and default
-defaultTimeout=100
-timeout=defaultTimeout
-/// To cancel a long timeout when new chars are sent to make it a fast timeout
-timeoutId=0 
 /// Timeout to show a message
 msgTimeout=0
 /// Status of the parser: 0 normal, 1 set status type 1, 2 set status type 2.
@@ -220,50 +215,36 @@ addText = function(text, length){
 }
 
 cacheSendKeys=''
-onpetition=false // no two petitions at the same time.
+onpetitionIn=false // no two petitions at the same time.
+onpetitionOut=false // no two petitions at the same time.
 
 /**
  * @short Request new data, and do the timeout for next petition
  *
- * Data send is serialized: only one peittion can be on the air. If a new petition is done, then 
+ * Data send is serialized: only one for each direction (in/out) petition can be on the air. If a new petition is done, then 
  * it must wait until the reponse of latest arrives, and then make a new one. This helps a lot the interactivity, and solves
  * serialization problems.
  */
 requestNewData = function(keyvalue){
 	if (keyvalue)
 		cacheSendKeys+=keyvalue
-	if (onpetition){
-		return
-	}
-	
-	onpetition=true
-	if (cacheSendKeys!=''){
-		$.get('/term',{type:cacheSendKeys}, updateDataTimeout,'plain')
+	if (!onpetitionIn && cacheSendKeys){
+		onpetitionIn=true
+		$.get('term/in',{type:cacheSendKeys}, function(){ onpetitionIn=false; requestNewData(); })
 		cacheSendKeys=''
 	}
-	else
-		$.get('/term',updateDataTimeout,'plain')
+	if (!onpetitionOut){
+		onpetitionOut=true
+		$.get('term/out',updateDataTimeout,'plain')
+	}
 }
 
 /// Sets the result of data load, and set a new timeout for later. If there is data to send, do it now.
 updateDataTimeout = function(text){
-	clearTimeout(timeoutId)
 	updateData(text)
 	
-	onpetition=false
-	if (cacheSendKeys!='')
-		requestNewData()
-	else{
-		/// Update timeout times, incremental as important things use to be at the same times, and then big times of nothing
-		if (text && text!='')
-			timeout=defaultTimeout
-		else{
-			if (timeout<=5000)
-				timeout=timeout*2.5
-		}
-
-		timeoutId=setTimeout(requestNewData, timeout)
-	}
+	onpetitionOut=false
+	requestNewData()
 }
 
 /// Moves to the next line.
@@ -744,7 +725,7 @@ updateGeometry = function(){
 		nrRows=r
 		nrCols=c
 		showMsg('New geometry is '+nrRows+' rows, '+nrCols+' columns.')
-		$.get('/term',{resize:nrRows})
+		$.get('term/in',{resize:nrRows})
 	}
 }
 
@@ -766,7 +747,6 @@ $(document).ready(function(){
 	updateGeometry()
 	
 	$(window).resize(updateGeometry)
-	
 	
 	$.fn.extend({
 		showAndScroll: function() {

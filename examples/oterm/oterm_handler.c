@@ -31,6 +31,8 @@
 #include <onion_response.h>
 #include <onion_handler.h>
 
+/// Tiem to wait for output, or just return.
+#define TIMEOUT 60000
 
 typedef struct{
 	int fd;
@@ -38,51 +40,57 @@ typedef struct{
 }oterm_t;
 
 int oterm_data(oterm_t *o, onion_request *req){
+	if (strcmp(onion_request_get_path(req),"in")==0){
+		const char *data=onion_request_get_query(req,"resize");
+		if (data){
+			int ok=kill(o->pid, SIGWINCH);
+			
+			onion_response *res=onion_response_new(req);
+			onion_response_write_headers(res);
+			if (ok==0)
+				onion_response_write0(res,"OK");
+			else
+				onion_response_printf(res, "Error %d",ok);
+			onion_response_free(res);
+			return 1;
+		}
 
-	const char *data=onion_request_get_query(req,"resize");
-	if (data){
-		int ok=kill(o->pid, SIGWINCH);
 		
+		// Write data, if any
+		data=onion_request_get_query(req,"type");
+		if (data){
+			//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
+			write(o->fd, data, strlen(data));
+		}
 		onion_response *res=onion_response_new(req);
 		onion_response_write_headers(res);
-		if (ok==0)
-			onion_response_write0(res,"OK");
-		else
-			onion_response_printf(res, "Error %d",ok);
+		onion_response_write0(res,"OK");
 		onion_response_free(res);
-		return 1;
 	}
-
-	
-	// Write data, if any
-	data=onion_request_get_query(req,"type");
-	if (data){
-		//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
-		write(o->fd, data, strlen(data));
-	}
-	
-	// read data, if any. Else return inmediately empty.
-	char buffer[4096];
-	int n;
-	struct pollfd p;
-	p.fd=o->fd;
-	p.events=POLLIN|POLLERR;
-	
-	if (poll(&p,1,500)>0){
-		if (p.revents==POLLIN){
-			//fprintf(stderr,"%s:%d read...\n",__FILE__,__LINE__);
-			n=read(o->fd, buffer, sizeof(buffer));
-			//fprintf(stderr,"%s:%d read ok, %d bytes\n",__FILE__,__LINE__,n);
+	else{
+		// read data, if any. Else return inmediately empty.
+		char buffer[4096];
+		int n;
+		struct pollfd p;
+		p.fd=o->fd;
+		p.events=POLLIN|POLLERR;
+		
+		if (poll(&p,1,TIMEOUT)>0){
+			if (p.revents==POLLIN){
+				//fprintf(stderr,"%s:%d read...\n",__FILE__,__LINE__);
+				n=read(o->fd, buffer, sizeof(buffer));
+				//fprintf(stderr,"%s:%d read ok, %d bytes\n",__FILE__,__LINE__,n);
+			}
 		}
+		else
+			n=0;
+		onion_response *res=onion_response_new(req);
+		onion_response_write_headers(res);
+		if (n)
+			onion_response_write(res,buffer,n);
+		onion_response_free(res);
 	}
-	else
-		n=0;
 
-	onion_response *res=onion_response_new(req);
-	onion_response_write_headers(res);
-	if (n)
-		onion_response_write(res,buffer,n);
-	onion_response_free(res);
 	
 	return 1;
 }
