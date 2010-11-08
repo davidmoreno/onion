@@ -9,13 +9,35 @@ if (${ONION_USE_SSL})
 	endif(GNUTLS_LIB AND GCRYPT_LIB)
 endif(${ONION_USE_SSL})
 
+if (${ONION_USE_PTHREADS})
+	find_library(PTHREADS_LIB NAMES pthread PATH /usr/lib /usr/local/lib )
+	if(PTHREADS_LIB)
+		message(STATUS "pthreads found. Threading support is compiled in.")
+		set(PTHREADS true)
+	else(PTHREADS_LIB)
+		message(WARNING "pthreads not found. Threading is not supported.")
+	endif(PTHREADS_LIB)
+endif(${ONION_USE_PTHREADS})
 
+# defines
 if (GNUTLS_ENABLED)
 	add_definitions(-DHAVE_GNUTLS)
 endif(GNUTLS_ENABLED)
+if (PTHREADS)
+	add_definitions(-DHAVE_PTHREADS)
+endif(PTHREADS)
 
-add_library(onion onion_codecs.c onion_dict.c onion.c onion_request.c onion_response.c onion_handler.c onion_server.c)
+# the lib itself. Two versions, static and shared.
+add_library(onion SHARED onion_codecs.c onion_dict.c onion.c onion_request.c onion_response.c onion_handler.c onion_server.c)
 
+add_library(onion_static STATIC onion_codecs.c onion_dict.c onion.c onion_request.c onion_response.c onion_handler.c onion_server.c)
+
+# library dependencies
 if (GNUTLS_ENABLED)
 	target_link_libraries(onion gnutls gcrypt)
+	target_link_libraries(onion_static gnutls gcrypt)
 endif(GNUTLS_ENABLED)
+if (PTHREADS)
+	target_link_libraries(onion pthread)
+	target_link_libraries(onion_static pthread)
+endif(PTHREADS)

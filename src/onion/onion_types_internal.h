@@ -62,7 +62,7 @@ struct onion_t{
  * @short Some configuration about the server that should arrive to all parts.
  */
 struct onion_server_t{
-	onion_write write; // of type onion_write
+	onion_write write; /// of type onion_write
 	onion_handler *root_handler;
 };
 

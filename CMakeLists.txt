@@ -3,10 +3,9 @@ cmake_policy(VERSION 2.8)
 
 # Some tweak parameters
 SET(ONION_USE_SSL true)
-
+SET(ONION_USE_PTHREADS true)
 
 ##
-
 
 project (onion)
 
