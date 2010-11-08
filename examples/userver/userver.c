@@ -35,14 +35,24 @@ void free_onion(){
 }
 
 int main(int argc, char **argv){
+	int port=8080;
+	const char *dirname=".";
+	int i;
+	for (i=1;i<argc;i++){
+		if (strcmp(argv[i],"-p")==0){
+			port=atoi(argv[++i]);
+		}
+		else
+			dirname=argv[i];
+	}
+
+	
 	onion_handler *dir=onion_handler_directory(argc==2 ? argv[1] : ".");
 	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
 	
-	o=onion_new(O_ONE);
+	o=onion_new(O_ONE); // O_THREADED
 	onion_set_root_handler(o, dir);
-	int port=8080;
-	if (getenv("ONION_PORT"))
-		port=atoi(getenv("ONION_PORT"));
+	
 	
 	onion_set_port(o, port);
 	

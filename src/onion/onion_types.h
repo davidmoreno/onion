@@ -47,11 +47,12 @@ typedef int (*onion_write)(void *handler, const char *data, unsigned int length)
 
 /// Flags for the mode of operation of the onion server.
 enum onion_mode_e{
-	O_ONE=1,
-	O_ONE_LOOP=3,
-	O_THREADED=4,
+	O_ONE=1,							/// Perform just one petition
+	O_ONE_LOOP=3,					/// Perform one petition at a time; lineal processing
+	O_THREADED=4,					/// Threaded processing, process many petitions at a time. Needs pthread support.
+	
 	O_SSL_AVAILABLE=0x10, /// This is set by the library when creating the onion object, if SSL support is available.
-	O_SSL_ENABLED=0x20, /// This is set by the library when setting the certificates, if SSL is available.
+	O_SSL_ENABLED=0x20,   /// This is set by the library when setting the certificates, if SSL is available.
 };
 
 typedef enum onion_mode_e onion_mode;

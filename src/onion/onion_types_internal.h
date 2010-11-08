@@ -24,6 +24,9 @@
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
 #endif
+#ifdef HAVE_PTHREADS
+#include <pthread.h>
+#endif
 
 #ifdef __cplusplus
 extern "C"{
@@ -54,6 +57,10 @@ struct onion_t{
 	gnutls_certificate_credentials_t x509_cred;
 	gnutls_dh_params_t dh_params;
 	gnutls_priority_t priority_cache;
+#endif
+#ifdef HAVE_PTHREADS
+	int active_threads_count;	/// Number of active threads.
+	pthread_mutex_t mutex;		/// Mutexes data on this struct.
 #endif
 };
 

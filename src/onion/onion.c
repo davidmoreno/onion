@@ -32,6 +32,15 @@
 #include <gcrypt.h>		/* for gcry_control */
 #include <gnutls/gnutls.h>
 #endif
+#ifdef HAVE_PTHREADS
+#include <pthread.h>
+#endif
+
+#ifdef HAVE_GNUTLS
+#ifdef HAVE_PTHREADS
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+#endif
+#endif
 
 #include "onion.h"
 #include "onion_handler.h"
@@ -45,6 +54,17 @@ static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);
 static void onion_enable_tls(onion *o);
 #endif
 
+#ifdef HAVE_PTHREADS
+/// Internal data as needed by onion_request_thread
+struct onion_request_thread_data_t{
+	onion *o;
+	int clientfd;
+};
+
+typedef struct onion_request_thread_data_t onion_request_thread_data;
+
+void *onion_request_thread(void*);
+#endif
 
 /// Internal processor of just one request.
 static void onion_process_request(onion *o, int clientfd);
@@ -59,6 +79,10 @@ onion *onion_new(int flags){
 	o->port=8080;
 #ifdef HAVE_GNUTLS
 	o->flags|=O_SSL_AVAILABLE;
+#endif
+#ifdef HAVE_PTHREADS
+	o->active_threads_count=0;
+	pthread_mutex_init(&o->mutex, NULL);
 #endif
 	
 	return o;
@@ -107,12 +131,51 @@ int onion_listen(onion *o){
 			close(clientfd);
 		}
 	}
+#ifdef HAVE_PTHREADS
+	else if (o->flags&O_THREADED){
+		fprintf(stderr,"Threaded loop.\n");
+		int clientfd;
+		pthread_attr_t attr;
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
+		while(1){
+			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+			
+			// Has to be malloc'd. If not it wil be overwritten on next petition. The threads frees it
+			onion_request_thread_data *data=malloc(sizeof(onion_request_thread_data)); 
+			data->o=o;
+			data->clientfd=clientfd;
+			pthread_t thread_handle; // Ignored just now. FIXME. Necesary at shutdown.
+			pthread_mutex_lock (&o->mutex);
+			o->active_threads_count++;
+			pthread_mutex_unlock (&o->mutex);
+			
+			pthread_create(&thread_handle,&attr, onion_request_thread, data);
+			}
+		pthread_attr_destroy(&attr);
+	}
+#endif
 	close(sockfd);
 	return 0;
 }
 
 /// Removes the allocated data
 void onion_free(onion *onion){
+#ifdef HAVE_PTHREADS
+	int ntries=5;
+	int c;
+	for(;ntries--;){
+		pthread_mutex_lock (&onion->mutex);
+		c=onion->active_threads_count;
+		pthread_mutex_unlock (&onion->mutex);
+		if (c==0){
+			break;
+		}
+		fprintf(stderr,"Still some petitions on process (%d). Wait a little bit (%d).\n",c,ntries);
+		sleep(1);
+	}
+#endif
+	
 #ifdef HAVE_GNUTLS
 	if (onion->flags&O_SSL_ENABLED){
 		gnutls_certificate_free_credentials (onion->x509_cred);
@@ -218,6 +281,11 @@ static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd){
 }
 
 static void onion_enable_tls(onion *o){
+#ifdef HAVE_GNUTLS
+#ifdef HAVE_PTHREADS
+	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+#endif
+#endif
 	if (!(o->flags&O_USE_DEV_RANDOM)){
 		gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 	}
@@ -240,7 +308,7 @@ static void onion_enable_tls(onion *o){
  * Returns the error code. If 0, no error.
  */
 int onion_use_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
-#if HAVE_GNUTLS
+#ifdef HAVE_GNUTLS
 	if (!(onion->flags&O_SSL_ENABLED))
 		onion_enable_tls(onion);
 	int r=-1;
@@ -282,3 +350,21 @@ int onion_use_certificate(onion *onion, onion_ssl_certificate_type type, const c
 	return -1; /// Support not available
 #endif
 }
+
+
+#ifdef HAVE_PTHREADS
+/// Interfaces between the pthread_create and the process request. Actually just calls it with the proper parameters.
+void *onion_request_thread(void *d){
+	onion_request_thread_data *td=(onion_request_thread_data*)d;
+	
+	onion_process_request(td->o,td->clientfd);
+	
+	close(td->clientfd);
+	pthread_mutex_lock (&td->o->mutex);
+	td->o->active_threads_count--;
+	pthread_mutex_unlock (&td->o->mutex);
+	free(td);
+	return NULL;
+}
+
+#endif
