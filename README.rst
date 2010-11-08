@@ -28,7 +28,28 @@ O_SSL_ACTIVATED.
 If support is not in, then the library will not use, but for the user of the library the
 interface is the same; it will only change that when trying to set the certificates it 
 will fail. Anwyay for clients its just to use the interface and they dont care at all
-if suport is in or not. No more than beign able to use SSL.
+if suport is in or not. No more than being able to use SSL.
 
 this is this way, and not mandatory as ther may be moments where the program user do not
 want to support SSL for whatever reasons, for example speed.
+
+
+Threads support
+---------------
+
+Currently there is basic threads support. It can be set the server to be created as 
+threaded (O_THREADED), and it will create a new thread per connection. There is no
+data protection as on the listen phase there should not be any change to onion structures.
+
+Nevertheless if new handlers are created they must set their own threading support
+as necesary.
+
+It can be deactivated at CMakeLists.txt. If no pthreads lib is found on the system, it
+is not compiled in.
+
+Also when thread support is on, onion server can set to work on another (non-main) thread. 
+This is independant from O_THREADED operation; it can have one thread with your normal 
+application and another thread that listens and processes petitions. Its set with the 
+O_DETACH_LISTEN flag. This is very useful when adding an extra web server to your application
+as it can be added without changes to the flow of your application, but you will need to
+thread protect your data if you access to it from the web server.

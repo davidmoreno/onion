@@ -81,8 +81,12 @@ onion *onion_new(int flags){
 	o->flags|=O_SSL_AVAILABLE;
 #endif
 #ifdef HAVE_PTHREADS
-	o->active_threads_count=0;
-	pthread_mutex_init(&o->mutex, NULL);
+	o->flags|=O_THREADS_AVALIABLE;
+	if (o->flags&O_THREADED){
+		o->flags|=O_THREADS_ENABLED;
+		o->active_threads_count=0;
+		pthread_mutex_init(&o->mutex, NULL);
+	}
 #endif
 	
 	return o;
@@ -100,6 +104,19 @@ static int write_to_socket(int *fd, const char *data, unsigned int len){
  * Returns if there is any error. It returns actualy errno from the network operations. See socket for more information.
  */
 int onion_listen(onion *o){
+#ifdef HAVE_PTHREADS
+	if (o->flags&O_DETACH_LISTEN && !(o->flags&O_DETACHED)){ // On first call it sets the variable, and then call again, this time detached.
+		o->flags|=O_DETACHED;
+		pthread_attr_t attr;
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
+		pthread_t listen_thread;
+		pthread_create(&listen_thread, &attr,(void*(*)(void*)) onion_listen, o);
+		pthread_attr_destroy(&attr);
+		return 0;
+	}
+#endif
+	
 	int sockfd;
 	sockfd=socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in serv_addr, cli_addr;
@@ -132,8 +149,7 @@ int onion_listen(onion *o){
 		}
 	}
 #ifdef HAVE_PTHREADS
-	else if (o->flags&O_THREADED){
-		fprintf(stderr,"Threaded loop.\n");
+	else if (o->flags&O_THREADS_ENABLED){
 		int clientfd;
 		pthread_attr_t attr;
 		pthread_attr_init(&attr);
@@ -162,17 +178,19 @@ int onion_listen(onion *o){
 /// Removes the allocated data
 void onion_free(onion *onion){
 #ifdef HAVE_PTHREADS
-	int ntries=5;
-	int c;
-	for(;ntries--;){
-		pthread_mutex_lock (&onion->mutex);
-		c=onion->active_threads_count;
-		pthread_mutex_unlock (&onion->mutex);
-		if (c==0){
-			break;
+	if (onion->flags&O_THREADS_ENABLED){
+		int ntries=5;
+		int c;
+		for(;ntries--;){
+			pthread_mutex_lock (&onion->mutex);
+			c=onion->active_threads_count;
+			pthread_mutex_unlock (&onion->mutex);
+			if (c==0){
+				break;
+			}
+			fprintf(stderr,"Still some petitions on process (%d). Wait a little bit (%d).\n",c,ntries);
+			sleep(1);
 		}
-		fprintf(stderr,"Still some petitions on process (%d). Wait a little bit (%d).\n",c,ntries);
-		sleep(1);
 	}
 #endif
 	

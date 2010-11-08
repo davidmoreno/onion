@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include <onion.h>
 #include <onion_handler.h>
@@ -50,7 +51,7 @@ int main(int argc, char **argv){
 	onion_handler *dir=onion_handler_directory(argc==2 ? argv[1] : ".");
 	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
 	
-	o=onion_new(O_ONE); // O_THREADED
+	o=onion_new(O_THREADED|O_DETACH_LISTEN);
 	onion_set_root_handler(o, dir);
 	
 	
@@ -61,6 +62,8 @@ int main(int argc, char **argv){
 	if (error){
 		perror("Cant create the server");
 	}
+	fprintf(stderr,"Detached. Now sleep.\n");
+	sleep(100);
 	
 	onion_free(o);
 	
