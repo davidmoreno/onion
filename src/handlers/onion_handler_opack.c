@@ -42,8 +42,7 @@ int onion_handler_opack_handler(onion_handler_opack_data *d, onion_request *requ
 
 	d->render(res);
 	
-	onion_response_free(res);
-	return 1;
+	return onion_response_free(res);
 }
 
 

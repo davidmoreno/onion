@@ -162,9 +162,6 @@ int onion_listen(onion *o){
 			data->o=o;
 			data->clientfd=clientfd;
 			pthread_t thread_handle; // Ignored just now. FIXME. Necesary at shutdown.
-			pthread_mutex_lock (&o->mutex);
-			o->active_threads_count++;
-			pthread_mutex_unlock (&o->mutex);
 			
 			pthread_create(&thread_handle,&attr, onion_request_thread, data);
 			}
@@ -254,7 +251,7 @@ static void onion_process_request(onion *o, int clientfd){
 #endif
 		//fprintf(stderr, "%s:%d Read %d bytes\n",__FILE__,__LINE__,r);
 		w=onion_request_write(req, buffer, r);
-		if (w<0){ // request processed.
+		if (w<0){ // request processed. Close connection.
 			break;
 		}
 	}
@@ -374,13 +371,24 @@ int onion_use_certificate(onion *onion, onion_ssl_certificate_type type, const c
 /// Interfaces between the pthread_create and the process request. Actually just calls it with the proper parameters.
 void *onion_request_thread(void *d){
 	onion_request_thread_data *td=(onion_request_thread_data*)d;
+	onion *o=td->o;
 	
-	onion_process_request(td->o,td->clientfd);
+	pthread_mutex_lock (&o->mutex);
+	o->active_threads_count++;
+	pthread_mutex_unlock (&o->mutex);
+
+	fprintf(stderr,"%s:%d Open connection %d\n",__FILE__,__LINE__,td->clientfd);
+	onion_process_request(o,td->clientfd);
 	
-	close(td->clientfd);
-	pthread_mutex_lock (&td->o->mutex);
+	fprintf(stderr,"%s:%d Closing connection... %d\n",__FILE__,__LINE__,td->clientfd);
+	if (0!=close(td->clientfd)){
+		perror("Error closing connection");
+	}
+	fprintf(stderr,"%s:%d Close connection %d\n",__FILE__,__LINE__,td->clientfd);
+	
+	pthread_mutex_lock (&o->mutex);
 	td->o->active_threads_count--;
-	pthread_mutex_unlock (&td->o->mutex);
+	pthread_mutex_unlock (&o->mutex);
 	free(td);
 	return NULL;
 }

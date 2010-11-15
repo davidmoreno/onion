@@ -161,9 +161,7 @@ int oterm_status(oterm_t *o, onion_request *req){
 	
 	onion_response_write0(res,"}\n");
 	
-	onion_response_free(res);
-	
-	return 1;
+	return onion_response_free(res);
 }
 
 /// Input data to the process
@@ -174,12 +172,7 @@ int oterm_in(process *o, onion_request *req){
 		//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
 		write(o->fd, data, strlen(data));
 	}
-	onion_response *res=onion_response_new(req);
-	onion_response_write_headers(res);
-	onion_response_write0(res,"OK");
-	onion_response_free(res);
-	
-	return 1;
+	return onion_response_shortcut(req, "OK", 200);
 }
 
 /// Resize the window. Do not work yet, and I dont know whats left. FIXME.
@@ -187,14 +180,10 @@ int oterm_resize(process *o, onion_request* req){
 	//const char *data=onion_request_get_query(req,"resize");
 	int ok=kill(o->pid, SIGWINCH);
 	
-	onion_response *res=onion_response_new(req);
-	onion_response_write_headers(res);
 	if (ok==0)
-		onion_response_write0(res,"OK");
+		return onion_response_shortcut(req,"OK",200);
 	else
-		onion_response_printf(res, "Error %d",ok);
-	onion_response_free(res);
-	return 1;
+		return onion_response_shortcut(req,"Error",500);
 }
 
 /// Gets the output data
@@ -220,9 +209,7 @@ int oterm_out(process *o, onion_request *req){
 	onion_response_write_headers(res);
 	if (n)
 		onion_response_write(res,buffer,n);
-	onion_response_free(res);
-	
-	return 1;
+	return onion_response_free(res);
 }
 
 /// Terminates all processes, and frees the memory.

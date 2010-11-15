@@ -37,19 +37,22 @@ typedef enum onion_response_codes_e onion_response_codes;
 
 
 /**
- * @short Possible flags
+ * @short Possible flags.
+ * 
+ * These flags are used internally by the resposnes, but they can be the responses themselves of the handler when appropiate.
  */
 enum onion_response_flags_e{
-	OR_KEEP_ALIVE=1,
+	OR_KEEP_ALIVE=4, /// Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
 	OR_LENGTH_SET=2,
+	OR_CLOSE_CONNECTION=1,
 };
 
 typedef enum onion_response_flags_e onion_response_flags;
 
 /// Generates a new response object
 onion_response *onion_response_new(onion_request *req);
-/// Frees the memory consumed by this object
-void onion_response_free(onion_response *res);
+/// Frees the memory consumed by this object. Returns keep_alive status.
+int onion_response_free(onion_response *res);
 /// Adds a header to the response object
 void onion_response_set_header(onion_response *res, const char *key, const char *value);
 /// Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut

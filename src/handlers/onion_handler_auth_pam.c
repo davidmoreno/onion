@@ -29,6 +29,7 @@
 
 int authorize(const char *pamname, const char *username, const char *password);
 
+#define RESPONSE_UNAUTHORIZED "<h1>Unauthorized access</h1>"
 
 struct onion_handler_auth_pam_data_t{
 	char *realm;
@@ -75,9 +76,11 @@ int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request
 	sprintf(temp, "Basic realm=\"%230s\"",d->realm);
 	onion_response_set_header(res, "WWW-Authenticate",temp);
 	onion_response_set_code(res, HTTP_UNAUTHORIZED);
-
+	onion_response_set_length(res,sizeof(RESPONSE_UNAUTHORIZED));
+	
 	onion_response_write_headers(res);
-	return 1;
+	onion_response_write(res,RESPONSE_UNAUTHORIZED,sizeof(RESPONSE_UNAUTHORIZED));
+	return onion_response_free(res);
 }
 
 

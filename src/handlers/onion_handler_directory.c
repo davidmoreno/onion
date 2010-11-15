@@ -83,8 +83,7 @@ int onion_handler_directory_handler_file(const char *realp, struct stat *reals, 
 			onion_response_write(res, tmp, r);
 		}
 		close(fd);
-		onion_response_free(res);
-		return 1;
+		return onion_response_free(res);
 }
 
 /**
@@ -143,11 +142,11 @@ int onion_handler_directory_handler_directory(const char *realp, const char *sho
 	onion_response_write0(res,"<h2>Onion directory list. (C) 2010 <a href=\"http://www.coralbits.com\">CoralBits</a>. "
 														"Under <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPL 3.0.</a> License.</h2>\n</html>");
 
-	onion_response_free(res);
+	int r=onion_response_free(res);
 	
 	closedir(dir);
 	
-	return 1;
+	return r;
 }
 
 

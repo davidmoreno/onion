@@ -51,9 +51,7 @@ int onion_handler_static_handler(onion_handler_static_data *d, onion_request *re
 	//fprintf(stderr,"Write %d bytes\n",length);
 	onion_response_write(res, d->data, length);
 
-	onion_response_free(res);
-	
-	return 1;
+	return onion_response_free(res);
 }
 
 /// Removes internal data for this handler.

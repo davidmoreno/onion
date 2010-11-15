@@ -49,15 +49,25 @@ onion_response *onion_response_new(onion_request *req){
 	return res;
 }
 
-/// Frees the memory consumed by this object
-void onion_response_free(onion_response *res){
-	/*
+/**
+ * @short Frees the memory consumed by this object
+ * 
+ * This function returns the close status: OR_KEEP_ALIVE or OR_CLOSE_CONNECTION as needed.
+ */
+int onion_response_free(onion_response *res){
+	int r=OR_CLOSE_CONNECTION;
 	if (res->flags&OR_LENGTH_SET && res->length==res->sent_bytes){
+		r=OR_KEEP_ALIVE;
 	}
-	*/
+	
+	// FIXME! This is no proper logging at all. Maybe a handler.
+	fprintf(stderr, "%s:%d GET %s (response %d bytes, %s)\n",__FILE__,__LINE__,res->request->fullpath, res->sent_bytes,
+					(r==OR_KEEP_ALIVE) ? "Keep-alive" : "Close connection");
 	
 	onion_dict_free(res->headers);
 	free(res);
+	
+	return r;
 }
 
 /// Adds a header to the response object
@@ -91,6 +101,8 @@ void onion_response_write_headers(onion_response *res){
 	onion_dict_preorder(res->headers, write_header, res);
 	
 	onion_response_write(res,"\n",1);
+	
+	res->sent_bytes=0; // the header size is not counted here.
 }
 
 /// Straight write some data to the response. Only used for real data as it has info about sent bytes for keep alive.
@@ -100,7 +112,7 @@ int onion_response_write(onion_response *res, const char *data, unsigned int len
 	int w;
 	int pos=0;
 	while ( (w=write(fd, &data[pos], length)) != length){
-		fprintf(stderr, "wrote  %d/%d bytes\n",w,length);
+		//fprintf(stderr, "wrote  %d/%d bytes\n",w,length);
 		if (w<=0){
 			fprintf(stderr,"%s:%d Error writing. Maybe closed connection. Code %d.\n",basename(__FILE__),__LINE__,w);
 #ifdef HAVE_GNUTLS
@@ -158,8 +170,7 @@ int onion_response_shortcut(onion_request *req, const char *response, int code){
 	onion_response_write_headers(res);
 	
 	onion_response_write(res,response,l);
-	onion_response_free(res);
-	return 1;
+	return onion_response_free(res);
 }
 
 /**

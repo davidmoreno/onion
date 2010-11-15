@@ -23,6 +23,7 @@
 
 #include "onion_dict.h"
 #include "onion_request.h"
+#include "onion_response.h"
 #include "onion_handler.h"
 #include "onion_server.h"
 #include "onion_types_internal.h"
@@ -38,7 +39,9 @@ onion_request *onion_request_new(onion_server *server, void *socket){
 	req->headers=onion_dict_new();
 	req->socket=socket;
 	req->buffer_pos=0;
-	
+
+	//fprintf(stderr,"%s:%d New request %p\n",__FILE__,__LINE__,req);
+
 	return req;
 }
 
@@ -50,13 +53,15 @@ void onion_request_free(onion_request *req){
 		free(req->fullpath);
 	if (req->query)
 		onion_dict_free(req->query);
-	
+
+	//fprintf(stderr,"%s:%d Removed request %p\n",__FILE__,__LINE__,req);
+
 	free(req);
 }
 
 /// Partially fills a request. One line each time.
 int onion_request_fill(onion_request *req, const char *data){
-	//fprintf(stderr, "fill %s\n",data);
+	//fprintf(stderr, "%s:%d fill %s\n",__FILE__,__LINE__,data);
 	if (!req->path){
 		char method[16], url[256], version[16];
 		sscanf(data,"%15s %255s %15s",method, url, version);
@@ -182,12 +187,26 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 	for (i=0;i<length;i++){
 		char c=data[i];
 		if (c=='\n'){
-			//fprintf(stderr,"newline\n");
 			if (req->buffer_pos==0){ // If true, then headers are over. Do the processing.
-				fprintf(stderr, "%s:%d GET %s\n",__FILE__,__LINE__,req->fullpath); // FIXME! This is no proper logging at all. Maybe a handler.
-
-				onion_handler_handle(req->server->root_handler, req);
-				return -i;
+				int status=onion_handler_handle(req->server->root_handler, req);
+				if (status==OR_CLOSE_CONNECTION){
+					//fprintf(stderr,"%s:%d Close connection %p\n",__FILE__,__LINE__,req);
+					return -i;
+				}
+				else{ // I guess keep alive. This side wants to keep alive, but maybe other side closes it.
+					//fprintf(stderr,"%s:%d Keep alive %p\n",__FILE__,__LINE__,req);
+					onion_dict_free(req->headers);
+					req->headers=onion_dict_new();
+					req->flags=0;
+					if (req->fullpath){
+						free(req->fullpath);
+						req->path=req->fullpath=NULL;
+					}
+					if (req->query){
+						onion_dict_free(req->query);
+						req->query=NULL;
+					}
+				}
 				// I do not stop as it might have more data: keep alive.
 			}
 			else{
@@ -213,6 +232,7 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 			}
 		}
 	}
+	//fprintf(stderr,"%s:%d Wrote %d bytes\n",__FILE__,__LINE__,i);
 	return i;
 }
 
