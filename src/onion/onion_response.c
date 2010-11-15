@@ -30,6 +30,7 @@
 #include "onion_types_internal.h"
 
 const char *onion_response_code_description(int code);
+static void onion_response_write_buffer(onion_response *res);
 
 /// Generates a new response object
 onion_response *onion_response_new(onion_request *req){
@@ -39,7 +40,8 @@ onion_response *onion_response_new(onion_request *req){
 	res->headers=onion_dict_new();
 	res->code=200; // The most normal code, so no need to overwrite it in other codes.
 	res->flags=OR_KEEP_ALIVE;
-	res->length=res->sent_bytes=0;
+	res->sent_bytes_total=res->length=res->sent_bytes=0;
+	res->buffer_pos=0;
 	
 	// Sorry for the publicity.
 	onion_dict_add(res->headers, "Server", "Onion lib - 0.1. http://coralbits.com", 0);
@@ -55,6 +57,9 @@ onion_response *onion_response_new(onion_request *req){
  * This function returns the close status: OR_KEEP_ALIVE or OR_CLOSE_CONNECTION as needed.
  */
 int onion_response_free(onion_response *res){
+	// write pending data.
+	onion_response_write_buffer(res);
+	
 	int r=OR_CLOSE_CONNECTION;
 	if (res->flags&OR_LENGTH_SET && res->length==res->sent_bytes){
 		r=OR_KEEP_ALIVE;
@@ -107,24 +112,53 @@ void onion_response_write_headers(onion_response *res){
 
 /// Straight write some data to the response. Only used for real data as it has info about sent bytes for keep alive.
 int onion_response_write(onion_response *res, const char *data, unsigned int length){
+	res->sent_bytes+=length;
+	res->sent_bytes_total+=length;
+	
+	while (res->buffer_pos+length>sizeof(res->buffer)){
+		int wb=sizeof(res->buffer)-res->buffer_pos;
+		//fprintf(stderr,"to fill buffer %d\n",wb);
+		memcpy(&res->buffer[res->buffer_pos], data, wb);
+		
+		res->buffer_pos=sizeof(res->buffer);
+		onion_response_write_buffer(res);
+		
+		length-=wb;
+		data+=wb;
+	}
+	//fprintf(stderr,"at tail %d\n",length);
+	memcpy(&res->buffer[res->buffer_pos], data, length);
+	res->buffer_pos+=length;
+	//res->buffer[res->buffer_pos]=0;
+	//fprintf(stderr,"head is %s\n",res->buffer);
+	return length;
+}
+
+/// Writes all buffered output waiting for sending.
+static void onion_response_write_buffer(onion_response *res){
+	//fprintf(stderr,"%s:%d Write buffer. %d bytes.\n",__FILE__,__LINE__,res->buffer_pos);
 	void *fd=onion_response_get_socket(res);
-	onion_write write=onion_response_get_writer(res);
+	onion_write write=res->request->server->write;
 	int w;
 	int pos=0;
-	while ( (w=write(fd, &data[pos], length)) != length){
+	//res->buffer[res->buffer_pos]=0;
+	//fprintf(stderr,"%s:%d write %s\n",__FILE__,__LINE__,res->buffer);
+	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		//fprintf(stderr, "wrote  %d/%d bytes\n",w,length);
 		if (w<=0){
-			fprintf(stderr,"%s:%d Error writing. Maybe closed connection. Code %d.\n",basename(__FILE__),__LINE__,w);
+			fprintf(stderr,"%s:%d Error writing. Maybe closed connection. Code %d. ",basename(__FILE__),__LINE__,w);
 #ifdef HAVE_GNUTLS
-			fprintf(stderr,"%s:%d %s\n",basename(__FILE__),__LINE__, gnutls_strerror (w));
+			//fprintf(stderr,"%s:%d %s\n",basename(__FILE__),__LINE__, gnutls_strerror (w));
 #endif
-			break;
+			perror("");
+			res->buffer_pos=0;
+			return;
 		}
 		pos+=w;
-		length-=w;
+		//fprintf(stderr,"Buffer_pos %d, w %d\n",res->buffer_pos,w);
+		res->buffer_pos-=w;
 	}
-	res->sent_bytes+=length;
-	return w;
+	res->buffer_pos=0;
 }
 
 /// Writes a 0-ended string to the response.

@@ -33,7 +33,6 @@ enum onion_request_flags_e{
 	OR_POST=2,
 	OR_HEAD=4,
 	
-	
 	OR_HTTP11=0x10,
 };
 

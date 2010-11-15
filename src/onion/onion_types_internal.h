@@ -99,7 +99,10 @@ struct onion_response_t{
 	int code;
 	int flags;
 	unsigned int length;
-	unsigned int sent_bytes;
+	unsigned int sent_bytes; /// Sent bytes at content.
+	unsigned int sent_bytes_total; /// Total sent bytes, including headers.
+	char buffer[1500]; /// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
+	int buffer_pos;
 };
 
 
