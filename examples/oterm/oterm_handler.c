@@ -31,83 +31,98 @@
 #include <onion_response.h>
 #include <onion_handler.h>
 
-/// Tiem to wait for output, or just return.
+#ifdef __DEBUG__
+#include <onion_handler_directory.h>
+#endif 
+
+/// Time to wait for output, or just return.
 #define TIMEOUT 60000
 
-typedef struct{
+/**
+ * @short Information about a process
+ */
+typedef struct process_t{
 	int fd;
 	unsigned int pid;
+	struct process_t *next;
+}process;
+
+/**
+ * @short Information about all the processes.
+ */
+typedef struct{
+	process *head;
+	onion_handler *data;
 }oterm_t;
 
+
+process *oterm_new(oterm_t *o);
+static int oterm_status(oterm_t *o, onion_request *req);
+
+static int oterm_resize(process *o, onion_request *req);
+static int oterm_in(process *o, onion_request *req);
+static int oterm_out(process *o, onion_request *req);
+
+/// Returns the term from the list of known terms. FIXME, make this structure a tree or something faster than linear search.
+process *oterm_get_process(oterm_t *o, const char *id){
+	process *p=o->head;
+	int pid=atoi(id);
+	while(p){
+		if (p->pid==pid)
+			return p;
+		p=p->next;
+	}
+	return NULL;
+}
+
+/// Plexes the request depending on arguments.
 int oterm_data(oterm_t *o, onion_request *req){
-	if (strcmp(onion_request_get_path(req),"in")==0){
-		const char *data=onion_request_get_query(req,"resize");
-		if (data){
-			int ok=kill(o->pid, SIGWINCH);
-			
-			onion_response *res=onion_response_new(req);
-			onion_response_write_headers(res);
-			if (ok==0)
-				onion_response_write0(res,"OK");
-			else
-				onion_response_printf(res, "Error %d",ok);
-			onion_response_free(res);
-			return 1;
-		}
-
-		
-		// Write data, if any
-		data=onion_request_get_query(req,"type");
-		if (data){
-			//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
-			write(o->fd, data, strlen(data));
-		}
-		onion_response *res=onion_response_new(req);
-		onion_response_write_headers(res);
-		onion_response_write0(res,"OK");
-		onion_response_free(res);
-	}
-	else{
-		// read data, if any. Else return inmediately empty.
-		char buffer[4096];
-		int n;
-		struct pollfd p;
-		p.fd=o->fd;
-		p.events=POLLIN|POLLERR;
-		
-		if (poll(&p,1,TIMEOUT)>0){
-			if (p.revents==POLLIN){
-				//fprintf(stderr,"%s:%d read...\n",__FILE__,__LINE__);
-				n=read(o->fd, buffer, sizeof(buffer));
-				//fprintf(stderr,"%s:%d read ok, %d bytes\n",__FILE__,__LINE__,n);
-			}
-		}
-		else
-			n=0;
-		onion_response *res=onion_response_new(req);
-		onion_response_write_headers(res);
-		if (n)
-			onion_response_write(res,buffer,n);
-		onion_response_free(res);
-	}
-
+	const char *path=onion_request_get_path(req);
 	
-	return 1;
+	if (strcmp(path,"new")==0){
+		oterm_new(o);
+		return onion_response_shortcut(req, "ok", 200);
+	}
+	if (strcmp(path,"status")==0)
+		return oterm_status(o,req);
+
+	// split id / function
+	int l=strlen(path)+1;
+	char *id=alloca(l);
+	char *function=NULL;
+	
+	int i;
+	memcpy(id,path,l);
+	int func_pos=0;
+	for (i=0;i<l;i++){
+		if (id[i]=='/'){
+			id[i]=0;
+			if (function)
+				return onion_response_shortcut(req, "Bad formed petition. (1)", 500);
+			function=id+i+1;
+			func_pos=i;
+			break;
+		}
+	}
+	
+	if (!function)
+		return onion_response_shortcut(req, "Bad formed petition. (2)", 500);
+	// do it
+	process *term=oterm_get_process(o, id);
+	if (strcmp(function,"out")==0)
+		return oterm_out(term,req);
+	if (strcmp(function,"in")==0)
+		return oterm_in(term,req);
+	if (strcmp(function,"resize")==0)
+		return oterm_resize(term,req);
+	onion_request_advance_path(req, func_pos);
+	
+	return onion_handler_handle(o->data, req);
 }
 
-
-
-void oterm_oterm_free(oterm_t *o){
-	kill(o->pid, SIGTERM);
-	
-	close(o->fd);
-	
-	free(o);
-}
-
-
-onion_handler *oterm_handler_data(){
-	oterm_t *oterm=malloc(sizeof(oterm_t));
+/// Creates a new oterm
+process *oterm_new(oterm_t *o){
+	process *oterm=malloc(sizeof(process));
 
 	oterm->pid=forkpty(&oterm->fd, NULL, NULL, NULL);
 #ifdef __DEBUG__
@@ -122,13 +137,119 @@ onion_handler *oterm_handler_data(){
 		perror("");
 		exit(1);
 	}
-	/*
-	sleep(1);
-	if (waitpid(oterm->pid, NULL, WNOHANG) <=0 ){
-		fprintf(stderr,"%s:%d child finished too early.\n",__FILE__,__LINE__);
-		exit(1);
+	// I set myself at head
+	oterm->next=o->head;
+	o->head=oterm;
+	
+	return oterm;
+}
+
+
+/// Returns the status of all known terminals.
+int oterm_status(oterm_t *o, onion_request *req){
+	onion_response *res=onion_response_new(req);
+	onion_response_write_headers(res);
+	
+	onion_response_write0(res,"{");
+	
+	process *n=o->head;
+	while(n->next){
+		onion_response_printf(res, " \"%d\":{ \"pid\":\"%d\" }, ", n->pid, n->pid);
+		n=n->next;
 	}
-	*/
+	onion_response_printf(res, " \"%d\":{ \"pid\":\"%d\" } ", n->pid, n->pid);
+	
+	onion_response_write0(res,"}\n");
+	
+	onion_response_free(res);
+	
+	return 1;
+}
+
+/// Input data to the process
+int oterm_in(process *o, onion_request *req){
+	const char *data;
+	data=onion_request_get_query(req,"type");
+	if (data){
+		//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
+		write(o->fd, data, strlen(data));
+	}
+	onion_response *res=onion_response_new(req);
+	onion_response_write_headers(res);
+	onion_response_write0(res,"OK");
+	onion_response_free(res);
+	
+	return 1;
+}
+
+/// Resize the window. Do not work yet, and I dont know whats left. FIXME.
+int oterm_resize(process *o, onion_request* req){
+	//const char *data=onion_request_get_query(req,"resize");
+	int ok=kill(o->pid, SIGWINCH);
+	
+	onion_response *res=onion_response_new(req);
+	onion_response_write_headers(res);
+	if (ok==0)
+		onion_response_write0(res,"OK");
+	else
+		onion_response_printf(res, "Error %d",ok);
+	onion_response_free(res);
+	return 1;
+}
+
+/// Gets the output data
+int oterm_out(process *o, onion_request *req){
+	// read data, if any. Else return inmediately empty.
+	char buffer[4096];
+	int n;
+	struct pollfd p;
+	p.fd=o->fd;
+	p.events=POLLIN|POLLERR;
+	
+	if (poll(&p,1,TIMEOUT)>0){
+		if (p.revents==POLLIN){
+			//fprintf(stderr,"%s:%d read...\n",__FILE__,__LINE__);
+			n=read(o->fd, buffer, sizeof(buffer));
+			//fprintf(stderr,"%s:%d read ok, %d bytes\n",__FILE__,__LINE__,n);
+		}
+	}
+	else
+		n=0;
+	onion_response *res=onion_response_new(req);
+	onion_response_set_length(res, n);
+	onion_response_write_headers(res);
+	if (n)
+		onion_response_write(res,buffer,n);
+	onion_response_free(res);
+	
+	return 1;
+}
+
+/// Terminates all processes, and frees the memory.
+void oterm_oterm_free(oterm_t *o){
+	process *p=o->head;
+	process *t;
+	while (p){
+		kill(p->pid, SIGTERM);
+		close(p->fd);
+		t=p;
+		p=p->next;
+		free(t);
+	}
+	onion_handler_free(o->data);
+	free(o);
+}
+
+/// Prepares the oterm handler
+onion_handler *oterm_handler_data(){
+	oterm_t *oterm=malloc(sizeof(oterm));
+	
+	oterm->head=oterm_new(oterm);
+#ifdef __DEBUG__
+	onion_handler *data=onion_handler_directory(".");
+#endif
+	
+	oterm->data=data;
 	
 	return onion_handler_new((onion_handler_handler)oterm_data, oterm, (onion_handler_private_data_free) oterm_oterm_free);
 }

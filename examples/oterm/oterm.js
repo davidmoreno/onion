@@ -230,12 +230,12 @@ requestNewData = function(keyvalue){
 		cacheSendKeys+=keyvalue
 	if (!onpetitionIn && cacheSendKeys){
 		onpetitionIn=true
-		$.get('term/in',{type:cacheSendKeys}, function(){ onpetitionIn=false; requestNewData(); })
+		$.get('in',{type:cacheSendKeys}, function(){ onpetitionIn=false; requestNewData(); })
 		cacheSendKeys=''
 	}
 	if (!onpetitionOut){
 		onpetitionOut=true
-		$.get('term/out',updateDataTimeout,'plain')
+		$.get('out',updateDataTimeout,'plain')
 	}
 }
 
@@ -725,7 +725,7 @@ updateGeometry = function(){
 		nrRows=r
 		nrCols=c
 		showMsg('New geometry is '+nrRows+' rows, '+nrCols+' columns.')
-		$.get('term/in',{resize:nrRows})
+		$.get('resize',{size:nrRows})
 	}
 }
 

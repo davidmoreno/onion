@@ -139,8 +139,27 @@ onion_write onion_response_get_writer(onion_response *response){
 	return response->request->server->write;
 }
 
+/// Returns the socket object.
 void *onion_response_get_socket(onion_response *response){
 	return response->request->socket;
+}
+
+/**
+ * @short Shortcut for fast responses, like errors.
+ * 
+ * Prepares a fast response. You pass only the request, the text and the code, and it do the full response
+ * object and sends the data.
+ */
+int onion_response_shortcut(onion_request *req, const char *response, int code){
+	onion_response *res=onion_response_new(req);
+	unsigned int l=strlen(response);
+	onion_response_set_length(res,l);
+	onion_response_set_code(res,code);
+	onion_response_write_headers(res);
+	
+	onion_response_write(res,response,l);
+	onion_response_free(res);
+	return 1;
 }
 
 /**

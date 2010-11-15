@@ -1,158 +1,74 @@
-<!--
-	Onion HTTP terminal
-	Copyright (C) 2010 David Moreno Montero
-
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Affero General Public License as
-	published by the Free Software Foundation, either version 3 of the
-	License, or (at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Affero General Public License for more details.
-
-	You should have received a copy of the GNU Affero General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
--->
-
 <html>
  <head>
   <title>Oterm -- Onion based terminal emulator over HTTP</title>
   <script src="jquery-1.4.3.min.js"></script>
-  <script src="oterm.js"></script>
-  <script src="oterm_input.js"></script>
-  <script src="oterm_parser.js"></script>
-  <script src="oterm_data.js"></script>
-<style>
+  <style>
 body{
-	margin: 0px;
-	padding: 0px;
-	background: black;
-	color: white;
-	font-family: Fixed, monospace;
-}
-
-div#term p{
-	margin: 0px;
-	padding: 0px;
-	border: 0px;
-}
-
-span#cursor{
-	position: absolute;
-	opacity: 0.6;
-	left: 3em;
-	top: 1em;
-	width: 0.5em;
-	height: 1em;
-	background: white;
-}
-
-div#term p{
-	height: 1em;
-}
-
-span#msg{
 	font-family: sans-serif;
-	position: fixed;
-	top: 2em;
-	right: 2em;
-	vertical-align: center;
-	text-align: center;
-/*
-}
-span#msg div{
-*/
-	background: #66f;
-	opacity: 0.8;
-	font-weight: bold;
-	color: white;
-	border: 1px solid white;
-	padding: 1em;
-	border-radius: 5px;
-	cursor: pointer;
+	background: white;
+	color: black;
+	margin: 2em;
 }
 
-.current_line{
-	background: #005;
-}
-
-/** style attrs */
-div#term span.bright{
-	font-weight: bold;
-}
-
-div#term span.dim{
-	font-weight: light;
-}
-div#term span.underline{
-	text-decoration: underline;
-}
-div#term span.blink{
-	text-decoration: blink;
-}
-
-/** foreground */
-div#term span.black{
-	color: #555; /* actually grey, idea from konsole */
-}
-div#term span.red{
+a{
 	color: red;
+	text-decoration: none;
 }
-div#term span.green{
-	color: #4DEA4D;
-}
-div#term span.yellow{
-	color: yellow;
-}
-div#term span.blue{
-	color: #5454FF;
-}
-div#term span.magenta{
-	color: #FF54FF;
-}
-div#term span.cyan{
-	color: cyan;
-}
-div#term span.white{
-	color: white;
-}
-/* background */
-div#term span.bg-black{
-	background-color: black;
-}
-div#term span.bg-red{
-	background-color: red;
-}
-div#term span.bg-green{
-	background-color: #4DEA4D;
-}
-div#term span.bg-yellow{
-	background-color: yellow;
-}
-div#term span.bg-blue{
-	background-color: #5454FF;
-}
-div#term span.bg-magenta{
-	background-color: #FF54FF;
-}
-div#term span.bg-cyan{
-	background-color: cyan;
-}
-div#term span.bg-white{
-	background-color: white;
-}
-
-
-
-</style>
+  </style>
  </head>
- <body>
-<span id="msg">Loading...</span>
-<span id="cursor">&nbsp;</span>
-   <div id="term">
-    <p><span>Connecting...</span></p>
-   </div>
- </body>
+<body>
+
+<h1>Onion Term</h1>
+
+Onion term is a tst application for the <a href="http://www.coralbits.com/libonion/">onion http library</a>.
+
+<h2 id="sessions_title">Loading session information...</h2>
+
+<ul id="current_sessions">
+</ul>
+
+<h3><a href="javascript:newTerm()">Create a new remote session</a></h3>
+
+
+<script>
+newTerm = function(){
+	$.get('term/new', function(data){
+/*
+		var a=$('<a>').target(data.id).href('term?id='+data.id)
+		$(document).append(a)
+		a.click()
+		a.delete()
+*/
+		//sessionStatus(data)
+		updateSessionStatus()
+	})
+}
+
+/// Updates the list of sessions
+sessionStatus = function(data){
+	$('#sessions_title').text('Current sessions')
+	var s=$('#current_sessions')
+	for(var id in data){
+		var a=$('<a>').text(id+' '+data[id].pid).attr('target',id).attr('id',id)
+		a.attr('href','term/'+id+'/')
+		s.append($('<li>').append(a))
+	}
+}
+
+/// Requests the list of sessions
+updateSessionStatus = function(){
+	$.get('term/status', sessionStatus,'json')
+}
+
+$(document).ready(function(){
+	$(document).ajaxError(function(){
+		$('#sessions_title').text('Could not get session information. Check server is properly working.')
+		alert("Error loading session status data");
+	})
+
+	updateSessionStatus()
+})
+</script>
+
+</body>
 </html>

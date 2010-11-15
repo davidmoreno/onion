@@ -71,6 +71,9 @@ onion_write onion_response_get_writer(onion_response *res);
 /// Returns the writing handler, also known as socket object.
 void *onion_response_get_socket(onion_response *res);
 
+/// Shortcut for fast responses, like errors.
+int onion_response_shortcut(onion_request *req, const char *response, int code);
+
 #ifdef __cplusplus
 }
 #endif

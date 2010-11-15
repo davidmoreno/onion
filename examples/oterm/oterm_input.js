@@ -37,6 +37,7 @@ keydown = function(event){
 	var keyValue=''
 
 	if (keyCode in keyCodesToValues){
+		event.preventDefault()
 		keyValue=keyCodesToValues[keyCode]
 	}
 	else if (event.ctrlKey && keyCode){
