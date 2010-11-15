@@ -109,6 +109,8 @@ int oterm_data(oterm_t *o, onion_request *req){
 		return onion_response_shortcut(req, "Bad formed petition. (2)", 500);
 	// do it
 	process *term=oterm_get_process(o, id);
+	if (!term)
+		return onion_response_shortcut(req, "Terminal Id unknown", 404);
 	if (strcmp(function,"out")==0)
 		return oterm_out(term,req);
 	if (strcmp(function,"in")==0)

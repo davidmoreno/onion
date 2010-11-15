@@ -225,7 +225,7 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on headers
 				req->buffer_pos--;
 				if (!msgshown){
-					fprintf(stderr,"onion / %s:%d Header too long for me (max header length (per header) %ld chars). Ignoring from that byte on to the end of this line. (%16s...)\n",basename(__FILE__),__LINE__, sizeof(req->buffer),req->buffer);
+					fprintf(stderr,"onion / %s:%d Header too long for me (max header length (per header) %d chars). Ignoring from that byte on to the end of this line. (%16s...)\n",basename(__FILE__),__LINE__,(int) sizeof(req->buffer),req->buffer);
 					fprintf(stderr,"onion / %s:%d Increase it at onion_request.h and recompile onion.\n",basename(__FILE__),__LINE__);
 					msgshown=1;
 				}
