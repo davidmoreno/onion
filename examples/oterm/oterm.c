@@ -37,11 +37,6 @@
 
 
 void opack_index_html(onion_response *res);
-void opack_oterm_html(onion_response *res);
-void opack_oterm_js(onion_response *res);
-void opack_oterm_input_js(onion_response *res);
-void opack_oterm_data_js(onion_response *res);
-void opack_oterm_parser_js(onion_response *res);
 void opack_jquery_1_4_3_min_js(onion_response *res);
 
 onion *o=NULL;
@@ -116,11 +111,6 @@ int main(int argc, char **argv){
 #else
 	onion_handler *dir=onion_handler_opack("/",opack_index_html);
 	onion_handler_add(dir, onion_handler_opack("/jquery-1.4.3.min.js",opack_jquery_1_4_3_min_js));
-	onion_handler_add(dir, onion_handler_opack("/oterm.html",opack_oterm_html));
-	onion_handler_add(dir, onion_handler_opack("/oterm.js",opack_oterm_js));
-	onion_handler_add(dir, onion_handler_opack("/oterm_input.js",opack_oterm_input_js));
-	onion_handler_add(dir, onion_handler_opack("/oterm_parser.js",opack_oterm_parser_js));
-	onion_handler_add(dir, onion_handler_opack("/oterm_data.js",opack_oterm_data_js));
 #endif
 	onion_handler_add(dir, onion_handler_path("^/term/",oterm_handler_data()));
 	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );

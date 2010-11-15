@@ -33,10 +33,19 @@
 
 #ifdef __DEBUG__
 #include <onion_handler_directory.h>
+#else
+#include <onion_handler_opack.h>
 #endif 
 
 /// Time to wait for output, or just return.
 #define TIMEOUT 60000
+
+void opack_oterm_html(onion_response *res);
+void opack_oterm_js(onion_response *res);
+void opack_oterm_input_js(onion_response *res);
+void opack_oterm_data_js(onion_response *res);
+void opack_oterm_parser_js(onion_response *res);
+
 
 /**
  * @short Information about a process
@@ -236,6 +245,12 @@ onion_handler *oterm_handler_data(){
 	oterm->head=oterm_new(oterm);
 #ifdef __DEBUG__
 	onion_handler *data=onion_handler_directory(".");
+#else
+	onion_handler *data=onion_handler_opack("/",opack_oterm_html);
+	onion_handler_add(data, onion_handler_opack("/oterm.js",opack_oterm_js));
+	onion_handler_add(data, onion_handler_opack("/oterm_input.js",opack_oterm_input_js));
+	onion_handler_add(data, onion_handler_opack("/oterm_parser.js",opack_oterm_parser_js));
+	onion_handler_add(data, onion_handler_opack("/oterm_data.js",opack_oterm_data_js));
 #endif
 	
 	oterm->data=data;

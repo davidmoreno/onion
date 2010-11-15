@@ -1,4 +1,4 @@
-add_definitions(-D__DEBUG__)
+#add_definitions(-D__DEBUG__)
 
 include_directories (${CMAKE_SOURCE_DIR}/src/onion/ ${CMAKE_SOURCE_DIR}/src/handlers/ ${CMAKE_SOURCE_DIR}/src/onionssl/) 
 
