@@ -33,22 +33,7 @@
  * 
  * A basic example of a server with authentication, SSL support that serves a static directory is:
  * 
- * @code
- * 
- * #include <onion/onion.h>
- * #include <handlers/onion_handler_directory.h>
- * #include <handlers/onion_handler_auth_pam.h>
- * 
- * int main(int argc, char **argv){
- *   onion *o=onion_new(O_THREADED);
- *   onion_use_certificate(o, O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
- *   onion_set_root_handler(o, onion_handler_auth_pam("Onion Example", "login", onion_handler_directory(".")));
- *   onion_listen(o);
- *   onion_free(o);
- *   return 0;
- * }
- * 
- * @endcode
+ * @include examples/basic/basic.c
  * 
  * To be compiled as
  * 
