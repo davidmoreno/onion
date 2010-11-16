@@ -46,7 +46,12 @@ struct onion_dict_t{
 };
 
 /**
- * @short Basic structure that contains the webserver info.
+ * @short Webserver info.
+ * 
+ * This is information about onion implementation of the generic server. It contains the listening descriptors,
+ * the SSL parameters if SSL is enabled... 
+ * 
+ * This is platform specific server IO. Normally POSIX, using TCP/IP.
  */
 struct onion_t{
 	int flags;
@@ -66,11 +71,14 @@ struct onion_t{
 
 
 /**
- * @short Some configuration about the server that should arrive to all parts.
+ * @short Onion server that do not depend on specific IO structure.
+ * 
+ * This is separated as you can biuld your own servers using this structure instead of onion_t. For example
+ * using onion_server_t you can do a inet daemon that listens HTTP data.
  */
 struct onion_server_t{
-	onion_write write; /// of type onion_write
-	onion_handler *root_handler;
+	onion_write write;					 	/// Function to call to write. The request has the io handler to write to.
+	onion_handler *root_handler;	/// Root processing handler for this server.
 };
 
 /**
@@ -94,15 +102,15 @@ struct onion_request_t{
  * @short The response
  */
 struct onion_response_t{
-	onion_request *request;
-	onion_dict *headers;
-	int code;
-	int flags;
-	unsigned int length;
-	unsigned int sent_bytes; /// Sent bytes at content.
+	onion_request *request;  	/// Original request, so both are related, and get connected to the onion_server_t structure.
+	onion_dict *headers;			/// Headers to write when appropiate.
+	int code;									/// Response code
+	int flags;								/// Flags. @see onion_response_flags_e
+	unsigned int length;			/// Length, if known of the response, to create the Content-Lenght header. 
+	unsigned int sent_bytes; 	/// Sent bytes at content.
 	unsigned int sent_bytes_total; /// Total sent bytes, including headers.
-	char buffer[1500]; /// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
-	int buffer_pos;
+	char buffer[1500]; 				/// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
+	int buffer_pos;						/// Position in the internal buffer. When sizeof(buffer) its flushed to the onion_server IO.
 };
 
 
@@ -110,8 +118,6 @@ struct onion_response_t{
  * @short Information about a handler for onion. A tree structure of handlers is what really serves the data.
  */
 struct onion_handler_t{
-	const char *name;        /// Informatory only.
-	
 	onion_handler_handler handler;  /// callback that should return an onion_response object, or NULL if im not entitled to respnse this request.
 	onion_handler_private_data_free priv_data_free;  /// When freeing some memory, how to remove the private memory.
 	void *priv_data;                /// Private data as needed by the parser

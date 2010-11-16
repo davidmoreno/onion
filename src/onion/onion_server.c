@@ -18,6 +18,8 @@
 
 #include <malloc.h>
 
+#include "onion_dict.h"
+#include "onion_response.h"
 #include "onion_server.h"
 #include "onion_handler.h"
 #include "onion_types_internal.h"
@@ -42,3 +44,29 @@ void onion_server_set_write(onion_server *server, onion_write write){
 void onion_server_set_root_handler(onion_server *server, onion_handler *handler){
 	server->root_handler=handler;
 }
+
+
+/**
+ * @short  Performs the processing of the request. FIXME. Make really close the connection on Close-Connection. It does not do it now.
+ * 
+ * Returns the OR_KEEP_ALIVE or OR_CLOSE_CONNECTION value. If on keep alive the struct is already reinitialized.
+ */
+int onion_server_handle_request(onion_request *req){
+	int status=onion_handler_handle(req->server->root_handler, req);
+	if (status==OR_KEEP_ALIVE){ // if keep alive, reset struct to get the new petition.
+		onion_dict_free(req->headers);
+		req->headers=onion_dict_new();
+		req->flags=0;
+		if (req->fullpath){
+			free(req->fullpath);
+			req->path=req->fullpath=NULL;
+		}
+		if (req->query){
+			onion_dict_free(req->query);
+			req->query=NULL;
+		}
+		return OR_KEEP_ALIVE;
+	}
+	return OR_CLOSE_CONNECTION;
+}
+
