@@ -1,4 +1,4 @@
-/** Licensed under AGPL 3.0. (C) 2010 David Moreno Montero */
+/** Licensed under AGPL 3.0. (C) 2010 David Moreno Montero. http://coralbits.com */
 #include <onion/onion.h>
 #include <handlers/onion_handler_directory.h>
 #include <handlers/onion_handler_auth_pam.h>

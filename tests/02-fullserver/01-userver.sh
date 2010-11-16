@@ -2,7 +2,9 @@
 
 #normal download
 
-../../examples/userver . &
+
+../../examples/userver/userver . &
+echo %1
 
 wget -O test http://localhost:8080/01-userver.sh
 DF=$( diff test 01-userver.sh )
@@ -21,4 +23,6 @@ if [ ! "$DF" ]; then
 	exit 1
 fi 
 
+echo "Test passed OK."
 
+kill %1
