@@ -1,4 +1,4 @@
-include_directories (${CMAKE_SOURCE_DIR}/src/onion/ ${CMAKE_SOURCE_DIR}/src/handlers/) 
+include_directories (${CMAKE_SOURCE_DIR}/src/) 
 
 add_subdirectory(01-internal)
 

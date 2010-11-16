@@ -21,8 +21,8 @@
 #include <unistd.h>
 #include <regex.h>
 
-#include <onion_handler.h>
-#include <onion_response.h>
+#include <onion/onion_handler.h>
+#include <onion/onion_response.h>
 
 #include "onion_handler_opack.h"
 

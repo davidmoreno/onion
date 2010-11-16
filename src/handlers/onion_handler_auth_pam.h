@@ -19,7 +19,7 @@
 #ifndef __ONION_HANDLER_AUTH_PAM__
 #define __ONION_HANDLER_AUTH_PAM__
 
-#include <onion_types.h>
+#include <onion/onion_types.h>
 
 #ifdef __cplusplus
 extern "C"{

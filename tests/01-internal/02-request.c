@@ -19,10 +19,10 @@
 #include <malloc.h>
 #include <string.h>
 
-#include <onion_dict.h>
-#include <onion_server.h>
-#include <onion_request.h>
-#include <onion_types_internal.h>
+#include <onion/onion_dict.h>
+#include <onion/onion_server.h>
+#include <onion/onion_request.h>
+#include <onion/onion_types_internal.h>
 
 #include "../test.h"
 

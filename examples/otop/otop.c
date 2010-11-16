@@ -26,13 +26,13 @@
 #include <sys/types.h>
 #include <pwd.h>
 
-#include <onion.h>
-#include <onion_handler.h>
-#include <onion_response.h>
-#include <onion_handler_path.h>
-#include <onion_handler_directory.h>
-#include <onion_handler_auth_pam.h>
-#include <onion_codecs.h>
+#include <onion/onion.h>
+#include <onion/onion_handler.h>
+#include <onion/onion_response.h>
+#include <onion/onion_codecs.h>
+#include <handlers/onion_handler_path.h>
+#include <handlers/onion_handler_directory.h>
+#include <handlers/onion_handler_auth_pam.h>
 
 onion_handler *otop_handler_new();
 void otop_write_process_data(onion_response *res, int pid);

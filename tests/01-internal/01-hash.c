@@ -19,7 +19,7 @@
 #include <malloc.h>
 #include <string.h>
 
-#include <onion_dict.h>
+#include <onion/onion_dict.h>
 
 #include "../test.h"
 

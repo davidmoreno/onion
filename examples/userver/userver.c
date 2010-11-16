@@ -22,10 +22,10 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include <onion.h>
-#include <onion_handler.h>
-#include <onion_handler_directory.h>
-#include <onion_handler_static.h>
+#include <onion/onion.h>
+#include <onion/onion_handler.h>
+#include <handlers/onion_handler_directory.h>
+#include <handlers/onion_handler_static.h>
 
 onion *o=NULL;
 

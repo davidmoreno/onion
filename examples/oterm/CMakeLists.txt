@@ -1,6 +1,6 @@
 #add_definitions(-D__DEBUG__)
 
-include_directories (${CMAKE_SOURCE_DIR}/src/onion/ ${CMAKE_SOURCE_DIR}/src/handlers/ ${CMAKE_SOURCE_DIR}/src/onionssl/) 
+include_directories (${CMAKE_SOURCE_DIR}/src/) 
 
 add_custom_command(
    OUTPUT oterm_data.c

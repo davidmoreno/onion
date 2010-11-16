@@ -19,7 +19,7 @@
 #ifndef __ONION_HANDLER_PATH__
 #define __ONION_HANDLER_PATH__
 
-#include <onion_types.h>
+#include <onion/onion_types.h>
 
 #ifdef __cplusplus
 extern "C"{

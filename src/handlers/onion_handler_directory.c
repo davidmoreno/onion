@@ -28,9 +28,9 @@
 #include <sys/stat.h>
 #include <pwd.h>
 
-#include <onion_handler.h>
-#include <onion_response.h>
-#include <onion_codecs.h>
+#include <onion/onion_handler.h>
+#include <onion/onion_response.h>
+#include <onion/onion_codecs.h>
 
 #include "onion_handler_directory.h"
 

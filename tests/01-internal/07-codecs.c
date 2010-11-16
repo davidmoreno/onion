@@ -20,7 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <onion_codecs.h>
+#include <onion/onion_codecs.h>
 
 #include "../test.h"
 

@@ -26,17 +26,16 @@
 #include <assert.h>
 #include <pty.h>
 #include <poll.h>
-
-#include <onion_request.h>
-#include <onion_response.h>
-#include <onion_handler.h>
-
 #include <pthread.h>
 
+#include <onion/onion_request.h>
+#include <onion/onion_response.h>
+#include <onion/onion_handler.h>
+
 #ifdef __DEBUG__
-#include <onion_handler_directory.h>
+#include <handlers/onion_handler_directory.h>
 #else
-#include <onion_handler_opack.h>
+#include <handlers/onion_handler_opack.h>
 #endif 
 
 /// Time to wait for output, or just return.

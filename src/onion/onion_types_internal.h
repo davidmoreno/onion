@@ -32,11 +32,6 @@
 extern "C"{
 #endif
 
-/**
- * @short A 'char *' to 'char *' dictionary.
- *
- * Internally its structured as a binary tree.
- */
 struct onion_dict_t{
 	const char *key;
 	const char *value;
@@ -45,14 +40,6 @@ struct onion_dict_t{
 	struct onion_dict_t *right;
 };
 
-/**
- * @short Webserver info.
- * 
- * This is information about onion implementation of the generic server. It contains the listening descriptors,
- * the SSL parameters if SSL is enabled... 
- * 
- * This is platform specific server IO. Normally POSIX, using TCP/IP.
- */
 struct onion_t{
 	int flags;
 	int listenfd;
@@ -70,20 +57,11 @@ struct onion_t{
 };
 
 
-/**
- * @short Onion server that do not depend on specific IO structure.
- * 
- * This is separated as you can biuld your own servers using this structure instead of onion_t. For example
- * using onion_server_t you can do a inet daemon that listens HTTP data.
- */
 struct onion_server_t{
 	onion_write write;					 	/// Function to call to write. The request has the io handler to write to.
 	onion_handler *root_handler;	/// Root processing handler for this server.
 };
 
-/**
- * @short Basic information about a request
- */
 struct onion_request_t{
 	onion_server *server; /// Server original data, like write function
 	onion_dict *headers;  /// Headers prepared for this response.
@@ -98,9 +76,6 @@ struct onion_request_t{
 };
 
 
-/**
- * @short The response
- */
 struct onion_response_t{
 	onion_request *request;  	/// Original request, so both are related, and get connected to the onion_server_t structure.
 	onion_dict *headers;			/// Headers to write when appropiate.
@@ -114,9 +89,6 @@ struct onion_response_t{
 };
 
 
-/**
- * @short Information about a handler for onion. A tree structure of handlers is what really serves the data.
- */
 struct onion_handler_t{
 	onion_handler_handler handler;  /// callback that should return an onion_response object, or NULL if im not entitled to respnse this request.
 	onion_handler_private_data_free priv_data_free;  /// When freeing some memory, how to remove the private memory.

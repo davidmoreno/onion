@@ -22,15 +22,15 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include <onion.h>
-#include <onion_handler.h>
-#include <onion_handler_path.h>
-#include <onion_handler_static.h>
-#include <onion_handler_auth_pam.h>
-#include <onion_handler_opack.h>
+#include <onion/onion.h>
+#include <onion/onion_handler.h>
+#include <handlers/onion_handler_path.h>
+#include <handlers/onion_handler_static.h>
+#include <handlers/onion_handler_auth_pam.h>
+#include <handlers/onion_handler_opack.h>
 
 #ifdef __DEBUG__
-#include <onion_handler_directory.h>
+#include <handlers/onion_handler_directory.h>
 #endif 
 
 #include "oterm_handler.h"

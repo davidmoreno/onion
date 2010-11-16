@@ -42,9 +42,9 @@ typedef enum onion_response_codes_e onion_response_codes;
  * These flags are used internally by the resposnes, but they can be the responses themselves of the handler when appropiate.
  */
 enum onion_response_flags_e{
-	OR_KEEP_ALIVE=4, /// Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
-	OR_LENGTH_SET=2,
-	OR_CLOSE_CONNECTION=1,
+	OR_KEEP_ALIVE=4, 				/// Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
+	OR_LENGTH_SET=2,				/// Response has set the length, so we may keep alive.
+	OR_CLOSE_CONNECTION=1,	/// The connection will be closed when processing finishes.
 };
 
 typedef enum onion_response_flags_e onion_response_flags;
@@ -60,6 +60,7 @@ void onion_response_set_length(onion_response *res, unsigned int length);
 /// Sets the return code
 void onion_response_set_code(onion_response *res, int code);
 
+/// @{ @name Write functions 
 /// Writes all the header to the given fd
 void onion_response_write_headers(onion_response *res);
 /// Writes some data to the response
@@ -68,6 +69,7 @@ int onion_response_write(onion_response *res, const char *data, unsigned int len
 int onion_response_write0(onion_response *res, const char *data);
 /// Writes some data to the response. Using sprintf format strings.
 int onion_response_printf(onion_response *res, const char *fmt, ...);
+/// @}
 
 /// Returns the write object.
 onion_write onion_response_get_writer(onion_response *res);

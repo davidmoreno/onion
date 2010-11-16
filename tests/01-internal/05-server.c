@@ -20,13 +20,13 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <onion_dict.h>
-#include <onion_server.h>
-#include <onion_request.h>
-#include <onion_response.h>
-#include <onion_handler.h>
-#include <onion_handler_static.h>
-#include <onion_handler_path.h>
+#include <onion/onion_dict.h>
+#include <onion/onion_server.h>
+#include <onion/onion_request.h>
+#include <onion/onion_response.h>
+#include <onion/onion_handler.h>
+#include <handlers/onion_handler_static.h>
+#include <handlers/onion_handler_path.h>
 
 #include "../test.h"
 

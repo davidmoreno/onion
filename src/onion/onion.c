@@ -16,6 +16,154 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+
+/**
+ * @mainpage libonion - HTTP server library
+ * @author David Moreno Montero - Coralbits S.L. - http://www.coralbits.com
+ * @warning Under AGPL 3.0 License - http://www.gnu.org/licenses/agpl.html
+ * 
+ * @section Introduction
+ *  
+ * libonion is a simple library to add HTTP functionality to your program. Be it a new program or to add HTTP
+ * functionality to an exisitng program, libonion makes it as easy as possible.
+ * 
+ * @note Best way to navigate through this documentation is going to Files / Globals / Functions, or using the search bot on the corner.
+ * 
+ * There are many documented examples at the examples directory (https://github.com/davidmoreno/onion/tree/master/examples/).
+ * 
+ * A basic example of a server with authentication, SSL support that serves a static directory is:
+ * 
+ * @code
+ * 
+ * #include <onion/onion.h>
+ * #include <handlers/onion_handler_directory.h>
+ * #include <handlers/onion_handler_auth_pam.h>
+ * 
+ * int main(int argc, char **argv){
+ *   onion *o=onion_new(O_THREADED);
+ *   onion_use_certificate(o, O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
+ *   onion_set_root_handler(o, onion_handler_auth_pam("Onion Example", "login", onion_handler_directory(".")));
+ *   onion_listen(o);
+ *   onion_free(o);
+ *   return 0;
+ * }
+ * 
+ * @endcode
+ * 
+ * To be compiled as
+ * 
+@verbatim
+  gcc -o a a.c -I$ONION_DIR/src/ -L$ONION_DIR/src/onion/ -L$ONION_DIR/src/handlers/  -lonion_handlers -lonion_static -lpam -lgnutls -lgcrypt -lpthread
+@endverbatim
+ *
+ * please modify -I and -L as appropiate to your installation.
+ * 
+ * pam, gnutls and pthread are necesary for pam auth, ssl and pthread support respectively.
+ * 
+ * @section Handlers Onion request handlers
+ * 
+ * libonion is based on request handlers to process all its request. The handlers may be nested creating onion
+ * like layers. The first layer may be checking the server name, the second some authentication, the third 
+ * checks if you ask for the right path and the last returns a fixed message.
+ * 
+ * Handlers have always a next handler that is the handler that will be called if current handler do not want 
+ * to process current petition.
+ * 
+ * This way you can have this tree like structure:
+ * 
+@verbatim
+ + [servername=libonion.coralbits.com] +- /login/ -- Auth -- set session -- redirect /
+ |                                     +- / -- custom handler index.html, depend on session data.
+ |                                     +- /favicon.ico -- return file contents.
+ + static content 404 not found.
+@endverbatim
+ * 
+ * The way to create this structure would be something like:
+ * 
+ * @code
+ * onion_handler *login=onion_handler_path("/login/", 
+ *                            onion_handler_auth_pam("libonion real,","libonion",
+ *                                  onion_handler_session(
+ *                                        onion_handler_redirect("/")
+ *                                                       )
+ *                                        )
+ *                            );
+ * onion_handler_add(login, onion_handler_path("/",custom_handler()));
+ * onion_handler_add(login, onion_handler_static_file("/favicon.ico","favicon.ico"));
+ * onion_handler *root=onion_handler_servername("libonion.coralbits.com", login);
+ * onion_handler_add(root, onion_handler_static("<h1>404 - not found</h1>",404));
+ * @endcode
+ *
+ * As you can see its not as easy as some configuration files, but the point its as powerfull as you need it
+ * to be.
+ * 
+ * Normally for simple servers its much easier, as in the upper example.
+ * 
+ * @subsection Custom_handlers Create your custom handlers
+ * 
+ * Creating a custom handler is just to create a couple of functions with this signature:
+ * 
+ * @code
+ * int custom_handler(custom_handler_data *d, onion_request *request);
+ * void custom_handler_free(custom_handler_data *d);
+ * @endcode
+ * 
+ * Then create a onion_handler object with
+ * 
+ * @code
+ * onion_handler *ret=onion_handler_new((onion_handler_handler)custom_handler,
+ *                                       priv_data,(onion_handler_private_data_free) custom_handler_free);
+ *
+ * @endcode
+ * 
+ * Normally this creation is encapsulated in a function that also sets up the private data, and that returns
+ * the onion_handler to be used where necesary.
+ * 
+ * As you can be seen it have its own private data that is passed at creation time, and that should be freed
+ * using the custom_handler_free when libonion feels its time. 
+ * 
+ * The custom_handler must then make use of the onion_response object, created from the onion_request. For example:
+ * 
+ * @code
+ * int custom_handler(custom_handler_data *d, onion_request *request){
+ *   onion_response *r=onion_response_new(r);
+ *   onion_response_set_length(r,11);
+ *   onion_response_write_headers(r);
+ * 
+ *   onion_response_printf(r,"Hello %s","world");
+ *   return onion_response_free(r);
+ * }
+ * @endcode
+ * 
+ * @section Optional Optional library support
+ * 
+ * libonion has support for some external library very usefull addons. Make sure you have the development
+ * libraries when compiling libonion to have support for it.
+ * 
+ * @subsection SSL SSL support
+ * 
+ * libonion has SSL support by using GNUTLS. This is however optional, and you can disable compilation by 
+ * not having the development libraries, or modifing /CMakeLists.txt.
+ * 
+ * Once you have support most basic use is just to set a certificate and key file (can be be on the same PEM file).
+ * With just that you have SSL support on your server.
+ * 
+ * @subsection Threads Thread support
+ * 
+ * libonion has threads support. It is not heavily mutexed as this impacts performace, but basic structures that
+ * are used normally are properly mutexed. 
+ * 
+ * Anyway its on your own handlers where you have to set your own mutex areas. See examples/oterm/oterm_handler.c for
+ * an example on how to do it.
+ * 
+ * Specifically its not mutexed the handler tree, as its designed to be ready on startup, and not modified in
+ * all its lifespan.
+ * 
+ * Also there is an option to listen on another thread, using the O_DETACH_LISTEN flag on onion creation.
+ * 
+ */
+
+
 #include <malloc.h>
 #include <stdio.h>
 #include <sys/types.h> 
@@ -47,8 +195,6 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include "onion_server.h"
 #include "onion_types_internal.h"
 
-
-
 #ifdef HAVE_GNUTLS
 static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);
 static void onion_enable_tls(onion *o);
@@ -69,7 +215,28 @@ void *onion_request_thread(void*);
 /// Internal processor of just one request.
 static void onion_process_request(onion *o, int clientfd);
 
-/// Creates the onion structure to fill with the server data, and later do the onion_listen()
+/**
+ * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
+ * 
+ * Creates an onion structure that can be used to set the server, port, SSL and similar parameters. It works over 
+ * the onion structure, which is the main structure to control the listening of new connections throught TCP/IP.
+ * 
+ * A normal usage would be like this:
+ * 
+ * @code
+ * 
+ * onion *o=onion_new(O_THREADED);
+ * onion_set_root_handler(o, onion_handler_directory("."));
+ * onion_listen(o);
+ * 
+ * @endcode
+ * 
+ * @param flags Or'ed flags to use at the listening daemon. Normally one of O_ONE, O_ONE_LOOP or O_THREADED.
+ * 
+ * @returns The onion structure.
+ * 
+ * @see onion_mode_e onion_t
+ */
 onion *onion_new(int flags){
 	onion *o=malloc(sizeof(onion));
 	o->flags=flags&0x0FF;
@@ -209,6 +376,14 @@ void onion_set_root_handler(onion *onion, onion_handler *handler){
 	onion->server->root_handler=handler;
 }
 
+/**
+ * @short Sets the port to listen to.
+ * 
+ * Default listen port is 8080.
+ * 
+ * @param server The onion server to act on.
+ * @param port The number of port to listen to.
+ */
 void onion_set_port(onion *server, int port){
 	server->port=port;
 }
@@ -217,6 +392,15 @@ void onion_set_port(onion *server, int port){
  * @short Internal processor of just one request.
  *
  * It can be used on one processing, on threaded, on one_loop...
+ * 
+ * It reads all the input passes it to the request, until onion_request_writes returns that the 
+ * connection must be closed. This function do no close the connection, but the caller must 
+ * close it when it returns.
+ * 
+ * It also do all the SSL startup when appropiate.
+ * 
+ * @param o Onion struct.
+ * @param clientfd is the POSIX file descriptor of the connection.
  */
 static void onion_process_request(onion *o, int clientfd){
 	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
@@ -264,13 +448,14 @@ static void onion_process_request(onion *o, int clientfd){
 #endif
 }
 
-/// Returns the current flags
+/// Returns the current flags. @see onion_mode_e
 int onion_flags(onion *onion){
 	return onion->flags;
 }
 
 
 #ifdef HAVE_GNUTLS
+/// Initializes GNUTLS session on the given socket.
 static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd){
 	gnutls_session_t session;
 
@@ -295,6 +480,7 @@ static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd){
 	return session;
 }
 
+/// Enables TLS on the given server.
 static void onion_enable_tls(onion *o){
 #ifdef HAVE_PTHREADS
 	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
@@ -318,7 +504,26 @@ static void onion_enable_tls(onion *o){
 /**
  * @short Set a certificate for use in the connection
  *
+ * There are several certificate types available, described at onion_ssl_certificate_type_e.
+ * 
  * Returns the error code. If 0, no error.
+ * 
+ * Most basic and normal use is something like:
+ * 
+ * @code
+ * 
+ * onion *o=onion_new(O_THREADED);
+ * onion_use_certificate(o, O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
+ * onion_set_root_handler(o, onion_handler_directory("."));
+ * onion_listen(o);
+ * 
+ * @endcode
+ * 
+ * @param onion The onion structure
+ * @param type Type of certificate to set
+ * @param filename Filenames of certificate files
+ * 
+ * @see onion_ssl_certificate_type_e
  */
 int onion_use_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
 #ifdef HAVE_GNUTLS
