@@ -316,7 +316,7 @@ int onion_listen(onion *o){
 			pthread_t thread_handle; // Ignored just now. FIXME. Necesary at shutdown.
 			
 			pthread_create(&thread_handle,&attr, onion_request_thread, data);
-			}
+		}
 		pthread_attr_destroy(&attr);
 	}
 #endif
@@ -565,19 +565,19 @@ void *onion_request_thread(void *d){
 	o->active_threads_count++;
 	pthread_mutex_unlock (&o->mutex);
 
-	fprintf(stderr,"%s:%d Open connection %d\n",__FILE__,__LINE__,td->clientfd);
+	fprintf(stderr,"%s:%d Open connection %d\n",basename(__FILE__),__LINE__,td->clientfd);
 	onion_process_request(o,td->clientfd);
 	
-	fprintf(stderr,"%s:%d Closing connection... %d\n",__FILE__,__LINE__,td->clientfd);
+	fprintf(stderr,"%s:%d Closing connection... %d\n",basename(__FILE__),__LINE__,td->clientfd);
 	if (0!=close(td->clientfd)){
 		perror("Error closing connection");
 	}
-	fprintf(stderr,"%s:%d Closed connection %d\n",__FILE__,__LINE__,td->clientfd);
 	
 	pthread_mutex_lock (&o->mutex);
 	td->o->active_threads_count--;
 	pthread_mutex_unlock (&o->mutex);
 	free(td);
+	fprintf(stderr,"%s:%d Closed connection %d\n",basename(__FILE__),__LINE__,td->clientfd);
 	return NULL;
 }
 

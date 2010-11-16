@@ -39,7 +39,7 @@ onion_response *onion_response_new(onion_request *req){
 	res->request=req;
 	res->headers=onion_dict_new();
 	res->code=200; // The most normal code, so no need to overwrite it in other codes.
-	res->flags=OR_KEEP_ALIVE;
+	res->flags=0;
 	res->sent_bytes_total=res->length=res->sent_bytes=0;
 	res->buffer_pos=0;
 	
@@ -61,13 +61,12 @@ int onion_response_free(onion_response *res){
 	onion_response_write_buffer(res);
 	
 	int r=OR_CLOSE_CONNECTION;
-	if (res->flags&OR_LENGTH_SET && res->length==res->sent_bytes){
+	if (res->flags&OR_KEEP_ALIVE && res->length==res->sent_bytes)
 		r=OR_KEEP_ALIVE;
-	}
 	
 	// FIXME! This is no proper logging at all. Maybe a handler.
-	fprintf(stderr, "%s:%d GET %s (response %d bytes, %s)\n",__FILE__,__LINE__,res->request->fullpath, res->sent_bytes,
-					(r==OR_KEEP_ALIVE) ? "Keep-alive" : "Close connection");
+	fprintf(stderr, "%s:%d GET %s (response %d bytes, %s)\n",basename(__FILE__),__LINE__,res->request->fullpath, res->sent_bytes,
+					(r==OR_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
 	
 	onion_dict_free(res->headers);
 	free(res);
@@ -87,6 +86,11 @@ void onion_response_set_length(onion_response *res, unsigned int len){
 	onion_response_set_header(res, "Content-Length", tmp);
 	res->length=len;
 	res->flags|=OR_LENGTH_SET;
+	const char *connection=onion_request_get_header(res->request,"Connection");
+	if (connection && strcasecmp(connection,"Keep-Alive")==0){ // Other side wants keep alive
+		onion_response_set_header(res, "Connection","Keep-Alive");
+		res->flags|=OR_KEEP_ALIVE;
+	}
 }
 
 /// Sets the return code
@@ -99,9 +103,14 @@ static void write_header(const char *key, const char *value, onion_response *res
 	onion_response_printf(res, "%s: %s\n",key, value);
 }
 
+#define CONNECTION_CLOSE "Connection: Close\n"
+
 /// Writes all the header to the given fd
 void onion_response_write_headers(onion_response *res){
 	onion_response_printf(res, "HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
+	
+	if (!(res->flags&OR_LENGTH_SET))
+		onion_response_write(res, CONNECTION_CLOSE, sizeof(CONNECTION_CLOSE));
 	
 	onion_dict_preorder(res->headers, write_header, res);
 	
