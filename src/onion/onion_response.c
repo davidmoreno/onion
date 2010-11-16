@@ -126,36 +126,27 @@ int onion_response_write(onion_response *res, const char *data, unsigned int len
 		length-=wb;
 		data+=wb;
 	}
-	//fprintf(stderr,"at tail %d\n",length);
+	
 	memcpy(&res->buffer[res->buffer_pos], data, length);
 	res->buffer_pos+=length;
-	//res->buffer[res->buffer_pos]=0;
-	//fprintf(stderr,"head is %s\n",res->buffer);
+	
 	return length;
 }
 
 /// Writes all buffered output waiting for sending.
 static void onion_response_write_buffer(onion_response *res){
-	//fprintf(stderr,"%s:%d Write buffer. %d bytes.\n",__FILE__,__LINE__,res->buffer_pos);
 	void *fd=onion_response_get_socket(res);
 	onion_write write=res->request->server->write;
 	int w;
 	int pos=0;
-	//res->buffer[res->buffer_pos]=0;
-	//fprintf(stderr,"%s:%d write %s\n",__FILE__,__LINE__,res->buffer);
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
-		//fprintf(stderr, "wrote  %d/%d bytes\n",w,length);
 		if (w<=0){
 			fprintf(stderr,"%s:%d Error writing. Maybe closed connection. Code %d. ",basename(__FILE__),__LINE__,w);
-#ifdef HAVE_GNUTLS
-			//fprintf(stderr,"%s:%d %s\n",basename(__FILE__),__LINE__, gnutls_strerror (w));
-#endif
 			perror("");
 			res->buffer_pos=0;
 			return;
 		}
 		pos+=w;
-		//fprintf(stderr,"Buffer_pos %d, w %d\n",res->buffer_pos,w);
 		res->buffer_pos-=w;
 	}
 	res->buffer_pos=0;

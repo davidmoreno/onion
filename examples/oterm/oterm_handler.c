@@ -31,6 +31,8 @@
 #include <onion_response.h>
 #include <onion_handler.h>
 
+#include <pthread.h>
+
 #ifdef __DEBUG__
 #include <onion_handler_directory.h>
 #else
@@ -60,6 +62,7 @@ typedef struct process_t{
  * @short Information about all the processes.
  */
 typedef struct{
+	pthread_mutex_t head_mutex;
 	process *head;
 	onion_handler *data;
 }oterm_t;
@@ -74,13 +77,17 @@ static int oterm_out(process *o, onion_request *req);
 
 /// Returns the term from the list of known terms. FIXME, make this structure a tree or something faster than linear search.
 process *oterm_get_process(oterm_t *o, const char *id){
+	pthread_mutex_lock( &o->head_mutex );
 	process *p=o->head;
 	int pid=atoi(id);
 	while(p){
-		if (p->pid==pid)
+		if (p->pid==pid){
+			pthread_mutex_unlock( &o->head_mutex );
 			return p;
+		}
 		p=p->next;
 	}
+	pthread_mutex_unlock( &o->head_mutex );
 	return NULL;
 }
 
@@ -149,8 +156,10 @@ process *oterm_new(oterm_t *o){
 		exit(1);
 	}
 	// I set myself at head
+	pthread_mutex_lock( &o->head_mutex );
 	oterm->next=o->head;
 	o->head=oterm;
+	pthread_mutex_unlock( &o->head_mutex );
 	
 	return oterm;
 }
@@ -162,6 +171,7 @@ int oterm_status(oterm_t *o, onion_request *req){
 	onion_response_write_headers(res);
 	
 	onion_response_write0(res,"{");
+
 	
 	process *n=o->head;
 	while(n->next){
@@ -235,13 +245,16 @@ void oterm_oterm_free(oterm_t *o){
 		free(t);
 	}
 	onion_handler_free(o->data);
+	pthread_mutex_destroy(&o->head_mutex);
 	free(o);
 }
 
 /// Prepares the oterm handler
 onion_handler *oterm_handler_data(){
-	oterm_t *oterm=malloc(sizeof(oterm));
+	oterm_t *oterm=malloc(sizeof(oterm_t));
 	
+	pthread_mutex_init(&oterm->head_mutex, NULL);
+	oterm->head=NULL;
 	oterm->head=oterm_new(oterm);
 #ifdef __DEBUG__
 	onion_handler *data=onion_handler_directory(".");

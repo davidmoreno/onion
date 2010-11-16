@@ -296,10 +296,8 @@ static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd){
 }
 
 static void onion_enable_tls(onion *o){
-#ifdef HAVE_GNUTLS
 #ifdef HAVE_PTHREADS
 	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-#endif
 #endif
 	if (!(o->flags&O_USE_DEV_RANDOM)){
 		gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
@@ -384,7 +382,7 @@ void *onion_request_thread(void *d){
 	if (0!=close(td->clientfd)){
 		perror("Error closing connection");
 	}
-	fprintf(stderr,"%s:%d Close connection %d\n",__FILE__,__LINE__,td->clientfd);
+	fprintf(stderr,"%s:%d Closed connection %d\n",__FILE__,__LINE__,td->clientfd);
 	
 	pthread_mutex_lock (&o->mutex);
 	td->o->active_threads_count--;

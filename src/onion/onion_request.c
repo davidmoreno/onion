@@ -174,11 +174,34 @@ int onion_request_parse_query(onion_request *req){
 	return 1;
 }
 
+/**
+ * @short  Performs the processing of the request. FIXME. Make really close the connection on Close-Connection. It does not do it now.
+ * 
+ * Returns the OR_KEEP_ALIVE or OR_CLOSE_CONNECTION value. If on keep alive the struct is already reinitialized.
+ */
+int onion_request_process(onion_request *req){
+	int status=onion_handler_handle(req->server->root_handler, req);
+	if (status==OR_KEEP_ALIVE){ // if keep alive, reset struct to get the new petition.
+		onion_dict_free(req->headers);
+		req->headers=onion_dict_new();
+		req->flags=0;
+		if (req->fullpath){
+			free(req->fullpath);
+			req->path=req->fullpath=NULL;
+		}
+		if (req->query){
+			onion_dict_free(req->query);
+			req->query=NULL;
+		}
+		return OR_KEEP_ALIVE;
+	}
+	return OR_CLOSE_CONNECTION;
+}
 
 /**
  * @short Write some data into the request, and performs the query if necesary.
  *
- * This is where alomst all logic has place: it reads from the given data until it has all the headers
+ * This is where almost all logic has place: it reads from the given data until it has all the headers
  * and launchs the root handler to perform the petition.
  */
 int onion_request_write(onion_request *req, const char *data, unsigned int length){
@@ -188,25 +211,9 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 		char c=data[i];
 		if (c=='\n'){
 			if (req->buffer_pos==0){ // If true, then headers are over. Do the processing.
-				int status=onion_handler_handle(req->server->root_handler, req);
-				if (status==OR_CLOSE_CONNECTION){
-					//fprintf(stderr,"%s:%d Close connection %p\n",__FILE__,__LINE__,req);
+				int s=onion_request_process(req);
+				if (s==OR_CLOSE_CONNECTION) // close the connection.
 					return -i;
-				}
-				else{ // I guess keep alive. This side wants to keep alive, but maybe other side closes it.
-					//fprintf(stderr,"%s:%d Keep alive %p\n",__FILE__,__LINE__,req);
-					onion_dict_free(req->headers);
-					req->headers=onion_dict_new();
-					req->flags=0;
-					if (req->fullpath){
-						free(req->fullpath);
-						req->path=req->fullpath=NULL;
-					}
-					if (req->query){
-						onion_dict_free(req->query);
-						req->query=NULL;
-					}
-				}
 				// I do not stop as it might have more data: keep alive.
 			}
 			else{
