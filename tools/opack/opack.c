@@ -109,12 +109,16 @@ void parse_file(const char *filename, FILE *outfd){
 	while ( (r=fread(buffer,1,sizeof(buffer)-1,fd)) !=0 ){
 		for (i=0;i<r;i++){
 			fprintf(outfd,"0x%02X, ", buffer[i]&0x0FF);
+			if ((i%16) == 15){
+				fprintf(outfd,"\n");
+			}
 		}
 	}
 	fprintf(outfd,"};\n");
 
 	fprintf(outfd,"  return onion_response_write(res, data, sizeof(data));\n}\n");
 
+	fprintf(outfd,"const unsigned int %s_length = %d;\n",fname,i);
 	
 	fclose(fd);
 	free(fname);

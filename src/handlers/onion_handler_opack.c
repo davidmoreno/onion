@@ -27,6 +27,7 @@
 #include "onion_handler_opack.h"
 
 struct onion_handler_opack_data_t{
+	unsigned int length;
 	char *path;
 	onion_opack_renderer render;
 };
@@ -38,6 +39,8 @@ int onion_handler_opack_handler(onion_handler_opack_data *d, onion_request *requ
 		return 0;
 		
 	onion_response *res=onion_response_new(request);
+	if (d->length)
+		onion_response_set_length(res, d->length);
 	onion_response_write_headers(res);
 
 	d->render(res);
@@ -52,14 +55,19 @@ void onion_handler_opack_delete(onion_handler_opack_data *data){
 }
 
 /**
- * @short Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
+ * @short Creates an opack handler that calls the onion_opack_renderer with length data.
  *
  * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
+ * 
+ * @param path Path of the current data, for example /. It is a normal string; no regular expressions are allowed.
+ * @param render Function to call to render the response.
+ * @param length Lenght of the data, or 0 if unknown. Needed to keep alive.
  */
-onion_handler *onion_handler_opack(const char *path, onion_opack_renderer render){
+onion_handler *onion_handler_opack(const char *path, onion_opack_renderer render, unsigned int length){
 	onion_handler_opack_data *priv_data=malloc(sizeof(onion_handler_opack_data));
 
 	priv_data->path=strdup(path);
+	priv_data->length=length;
 	priv_data->render=render;
 	
 	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_opack_handler,

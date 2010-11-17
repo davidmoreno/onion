@@ -27,8 +27,8 @@ extern "C"{
 
 typedef void (*onion_opack_renderer)(onion_response *res);
 
-/// Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
-onion_handler *onion_handler_opack(const char *path, onion_opack_renderer opack);
+/// Creates a opak handler.
+onion_handler *onion_handler_opack(const char *path, onion_opack_renderer opack, unsigned int length);
 
 #ifdef __cplusplus
 }

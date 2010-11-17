@@ -38,6 +38,9 @@
 
 void opack_index_html(onion_response *res);
 void opack_jquery_1_4_3_min_js(onion_response *res);
+extern unsigned int opack_index_html_length;
+extern unsigned int opack_jquery_1_4_3_min_js_length;
+
 
 onion *o=NULL;
 
@@ -109,8 +112,8 @@ int main(int argc, char **argv){
 #ifdef __DEBUG__
 	onion_handler *dir=onion_handler_directory(".");
 #else
-	onion_handler *dir=onion_handler_opack("/",opack_index_html);
-	onion_handler_add(dir, onion_handler_opack("/jquery-1.4.3.min.js",opack_jquery_1_4_3_min_js));
+	onion_handler *dir=onion_handler_opack("/",opack_index_html, opack_index_html_length);
+	onion_handler_add(dir, onion_handler_opack("/jquery-1.4.3.min.js",opack_jquery_1_4_3_min_js,opack_jquery_1_4_3_min_js_length));
 #endif
 	onion_handler_add(dir, onion_handler_path("^/term/",oterm_handler_data()));
 	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
