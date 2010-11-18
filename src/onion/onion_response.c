@@ -87,7 +87,7 @@ void onion_response_set_length(onion_response *res, unsigned int len){
 	res->length=len;
 	res->flags|=OR_LENGTH_SET;
 	const char *connection=onion_request_get_header(res->request,"Connection");
-	if (connection && strcasecmp(connection,"Keep-Alive")==0){ // Other side wants keep alive
+	if (!connection || strcasecmp(connection,"Close")!=0){ // Other side wants keep alive
 		onion_response_set_header(res, "Connection","Keep-Alive");
 		res->flags|=OR_KEEP_ALIVE;
 	}
@@ -150,7 +150,7 @@ static void onion_response_write_buffer(onion_response *res){
 	int pos=0;
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0){
-			fprintf(stderr,"%s:%d Error writing. Maybe closed connection. Code %d. ",basename(__FILE__),__LINE__,w);
+			fprintf(stderr,"%s:%d Error writing at %d. Maybe closed connection. Code %d. ",basename(__FILE__),__LINE__,res->buffer_pos, w);
 			perror("");
 			res->buffer_pos=0;
 			return;
