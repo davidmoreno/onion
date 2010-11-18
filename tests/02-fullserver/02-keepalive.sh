@@ -23,10 +23,25 @@ echo "Keep alive, term/status"
 ab -n 100 -c 10 -k http://localhost:$PORT/term/status
 OK4=$?
 
-if [ "$OK1" == "0" ] && [ "$OK2" == "0" ] && [ "$OK3" == "0" ] && [ "$OK4" == "0" ]; then
+echo "Fast dirty curl test"
+
+OK4=0
+N=1
+while [ $N -lt 100 ]; do
+	curl -k -I http://localhost:$PORT/term/status http://localhost:$PORT/ http://localhost:$PORT/term/status > /tmp/curl-$$
+	if [ "$( grep '[\>\<\{\}]' /tmp/curl-$$ )" ]; then
+		OK4=$N # error
+		cat /tmp/curl-$$
+		break
+	fi
+	rm /tmp/curl-$$
+	N=$[ $N +1 ]
+done
+
+if [ "$OK1" == "0" ] && [ "$OK2" == "0" ] && [ "$OK3" == "0" ] && [ "$OK4" == "0" ] && [ "$OK5" == "0" ]; then
 	echo "Test passed OK."
 else
-	echo "Error passing tests. $OK1 $OK2 $OK3 $OK4 "
+	echo "Error passing tests. $OK1 $OK2 $OK3 $OK4 $OK5"
 fi
 
 kill %1

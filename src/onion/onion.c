@@ -576,8 +576,8 @@ void *onion_request_thread(void *d){
 	pthread_mutex_lock (&o->mutex);
 	td->o->active_threads_count--;
 	pthread_mutex_unlock (&o->mutex);
-	free(td);
 	fprintf(stderr,"%s:%d Closed connection %d\n",basename(__FILE__),__LINE__,td->clientfd);
+	free(td);
 	return NULL;
 }
 
