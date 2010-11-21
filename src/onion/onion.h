@@ -46,6 +46,9 @@ int onion_use_certificate(onion *onion, onion_ssl_certificate_type type, const c
 /// Gets the current flags, for example to check SSL support.
 int onion_flags(onion *onion);
 
+/// Sets the timeout, in milliseconds, 0 dont wait for incomming data (too strict maybe), -1 forever, clients closes connection
+void onion_set_timeout(onion *onion, int timeout);
+
 #ifdef __cplusplus
 }
 #endif

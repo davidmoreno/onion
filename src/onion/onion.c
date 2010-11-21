@@ -160,6 +160,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <libgen.h>
+#include <poll.h>
 
 #ifdef HAVE_GNUTLS
 #include <gcrypt.h>		/* for gcry_control */
@@ -228,6 +229,7 @@ onion *onion_new(int flags){
 	o->listenfd=0;
 	o->server=malloc(sizeof(onion_server));
 	o->server->root_handler=NULL;
+	o->timeout=5000; // 5 seconds of timeout, default.
 	o->port=8080;
 #ifdef HAVE_GNUTLS
 	o->flags|=O_SSL_AVAILABLE;
@@ -374,6 +376,18 @@ void onion_set_port(onion *server, int port){
 }
 
 /**
+ * @short Sets the timeout, in milliseconds
+ * 
+ * The default timeout is 5000 milliseconds.
+ * 
+ * @param timeout 0 dont wait for incomming data (too strict maybe), -1 forever, clients closes connection
+ */
+void onion_set_timeout(onion *onion, int timeout){
+	onion->timeout=timeout;
+}
+
+
+/**
  * @short Internal processor of just one request.
  *
  * It can be used on one processing, on threaded, on one_loop...
@@ -409,14 +423,20 @@ static void onion_process_request(onion *o, int clientfd){
 		onion_server_set_write(o->server, (onion_write)write_to_socket);
 		req=onion_request_new(o->server, &clientfd);
 	}
-	while ( ( r = (o->flags&O_SSL_ENABLED)
-							? gnutls_record_recv (session, buffer, sizeof(buffer))
-							: read(clientfd, buffer, sizeof(buffer))
-					) >0 ){
 #else
 	req=onion_request_new(o->server, &clientfd);
 	onion_server_set_write(o->server, (onion_write)write_to_socket);
-	while ( ( r=read(clientfd, buffer, sizeof(buffer)) ) >0){
+#endif
+	struct pollfd pfd;
+	pfd.events=POLLIN;
+	pfd.fd=clientfd;
+	while ((poll(&pfd,1, o->timeout))>0){
+#if HAVE_GNUTLS
+		r = (o->flags&O_SSL_ENABLED)
+							? gnutls_record_recv (session, buffer, sizeof(buffer))
+							: read(clientfd, buffer, sizeof(buffer));
+#else
+		r=read(clientfd, buffer, sizeof(buffer));
 #endif
 		//fprintf(stderr, "%s:%d Read %d bytes\n",__FILE__,__LINE__,r);
 		w=onion_request_write(req, buffer, r);

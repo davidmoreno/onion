@@ -88,7 +88,7 @@ void onion_response_set_length(onion_response *res, unsigned int len){
 	res->flags|=OR_LENGTH_SET;
 	const char *connection=onion_request_get_header(res->request,"Connection");
 	if (!connection || strcasecmp(connection,"Close")!=0){ // Other side wants keep alive
-		onion_response_set_header(res, "Connection","Keep-Alive");
+		//onion_response_set_header(res, "Connection","Keep-Alive");  // Unnecesary on HTTP/1.1
 		res->flags|=OR_KEEP_ALIVE;
 	}
 }
@@ -110,7 +110,7 @@ void onion_response_write_headers(onion_response *res){
 	onion_response_printf(res, "HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
 	
 	if (!(res->flags&OR_LENGTH_SET))
-		onion_response_write(res, CONNECTION_CLOSE, sizeof(CONNECTION_CLOSE));
+		onion_response_write(res, CONNECTION_CLOSE, sizeof(CONNECTION_CLOSE)-1);
 	
 	onion_dict_preorder(res->headers, write_header, res);
 	
@@ -148,6 +148,7 @@ static void onion_response_write_buffer(onion_response *res){
 	onion_write write=res->request->server->write;
 	int w;
 	int pos=0;
+	fprintf(stderr,"%s:%d Write %d bytes\n",__FILE__,__LINE__,res->buffer_pos);
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0){
 			fprintf(stderr,"%s:%d Error writing at %d. Maybe closed connection. Code %d. ",basename(__FILE__),__LINE__,res->buffer_pos, w);
@@ -157,6 +158,7 @@ static void onion_response_write_buffer(onion_response *res){
 		}
 		pos+=w;
 		res->buffer_pos-=w;
+		fprintf(stderr,"%s:%d Write %d bytes\n",__FILE__,__LINE__,res->buffer_pos);
 	}
 	res->buffer_pos=0;
 }
