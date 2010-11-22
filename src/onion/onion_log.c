@@ -35,7 +35,7 @@
  */
 void onion_log(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
 	const char *levelstr[]={ "DEBUG", "INFO", "ERROR" };
-	const char *levelcolor[]={ "\033[34m", "\033[0m", "\033[31m" };
+	const char *levelcolor[]={ "\033[01;34m", "\033[0m", "\033[31m" };
 	char datetime[32];
 	
 	time_t t;
