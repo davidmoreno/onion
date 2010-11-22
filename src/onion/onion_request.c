@@ -69,6 +69,7 @@ void onion_request_free(onion_request *req){
 
 /// Partially fills a request. One line each time.
 int onion_request_fill(onion_request *req, const char *data){
+	ONION_DEBUG0("Request: %s",data);
 	if (!req->path){
 		char method[16], url[256], version[16];
 		sscanf(data,"%15s %255s %15s",method, url, version);

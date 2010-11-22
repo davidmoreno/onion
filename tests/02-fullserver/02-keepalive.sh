@@ -38,7 +38,7 @@ while [ $N -lt 100 ]; do
 	N=$[ $N +1 ]
 done
 
-OK6="0"
+OK5="0"
 SIZE="$( curl http://localhost:$PORT/jquery-1.4.3.min.js 2>/dev/null | wc -c )"
 if [ "$SIZE"  != "77746" ]; then
 	OK6="s$SIZE"
@@ -48,7 +48,7 @@ fi
 if [ "$OK1" == "0" ] && [ "$OK2" == "0" ] && [ "$OK3" == "0" ] && [ "$OK4" == "0" ] && [ "$OK5" == "0" ]; then
 	echo "Test passed OK."
 else
-	echo "Error passing tests. $OK1 $OK2 $OK3 $OK4 $OK5 $OK6"
+	echo "Error passing tests. $OK1 $OK2 $OK3 $OK4 $OK5"
 fi
 
 kill %1

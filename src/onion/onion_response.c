@@ -44,7 +44,7 @@ onion_response *onion_response_new(onion_request *req){
 	res->buffer_pos=0;
 	
 	// Sorry for the publicity.
-	onion_dict_add(res->headers, "Server", "Onion lib - 0.1. http://coralbits.com", 0);
+	onion_dict_add(res->headers, "Server", "libonion v0.1 - coralbits.com", 0);
 	//time_t t=time(NULL);
 	//onion_dict_add(res->headers, "Date", asctime(localtime(&t)), OD_DUP_VALUE);
 	
@@ -101,6 +101,8 @@ void onion_response_set_code(onion_response *res, int  code){
 
 /// Helper that is called on each header, and writes the header
 static void write_header(const char *key, const char *value, onion_response *res){
+	ONION_DEBUG0("Response header: %s: %s",key, value);
+
 	onion_response_printf(res, "%s: %s\n",key, value);
 }
 
