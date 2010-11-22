@@ -31,8 +31,10 @@
 #include <onion/onion_handler.h>
 #include <onion/onion_response.h>
 #include <onion/onion_codecs.h>
+#include <onion/onion_log.h>
 
 #include "onion_handler_directory.h"
+
 
 struct onion_handler_directory_data_t{
 	char *localpath;
@@ -52,7 +54,6 @@ int onion_handler_directory_handler(onion_handler_directory_data *d, onion_reque
 	if (strncmp(realp, d->localpath, strlen(d->localpath))!=0) // out of secured dir.
 		return 0;
 
-	//fprintf(stderr,"%s\n",realp);
 	struct stat reals;
 	int ok=stat(realp,&reals);
 	if (ok<0) // Cant open for even stat
@@ -77,10 +78,14 @@ int onion_handler_directory_handler_file(const char *realp, struct stat *reals, 
 		onion_response_set_length(res, reals->st_size);
 		onion_response_write_headers(res);
 			
-		int r;
+		int r,w;
 		char tmp[4046];
 		while( (r=read(fd,tmp,sizeof(tmp))) > 0 ){
-			onion_response_write(res, tmp, r);
+			w=onion_response_write(res, tmp, r);
+			if (w!=r){
+				ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
+				break;
+			}
 		}
 		close(fd);
 		return onion_response_free(res);

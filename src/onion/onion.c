@@ -160,6 +160,7 @@
 #include <stdarg.h>
 #include <poll.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #ifdef HAVE_GNUTLS
 #include <gcrypt.h>		/* for gcry_control */
@@ -421,6 +422,9 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 			return;
 	}
 #endif
+	signal(SIGPIPE, SIG_IGN); // FIXME. remove the thread better. Now it will try to write and fail on it.
+
+
 	int r,w;
 	char buffer[1024];
 	onion_request *req;

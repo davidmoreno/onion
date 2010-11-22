@@ -30,7 +30,7 @@
 #include "onion_log.h"
 
 const char *onion_response_code_description(int code);
-static void onion_response_write_buffer(onion_response *res);
+static int onion_response_write_buffer(onion_response *res);
 
 /// Generates a new response object
 onion_response *onion_response_new(onion_request *req){
@@ -146,26 +146,31 @@ int onion_response_write(onion_response *res, const char *data, unsigned int len
 	
 	res->sent_bytes+=length;
 	res->sent_bytes_total+=length;
-	
-	while (res->buffer_pos+length>sizeof(res->buffer)){
+
+	int l=length;
+	int w=0;
+	while (res->buffer_pos+l>sizeof(res->buffer)){
 		int wb=sizeof(res->buffer)-res->buffer_pos;
 		memcpy(&res->buffer[res->buffer_pos], data, wb);
 		
 		res->buffer_pos=sizeof(res->buffer);
-		onion_response_write_buffer(res);
+		if (onion_response_write_buffer(res)<0)
+			return w;
 		
-		length-=wb;
+		l-=wb;
 		data+=wb;
+		w+=wb;
 	}
 	
-	memcpy(&res->buffer[res->buffer_pos], data, length);
-	res->buffer_pos+=length;
+	memcpy(&res->buffer[res->buffer_pos], data, l);
+	res->buffer_pos+=l;
+	w+=l;
 	
-	return length;
+	return w;
 }
 
 /// Writes all buffered output waiting for sending.
-static void onion_response_write_buffer(onion_response *res){
+static int onion_response_write_buffer(onion_response *res){
 	void *fd=onion_response_get_socket(res);
 	onion_write write=res->request->server->write;
 	int w;
@@ -176,13 +181,14 @@ static void onion_response_write_buffer(onion_response *res){
 			ONION_ERROR("Error writing at %d. Maybe closed connection. Code %d. ",res->buffer_pos, w);
 			perror("");
 			res->buffer_pos=0;
-			return;
+			return -1;
 		}
 		pos+=w;
 		res->buffer_pos-=w;
 		ONION_DEBUG0("Write %d bytes",res->buffer_pos);
 	}
 	res->buffer_pos=0;
+	return 0;
 }
 
 /// Writes a 0-ended string to the response.
