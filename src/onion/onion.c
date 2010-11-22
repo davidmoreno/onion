@@ -439,6 +439,11 @@ static void onion_process_request(onion *o, int clientfd){
 		r=read(clientfd, buffer, sizeof(buffer));
 #endif
 		//fprintf(stderr, "%s:%d Read %d bytes\n",__FILE__,__LINE__,r);
+		if (r<0){ // error reading.
+			fprintf(stderr,"%s:%d Error reading data",__FILE__,__LINE__);
+			perror("");
+			break;
+		}
 		w=onion_request_write(req, buffer, r);
 		if (w<0){ // request processed. Close connection.
 			break;

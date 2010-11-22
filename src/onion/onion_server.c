@@ -54,17 +54,7 @@ void onion_server_set_root_handler(onion_server *server, onion_handler *handler)
 int onion_server_handle_request(onion_request *req){
 	int status=onion_handler_handle(req->server->root_handler, req);
 	if (status==OR_KEEP_ALIVE){ // if keep alive, reset struct to get the new petition.
-		onion_dict_free(req->headers);
-		req->headers=onion_dict_new();
-		req->flags=0;
-		if (req->fullpath){
-			free(req->fullpath);
-			req->path=req->fullpath=NULL;
-		}
-		if (req->query){
-			onion_dict_free(req->query);
-			req->query=NULL;
-		}
+		onion_request_clean(req);
 		return OR_KEEP_ALIVE;
 	}
 	return OR_CLOSE_CONNECTION;

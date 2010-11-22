@@ -188,7 +188,8 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 	for (i=0;i<length;i++){
 		char c=data[i];
 		if (c=='\n'){
-			if (req->buffer_pos==0){ // If true, then headers are over. Do the processing.
+			// If true, then headers are over. Do the processing. Second test is to prevent \n as first char on petitions. On keepalive.
+			if (req->buffer_pos==0 && ((req->flags&(OR_GET|OR_POST|OR_HEAD))!=0)){ 
 				int s=onion_server_handle_request(req);
 				if (s==OR_CLOSE_CONNECTION) // close the connection.
 					return -i;
@@ -243,3 +244,19 @@ const char *onion_request_get_query(onion_request *req, const char *query){
 	return NULL;
 }
 
+/**
+ * @short Cleans a request object to reuse it.
+ */
+void onion_request_clean(onion_request* req){
+	onion_dict_free(req->headers);
+	req->headers=onion_dict_new();
+	req->flags=0;
+	if (req->fullpath){
+		free(req->fullpath);
+		req->path=req->fullpath=NULL;
+	}
+	if (req->query){
+		onion_dict_free(req->query);
+		req->query=NULL;
+	}
+}
