@@ -36,6 +36,7 @@ static int onion_log_flags=0;
 enum onion_log_flags_e{
 	OF_INIT=1,
 	OF_NOCOLOR=2,
+	OF_NODEBUG0=4,
 };
 
 /**
@@ -46,6 +47,7 @@ enum onion_log_flags_e{
  * It can be affected also by the environment variable ONION_LOG, with one or several of:
  * 
  * - "nocolor" -- then output will be without colors.
+ * - "nodebug0" -- omits output of debug0
  * 
  * @param level Level of log. 
  * @param filename File where the message appeared. Usefull on debug level, but available on all.
@@ -59,18 +61,25 @@ void onion_log(onion_log_level level, const char *filename, int lineno, const ch
 		if (ol){
 			if (strstr("nocolor", ol))
 				onion_log_flags|=OF_NOCOLOR;
+			if (strstr("nodebug0", ol))
+				onion_log_flags|=OF_NODEBUG0;
 		}
 	}
 	
+#ifdef __DEBUG__
+	if ((level==O_DEBUG0) && (onion_log_flags&OF_NODEBUG0))
+		return;
+#endif
+
 	const char *levelstr[]={ "DEBUG0", "DEBUG", "INFO", "ERROR" };
 	const char *levelcolor[]={ "\033[34m", "\033[01;34m", "\033[0m", "\033[31m" };
-	char datetime[32];
 	if (!(onion_log_flags&OF_NOCOLOR))
 		fprintf(stderr,levelcolor[level%4]);
 	
 #ifdef HAVE_PTHREADS
 	fprintf(stderr, "[%04X] ",(int)syscall(SYS_gettid));
 #endif
+	char datetime[32];
 	time_t t;
 	t = time(NULL);
 	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&t));

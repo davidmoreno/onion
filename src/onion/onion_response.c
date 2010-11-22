@@ -104,10 +104,10 @@ void onion_response_set_code(onion_response *res, int  code){
 static void write_header(const char *key, const char *value, onion_response *res){
 	ONION_DEBUG0("Response header: %s: %s",key, value);
 
-	onion_response_printf(res, "%s: %s\n",key, value);
+	onion_response_printf(res, "%s: %s\r\n",key, value);
 }
 
-#define CONNECTION_CLOSE "Connection: Close\n"
+#define CONNECTION_CLOSE "Connection: Close\r\n"
 
 /**
  * @short Writes all the header to the given response
@@ -118,14 +118,15 @@ static void write_header(const char *key, const char *value, onion_response *res
  * @returns 0 if should procced to normal data write, or OR_SKIP_CONTENT if should not write content.
  */
 int onion_response_write_headers(onion_response *res){
-	onion_response_printf(res, "HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
+	onion_response_printf(res, "HTTP/1.1 %d %s\r\n",res->code, onion_response_code_description(res->code));
+	ONION_DEBUG0("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
 	
 	if (!(res->flags&OR_LENGTH_SET))
 		onion_response_write(res, CONNECTION_CLOSE, sizeof(CONNECTION_CLOSE)-1);
 	
 	onion_dict_preorder(res->headers, write_header, res);
 	
-	onion_response_write(res,"\n",1);
+	onion_response_write(res,"\r\n",2);
 	
 	res->sent_bytes=0; // the header size is not counted here.
 		
@@ -169,7 +170,7 @@ static void onion_response_write_buffer(onion_response *res){
 	onion_write write=res->request->server->write;
 	int w;
 	int pos=0;
-	ONION_DEBUG("Write %d bytes",res->buffer_pos);
+	ONION_DEBUG0("Write %d bytes",res->buffer_pos);
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0){
 			ONION_ERROR("Error writing at %d. Maybe closed connection. Code %d. ",res->buffer_pos, w);
@@ -179,7 +180,7 @@ static void onion_response_write_buffer(onion_response *res){
 		}
 		pos+=w;
 		res->buffer_pos-=w;
-		ONION_DEBUG("Write %d bytes",res->buffer_pos);
+		ONION_DEBUG0("Write %d bytes",res->buffer_pos);
 	}
 	res->buffer_pos=0;
 }

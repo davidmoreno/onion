@@ -274,10 +274,12 @@ int onion_listen(onion *o){
 	
 	int sockfd;
 	sockfd=socket(AF_INET, SOCK_STREAM, 0);
-	struct sockaddr_in serv_addr, cli_addr;
-
 	if (sockfd<0)
 		return errno;
+	struct sockaddr_in serv_addr, cli_addr;
+	int opt=1;
+	setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt) );
+	
 	memset((char *) &serv_addr, 0, sizeof(serv_addr));
 
 	serv_addr.sin_family = AF_INET;
