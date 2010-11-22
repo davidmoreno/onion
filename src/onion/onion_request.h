@@ -40,7 +40,7 @@ typedef struct onion_request_method_e onion_request_method;
 
 
 /// Creates a request
-onion_request *onion_request_new(onion_server *server, void *socket);
+onion_request *onion_request_new(onion_server *server, void *socket, const char *client_info);
 
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req);

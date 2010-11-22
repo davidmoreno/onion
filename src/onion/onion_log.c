@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <libgen.h>
+#include <time.h>
 
 #include "onion_log.h"
 
@@ -34,11 +35,19 @@
  */
 void onion_log(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
 	const char *levelstr[]={ "DEBUG", "INFO", "ERROR" };
-	fprintf(stderr, "[%s %s:%d] ",levelstr[level%4], basename((char*)filename), lineno); // I dont know why basename is char *. Please somebody tell me.
+	const char *levelcolor[]={ "\033[34m", "\033[0m", "\033[31m" };
+	char datetime[32];
+	
+	time_t t;
+	t = time(NULL);
+	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&t));
+	
+	fprintf(stderr, "%s[%s] [%s %s:%d] ",levelcolor[level%4], datetime, levelstr[level%4],  
+					basename((char*)filename), lineno); // I dont know why basename is char *. Please somebody tell me.
 	
 	va_list ap;
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	fprintf(stderr, "\n");
+	fprintf(stderr, "\033[0m\n");
 }

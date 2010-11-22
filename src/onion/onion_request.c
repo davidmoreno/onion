@@ -31,8 +31,14 @@
 #include "onion_codecs.h"
 #include "onion_log.h"
 
-/// Creates a request
-onion_request *onion_request_new(onion_server *server, void *socket){
+/**
+ *  @short Creates a request object
+ * 
+ * @param server onion_server that will be used for writing and some other data
+ * @param socket Socket as needed by onion_server write method.
+ * @param client_info String that describes the client, for example, the IP address.
+ */
+onion_request *onion_request_new(onion_server *server, void *socket, const char *client_info){
 	onion_request *req;
 	req=malloc(sizeof(onion_request));
 	memset(req,0,sizeof(onion_request));
@@ -41,6 +47,10 @@ onion_request *onion_request_new(onion_server *server, void *socket){
 	req->headers=onion_dict_new();
 	req->socket=socket;
 	req->buffer_pos=0;
+	if (client_info) // This is kept even on clean
+		req->client_info=strdup(client_info);
+	else
+		req->client_info=NULL;
 
 	return req;
 }

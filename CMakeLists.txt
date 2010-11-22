@@ -6,6 +6,10 @@ SET(ONION_USE_SSL true)
 SET(ONION_USE_PTHREADS true)
 
 ##
+IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+	add_definitions(-D__DEBUG__)
+ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+
 
 project (onion)
 

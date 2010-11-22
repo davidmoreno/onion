@@ -64,9 +64,9 @@ int main(int argc, char **argv){
 		perror("Cant create the server");
 	}
 	fprintf(stderr,"Detached. Now sleep 100.\n");
-	for (i=0;i<100;i++){
+	for (i=0;i<100;i+=10){
 		ONION_INFO("Exiting in %d seconds.",100-i);
-		sleep(1);
+		sleep(10);
 	}
 	
 	onion_free(o);

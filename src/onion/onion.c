@@ -159,6 +159,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <poll.h>
+#include <arpa/inet.h>
 
 #ifdef HAVE_GNUTLS
 #include <gcrypt.h>		/* for gcry_control */
@@ -190,6 +191,7 @@ static void onion_enable_tls(onion *o);
 struct onion_request_thread_data_t{
 	onion *o;
 	int clientfd;
+	const char *client_info;
 };
 
 typedef struct onion_request_thread_data_t onion_request_thread_data;
@@ -198,7 +200,7 @@ void *onion_request_thread(void*);
 #endif
 
 /// Internal processor of just one request.
-static void onion_process_request(onion *o, int clientfd);
+static void onion_process_request(onion *o, int clientfd, const char *client_info);
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
@@ -281,23 +283,28 @@ int onion_listen(onion *o){
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(o->port);
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
+		ONION_ERROR("Could not bind to %s:%d", "0.0.0.0", o->port);
 		return errno;
+	}
 	listen(sockfd,1);
   socklen_t clilen = sizeof(cli_addr);
+	char address[64];
 
 	if (o->flags&O_ONE){
 		int clientfd;
 		if (o->flags&O_ONE_LOOP){
 			while(1){
 				clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-				onion_process_request(o, clientfd);
+				inet_ntop(AF_INET, &(cli_addr.sin_addr), address, sizeof(address));
+				onion_process_request(o, clientfd, address);
 				close(clientfd);
 			}
 		}
 		else{
 			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-			onion_process_request(o, clientfd);
+				inet_ntop(AF_INET, &(cli_addr.sin_addr), address, sizeof(address));
+			onion_process_request(o, clientfd, address);
 			close(clientfd);
 		}
 	}
@@ -309,11 +316,13 @@ int onion_listen(onion *o){
 		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
 		while(1){
 			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+			inet_ntop(AF_INET, &(cli_addr.sin_addr), address, sizeof(address));
 			
 			// Has to be malloc'd. If not it wil be overwritten on next petition. The threads frees it
 			onion_request_thread_data *data=malloc(sizeof(onion_request_thread_data)); 
 			data->o=o;
 			data->clientfd=clientfd;
+			data->client_info=address;
 			pthread_t thread_handle; // Ignored just now. FIXME. Necesary at shutdown.
 			
 			pthread_create(&thread_handle,&attr, onion_request_thread, data);
@@ -400,7 +409,7 @@ void onion_set_timeout(onion *onion, int timeout){
  * @param o Onion struct.
  * @param clientfd is the POSIX file descriptor of the connection.
  */
-static void onion_process_request(onion *o, int clientfd){
+static void onion_process_request(onion *o, int clientfd, const char *client_info){
 	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
 #ifdef HAVE_GNUTLS
 	gnutls_session_t session;
@@ -416,11 +425,11 @@ static void onion_process_request(onion *o, int clientfd){
 #ifdef HAVE_GNUTLS
 	if (o->flags&O_SSL_ENABLED){
 		onion_server_set_write(o->server, (onion_write)gnutls_record_send); // Im lucky, has the same signature.
-		req=onion_request_new(o->server, session);
+		req=onion_request_new(o->server, session, client_info);
 	}
 	else{
 		onion_server_set_write(o->server, (onion_write)write_to_socket);
-		req=onion_request_new(o->server, &clientfd);
+		req=onion_request_new(o->server, &clientfd, client_info);
 	}
 #else
 	req=onion_request_new(o->server, &clientfd);
@@ -588,7 +597,7 @@ void *onion_request_thread(void *d){
 	pthread_mutex_unlock (&o->mutex);
 
 	ONION_DEBUG("Open connection %d",td->clientfd);
-	onion_process_request(o,td->clientfd);
+	onion_process_request(o,td->clientfd, td->client_info);
 	
 	ONION_DEBUG("Closing connection... %d",td->clientfd);
 	if (0!=close(td->clientfd)){

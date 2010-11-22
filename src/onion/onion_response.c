@@ -65,7 +65,8 @@ int onion_response_free(onion_response *res){
 		r=OR_KEEP_ALIVE;
 	
 	// FIXME! This is no proper logging at all. Maybe use a handler.
-	ONION_INFO("GET %s (response %d bytes, %s)",res->request->fullpath, res->sent_bytes,
+	ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->client_info, (res->request->flags&OR_GET) ? "GET" : (res->request->flags&OR_HEAD) ? "HEAD" : (res->request->flags&OR_POST) ? "POST" : "UNKNOWN_METHOD",
+					res->request->fullpath, res->code, res->sent_bytes,
 					(r==OR_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
 	
 	onion_dict_free(res->headers);
@@ -147,7 +148,7 @@ static void onion_response_write_buffer(onion_response *res){
 	onion_write write=res->request->server->write;
 	int w;
 	int pos=0;
-	ONION_DEBUG("Write %d bytes\n",res->buffer_pos);
+	ONION_DEBUG("Write %d bytes",res->buffer_pos);
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0){
 			ONION_ERROR("Error writing at %d. Maybe closed connection. Code %d. ",res->buffer_pos, w);
@@ -157,7 +158,7 @@ static void onion_response_write_buffer(onion_response *res){
 		}
 		pos+=w;
 		res->buffer_pos-=w;
-		ONION_DEBUG("Write %d bytes\n",res->buffer_pos);
+		ONION_DEBUG("Write %d bytes",res->buffer_pos);
 	}
 	res->buffer_pos=0;
 }

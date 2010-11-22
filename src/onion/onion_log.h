@@ -20,7 +20,7 @@
 #define __ONION_LOG__
 
 #ifdef __DEBUG__
-#define ONION_DEBUG(str,...) onion_log(O_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
+#define ONION_DEBUG(...) onion_log(O_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
 #else
 #define ONION_DEBUG(...)
 #endif
