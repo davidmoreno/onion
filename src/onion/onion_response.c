@@ -61,7 +61,7 @@ int onion_response_free(onion_response *res){
 	onion_response_write_buffer(res);
 	
 	int r=OR_CLOSE_CONNECTION;
-	if (res->flags&OR_KEEP_ALIVE && res->length==res->sent_bytes)
+	if (res->flags&OR_SKIP_CONTENT || (res->flags&OR_KEEP_ALIVE && res->length==res->sent_bytes))
 		r=OR_KEEP_ALIVE;
 	
 	// FIXME! This is no proper logging at all. Maybe use a handler.
@@ -106,8 +106,15 @@ static void write_header(const char *key, const char *value, onion_response *res
 
 #define CONNECTION_CLOSE "Connection: Close\n"
 
-/// Writes all the header to the given fd
-void onion_response_write_headers(onion_response *res){
+/**
+ * @short Writes all the header to the given response
+ * 
+ * It writes the headers and depending on the method, return OR_SKIP_CONTENT. this is set when in head mode. Handlers 
+ * should react to this return by not trying to write more, but if they try this object will just skip those writings.
+ * 
+ * @returns 0 if should procced to normal data write, or OR_SKIP_CONTENT if should not write content.
+ */
+int onion_response_write_headers(onion_response *res){
 	onion_response_printf(res, "HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
 	
 	if (!(res->flags&OR_LENGTH_SET))
@@ -118,10 +125,21 @@ void onion_response_write_headers(onion_response *res){
 	onion_response_write(res,"\n",1);
 	
 	res->sent_bytes=0; // the header size is not counted here.
+		
+	if (res->request->flags&OR_HEAD){
+		res->flags|=OR_SKIP_CONTENT;
+		return OR_SKIP_CONTENT;
+	}
+	return 0;
 }
 
 /// Straight write some data to the response. Only used for real data as it has info about sent bytes for keep alive.
 int onion_response_write(onion_response *res, const char *data, unsigned int length){
+	if (res->flags&OR_SKIP_CONTENT){
+		ONION_DEBUG("Skipping content as we are in HEAD mode");
+		return -1;
+	}
+	
 	res->sent_bytes+=length;
 	res->sent_bytes_total+=length;
 	

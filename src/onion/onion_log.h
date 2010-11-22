@@ -21,8 +21,10 @@
 
 #ifdef __DEBUG__
 #define ONION_DEBUG(...) onion_log(O_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
+#define ONION_DEBUG0(...) onion_log(O_DEBUG0, __FILE__, __LINE__, __VA_ARGS__)
 #else
 #define ONION_DEBUG(...)
+#define ONION_DEBUG0(...)
 #endif
 
 #define ONION_INFO(...) onion_log(O_INFO, __FILE__, __LINE__, __VA_ARGS__)
@@ -33,9 +35,10 @@ extern "C"{
 #endif
 
 enum onion_log_level_e{
-	O_DEBUG=0,
-	O_INFO=1,
-	O_ERROR=2,
+	O_DEBUG0=0,
+	O_DEBUG=1,
+	O_INFO=2,
+	O_ERROR=3,
 };
 
 typedef enum onion_log_level_e onion_log_level;

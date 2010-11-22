@@ -31,7 +31,7 @@
 onion *o=NULL;
 
 void free_onion(){
-	fprintf(stderr,"\nClosing connections.\n");
+	ONION_INFO("Closing connections");
 	onion_free(o);
 	exit(0);
 }
@@ -63,9 +63,11 @@ int main(int argc, char **argv){
 	if (error){
 		perror("Cant create the server");
 	}
-	fprintf(stderr,"Detached. Now sleep 100.\n");
-	for (i=0;i<100;i+=10){
-		ONION_INFO("Exiting in %d seconds.",100-i);
+	fprintf(stderr,"Detached. Printing a message every 10 seconds.\n");
+	i=0;
+	while(1){
+		i++;
+		ONION_INFO("Still alive. Count %d.",i);
 		sleep(10);
 	}
 	

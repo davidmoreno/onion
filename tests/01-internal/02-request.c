@@ -42,7 +42,7 @@ void t01_create_add_free(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(server, (void*)111);
+	req=onion_request_new(server, (void*)111, "localhost");
 	FAIL_IF_NOT_EQUAL(req->socket, (void*)111);
 	
 	FAIL_IF_EQUAL(req,NULL);
@@ -61,7 +61,7 @@ void t02_create_add_free_overflow(){
 	onion_request *req;
 	int ok, i;
 	
-	req=onion_request_new(server, NULL);
+	req=onion_request_new(server, NULL, NULL);
 	FAIL_IF_NOT_EQUAL(req->socket, NULL);
 
 	FAIL_IF_EQUAL(req,NULL);
@@ -85,7 +85,7 @@ void t03_create_add_free_full_flow(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(server, 0);
+	req=onion_request_new(server, 0,NULL);
 	FAIL_IF_EQUAL(req,NULL);
 	FAIL_IF_NOT_EQUAL(req->socket, 0);
 	

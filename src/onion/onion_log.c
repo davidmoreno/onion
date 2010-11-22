@@ -20,13 +20,32 @@
 #include <stdarg.h>
 #include <libgen.h>
 #include <time.h>
+#include <string.h>
+#include <stdlib.h>
+
+#ifdef HAVE_PTHREADS
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#endif
 
 #include "onion_log.h"
+
+static int onion_log_flags=0;
+
+enum onion_log_flags_e{
+	OF_INIT=1,
+	OF_NOCOLOR=2,
+};
 
 /**
  * @short Logs a message to the log facility.
  * 
  * Normally to stderr. FIXME: Add more log facilities, like syslog.
+ * 
+ * It can be affected also by the environment variable ONION_LOG, with one or several of:
+ * 
+ * - "nocolor" -- then output will be without colors.
  * 
  * @param level Level of log. 
  * @param filename File where the message appeared. Usefull on debug level, but available on all.
@@ -34,20 +53,37 @@
  * @param fmt printf-like format string and parameters.
  */
 void onion_log(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
-	const char *levelstr[]={ "DEBUG", "INFO", "ERROR" };
-	const char *levelcolor[]={ "\033[01;34m", "\033[0m", "\033[31m" };
-	char datetime[32];
+	if (!onion_log_flags){
+		onion_log_flags=OF_INIT;
+		const char *ol=getenv("ONION_LOG");
+		if (ol){
+			if (strstr("nocolor", ol))
+				onion_log_flags|=OF_NOCOLOR;
+		}
+	}
 	
+	const char *levelstr[]={ "DEBUG0", "DEBUG", "INFO", "ERROR" };
+	const char *levelcolor[]={ "\033[34m", "\033[01;34m", "\033[0m", "\033[31m" };
+	char datetime[32];
+	if (!(onion_log_flags&OF_NOCOLOR))
+		fprintf(stderr,levelcolor[level%4]);
+	
+#ifdef HAVE_PTHREADS
+	fprintf(stderr, "[%04X] ",(int)syscall(SYS_gettid));
+#endif
 	time_t t;
 	t = time(NULL);
 	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&t));
 	
-	fprintf(stderr, "%s[%s] [%s %s:%d] ",levelcolor[level%4], datetime, levelstr[level%4],  
+	fprintf(stderr, "[%s] [%s %s:%d] ", datetime, levelstr[level%4],  
 					basename((char*)filename), lineno); // I dont know why basename is char *. Please somebody tell me.
 	
 	va_list ap;
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	fprintf(stderr, "\033[0m\n");
+	if (!(onion_log_flags&OF_NOCOLOR))
+		fprintf(stderr, "\033[0m\n");
+	else
+		fprintf(stderr, "\n");
 }

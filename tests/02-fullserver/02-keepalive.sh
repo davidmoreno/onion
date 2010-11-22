@@ -39,8 +39,9 @@ while [ $N -lt 100 ]; do
 done
 
 OK6="0"
-if [ "$( curl http://localhost:$PORT/jquery-1.4.3.min.js 2>/dev/null | wc -c )"  != "77746" ]; then
-	OK6="1"
+SIZE="$( curl http://localhost:$PORT/jquery-1.4.3.min.js 2>/dev/null | wc -c )"
+if [ "$SIZE"  != "77746" ]; then
+	OK6="s$SIZE"
 fi
 
 

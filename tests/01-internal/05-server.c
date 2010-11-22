@@ -39,7 +39,7 @@ void t01_server_min(){
 	onion_server_set_write(server, (onion_write)strncat);
 	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
-	onion_request *req=onion_request_new(server, buffer);
+	onion_request *req=onion_request_new(server, buffer, NULL);
 	onion_request_write(req, "GET ",4);
 	onion_request_write(req, "/",1);
 	onion_request_write(req, " HTTP/1.1\r\n",11);
@@ -64,7 +64,7 @@ void t02_server_full(){
 	onion_server_set_write(server, (onion_write)strncat);
 	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
-	onion_request *req=onion_request_new(server, buffer);
+	onion_request *req=onion_request_new(server, buffer, NULL);
 #define S "GET / HTTP/1.1\r\nHeader-1: This is header1\r\nHeader-2: This is header 2\r\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
@@ -89,7 +89,7 @@ void t03_server_no_overflow(){
 	onion_server_set_write(server, (onion_write)strncat);
 	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
-	onion_request *req=onion_request_new(server, buffer);
+	onion_request *req=onion_request_new(server, buffer, NULL);
 #define S "GET / HTTP/1.1\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
@@ -114,7 +114,7 @@ void t04_server_overflow(){
 	onion_server_set_write(server, (onion_write)strncat);
 	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
-	onion_request *req=onion_request_new(server, buffer);
+	onion_request *req=onion_request_new(server, buffer, NULL);
 #define S "GET / HTTP/1.1\nHeader-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
@@ -145,7 +145,7 @@ void t05_server_with_pipes(){
 	int p[2];
 	pipe(p);
 	
-	onion_request *req=onion_request_new(server, &p[1]);
+	onion_request *req=onion_request_new(server, &p[1], NULL);
 #define S "GET / HTTP/1.1\n\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S

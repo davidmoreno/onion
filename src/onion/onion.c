@@ -446,9 +446,9 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 #else
 		r=read(clientfd, buffer, sizeof(buffer));
 #endif
-		if (r<0){ // error reading.
-			ONION_ERROR("Error reading data",__FILE__,__LINE__);
-			perror("");
+		if (r<=0){ // error reading.
+			if (errno!=0)
+				ONION_ERROR("Error reading data");
 			break;
 		}
 		w=onion_request_write(req, buffer, r);
@@ -596,10 +596,10 @@ void *onion_request_thread(void *d){
 	o->active_threads_count++;
 	pthread_mutex_unlock (&o->mutex);
 
-	ONION_DEBUG("Open connection %d",td->clientfd);
+	ONION_DEBUG0("Open connection %d",td->clientfd);
 	onion_process_request(o,td->clientfd, td->client_info);
 	
-	ONION_DEBUG("Closing connection... %d",td->clientfd);
+	ONION_DEBUG0("Closing connection... %d",td->clientfd);
 	if (0!=close(td->clientfd)){
 		perror("Error closing connection");
 	}
@@ -607,7 +607,7 @@ void *onion_request_thread(void *d){
 	pthread_mutex_lock (&o->mutex);
 	td->o->active_threads_count--;
 	pthread_mutex_unlock (&o->mutex);
-	ONION_DEBUG("Closed connection %d",td->clientfd);
+	ONION_DEBUG0("Closed connection %d",td->clientfd);
 	free(td);
 	return NULL;
 }

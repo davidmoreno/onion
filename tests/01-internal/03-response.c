@@ -64,7 +64,7 @@ void t02_full_cycle(){
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	request=onion_request_new(server, buffer);
+	request=onion_request_new(server, buffer, NULL);
 	
 	onion_response *response=onion_response_new(request);
 	

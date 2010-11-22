@@ -34,9 +34,9 @@
 
 #ifdef __DEBUG__
 #include <handlers/onion_handler_directory.h>
-#else
+#endif
+
 #include <handlers/onion_handler_opack.h>
-#endif 
 
 /// Time to wait for output, or just return.
 #define TIMEOUT 60000
@@ -147,14 +147,8 @@ process *oterm_new(oterm_t *o){
 	process *oterm=malloc(sizeof(process));
 
 	oterm->pid=forkpty(&oterm->fd, NULL, NULL, NULL);
-#ifdef __DEBUG__
-	int stderrdup=dup(2);
-#endif
 	if ( oterm->pid== 0 ){ // on child
 		int ok=execl("/bin/bash","bash",NULL);
-#ifdef __DEBUG__
-		dup2(stderrdup, 2);
-#endif
 		fprintf(stderr,"%s:%d Could not exec shell: %d\n",__FILE__,__LINE__,ok);
 		perror("");
 		exit(1);
@@ -260,14 +254,19 @@ onion_handler *oterm_handler_data(){
 	pthread_mutex_init(&oterm->head_mutex, NULL);
 	oterm->head=NULL;
 	oterm->head=oterm_new(oterm);
+	onion_handler *data;
 #ifdef __DEBUG__
-	onion_handler *data=onion_handler_directory(".");
-#else
-	onion_handler *data=onion_handler_opack("/",opack_oterm_html, opack_oterm_html_length);
+	if (getenv("OTERM_DEBUG"))
+		data=onion_handler_directory(".");
+	else{
+#endif
+	data=onion_handler_opack("/",opack_oterm_html, opack_oterm_html_length);
 	onion_handler_add(data, onion_handler_opack("/oterm.js", opack_oterm_js, opack_oterm_js_length));
 	onion_handler_add(data, onion_handler_opack("/oterm_input.js", opack_oterm_input_js, opack_oterm_input_js_length));
 	onion_handler_add(data, onion_handler_opack("/oterm_parser.js", opack_oterm_parser_js, opack_oterm_parser_js_length));
 	onion_handler_add(data, onion_handler_opack("/oterm_data.js", opack_oterm_data_js, opack_oterm_data_js_length));
+#ifdef __DEBUG__
+	}
 #endif
 	
 	oterm->data=data;

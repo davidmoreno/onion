@@ -108,11 +108,16 @@ int main(int argc, char **argv){
 		}
 	}
 	
-
+	onion_handler *dir;
 #ifdef __DEBUG__
-	onion_handler *dir=onion_handler_directory(".");
+	if (getenv("OTERM_DEBUG"))
+		dir=onion_handler_directory(".");
+	else{
+		dir=onion_handler_opack("/",opack_index_html, opack_index_html_length);
+		onion_handler_add(dir, onion_handler_opack("/jquery-1.4.3.min.js",opack_jquery_1_4_3_min_js,opack_jquery_1_4_3_min_js_length));
+	}
 #else
-	onion_handler *dir=onion_handler_opack("/",opack_index_html, opack_index_html_length);
+	dir=onion_handler_opack("/",opack_index_html, opack_index_html_length);
 	onion_handler_add(dir, onion_handler_opack("/jquery-1.4.3.min.js",opack_jquery_1_4_3_min_js,opack_jquery_1_4_3_min_js_length));
 #endif
 	onion_handler_add(dir, onion_handler_path("^/term/",oterm_handler_data()));
