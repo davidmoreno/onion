@@ -21,13 +21,13 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <libgen.h>
 
 #include "onion_dict.h"
 #include "onion_request.h"
 #include "onion_server.h"
 #include "onion_response.h"
 #include "onion_types_internal.h"
+#include "onion_log.h"
 
 const char *onion_response_code_description(int code);
 static void onion_response_write_buffer(onion_response *res);
@@ -64,8 +64,8 @@ int onion_response_free(onion_response *res){
 	if (res->flags&OR_KEEP_ALIVE && res->length==res->sent_bytes)
 		r=OR_KEEP_ALIVE;
 	
-	// FIXME! This is no proper logging at all. Maybe a handler.
-	fprintf(stderr, "%s:%d GET %s (response %d bytes, %s)\n",basename(__FILE__),__LINE__,res->request->fullpath, res->sent_bytes,
+	// FIXME! This is no proper logging at all. Maybe use a handler.
+	ONION_INFO("GET %s (response %d bytes, %s)",res->request->fullpath, res->sent_bytes,
 					(r==OR_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
 	
 	onion_dict_free(res->headers);
@@ -126,7 +126,6 @@ int onion_response_write(onion_response *res, const char *data, unsigned int len
 	
 	while (res->buffer_pos+length>sizeof(res->buffer)){
 		int wb=sizeof(res->buffer)-res->buffer_pos;
-		//fprintf(stderr,"to fill buffer %d\n",wb);
 		memcpy(&res->buffer[res->buffer_pos], data, wb);
 		
 		res->buffer_pos=sizeof(res->buffer);
@@ -148,17 +147,17 @@ static void onion_response_write_buffer(onion_response *res){
 	onion_write write=res->request->server->write;
 	int w;
 	int pos=0;
-	fprintf(stderr,"%s:%d Write %d bytes\n",__FILE__,__LINE__,res->buffer_pos);
+	ONION_DEBUG("Write %d bytes\n",res->buffer_pos);
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0){
-			fprintf(stderr,"%s:%d Error writing at %d. Maybe closed connection. Code %d. ",basename(__FILE__),__LINE__,res->buffer_pos, w);
+			ONION_ERROR("Error writing at %d. Maybe closed connection. Code %d. ",res->buffer_pos, w);
 			perror("");
 			res->buffer_pos=0;
 			return;
 		}
 		pos+=w;
 		res->buffer_pos-=w;
-		fprintf(stderr,"%s:%d Write %d bytes\n",__FILE__,__LINE__,res->buffer_pos);
+		ONION_DEBUG("Write %d bytes\n",res->buffer_pos);
 	}
 	res->buffer_pos=0;
 }

@@ -156,10 +156,8 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <string.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <stdarg.h>
-#include <libgen.h>
 #include <poll.h>
 
 #ifdef HAVE_GNUTLS
@@ -180,6 +178,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include "onion_handler.h"
 #include "onion_server.h"
 #include "onion_types_internal.h"
+#include "onion_log.h"
 
 #ifdef HAVE_GNUTLS
 static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);
@@ -339,7 +338,7 @@ void onion_free(onion *onion){
 			if (c==0){
 				break;
 			}
-			fprintf(stderr,"Still some petitions on process (%d). Wait a little bit (%d).\n",c,ntries);
+			ONION_INFO("Still some petitions on process (%d). Wait a little bit (%d).",c,ntries);
 			sleep(1);
 		}
 	}
@@ -438,9 +437,8 @@ static void onion_process_request(onion *o, int clientfd){
 #else
 		r=read(clientfd, buffer, sizeof(buffer));
 #endif
-		//fprintf(stderr, "%s:%d Read %d bytes\n",__FILE__,__LINE__,r);
 		if (r<0){ // error reading.
-			fprintf(stderr,"%s:%d Error reading data",__FILE__,__LINE__);
+			ONION_ERROR("Error reading data",__FILE__,__LINE__);
 			perror("");
 			break;
 		}
@@ -483,7 +481,7 @@ static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd){
 	gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)(long) clientfd);
 	int ret = gnutls_handshake (session);
 	if (ret<0){ // could not handshake. assume an error.
-	  fprintf (stderr, "%s:%d Handshake has failed (%s)\n", basename(__FILE__), __LINE__, gnutls_strerror (ret));
+	  ONION_ERROR("Handshake has failed (%s)", gnutls_strerror (ret));
 		gnutls_deinit (session);
 		return NULL;
 	}
@@ -567,11 +565,10 @@ int onion_use_certificate(onion *onion, onion_ssl_certificate_type type, const c
 		}
 			break;
 		default:
-			fprintf(stderr,"%s:%d Set unknown type of certificate: %d\n", basename(__FILE__), __LINE__, type);
+			ONION_ERROR("Set unknown type of certificate: %d",type);
 	}
 	if (r<0){
-	  fprintf (stderr, "%s:%d Error setting the certificate (%s)\n\n", basename(__FILE__), __LINE__,
-		   gnutls_strerror (r));
+	  ONION_ERROR("Error setting the certificate (%s)", gnutls_strerror (r));
 	}
 	return r;
 #else
@@ -590,10 +587,10 @@ void *onion_request_thread(void *d){
 	o->active_threads_count++;
 	pthread_mutex_unlock (&o->mutex);
 
-	fprintf(stderr,"%s:%d Open connection %d\n",basename(__FILE__),__LINE__,td->clientfd);
+	ONION_DEBUG("Open connection %d",td->clientfd);
 	onion_process_request(o,td->clientfd);
 	
-	fprintf(stderr,"%s:%d Closing connection... %d\n",basename(__FILE__),__LINE__,td->clientfd);
+	ONION_DEBUG("Closing connection... %d",td->clientfd);
 	if (0!=close(td->clientfd)){
 		perror("Error closing connection");
 	}
@@ -601,7 +598,7 @@ void *onion_request_thread(void *d){
 	pthread_mutex_lock (&o->mutex);
 	td->o->active_threads_count--;
 	pthread_mutex_unlock (&o->mutex);
-	fprintf(stderr,"%s:%d Closed connection %d\n",basename(__FILE__),__LINE__,td->clientfd);
+	ONION_DEBUG("Closed connection %d",td->clientfd);
 	free(td);
 	return NULL;
 }

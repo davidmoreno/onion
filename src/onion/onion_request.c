@@ -29,6 +29,7 @@
 #include "onion_server.h"
 #include "onion_types_internal.h"
 #include "onion_codecs.h"
+#include "onion_log.h"
 
 /// Creates a request
 onion_request *onion_request_new(onion_server *server, void *socket){
@@ -40,8 +41,6 @@ onion_request *onion_request_new(onion_server *server, void *socket){
 	req->headers=onion_dict_new();
 	req->socket=socket;
 	req->buffer_pos=0;
-
-	//fprintf(stderr,"%s:%d New request %p\n",__FILE__,__LINE__,req);
 
 	return req;
 }
@@ -55,23 +54,14 @@ void onion_request_free(onion_request *req){
 	if (req->query)
 		onion_dict_free(req->query);
 
-	//fprintf(stderr,"%s:%d Removed request %p\n",__FILE__,__LINE__,req);
-
 	free(req);
 }
 
 /// Partially fills a request. One line each time.
 int onion_request_fill(onion_request *req, const char *data){
-	//fprintf(stderr, "%s:%d fill %s\n",__FILE__,__LINE__,data);
 	if (!req->path){
 		char method[16], url[256], version[16];
 		sscanf(data,"%15s %255s %15s",method, url, version);
-
-		/*
-		fprintf(stderr, "'%s' %d\n", method, strcmp(method,"GET"));
-		fprintf(stderr, "'%s'\n", url);
-		fprintf(stderr, "'%s'\n", version);
-		*/
 		
 		if (strcmp(method,"GET")==0)
 			req->flags=OR_GET;
@@ -119,7 +109,6 @@ int onion_request_parse_query(onion_request *req){
 	int i=0;
 	char *p=req->path;
 	while(*p){
-		//fprintf(stderr,"%d %c", *p, *p);
 		if (*p=='?')
 			break;
 		cleanurl[i++]=*p;
@@ -202,23 +191,20 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 			}
 		}
 		else if (c=='\r'){ // Just skip it when in headers
-			//fprintf(stderr,"SKIP char %d\n",c);
 		}
 		else{
-			//fprintf(stderr,"char %c %d\n",c,c);
 			req->buffer[req->buffer_pos]=c;
 			req->buffer_pos++;
 			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on headers
 				req->buffer_pos--;
 				if (!msgshown){
-					fprintf(stderr,"onion / %s:%d Header too long for me (max header length (per header) %d chars). Ignoring from that byte on to the end of this line. (%16s...)\n",basename(__FILE__),__LINE__,(int) sizeof(req->buffer),req->buffer);
-					fprintf(stderr,"onion / %s:%d Increase it at onion_request.h and recompile onion.\n",basename(__FILE__),__LINE__);
+					ONION_ERROR("Header too long for me (max header length (per header) %d chars). Ignoring from that byte on to the end of this line. (%16s...)",(int) sizeof(req->buffer),req->buffer);
+					ONION_ERROR("Increase it at onion_request.h and recompile onion.");
 					msgshown=1;
 				}
 			}
 		}
 	}
-	//fprintf(stderr,"%s:%d Wrote %d bytes\n",__FILE__,__LINE__,i);
 	return i;
 }
 

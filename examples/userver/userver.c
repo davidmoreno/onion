@@ -26,6 +26,7 @@
 #include <onion/onion_handler.h>
 #include <handlers/onion_handler_directory.h>
 #include <handlers/onion_handler_static.h>
+#include <onion/onion_log.h>
 
 onion *o=NULL;
 
@@ -62,8 +63,11 @@ int main(int argc, char **argv){
 	if (error){
 		perror("Cant create the server");
 	}
-	fprintf(stderr,"Detached. Now sleep.\n");
-	sleep(100);
+	fprintf(stderr,"Detached. Now sleep 100.\n");
+	for (i=0;i<100;i++){
+		ONION_INFO("Exiting in %d seconds.",100-i);
+		sleep(1);
+	}
 	
 	onion_free(o);
 	
