@@ -48,6 +48,7 @@ newTerm = function(){
 sessionStatus = function(data){
 	$('#sessions_title').text('Current sessions')
 	var s=$('#current_sessions')
+	s.html('')
 	for(var id in data){
 		var a=$('<a>').text(id+' '+data[id].pid).attr('target',id).attr('id',id)
 		a.attr('href','term/'+id+'/')

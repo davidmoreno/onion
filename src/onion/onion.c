@@ -602,6 +602,10 @@ void *onion_request_thread(void *d){
 	onion_process_request(o,td->clientfd, td->client_info);
 	
 	ONION_DEBUG0("Closing connection... %d",td->clientfd);
+	
+	// Make it send the FIN packet.
+	shutdown(td->clientfd, SHUT_RDWR);
+	
 	if (0!=close(td->clientfd)){
 		perror("Error closing connection");
 	}
