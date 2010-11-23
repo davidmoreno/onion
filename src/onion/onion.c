@@ -188,6 +188,7 @@ static void onion_enable_tls(onion *o);
 #endif
 
 #ifdef HAVE_PTHREADS
+
 /// Internal data as needed by onion_request_thread
 struct onion_request_thread_data_t{
 	onion *o;
@@ -239,9 +240,10 @@ onion *onion_new(int flags){
 #endif
 #ifdef HAVE_PTHREADS
 	o->flags|=O_THREADS_AVALIABLE;
+	o->max_threads=15;
 	if (o->flags&O_THREADED){
 		o->flags|=O_THREADS_ENABLED;
-		o->active_threads_count=0;
+		sem_init(&o->thread_count,0, o->max_threads);
 		pthread_mutex_init(&o->mutex, NULL);
 	}
 #endif
@@ -291,7 +293,7 @@ int onion_listen(onion *o){
 		ONION_ERROR("Could not bind to %s:%d", "0.0.0.0", o->port);
 		return errno;
 	}
-	listen(sockfd,1);
+	listen(sockfd,5); // queue of only 5.
   socklen_t clilen = sizeof(cli_addr);
 	char address[64];
 
@@ -318,6 +320,14 @@ int onion_listen(onion *o){
 		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
 		while(1){
 			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+			// If more than allowed processes, it waits here blocking socket, as it should be.
+#if __DEBUG__
+			int nt;
+			sem_getvalue(&o->thread_count, &nt); 
+			ONION_DEBUG("%d threads working, %d max threads", o->max_threads-nt, o->max_threads);
+#endif
+			sem_wait(&o->thread_count); 
+
 			inet_ntop(AF_INET, &(cli_addr.sin_addr), address, sizeof(address));
 			
 			// Has to be malloc'd. If not it wil be overwritten on next petition. The threads frees it
@@ -342,10 +352,8 @@ void onion_free(onion *onion){
 		int ntries=5;
 		int c;
 		for(;ntries--;){
-			pthread_mutex_lock (&onion->mutex);
-			c=onion->active_threads_count;
-			pthread_mutex_unlock (&onion->mutex);
-			if (c==0){
+			sem_getvalue(&onion->thread_count,&c);
+			if (c==MAX_THREADS){
 				break;
 			}
 			ONION_INFO("Still some petitions on process (%d). Wait a little bit (%d).",c,ntries);
@@ -393,6 +401,19 @@ void onion_set_port(onion *server, int port){
  */
 void onion_set_timeout(onion *onion, int timeout){
 	onion->timeout=timeout;
+}
+
+/**
+ * @short Sets the maximum number of threads to use for requests. default 16.
+ * 
+ * Can only be tweaked before listen. 
+ * 
+ * If its modified after listen, the behaviour can be unexpected, on the sense that it may server 
+ * an undetermined number of request on the range [new_max_threads, current max_threads + new_max_threads]
+ */
+void onion_set_max_threads(onion *onion, int max_threads){
+	onion->max_threads=max_threads;
+	sem_init(&onion->thread_count, max_threads);
 }
 
 
@@ -605,18 +626,13 @@ void *onion_request_thread(void *d){
 	onion_request_thread_data *td=(onion_request_thread_data*)d;
 	onion *o=td->o;
 	
-	pthread_mutex_lock (&o->mutex);
-	o->active_threads_count++;
-	pthread_mutex_unlock (&o->mutex);
-
 	ONION_DEBUG0("Open connection %d",td->clientfd);
 	onion_process_request(o,td->clientfd, td->client_info);
 		
-	pthread_mutex_lock (&o->mutex);
-	td->o->active_threads_count--;
-	pthread_mutex_unlock (&o->mutex);
 	ONION_DEBUG0("Closed connection %d",td->clientfd);
 	free(td);
+	
+	sem_post(&o->thread_count);
 	return NULL;
 }
 

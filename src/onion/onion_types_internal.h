@@ -26,6 +26,7 @@
 #endif
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
+#include <semaphore.h>
 #endif
 
 #ifdef __cplusplus
@@ -52,7 +53,8 @@ struct onion_t{
 	gnutls_priority_t priority_cache;
 #endif
 #ifdef HAVE_PTHREADS
-	int active_threads_count;	/// Number of active threads.
+	int max_threads;
+	sem_t thread_count;
 	pthread_mutex_t mutex;		/// Mutexes data on this struct.
 #endif
 };

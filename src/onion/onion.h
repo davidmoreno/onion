@@ -49,6 +49,9 @@ int onion_flags(onion *onion);
 /// Sets the timeout, in milliseconds, 0 dont wait for incomming data (too strict maybe), -1 forever, clients closes connection
 void onion_set_timeout(onion *onion, int timeout);
 
+/// Sets the maximum number of threads to use for requests. default 16.
+void onion_set_max_threads(onion *onion, int max_threads);
+
 #ifdef __cplusplus
 }
 #endif
