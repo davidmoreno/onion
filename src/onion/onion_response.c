@@ -62,7 +62,9 @@ int onion_response_free(onion_response *res){
 	
 	int r=OR_CLOSE_CONNECTION;
 	// keep alive only on HTTP/1.1.
-	if (res->request->flags&OR_HTTP11 && (res->flags&OR_SKIP_CONTENT || (res->flags&OR_KEEP_ALIVE && res->length==res->sent_bytes)))
+	ONION_DEBUG("no keep alive %d",(res->request->flags&OR_NO_KEEP_ALIVE));
+	if (!(res->request->flags&OR_NO_KEEP_ALIVE) && res->request->flags&OR_HTTP11 &&
+		   (res->flags&OR_SKIP_CONTENT || (res->flags&OR_KEEP_ALIVE && res->length==res->sent_bytes)))
 		r=OR_KEEP_ALIVE;
 	
 	// FIXME! This is no proper logging at all. Maybe use a handler.

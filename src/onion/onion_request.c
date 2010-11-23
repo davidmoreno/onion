@@ -76,11 +76,11 @@ int onion_request_fill(onion_request *req, const char *data){
 		sscanf(data,"%15s %255s %15s",method, url, version);
 		
 		if (strcmp(method,"GET")==0)
-			req->flags=OR_GET;
+			req->flags|=OR_GET;
 		else if (strcmp(method,"POST")==0)
-			req->flags=OR_POST;
+			req->flags|=OR_POST;
 		else if (strcmp(method,"HEAD")==0)
-			req->flags=OR_HEAD;
+			req->flags|=OR_HEAD;
 		else
 			return 0; // Not valid method detected.
 
@@ -248,7 +248,7 @@ const char *onion_request_get_query(onion_request *req, const char *query){
 void onion_request_clean(onion_request* req){
 	onion_dict_free(req->headers);
 	req->headers=onion_dict_new();
-	req->flags=0;
+	req->flags&=0xFF00;
 	if (req->fullpath){
 		free(req->fullpath);
 		req->path=req->fullpath=NULL;
@@ -257,4 +257,14 @@ void onion_request_clean(onion_request* req){
 		onion_dict_free(req->query);
 		req->query=NULL;
 	}
+}
+
+/**
+ * @short Forces the request to process only one request, not doing the keep alive.
+ * 
+ * This is usefull on non threaded modes, as the keep alive blocks the loop.
+ */
+void onion_request_no_keep_alive(onion_request *req){
+	req->flags|=OR_NO_KEEP_ALIVE;
+	ONION_DEBUG("Disabling keep alive %X",req->flags);
 }

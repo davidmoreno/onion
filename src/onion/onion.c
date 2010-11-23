@@ -302,14 +302,12 @@ int onion_listen(onion *o){
 				clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 				inet_ntop(AF_INET, &(cli_addr.sin_addr), address, sizeof(address));
 				onion_process_request(o, clientfd, address);
-				close(clientfd);
 			}
 		}
 		else{
 			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 				inet_ntop(AF_INET, &(cli_addr.sin_addr), address, sizeof(address));
 			onion_process_request(o, clientfd, address);
-			close(clientfd);
 		}
 	}
 #ifdef HAVE_PTHREADS
@@ -441,6 +439,9 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 	req=onion_request_new(o->server, &clientfd);
 	onion_server_set_write(o->server, (onion_write)write_to_socket);
 #endif
+	if (!(o->flags&O_THREADED))
+		onion_request_no_keep_alive(req);
+	
 	struct pollfd pfd;
 	pfd.events=POLLIN;
 	pfd.fd=clientfd;
@@ -469,6 +470,12 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 		gnutls_deinit (session);
 	}
 #endif
+	// Make it send the FIN packet.
+	shutdown(clientfd, SHUT_RDWR);
+	
+	if (0!=close(clientfd)){
+		perror("Error closing connection");
+	}
 }
 
 /// Returns the current flags. @see onion_mode_e
@@ -604,16 +611,7 @@ void *onion_request_thread(void *d){
 
 	ONION_DEBUG0("Open connection %d",td->clientfd);
 	onion_process_request(o,td->clientfd, td->client_info);
-	
-	ONION_DEBUG0("Closing connection... %d",td->clientfd);
-	
-	// Make it send the FIN packet.
-	shutdown(td->clientfd, SHUT_RDWR);
-	
-	if (0!=close(td->clientfd)){
-		perror("Error closing connection");
-	}
-	
+		
 	pthread_mutex_lock (&o->mutex);
 	td->o->active_threads_count--;
 	pthread_mutex_unlock (&o->mutex);

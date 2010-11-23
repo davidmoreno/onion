@@ -34,6 +34,8 @@ enum onion_request_flags_e{
 	OR_HEAD=4,
 	
 	OR_HTTP11=0x10,
+	
+	OR_NO_KEEP_ALIVE=0x100,
 };
 
 typedef struct onion_request_method_e onion_request_method;
@@ -54,7 +56,6 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 /// Parses the query. Only called when really needs the query data. LAZY.
 int onion_request_parse_query(onion_request *req);
 
-
 /// Gets the current path
 const char *onion_request_get_path(onion_request *req);
 
@@ -69,6 +70,9 @@ const char *onion_request_get_query(onion_request *req, const char *query);
 
 /// Cleans the request object, to reuse it
 void onion_request_clean(onion_request *req);
+
+/// Reqeust to close connection after one request is done, forces no keep alive.
+void onion_request_no_keep_alive(onion_request *req);
 
 #ifdef __cplusplus
 }
