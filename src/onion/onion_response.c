@@ -176,7 +176,9 @@ int onion_response_write(onion_response *res, const char *data, unsigned int len
 
 /// Writes all buffered output waiting for sending.
 static int onion_response_write_buffer(onion_response *res){
-	void *fd=onion_response_get_socket(res);
+	if (res->buffer_pos==0)
+		return 0;
+	void *fd=res->request->socket;
 	onion_write write=res->request->server->write;
 	int w;
 	int pos=0;

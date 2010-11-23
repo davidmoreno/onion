@@ -80,11 +80,15 @@ void onion_log(onion_log_level level, const char *filename, int lineno, const ch
 	}
 #endif
 
-	const char *levelstr[]={ "DEBUG0", "DEBUG", "INFO", "WARNING", "ERROR" };
-	const char *levelcolor[]={ "\033[34m", "\033[01;34m", "\033[0m", "\033[01;33m", "\033[31m" };
-	if (!(onion_log_flags&OF_NOCOLOR))
-		fprintf(stderr,"%s",levelcolor[level%4]);
+	const char *levelstr[]={ "DEBUG0", "DEBUG", "INFO", "WARNING", "ERROR", "UNKNOWN" };
+	const char *levelcolor[]={ "\033[34m", "\033[01;34m", "\033[0m", "\033[01;33m", "\033[31m", "\033[01;31m" };
 	
+	if (level>(sizeof(levelstr)/sizeof(levelstr[0]))-1)
+		level=(sizeof(levelstr)/sizeof(levelstr[0]))-1;
+
+	if (!(onion_log_flags&OF_NOCOLOR))
+		fprintf(stderr,"%s",levelcolor[level]);
+
 #ifdef HAVE_PTHREADS
 	fprintf(stderr, "[%04X] ",(int)syscall(SYS_gettid));
 #endif
@@ -93,7 +97,7 @@ void onion_log(onion_log_level level, const char *filename, int lineno, const ch
 	t = time(NULL);
 	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&t));
 	
-	fprintf(stderr, "[%s] [%s %s:%d] ", datetime, levelstr[level%4],  
+	fprintf(stderr, "[%s] [%s %s:%d] ", datetime, levelstr[level],  
 					basename((char*)filename), lineno); // I dont know why basename is char *. Please somebody tell me.
 	
 	va_list ap;

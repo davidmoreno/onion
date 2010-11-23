@@ -45,7 +45,6 @@ void onion_server_set_root_handler(onion_server *server, onion_handler *handler)
 	server->root_handler=handler;
 }
 
-
 /**
  * @short  Performs the processing of the request. FIXME. Make really close the connection on Close-Connection. It does not do it now.
  * 
