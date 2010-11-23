@@ -268,3 +268,25 @@ void onion_request_no_keep_alive(onion_request *req){
 	req->flags|=OR_NO_KEEP_ALIVE;
 	ONION_DEBUG("Disabling keep alive %X",req->flags);
 }
+
+/**
+ * @short Returns if current request wants to keep alive.
+ * 
+ * It is a complex set of circumstances: HTTP/1.1 and no connection: close, or HTTP/1.0 and connection: keep-alive
+ * and no explicit set that no keep alive.
+ */
+int onion_request_keep_alive(onion_request *req){
+	if (req->flags&OR_NO_KEEP_ALIVE)
+		return 0;
+	if (req->flags&OR_HTTP11){
+		const char *connection=onion_request_get_header(req,"Connection");
+		if (!connection || strcasecmp(connection,"Close")!=0) // Other side wants keep alive
+			return 1;
+	}
+	else{ // HTTP/1.0
+		const char *connection=onion_request_get_header(req,"Connection");
+		if (connection && strcasecmp(connection,"Keep-Alive")==0) // Other side wants keep alive
+			return 1;
+	}
+	return 0;
+}

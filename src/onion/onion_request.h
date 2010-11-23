@@ -74,6 +74,9 @@ void onion_request_clean(onion_request *req);
 /// Reqeust to close connection after one request is done, forces no keep alive.
 void onion_request_no_keep_alive(onion_request *req);
 
+/// Returns if current request wants to keep alive
+int onion_request_keep_alive(onion_request *req);
+
 #ifdef __cplusplus
 }
 #endif

@@ -62,9 +62,9 @@ int onion_response_free(onion_response *res){
 	
 	int r=OR_CLOSE_CONNECTION;
 	// keep alive only on HTTP/1.1.
-	ONION_DEBUG("no keep alive %d",(res->request->flags&OR_NO_KEEP_ALIVE));
-	if (!(res->request->flags&OR_NO_KEEP_ALIVE) && res->request->flags&OR_HTTP11 &&
-		   (res->flags&OR_SKIP_CONTENT || (res->flags&OR_KEEP_ALIVE && res->length==res->sent_bytes)))
+	ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d)", onion_request_keep_alive(res->request),
+							res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes);
+	if ( onion_request_keep_alive(res->request) && (res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes) )
 		r=OR_KEEP_ALIVE;
 	
 	// FIXME! This is no proper logging at all. Maybe use a handler.
@@ -90,11 +90,6 @@ void onion_response_set_length(onion_response *res, unsigned int len){
 	onion_response_set_header(res, "Content-Length", tmp);
 	res->length=len;
 	res->flags|=OR_LENGTH_SET;
-	const char *connection=onion_request_get_header(res->request,"Connection");
-	if (!connection || strcasecmp(connection,"Close")!=0){ // Other side wants keep alive
-		//onion_response_set_header(res, "Connection","Keep-Alive");  // Unnecesary on HTTP/1.1
-		res->flags|=OR_KEEP_ALIVE;
-	}
 }
 
 /// Sets the return code
@@ -120,8 +115,16 @@ static void write_header(const char *key, const char *value, onion_response *res
  * @returns 0 if should procced to normal data write, or OR_SKIP_CONTENT if should not write content.
  */
 int onion_response_write_headers(onion_response *res){
-	onion_response_printf(res, "HTTP/1.1 %d %s\r\n",res->code, onion_response_code_description(res->code));
-	ONION_DEBUG("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
+	if (res->request->flags&OR_HTTP11){
+		onion_response_printf(res, "HTTP/1.1 %d %s\r\n",res->code, onion_response_code_description(res->code));
+		ONION_DEBUG("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
+	}
+	else{
+		onion_response_printf(res, "HTTP/1.0 %d %s\r\n",res->code, onion_response_code_description(res->code));
+		ONION_DEBUG("Response header: HTTP/1.0 %d %s\n",res->code, onion_response_code_description(res->code));
+		if (res->flags&OR_LENGTH_SET) // On HTTP/1.0, i need to state it. On 1.1 it is default.
+			onion_response_write0(res, "Connection: Keep-Alive\r\n");
+	}
 	
 	if (!(res->flags&OR_LENGTH_SET))
 		onion_response_write(res, CONNECTION_CLOSE, sizeof(CONNECTION_CLOSE)-1);
