@@ -193,6 +193,7 @@ struct onion_request_thread_data_t{
 	onion *o;
 	int clientfd;
 	const char *client_info;
+	pthread_t thread_handle;
 };
 
 typedef struct onion_request_thread_data_t onion_request_thread_data;
@@ -326,9 +327,8 @@ int onion_listen(onion *o){
 			data->o=o;
 			data->clientfd=clientfd;
 			data->client_info=address;
-			pthread_t thread_handle; // Ignored just now. FIXME. Necesary at shutdown.
 			
-			pthread_create(&thread_handle,&attr, onion_request_thread, data);
+			pthread_create(&data->thread_handle, &attr, onion_request_thread, data);
 		}
 		pthread_attr_destroy(&attr);
 	}

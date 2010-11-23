@@ -123,11 +123,11 @@ int main(int argc, char **argv){
 	onion_handler_add(dir, onion_handler_path("^/term/",oterm_handler_data()));
 	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
 
-	//onion_handler *oterm=onion_handler_auth_pam("Onion Terminal", "login", dir);
+	onion_handler *oterm=onion_handler_auth_pam("Onion Terminal", "login", dir);
 
 	
 	o=onion_new(O_THREADED);
-	onion_set_root_handler(o, dir);
+	onion_set_root_handler(o, oterm);
 
 	if (!(onion_flags(o)&O_SSL_AVAILABLE)){
 		fprintf(stderr,"SSL support is not available. Oterm is in unsecure mode!\n");

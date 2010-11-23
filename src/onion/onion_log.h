@@ -28,6 +28,7 @@
 #endif
 
 #define ONION_INFO(...) onion_log(O_INFO, __FILE__, __LINE__, __VA_ARGS__)
+#define ONION_WARNING(...) onion_log(O_WARNING, __FILE__, __LINE__, __VA_ARGS__)
 #define ONION_ERROR(...) onion_log(O_ERROR, __FILE__, __LINE__, __VA_ARGS__)
 
 #ifdef __cplusplus
@@ -38,7 +39,8 @@ enum onion_log_level_e{
 	O_DEBUG0=0,
 	O_DEBUG=1,
 	O_INFO=2,
-	O_ERROR=3,
+	O_WARNING=3,
+	O_ERROR=4,
 };
 
 typedef enum onion_log_level_e onion_log_level;

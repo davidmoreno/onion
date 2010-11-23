@@ -119,7 +119,7 @@ static void write_header(const char *key, const char *value, onion_response *res
  */
 int onion_response_write_headers(onion_response *res){
 	onion_response_printf(res, "HTTP/1.1 %d %s\r\n",res->code, onion_response_code_description(res->code));
-	ONION_DEBUG0("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
+	ONION_DEBUG("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
 	
 	if (!(res->flags&OR_LENGTH_SET))
 		onion_response_write(res, CONNECTION_CLOSE, sizeof(CONNECTION_CLOSE)-1);

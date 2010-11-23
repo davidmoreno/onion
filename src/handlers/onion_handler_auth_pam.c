@@ -26,6 +26,7 @@
 #include <onion/onion_handler.h>
 #include <onion/onion_response.h>
 #include <onion/onion_codecs.h>
+#include <onion/onion_log.h>
 
 int authorize(const char *pamname, const char *username, const char *password);
 
@@ -62,9 +63,10 @@ int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request
 	if (username && passwd){
 		int ok=authorize(d->pamname, username, passwd);
 		
-		free(auth);
-		if (ok)
+		if (ok){
+			free(auth);
 			return onion_handler_handle(d->inside, request);
+		}
 	}
 	if (auth)
 		free(auth);
@@ -155,14 +157,14 @@ int authorize(const char *pamname, const char *username, const char *password){
 	}
 	ok = pam_authenticate(pamh, 0);    /* is user really user? */
 	if (ok!=PAM_SUCCESS){
-		//DEBUG("Not an user. Auth failed.");
+		ONION_WARNING("Cant authenticate user %s",username);
 	}
 	else
 		ok = pam_acct_mgmt(pamh, 0);       /* permitted access? */
 	
 	pam_end(pamh, ok);
 	if (ok==PAM_SUCCESS){
-		//DEBUG("Authenticated user '%s'", username.toUtf8().constData());
+		ONION_DEBUG("Authenticated user %s OK",username);
 		return 1;
 	}
 	//DEBUG("NOT authenticated user '%s'", username.toUtf8().constData());

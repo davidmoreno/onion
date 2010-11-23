@@ -24,6 +24,7 @@
 #include <stdlib.h>
 
 #ifdef HAVE_PTHREADS
+#include <pthread.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -32,6 +33,7 @@
 #include "onion_log.h"
 
 static int onion_log_flags=0;
+static pthread_mutex_t onion_log_mutex=PTHREAD_MUTEX_INITIALIZER;
 
 enum onion_log_flags_e{
 	OF_INIT=1,
@@ -55,6 +57,9 @@ enum onion_log_flags_e{
  * @param fmt printf-like format string and parameters.
  */
 void onion_log(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
+#ifdef HAVE_PTHREADS
+	pthread_mutex_lock(&onion_log_mutex);
+#endif
 	if (!onion_log_flags){
 		onion_log_flags=OF_INIT;
 		const char *ol=getenv("ONION_LOG");
@@ -67,12 +72,16 @@ void onion_log(onion_log_level level, const char *filename, int lineno, const ch
 	}
 	
 #ifdef __DEBUG__
-	if ((level==O_DEBUG0) && (onion_log_flags&OF_NODEBUG0))
+	if ((level==O_DEBUG0) && (onion_log_flags&OF_NODEBUG0)){
+		#ifdef HAVE_PTHREADS
+			pthread_mutex_unlock(&onion_log_mutex);
+		#endif
 		return;
+	}
 #endif
 
-	const char *levelstr[]={ "DEBUG0", "DEBUG", "INFO", "ERROR" };
-	const char *levelcolor[]={ "\033[34m", "\033[01;34m", "\033[0m", "\033[31m" };
+	const char *levelstr[]={ "DEBUG0", "DEBUG", "INFO", "WARNING", "ERROR" };
+	const char *levelcolor[]={ "\033[34m", "\033[01;34m", "\033[0m", "\033[01;33m", "\033[31m" };
 	if (!(onion_log_flags&OF_NOCOLOR))
 		fprintf(stderr,levelcolor[level%4]);
 	
@@ -95,4 +104,7 @@ void onion_log(onion_log_level level, const char *filename, int lineno, const ch
 		fprintf(stderr, "\033[0m\n");
 	else
 		fprintf(stderr, "\n");
+	#ifdef HAVE_PTHREADS
+		pthread_mutex_unlock(&onion_log_mutex);
+	#endif
 }
