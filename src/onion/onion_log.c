@@ -83,7 +83,7 @@ void onion_log(onion_log_level level, const char *filename, int lineno, const ch
 	const char *levelstr[]={ "DEBUG0", "DEBUG", "INFO", "WARNING", "ERROR" };
 	const char *levelcolor[]={ "\033[34m", "\033[01;34m", "\033[0m", "\033[01;33m", "\033[31m" };
 	if (!(onion_log_flags&OF_NOCOLOR))
-		fprintf(stderr,levelcolor[level%4]);
+		fprintf(stderr,"%s",levelcolor[level%4]);
 	
 #ifdef HAVE_PTHREADS
 	fprintf(stderr, "[%04X] ",(int)syscall(SYS_gettid));
