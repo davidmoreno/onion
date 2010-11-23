@@ -113,8 +113,7 @@ onion_handler *onion_handler_auth_pam(const char *realm, const char *pamname, on
 /// simple answer to the password question, needed by pam
 static int authPAM_passwd(int num_msg, const struct pam_message **msg,
                 struct pam_response **resp, void *appdata_ptr){
-	//DEBUG("num messages %d",num_msg);
-	//DEBUG("Question %s",(*msg)[0].msg);
+	ONION_DEBUG0("Num messages %d",num_msg);
 	struct pam_response *r;
 	
 	*resp=r=(struct pam_response*)calloc(num_msg,sizeof(struct pam_response));
@@ -124,12 +123,12 @@ static int authPAM_passwd(int num_msg, const struct pam_message **msg,
 	int i;
 	
 	for (i=0;i<num_msg;i++){
+		ONION_DEBUG0("Question %d: %s",i, (*msg)[i].msg);
 		r->resp=strdup((const char*)appdata_ptr);
 		r->resp_retcode=0;
 		r++;
 	}
 
-	//DEBUG("Done");
 	return PAM_SUCCESS;
 }
 
@@ -140,34 +139,28 @@ static int authPAM_passwd(int num_msg, const struct pam_message **msg,
 int authorize(const char *pamname, const char *username, const char *password){
 	int ok;
 	pam_handle_t *pamh=NULL;
-	char *password_local=strdup(password);
+	
+	const char *password_local=password; //strdup(password);
 	struct pam_conv conv = {
     authPAM_passwd,
     (void*)password_local
 	};
-	//DEBUG("Password %s",password_local);
-	
-	//DEBUG("Auth on service '%s', username '%s'",pamname.toAscii().constData(), username.toUtf8().constData());
 	
 	ok=pam_start(pamname, username, &conv, &pamh);
-	if (ok!=PAM_SUCCESS){
-		//WARNING("Error initializing PAM");
-		perror("PAM");
-		return 0;
-	}
-	ok = pam_authenticate(pamh, 0);    /* is user really user? */
-	if (ok!=PAM_SUCCESS){
-		ONION_WARNING("Cant authenticate user %s",username);
-	}
-	else
+	
+	if (ok==PAM_SUCCESS)
+		ok = pam_authenticate(pamh, 0);    /* is user really user? */
+	if (ok==PAM_SUCCESS)
 		ok = pam_acct_mgmt(pamh, 0);       /* permitted access? */
 	
-	pam_end(pamh, ok);
+	if (pam_end(pamh, ok)!=PAM_SUCCESS){
+		ONION_ERROR("Error releasing PAM structures");
+	}
 	if (ok==PAM_SUCCESS){
-		ONION_DEBUG("Authenticated user %s OK",username);
+		ONION_DEBUG("Authenticated user %s OK", username);
 		return 1;
 	}
-	//DEBUG("NOT authenticated user '%s'", username.toUtf8().constData());
+	ONION_WARNING("NOT authenticated user '%s', code %d", username, ok);
 	return 0;
 }
 

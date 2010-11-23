@@ -175,7 +175,7 @@ static int onion_response_write_buffer(onion_response *res){
 	onion_write write=res->request->server->write;
 	int w;
 	int pos=0;
-	ONION_DEBUG0("Write %d bytes",res->buffer_pos);
+	//ONION_DEBUG0("Write %d bytes",res->buffer_pos);
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0){
 			ONION_ERROR("Error writing at %d. Maybe closed connection. Code %d. ",res->buffer_pos, w);
@@ -185,7 +185,7 @@ static int onion_response_write_buffer(onion_response *res){
 		}
 		pos+=w;
 		res->buffer_pos-=w;
-		ONION_DEBUG0("Write %d bytes",res->buffer_pos);
+		//ONION_DEBUG0("Write %d bytes",res->buffer_pos);
 	}
 	res->buffer_pos=0;
 	return 0;

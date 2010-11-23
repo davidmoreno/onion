@@ -124,7 +124,6 @@ int main(int argc, char **argv){
 	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
 
 	onion_handler *oterm=onion_handler_auth_pam("Onion Terminal", "login", dir);
-
 	
 	o=onion_new(O_THREADED);
 	onion_set_root_handler(o, oterm);
