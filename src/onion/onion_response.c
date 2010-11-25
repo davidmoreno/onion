@@ -61,16 +61,20 @@ int onion_response_free(onion_response *res){
 	onion_response_write_buffer(res);
 	
 	int r=OR_CLOSE_CONNECTION;
-	// keep alive only on HTTP/1.1.
-	ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d)", onion_request_keep_alive(res->request),
-							res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes);
-	if ( onion_request_keep_alive(res->request) && (res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes) )
-		r=OR_KEEP_ALIVE;
 	
-	// FIXME! This is no proper logging at all. Maybe use a handler.
-	ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->client_info, (res->request->flags&OR_GET) ? "GET" : (res->request->flags&OR_HEAD) ? "HEAD" : (res->request->flags&OR_POST) ? "POST" : "UNKNOWN_METHOD",
-					res->request->fullpath, res->code, res->sent_bytes,
-					(r==OR_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
+	// it is a rare ocassion that there is no request, but although unlikely, it may happend
+	if (res->request){
+		// keep alive only on HTTP/1.1.
+		ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d)", onion_request_keep_alive(res->request),
+								res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes);
+		if ( onion_request_keep_alive(res->request) && (res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes) )
+			r=OR_KEEP_ALIVE;
+		
+		// FIXME! This is no proper logging at all. Maybe use a handler.
+		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->client_info, (res->request->flags&OR_GET) ? "GET" : (res->request->flags&OR_HEAD) ? "HEAD" : (res->request->flags&OR_POST) ? "POST" : "UNKNOWN_METHOD",
+						res->request->fullpath, res->code, res->sent_bytes,
+						(r==OR_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
+	}
 	
 	onion_dict_free(res->headers);
 	free(res);

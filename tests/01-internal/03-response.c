@@ -55,7 +55,7 @@ int write_append(void *handler, const char *data, unsigned int length){
 }
 
 
-void t02_full_cycle(){
+void t02_full_cycle_http10(){
 	INIT_LOCAL();
 	
 	onion_server *server=onion_server_new();
@@ -80,14 +80,46 @@ void t02_full_cycle(){
 	onion_request_free(request);
 	onion_server_free(server);
 	
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\nContent-Length: 30\nServer: Onion lib - 0.1. http://coralbits.com\n\n123456789012345678901234567890");
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\nContent-Length: 30\r\nServer: libonion v0.1 - coralbits.com\r\n\r\n123456789012345678901234567890");
+	
+	END_LOCAL();
+}
+
+void t03_full_cycle_http11(){
+	INIT_LOCAL();
+	
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, write_append);
+	onion_request *request;
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	
+	request=onion_request_new(server, buffer, NULL);
+	onion_request_fill(request,"GET / HTTP/1.1");
+	
+	onion_response *response=onion_response_new(request);
+	
+	onion_response_set_length(response, 30);
+	FAIL_IF_NOT_EQUAL(response->length,30);
+	onion_response_write_headers(response);
+	
+	onion_response_write0(response,"123456789012345678901234567890");
+	
+	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
+	
+	onion_response_free(response);
+	onion_request_free(request);
+	onion_server_free(server);
+	
+	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\r\nContent-Length: 30\r\nServer: libonion v0.1 - coralbits.com\r\n\r\n123456789012345678901234567890");
 	
 	END_LOCAL();
 }
 
 int main(int argc, char **argv){
 	t01_create_add_free();
-	t02_full_cycle();
+	t02_full_cycle_http10();
+	t03_full_cycle_http11();
 	
 	END();
 }

@@ -47,6 +47,8 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	req->headers=onion_dict_new();
 	req->socket=socket;
 	req->buffer_pos=0;
+	req->files=NULL;
+	req->post=NULL;
 	if (client_info) // This is kept even on clean
 		req->client_info=strdup(client_info);
 	else
@@ -63,6 +65,10 @@ void onion_request_free(onion_request *req){
 		free(req->fullpath);
 	if (req->query)
 		onion_dict_free(req->query);
+	if (req->post)
+		onion_dict_free(req->post);
+	if (req->files)
+		onion_dict_free(req->files);
 
 	free(req);
 }
@@ -109,6 +115,49 @@ int onion_request_fill(onion_request *req, const char *data){
 	return 1;
 }
 
+/// Parses the query part to a given dictionary.
+static void onion_request_parse_query_to_dict(onion_dict *dict, const char *p){
+	char key[32], value[256];
+	int state=0;  // 0 key, 1 value
+	int i=0;
+	while(*p){
+		if (state==0){
+			if (*p=='='){
+				key[i]='\0';
+				state=1;
+				i=-1;
+			}
+			else
+				key[i]=*p;
+		}
+		else{
+			if (*p=='&'){
+				value[i]='\0';
+				onion_unquote_inplace(key);
+				onion_unquote_inplace(value);
+				onion_dict_add(dict, key, value, OD_DUP_ALL);
+				state=0;
+				i=-1;
+			}
+			else
+				value[i]=*p;
+		}
+		p++;
+		i++;
+	}
+	if (i!=0 || state!=0){
+		if (state==0){
+			key[i]='\0';
+			value[0]='\0';
+		}
+		else
+			value[i]='\0';
+		onion_unquote_inplace(key);
+		onion_unquote_inplace(value);
+		onion_dict_add(dict, key, value, OD_DUP_ALL);
+	}
+}
+
 /// Parses a query string.
 int onion_request_parse_query(onion_request *req){
 	if (!req->path)
@@ -116,7 +165,6 @@ int onion_request_parse_query(onion_request *req){
 	if (req->query) // already done
 		return 1;
 	
-	char key[32], value[256];
 	char cleanurl[256];
 	int i=0;
 	char *p=req->path;
@@ -131,44 +179,7 @@ int onion_request_parse_query(onion_request *req){
 	if (*p){ // There are querys.
 		p++;
 		req->query=onion_dict_new();
-		int state=0;
-		i=0;
-		while(*p){
-			if (state==0){
-				if (*p=='='){
-					key[i]='\0';
-					state=1;
-					i=-1;
-				}
-				else
-					key[i]=*p;
-			}
-			else{
-				if (*p=='&'){
-					value[i]='\0';
-					onion_unquote_inplace(key);
-					onion_unquote_inplace(value);
-					onion_dict_add(req->query, key, value, OD_DUP_ALL);
-					state=0;
-					i=-1;
-				}
-				else
-					value[i]=*p;
-			}
-			
-			p++;
-			i++;
-		}
-		
-		if (i!=0 || state!=0){
-			if (state==0)
-				key[i]='\0';
-			else
-				value[i]='\0';
-			onion_unquote_inplace(key);
-			onion_unquote_inplace(value);
-			onion_dict_add(req->query, key, value, OD_DUP_ALL);
-		}
+		onion_request_parse_query_to_dict(req->query, p);
 	}
 	free(req->fullpath);
 	req->fullpath=strndup(cleanurl, sizeof(cleanurl));

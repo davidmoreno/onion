@@ -72,6 +72,8 @@ struct onion_request_t{
 	char *fullpath;       /// Original path for the request
 	char *path;           /// Path at this level. Its actually a pointer inside fullpath, removing the leading parts already processed by handlers
 	onion_dict *query;    /// When the query (?q=query) is processed, the dict with the values @see onion_request_parse_query
+	onion_dict *post;     /// Dictionary with POST values
+	onion_dict *files;    /// Dictionary with files. They are automatically saved at /tmp/ and removed at request free. mapped string is full path.
 	onion_write write;    /// Write function
 	void *socket;         /// Write function handler
 	char buffer[128];     /// Buffer for queries. This should be enough. UGLY. FIXME.
