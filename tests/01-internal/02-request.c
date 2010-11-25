@@ -89,11 +89,11 @@ void t03_create_add_free_full_flow(){
 	FAIL_IF_EQUAL(req,NULL);
 	FAIL_IF_NOT_EQUAL(req->socket, 0);
 	
-	ok=onion_request_fill(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n");
+	ok=onion_request_fill(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0");
 	FAIL_IF_NOT(ok);
 	ok=onion_request_fill(req,"Host: 127.0.0.1");
 	FAIL_IF_NOT(ok);
-	ok=onion_request_fill(req,"Other-Header: My header is very long and with spaces...\n");
+	ok=onion_request_fill(req,"Other-Header: My header is very long and with spaces...");
 	FAIL_IF_NOT(ok);
 	
 	FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
@@ -116,12 +116,103 @@ void t03_create_add_free_full_flow(){
 	END_LOCAL();
 }
 
+void t04_create_add_free_GET(){
+	INIT_LOCAL();
+	
+	onion_request *req;
+	int ok;
+	
+	req=onion_request_new(server, 0,NULL);
+	FAIL_IF_EQUAL(req,NULL);
+	FAIL_IF_NOT_EQUAL(req->socket, 0);
+	
+	const char *query="GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n"
+													"Host: 127.0.0.1\n\r"
+													"Other-Header: My header is very long and with spaces...\r\n\r\n";
+	
+	int i; // Straight write, with clean (keep alive like)
+	for (i=0;i<10;i++){
+		FAIL_IF_NOT_EQUAL(req->flags,0);
+		ok=onion_request_write(req,query,strlen(query));
+		
+		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
+		
+		FAIL_IF_EQUAL(req->headers, NULL);
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Host"), "127.0.0.1");
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
+
+		FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
+		FAIL_IF_NOT_EQUAL_STR(req->path,"/myurl /is/very/deeply/nested");
+
+		FAIL_IF_EQUAL(req->query,NULL);
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"test"), "test");
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"query2"), "query 2");
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"more_query"), " more query 10");
+		
+		onion_request_clean(req);
+		FAIL_IF_NOT_EQUAL(req->query,NULL);
+	}
+	
+	onion_request_free(req);
+	
+	END_LOCAL();
+}
+
+void t05_create_add_free_POST(){
+	INIT_LOCAL();
+	
+	onion_request *req;
+	int ok;
+	
+	req=onion_request_new(server, 0,NULL);
+	FAIL_IF_EQUAL(req,NULL);
+	FAIL_IF_NOT_EQUAL(req->socket, 0);
+	
+	const char *query="POST /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n"
+													"Host: 127.0.0.1\n\r"
+													"Other-Header: My header is very long and with spaces...\r\n\r\npost_data=1&post_data2=2\r\n\r\n";
+	
+	int i; // Straight write, with clean (keep alive like)
+	for (i=0;i<10;i++){
+		FAIL_IF_NOT_EQUAL(req->flags,0);
+		ok=onion_request_write(req,query,strlen(query));
+		
+		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
+		
+		FAIL_IF_EQUAL(req->headers, NULL);
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Host"), "127.0.0.1");
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
+
+		FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
+		FAIL_IF_NOT_EQUAL_STR(req->path,"/myurl /is/very/deeply/nested");
+
+		FAIL_IF_EQUAL(req->query,NULL);
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"test"), "test");
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"query2"), "query 2");
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"more_query"), " more query 10");
+
+		FAIL_IF_EQUAL(req->post,NULL);
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->post,"post_data"), "1");
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->post,"post_data2"), "2");
+
+		onion_request_clean(req);
+		FAIL_IF_NOT_EQUAL(req->query,NULL);
+	}
+	
+	onion_request_free(req);
+	
+	END_LOCAL();
+}
+
+
 
 int main(int argc, char **argv){
 	setup();
 	t01_create_add_free();
 	t02_create_add_free_overflow();
 	t03_create_add_free_full_flow();
+	t04_create_add_free_GET();
+	t05_create_add_free_POST();
 	teardown();
 	END();
 }

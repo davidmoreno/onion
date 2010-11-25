@@ -76,11 +76,11 @@ struct onion_request_t{
 	onion_dict *files;    /// Dictionary with files. They are automatically saved at /tmp/ and removed at request free. mapped string is full path.
 	onion_write write;    /// Write function
 	void *socket;         /// Write function handler
+	char parse_state;     /// State at buffer parsing (0 headers, 1 POST data, 2 finished).
 	char buffer[128];     /// Buffer for queries. This should be enough. UGLY. FIXME.
 	int buffer_pos;
 	char *client_info;    /// A string that describes the client, normally the IP.
 };
-
 
 struct onion_response_t{
 	onion_request *request;  	/// Original request, so both are related, and get connected to the onion_server_t structure.
@@ -93,7 +93,6 @@ struct onion_response_t{
 	char buffer[1500]; 				/// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
 	int buffer_pos;						/// Position in the internal buffer. When sizeof(buffer) its flushed to the onion_server IO.
 };
-
 
 struct onion_handler_t{
 	onion_handler_handler handler;  /// callback that should return an onion_response object, or NULL if im not entitled to respnse this request.

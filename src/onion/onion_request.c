@@ -51,6 +51,7 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	req->server=server;
 	req->headers=onion_dict_new();
 	req->socket=socket;
+	req->parse_state=0;
 	req->buffer_pos=0;
 	req->files=NULL;
 	req->post=NULL;
@@ -79,48 +80,6 @@ void onion_request_free(onion_request *req){
 		free(req->client_info);
 	
 	free(req);
-}
-
-/// Partially fills a request. One line each time.
-int onion_request_fill(onion_request *req, const char *data){
-	ONION_DEBUG0("Request: %s",data);
-	if (!req->path){
-		ONION_DEBUG("Request: %s",data);
-		char method[16], url[256], version[16];
-		sscanf(data,"%15s %255s %15s",method, url, version);
-		
-		if (strcmp(method,"GET")==0)
-			req->flags|=OR_GET;
-		else if (strcmp(method,"POST")==0)
-			req->flags|=OR_POST;
-		else if (strcmp(method,"HEAD")==0)
-			req->flags|=OR_HEAD;
-		else
-			return 0; // Not valid method detected.
-
-		if (strcmp(version,"HTTP/1.1")==0)
-			req->flags|=OR_HTTP11;
-
-		req->path=strndup(url,sizeof(url));
-		req->fullpath=req->path;
-		onion_request_parse_query(req); // maybe it consumes some CPU and not always needed.. but I need the unquotation.
-	}
-	else{
-		char header[32], value[256];
-		sscanf(data, "%31s", header);
-		int i=0; 
-		const char *p=&data[strlen(header)+1];
-		while(*p && *p!='\n'){
-			value[i++]=*p++;
-			if (i==sizeof(value)-1){
-				break;
-			}
-		}
-		value[i]=0;
-		header[strlen(header)-1]='\0'; // removes the :
-		onion_dict_add(req->headers, header, value, OD_DUP_ALL);
-	}
-	return 1;
 }
 
 /// Parses the query part to a given dictionary.
@@ -166,6 +125,172 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, const char *p){
 	}
 }
 
+/// Parses the first query line, GET / HTTP/1.1
+static int onion_request_fill_query(onion_request *req, const char *data){
+	ONION_DEBUG("Request: %s",data);
+	char method[16], url[256], version[16];
+	sscanf(data,"%15s %255s %15s",method, url, version);
+	
+	if (strcmp(method,"GET")==0)
+		req->flags|=OR_GET;
+	else if (strcmp(method,"POST")==0)
+		req->flags|=OR_POST;
+	else if (strcmp(method,"HEAD")==0)
+		req->flags|=OR_HEAD;
+	else
+		return 0; // Not valid method detected.
+
+	if (strcmp(version,"HTTP/1.1")==0)
+		req->flags|=OR_HTTP11;
+
+	req->path=strndup(url,sizeof(url));
+	req->fullpath=req->path;
+	onion_request_parse_query(req); // maybe it consumes some CPU and not always needed.. but I need the unquotation.
+	
+	return 1;
+}
+
+/// Reads a header and sets it at the request
+static int onion_request_fill_header(onion_request *req, const char *data){
+	char header[32], value[256];
+	sscanf(data, "%31s", header);
+	int i=0; 
+	const char *p=&data[strlen(header)+1];
+	while(*p){
+		value[i++]=*p++;
+		if (i==sizeof(value)-1){
+			break;
+		}
+	}
+	value[i]=0;
+	header[strlen(header)-1]='\0'; // removes the :
+	onion_dict_add(req->headers, header, value, OD_DUP_ALL);
+	return 1;
+}
+
+/// Fills the post data.
+static int onion_request_fill_post(onion_request *req, const char *data){
+	ONION_DEBUG("POST data %s",data);
+	req->post=onion_dict_new();
+	onion_request_parse_query_to_dict(req->post, data);
+	return 1;
+}
+
+/**
+ * @short Partially fills a request. One line each time.
+ * 
+ * @returns 0 is error parsing, 1 if ok, -1 if connection should be closed (petition done, close connection).
+ */
+int onion_request_fill(onion_request *req, const char *data){
+	// Internally it uses req->parse_state, states are:
+	typedef enum parse_state_e{
+		CLEAN=0,
+		HEADERS=1,
+		POST_DATA=2,
+		FINISHED=3,
+	}parse_state;
+
+	ONION_DEBUG0("Request: %s",data);
+
+	switch(req->parse_state){
+	case CLEAN:
+		req->parse_state=HEADERS;
+		return onion_request_fill_query(req, data);
+	case HEADERS:
+		if (data[0]=='\0'){
+			if (req->flags&OR_POST){
+				req->parse_state=POST_DATA;
+				return 1;
+			}
+			else{
+				req->parse_state=FINISHED;
+				int s=onion_server_handle_request(req);
+				if (s==OR_CLOSE_CONNECTION)
+					return -1;
+				return 1;
+			}
+		}
+		else
+			return onion_request_fill_header(req, data);
+	case POST_DATA:
+		if (data[0]=='\0'){
+			req->parse_state=FINISHED;
+			int s=onion_server_handle_request(req);
+			if (s==OR_CLOSE_CONNECTION)
+				return -1;
+			return 1;
+		}
+		return onion_request_fill_post(req, data);
+	case FINISHED:
+		ONION_WARNING("Not accepting more data on this status. Clean the request if you want to start a new one.");
+	}
+	return 0;
+}
+		/*
+	if (!req->path){
+		
+	}
+	else{
+	}
+	return 1;
+}
+
+		if (req->parse_state==HEADERS){
+			if (c=='\n'){
+				if (req->buffer_pos==0){
+					if ((req->flags&(OR_GET|OR_HEAD))!=0)
+						req->parse_state=FINISHED;
+					else if (req->flags&(OR_POST)){
+						req->parse_state=POST_DATA;
+						continue;
+					}
+				}
+				else{
+					req->buffer[req->buffer_pos]='\0';
+					onion_request_fill(req, req->buffer);
+					req->buffer_pos=0;
+				}
+			}
+			else{
+				if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on headers
+					req->buffer_pos--;
+					if (!msgshown){
+						ONION_ERROR("Header too long for me (max header length (per header) %d chars). Ignoring from that byte on to the end of this line. (%16s...)",(int) sizeof(req->buffer),req->buffer);
+						ONION_ERROR("Increase it at onion_request.h and recompile onion.");
+						msgshown=1;
+					}
+				}
+				continue;
+			}
+		}
+		if (req->parse_state==POST_DATA){
+			if (c=='\n'){
+				if (!req->post)
+					req->post=onion_dict_new();
+				req->buffer[req->buffer_pos]='\0';
+				ONION_DEBUG("POST data %s",req->buffer);
+				onion_request_parse_query_to_dict(req->post, req->buffer);
+				req->buffer_pos=0;
+				req->parse_state=FINISHED;
+			}
+			else{
+				req->buffer[req->buffer_pos]=c;
+				req->buffer_pos++;
+			}
+			
+			req->parse_state=FINISHED;
+		}
+		if (req->parse_state==FINISHED){
+			int s=onion_server_handle_request(req);
+			if (s==OR_CLOSE_CONNECTION)
+				return -i;
+			// I do not stop as it might have more data: keep alive.
+		}
+	}
+	return i;
+}
+*/
+
 /**
  * @short Parses the query to unquote the path and get the query.
  */
@@ -197,41 +322,34 @@ static int onion_request_parse_query(onion_request *req){
 	return 1;
 }
 
-
 /**
- * @short Write some data into the request, and performs the query if necesary.
+ * @short Write some data into the request, and passes it line by line to onion_request_fill
  *
- * This is where almost all logic has place: it reads from the given data until it has all the headers
- * and launchs the root handler to perform the petition.
+ * Just reads line by line and passes the data to onion_request_fill.
+ * 
+ * Return the number of bytes writen.
  */
 int onion_request_write(onion_request *req, const char *data, unsigned int length){
 	int i;
 	char msgshown=0;
 	for (i=0;i<length;i++){
 		char c=data[i];
+		if (c=='\r') // Just skip it
+			continue;
 		if (c=='\n'){
-			// If true, then headers are over. Do the processing. Second test is to prevent \n as first char on petitions. On keepalive.
-			if (req->buffer_pos==0 && ((req->flags&(OR_GET|OR_POST|OR_HEAD))!=0)){ 
-				int s=onion_server_handle_request(req);
-				if (s==OR_CLOSE_CONNECTION) // close the connection.
-					return -i;
-				// I do not stop as it might have more data: keep alive.
-			}
-			else{
-				req->buffer[req->buffer_pos]='\0';
-				onion_request_fill(req, req->buffer);
-				req->buffer_pos=0;
-			}
-		}
-		else if (c=='\r'){ // Just skip it when in headers
+			req->buffer[req->buffer_pos]='\0';
+			int r=onion_request_fill(req,req->buffer);
+			req->buffer_pos=0;
+			if (r<=0) // Close connection. Might be a rightfull close, or because of an error. Close anyway.
+				return -i;
 		}
 		else{
 			req->buffer[req->buffer_pos]=c;
 			req->buffer_pos++;
-			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on headers
+			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on line
 				req->buffer_pos--;
 				if (!msgshown){
-					ONION_ERROR("Header too long for me (max header length (per header) %d chars). Ignoring from that byte on to the end of this line. (%16s...)",(int) sizeof(req->buffer),req->buffer);
+					ONION_ERROR("Read data too long for me (max data length %d chars). Ignoring from that byte on to the end of this line. (%16s...)",(int) sizeof(req->buffer),req->buffer);
 					ONION_ERROR("Increase it at onion_request.h and recompile onion.");
 					msgshown=1;
 				}
@@ -240,6 +358,7 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 	}
 	return i;
 }
+
 
 /// Returns a pointer to the string with the current path. Its a const and should not be trusted for long time.
 const char *onion_request_get_path(onion_request *req){
@@ -269,6 +388,7 @@ const char *onion_request_get_query(onion_request *req, const char *query){
 void onion_request_clean(onion_request* req){
 	onion_dict_free(req->headers);
 	req->headers=onion_dict_new();
+	req->parse_state=0;
 	req->flags&=0xFF00;
 	if (req->fullpath){
 		free(req->fullpath);
