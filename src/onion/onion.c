@@ -243,7 +243,7 @@ onion *onion_new(int flags){
 	o->max_threads=15;
 	if (o->flags&O_THREADED){
 		o->flags|=O_THREADS_ENABLED;
-		sem_init(&o->thread_count,0, o->max_threads);
+		sem_init(&o->thread_count, 0, o->max_threads);
 		pthread_mutex_init(&o->mutex, NULL);
 	}
 #endif
@@ -353,7 +353,7 @@ void onion_free(onion *onion){
 		int c;
 		for(;ntries--;){
 			sem_getvalue(&onion->thread_count,&c);
-			if (c==MAX_THREADS){
+			if (c==onion->max_threads){
 				break;
 			}
 			ONION_INFO("Still some petitions on process (%d). Wait a little bit (%d).",c,ntries);
@@ -412,8 +412,10 @@ void onion_set_timeout(onion *onion, int timeout){
  * an undetermined number of request on the range [new_max_threads, current max_threads + new_max_threads]
  */
 void onion_set_max_threads(onion *onion, int max_threads){
+#ifdef HAVE_PTHREADS
 	onion->max_threads=max_threads;
-	sem_init(&onion->thread_count, max_threads);
+	sem_init(&onion->thread_count, 0, max_threads);
+#endif
 }
 
 
