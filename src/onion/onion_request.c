@@ -31,6 +31,11 @@
 #include "onion_codecs.h"
 #include "onion_log.h"
 
+
+static int onion_request_parse_query(onion_request *req);
+
+
+
 /**
  *  @short Creates a request object
  * 
@@ -70,6 +75,9 @@ void onion_request_free(onion_request *req){
 	if (req->files)
 		onion_dict_free(req->files);
 
+	if (req->client_info)
+		free(req->client_info);
+	
 	free(req);
 }
 
@@ -158,8 +166,10 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, const char *p){
 	}
 }
 
-/// Parses a query string.
-int onion_request_parse_query(onion_request *req){
+/**
+ * @short Parses the query to unquote the path and get the query.
+ */
+static int onion_request_parse_query(onion_request *req){
 	if (!req->path)
 		return 0;
 	if (req->query) // already done
@@ -275,7 +285,7 @@ void onion_request_clean(onion_request* req){
  * 
  * This is usefull on non threaded modes, as the keep alive blocks the loop.
  */
-void onion_request_no_keep_alive(onion_request *req){
+void onion_request_set_no_keep_alive(onion_request *req){
 	req->flags|=OR_NO_KEEP_ALIVE;
 	ONION_DEBUG("Disabling keep alive %X",req->flags);
 }

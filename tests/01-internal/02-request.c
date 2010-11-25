@@ -102,8 +102,6 @@ void t03_create_add_free_full_flow(){
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Host"), "127.0.0.1");
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
 
-	onion_request_parse_query(req);
-	
 	FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
 	FAIL_IF_NOT_EQUAL_STR(req->path,"/myurl /is/very/deeply/nested");
 

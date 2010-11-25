@@ -53,9 +53,6 @@ int onion_request_fill(onion_request *req, const char *data);
 /// Reads some data from the input (net, file...) and performs the onion_request_fill
 int onion_request_write(onion_request *req, const char *data, unsigned int length);
 
-/// Parses the query. Only called when really needs the query data. LAZY.
-int onion_request_parse_query(onion_request *req);
-
 /// Gets the current path
 const char *onion_request_get_path(onion_request *req);
 
@@ -72,7 +69,7 @@ const char *onion_request_get_query(onion_request *req, const char *query);
 void onion_request_clean(onion_request *req);
 
 /// Reqeust to close connection after one request is done, forces no keep alive.
-void onion_request_no_keep_alive(onion_request *req);
+void onion_request_set_no_keep_alive(onion_request *req);
 
 /// Returns if current request wants to keep alive
 int onion_request_keep_alive(onion_request *req);

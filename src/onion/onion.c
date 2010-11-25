@@ -463,7 +463,7 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 	onion_server_set_write(o->server, (onion_write)write_to_socket);
 #endif
 	if (!(o->flags&O_THREADED))
-		onion_request_no_keep_alive(req);
+		onion_request_set_no_keep_alive(req);
 	
 	struct pollfd pfd;
 	pfd.events=POLLIN;
