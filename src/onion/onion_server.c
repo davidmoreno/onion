@@ -23,6 +23,7 @@
 #include "onion_server.h"
 #include "onion_handler.h"
 #include "onion_types_internal.h"
+#include "onion_log.h"
 
 onion_server *onion_server_new(void){
 	onion_server *ret=malloc(sizeof(onion_server));
@@ -51,6 +52,7 @@ void onion_server_set_root_handler(onion_server *server, onion_handler *handler)
  * Returns the OR_KEEP_ALIVE or OR_CLOSE_CONNECTION value. If on keep alive the struct is already reinitialized.
  */
 int onion_server_handle_request(onion_request *req){
+	ONION_DEBUG("Handling request");
 	int status=onion_handler_handle(req->server->root_handler, req);
 	if (status==OR_KEEP_ALIVE){ // if keep alive, reset struct to get the new petition.
 		onion_request_clean(req);

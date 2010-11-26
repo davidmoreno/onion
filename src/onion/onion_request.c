@@ -34,6 +34,14 @@
 
 static int onion_request_parse_query(onion_request *req);
 
+// Internally it uses req->parse_state, states are:
+typedef enum parse_state_e{
+	CLEAN=0,
+	HEADERS=1,
+	POST_DATA=2,
+	FINISHED=3,
+}parse_state;
+
 
 
 /**
@@ -182,15 +190,7 @@ static int onion_request_fill_post(onion_request *req, const char *data){
  * @returns 0 is error parsing, 1 if ok, -1 if connection should be closed (petition done, close connection).
  */
 int onion_request_fill(onion_request *req, const char *data){
-	// Internally it uses req->parse_state, states are:
-	typedef enum parse_state_e{
-		CLEAN=0,
-		HEADERS=1,
-		POST_DATA=2,
-		FINISHED=3,
-	}parse_state;
-
-	ONION_DEBUG0("Request: %s",data);
+	ONION_DEBUG0("Request (%d): %s",req->parse_state, data);
 
 	switch(req->parse_state){
 	case CLEAN:
@@ -213,83 +213,17 @@ int onion_request_fill(onion_request *req, const char *data){
 		else
 			return onion_request_fill_header(req, data);
 	case POST_DATA:
-		if (data[0]=='\0'){
-			req->parse_state=FINISHED;
-			int s=onion_server_handle_request(req);
-			if (s==OR_CLOSE_CONNECTION)
-				return -1;
-			return 1;
-		}
-		return onion_request_fill_post(req, data);
+		onion_request_fill_post(req, data);
+		req->parse_state=FINISHED;
+		int s=onion_server_handle_request(req);
+		if (s==OR_CLOSE_CONNECTION)
+			return -1;
+		return 1;
 	case FINISHED:
 		ONION_WARNING("Not accepting more data on this status. Clean the request if you want to start a new one.");
 	}
 	return 0;
 }
-		/*
-	if (!req->path){
-		
-	}
-	else{
-	}
-	return 1;
-}
-
-		if (req->parse_state==HEADERS){
-			if (c=='\n'){
-				if (req->buffer_pos==0){
-					if ((req->flags&(OR_GET|OR_HEAD))!=0)
-						req->parse_state=FINISHED;
-					else if (req->flags&(OR_POST)){
-						req->parse_state=POST_DATA;
-						continue;
-					}
-				}
-				else{
-					req->buffer[req->buffer_pos]='\0';
-					onion_request_fill(req, req->buffer);
-					req->buffer_pos=0;
-				}
-			}
-			else{
-				if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on headers
-					req->buffer_pos--;
-					if (!msgshown){
-						ONION_ERROR("Header too long for me (max header length (per header) %d chars). Ignoring from that byte on to the end of this line. (%16s...)",(int) sizeof(req->buffer),req->buffer);
-						ONION_ERROR("Increase it at onion_request.h and recompile onion.");
-						msgshown=1;
-					}
-				}
-				continue;
-			}
-		}
-		if (req->parse_state==POST_DATA){
-			if (c=='\n'){
-				if (!req->post)
-					req->post=onion_dict_new();
-				req->buffer[req->buffer_pos]='\0';
-				ONION_DEBUG("POST data %s",req->buffer);
-				onion_request_parse_query_to_dict(req->post, req->buffer);
-				req->buffer_pos=0;
-				req->parse_state=FINISHED;
-			}
-			else{
-				req->buffer[req->buffer_pos]=c;
-				req->buffer_pos++;
-			}
-			
-			req->parse_state=FINISHED;
-		}
-		if (req->parse_state==FINISHED){
-			int s=onion_server_handle_request(req);
-			if (s==OR_CLOSE_CONNECTION)
-				return -i;
-			// I do not stop as it might have more data: keep alive.
-		}
-	}
-	return i;
-}
-*/
 
 /**
  * @short Parses the query to unquote the path and get the query.
@@ -332,6 +266,16 @@ static int onion_request_parse_query(onion_request *req){
 int onion_request_write(onion_request *req, const char *data, unsigned int length){
 	int i;
 	char msgshown=0;
+	int content_length=0;
+	if (req->parse_state==POST_DATA){
+		const char *cl=onion_dict_get(req->headers,"Content-Length");
+		if (!cl){
+			ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
+			return 0;
+		}
+		content_length=atoi(cl);
+		ONION_DEBUG("Expecting a POST of %d bytes, %s",content_length,data);
+	}
 	for (i=0;i<length;i++){
 		char c=data[i];
 		if (c=='\r') // Just skip it
@@ -342,10 +286,19 @@ int onion_request_write(onion_request *req, const char *data, unsigned int lengt
 			req->buffer_pos=0;
 			if (r<=0) // Close connection. Might be a rightfull close, or because of an error. Close anyway.
 				return -i;
+			if (req->parse_state==POST_DATA)
+				return onion_request_write(req, &data[i+1], length-(i+1));
 		}
 		else{
 			req->buffer[req->buffer_pos]=c;
 			req->buffer_pos++;
+			if (content_length && req->buffer_pos>=content_length){
+				req->buffer[req->buffer_pos]='\0';
+				int r=onion_request_fill(req,req->buffer);
+				req->buffer_pos=0;
+				if (r<=0) // Close connection. Might be a rightfull close, or because of an error. Close anyway.
+					return -i;
+			}
 			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on line
 				req->buffer_pos--;
 				if (!msgshown){
@@ -379,6 +332,13 @@ const char *onion_request_get_header(onion_request *req, const char *header){
 const char *onion_request_get_query(onion_request *req, const char *query){
 	if (req->query)
 		return onion_dict_get(req->query, query);
+	return NULL;
+}
+
+/// Gets a post data
+const char *onion_request_get_post(onion_request *req, const char *query){
+	if (req->post)
+		return onion_dict_get(req->post, query);
 	return NULL;
 }
 

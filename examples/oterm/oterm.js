@@ -230,7 +230,7 @@ requestNewData = function(keyvalue){
 		cacheSendKeys+=keyvalue
 	if (!onpetitionIn && cacheSendKeys){
 		onpetitionIn=true
-		$.get('in',{type:cacheSendKeys}, function(){ onpetitionIn=false; requestNewData(); })
+		$.post('in',{type:cacheSendKeys}, function(){ onpetitionIn=false; requestNewData(); })
 		cacheSendKeys=''
 	}
 	if (!onpetitionOut){

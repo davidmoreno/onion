@@ -78,7 +78,7 @@ struct onion_request_t{
 	void *socket;         /// Write function handler
 	char parse_state;     /// State at buffer parsing (0 headers, 1 POST data, 2 finished).
 	char buffer[128];     /// Buffer for queries. This should be enough. UGLY. FIXME.
-	int buffer_pos;
+	int buffer_pos;       /// Position on the buffer
 	char *client_info;    /// A string that describes the client, normally the IP.
 };
 

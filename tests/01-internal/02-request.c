@@ -169,8 +169,8 @@ void t05_create_add_free_POST(){
 	FAIL_IF_NOT_EQUAL(req->socket, 0);
 	
 	const char *query="POST /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n"
-													"Host: 127.0.0.1\n\r"
-													"Other-Header: My header is very long and with spaces...\r\n\r\npost_data=1&post_data2=2\r\n\r\n";
+													"Host: 127.0.0.1\n\rContent-Length: 24\n"
+													"Other-Header: My header is very long and with spaces...\r\n\r\npost_data=1&post_data2=2";
 	
 	int i; // Straight write, with clean (keep alive like)
 	for (i=0;i<10;i++){

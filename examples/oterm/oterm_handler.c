@@ -186,7 +186,7 @@ int oterm_status(oterm_t *o, onion_request *req){
 /// Input data to the process
 int oterm_in(process *o, onion_request *req){
 	const char *data;
-	data=onion_request_get_query(req,"type");
+	data=onion_request_get_post(req,"type");
 	if (data){
 		//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
 		write(o->fd, data, strlen(data));

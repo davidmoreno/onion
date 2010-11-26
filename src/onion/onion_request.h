@@ -65,6 +65,9 @@ const char *onion_request_get_header(onion_request *req, const char *header);
 /// Gets query data
 const char *onion_request_get_query(onion_request *req, const char *query);
 
+/// Gets post data
+const char *onion_request_get_post(onion_request *req, const char *query);
+
 /// Cleans the request object, to reuse it
 void onion_request_clean(onion_request *req);
 
