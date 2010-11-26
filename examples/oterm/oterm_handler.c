@@ -142,13 +142,39 @@ int oterm_data(oterm_t *o, onion_request *req){
 	return onion_handler_handle(o->data, req);
 }
 
+/// Variables that will be passed to the new environment.
+const char *onion_clearenvs[]={ "HOME", "TMP" };
+const char *onion_extraenvs[]={ "TERM=xterm" };
+
+#define ONION_CLEARENV_COUNT (sizeof(onion_clearenvs)/sizeof(onion_clearenvs[0]))
+#define ONION_EXTRAENV_COUNT (sizeof(onion_extraenvs)/sizeof(onion_extraenvs[0]))
+
 /// Creates a new oterm
 process *oterm_new(oterm_t *o){
 	process *oterm=malloc(sizeof(process));
 
 	oterm->pid=forkpty(&oterm->fd, NULL, NULL, NULL);
 	if ( oterm->pid== 0 ){ // on child
-		int ok=execl("/bin/bash","bash",NULL);
+		// Copy env vars.
+		char **envs=malloc(sizeof(char*)*(1+ONION_CLEARENV_COUNT+ONION_EXTRAENV_COUNT));
+		int i,j=0;
+		for (i=0;i<ONION_CLEARENV_COUNT;i++){
+			const char *env=onion_clearenvs[i];
+			const char *val=getenv(env);
+			if (val){
+				int l=strlen(env)+1+strlen(val)+1;
+				envs[j]=malloc(l);
+				sprintf(envs[j],"%s=%s",env,val);
+				j++;
+			}
+		}
+		for (i=0;i<ONION_EXTRAENV_COUNT;i++){
+			envs[j]=strdup(onion_extraenvs[i]);
+			j++;
+		}
+		envs[j]=NULL;
+
+		int ok=execle("/bin/bash","bash",NULL,envs);
 		fprintf(stderr,"%s:%d Could not exec shell: %d\n",__FILE__,__LINE__,ok);
 		perror("");
 		exit(1);

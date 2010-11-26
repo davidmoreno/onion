@@ -366,7 +366,6 @@ updateCursor = function(){
 	else
 		posY=1+(posRow-1)*charHeight
 
-
 	$('span#cursor').css('top',posY).css('left',(posColumn-1)*charWidth)
 
 }
