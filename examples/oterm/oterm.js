@@ -353,13 +353,22 @@ setColorStatus = function(st){
 
 /// Places the cursor on its place
 updateCursor = function(){
-	$('span#cursor').css('top',1+(posRow-1)*charHeight).css('left',(posColumn-1)*charWidth)
 	var nr=$('#row_'+posRow)
 	if (!nr.hasClass('current_line')){
 		current_line.removeClass('current_line')
 		nr.addClass('current_line')
 		current_line=nr
 	}
+
+	var posY
+	if (current_line.length!=0)
+		posY=current_line.position().top
+	else
+		posY=1+(posRow-1)*charHeight
+
+
+	$('span#cursor').css('top',posY).css('left',(posColumn-1)*charWidth)
+
 }
 
 /// Removes a character, or several, from here on, passed as number + control char
