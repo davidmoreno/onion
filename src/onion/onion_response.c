@@ -88,9 +88,9 @@ void onion_response_set_header(onion_response *res, const char *key, const char 
 }
 
 /// Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
-void onion_response_set_length(onion_response *res, unsigned int len){
+void onion_response_set_length(onion_response *res, size_t len){
 	char tmp[16];
-	sprintf(tmp,"%d",len);
+	sprintf(tmp,"%lu",(unsigned long)len);
 	onion_response_set_header(res, "Content-Length", tmp);
 	res->length=len;
 	res->flags|=OR_LENGTH_SET;
@@ -147,7 +147,7 @@ int onion_response_write_headers(onion_response *res){
 }
 
 /// Straight write some data to the response. Only used for real data as it has info about sent bytes for keep alive.
-int onion_response_write(onion_response *res, const char *data, unsigned int length){
+ssize_t onion_response_write(onion_response *res, const char *data, size_t length){
 	if (res->flags&OR_SKIP_CONTENT){
 		ONION_DEBUG("Skipping content as we are in HEAD mode");
 		return -1;
@@ -203,12 +203,12 @@ static int onion_response_write_buffer(onion_response *res){
 }
 
 /// Writes a 0-ended string to the response.
-int onion_response_write0(onion_response *res, const char *data){
+ssize_t onion_response_write0(onion_response *res, const char *data){
 	return onion_response_write(res, data, strlen(data));
 }
 
 /// Writes some data to the response. Using sprintf format strings. Max final string size: 1024
-int onion_response_printf(onion_response *res, const char *fmt, ...){
+ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
 	char temp[1024];
 	va_list ap;
 	va_start(ap, fmt);

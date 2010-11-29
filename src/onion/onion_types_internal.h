@@ -33,6 +33,10 @@
 extern "C"{
 #endif
 
+#define ONION_REQUEST_BUFFER_SIZE 256
+#define ONION_RESPONSE_BUFFER_SIZE 1500
+
+
 struct onion_dict_t{
 	const char *key;
 	const char *value;
@@ -77,8 +81,8 @@ struct onion_request_t{
 	onion_write write;    /// Write function
 	void *socket;         /// Write function handler
 	char parse_state;     /// State at buffer parsing (0 headers, 1 POST data, 2 finished).
-	char buffer[128];     /// Buffer for queries. This should be enough. UGLY. FIXME.
-	int buffer_pos;       /// Position on the buffer
+	char buffer[ONION_REQUEST_BUFFER_SIZE];     /// Buffer for queries. This should be enough. UGLY. FIXME.
+	off_t buffer_pos;       /// Position on the buffer
 	char *client_info;    /// A string that describes the client, normally the IP.
 };
 
@@ -90,8 +94,8 @@ struct onion_response_t{
 	unsigned int length;			/// Length, if known of the response, to create the Content-Lenght header. 
 	unsigned int sent_bytes; 	/// Sent bytes at content.
 	unsigned int sent_bytes_total; /// Total sent bytes, including headers.
-	char buffer[1500]; 				/// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
-	int buffer_pos;						/// Position in the internal buffer. When sizeof(buffer) its flushed to the onion_server IO.
+	char buffer[ONION_RESPONSE_BUFFER_SIZE]; 				/// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
+	off_t buffer_pos;						/// Position in the internal buffer. When sizeof(buffer) its flushed to the onion_server IO.
 };
 
 struct onion_handler_t{

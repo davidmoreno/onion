@@ -20,6 +20,7 @@
 #define __ONION_RESPONSE__
 
 #include "onion_types.h"
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -57,7 +58,7 @@ int onion_response_free(onion_response *res);
 /// Adds a header to the response object
 void onion_response_set_header(onion_response *res, const char *key, const char *value);
 /// Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
-void onion_response_set_length(onion_response *res, unsigned int length);
+void onion_response_set_length(onion_response *res, size_t length);
 /// Sets the return code
 void onion_response_set_code(onion_response *res, int code);
 
@@ -65,11 +66,11 @@ void onion_response_set_code(onion_response *res, int code);
 /// Writes all the header to the given fd
 int onion_response_write_headers(onion_response *res);
 /// Writes some data to the response
-int onion_response_write(onion_response *res, const char *data, unsigned int length);
+ssize_t onion_response_write(onion_response *res, const char *data, size_t length);
 /// Writes some data to the response. \0 ended string
-int onion_response_write0(onion_response *res, const char *data);
+ssize_t onion_response_write0(onion_response *res, const char *data);
 /// Writes some data to the response. Using sprintf format strings.
-int onion_response_printf(onion_response *res, const char *fmt, ...);
+ssize_t onion_response_printf(onion_response *res, const char *fmt, ...);
 /// @}
 
 /// Returns the write object.

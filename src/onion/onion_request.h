@@ -51,7 +51,7 @@ void onion_request_free(onion_request *req);
 int onion_request_fill(onion_request *req, const char *data);
 
 /// Reads some data from the input (net, file...) and performs the onion_request_fill
-int onion_request_write(onion_request *req, const char *data, unsigned int length);
+ssize_t onion_request_write(onion_request *req, const char *data, size_t length);
 
 /// Gets the current path
 const char *onion_request_get_path(onion_request *req);

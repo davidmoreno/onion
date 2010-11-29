@@ -263,8 +263,8 @@ static int onion_request_parse_query(onion_request *req){
  * 
  * Return the number of bytes writen.
  */
-int onion_request_write(onion_request *req, const char *data, unsigned int length){
-	int i;
+ssize_t onion_request_write(onion_request *req, const char *data, size_t length){
+	size_t i;
 	char msgshown=0;
 	int content_length=0;
 	if (req->parse_state==POST_DATA){
