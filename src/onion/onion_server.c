@@ -67,11 +67,9 @@ void onion_server_set_internal_error_handler(onion_server *server, onion_handler
 int onion_server_handle_request(onion_request *req){
 	ONION_DEBUG("Handling request");
 	int status=onion_handler_handle(req->server->root_handler, req);
-	if (status==OR_KEEP_ALIVE){ // if keep alive, reset struct to get the new petition.
+	if (status==OCS_KEEP_ALIVE) // if keep alive, reset struct to get the new petition.
 		onion_request_clean(req);
-		return OR_KEEP_ALIVE;
-	}
-	return OR_CLOSE_CONNECTION;
+	return status;
 }
 
 

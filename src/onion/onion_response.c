@@ -55,12 +55,15 @@ onion_response *onion_response_new(onion_request *req){
  * @short Frees the memory consumed by this object
  * 
  * This function returns the close status: OR_KEEP_ALIVE or OR_CLOSE_CONNECTION as needed.
+ * 
+ * @returns Whether the connection should be closed or not, or an error status to be handled by server.
+ * @see onion_connection_status
  */
-int onion_response_free(onion_response *res){
+onion_connection_status onion_response_free(onion_response *res){
 	// write pending data.
 	onion_response_write_buffer(res);
 	
-	int r=OR_CLOSE_CONNECTION;
+	int r=OCS_CLOSE_CONNECTION;
 	
 	// it is a rare ocassion that there is no request, but although unlikely, it may happend
 	if (res->request){
@@ -68,12 +71,12 @@ int onion_response_free(onion_response *res){
 		ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d)", onion_request_keep_alive(res->request),
 								res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes);
 		if ( onion_request_keep_alive(res->request) && (res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes) )
-			r=OR_KEEP_ALIVE;
+			r=OCS_KEEP_ALIVE;
 		
 		// FIXME! This is no proper logging at all. Maybe use a handler.
 		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->client_info, (res->request->flags&OR_GET) ? "GET" : (res->request->flags&OR_HEAD) ? "HEAD" : (res->request->flags&OR_POST) ? "POST" : "UNKNOWN_METHOD",
 						res->request->fullpath, res->code, res->sent_bytes,
-						(r==OR_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
+						(r==OCS_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
 	}
 	
 	onion_dict_free(res->headers);
@@ -150,7 +153,7 @@ int onion_response_write_headers(onion_response *res){
 ssize_t onion_response_write(onion_response *res, const char *data, size_t length){
 	if (res->flags&OR_SKIP_CONTENT){
 		ONION_DEBUG("Skipping content as we are in HEAD mode");
-		return ORS_CLOSE_CONNECTION;
+		return OCS_CLOSE_CONNECTION;
 	}
 	
 	res->sent_bytes+=length;
@@ -192,7 +195,7 @@ static int onion_response_write_buffer(onion_response *res){
 			ONION_ERROR("Error writing at %d. Maybe closed connection. Code %d. ",res->buffer_pos, w);
 			perror("");
 			res->buffer_pos=0;
-			return ORS_CLOSE_CONNECTION;
+			return OCS_CLOSE_CONNECTION;
 		}
 		pos+=w;
 		res->buffer_pos-=w;

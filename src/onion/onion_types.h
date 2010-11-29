@@ -116,6 +116,21 @@ enum onion_ssl_certificate_type_e{
 
 typedef enum onion_ssl_certificate_type_e onion_ssl_certificate_type;
 
+/**
+ * @short The desired connection state of the connection.
+ * 
+ * If <0 it means close connection, but may mean also to show something to the client.
+ */
+enum onion_connection_status_e{
+	OCS_NEED_MORE_DATA=1,
+	OCS_KEEP_ALIVE=2,
+	OCS_CLOSE_CONNECTION=0,
+	OCS_INTERNAL_ERROR=-500,
+	OCS_NOT_IMPLEMENTED=-501,
+};
+
+typedef enum onion_connection_status_e onion_connection_status;
+
 
 #endif
 

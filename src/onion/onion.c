@@ -454,7 +454,8 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 	signal(SIGPIPE, SIG_IGN); // FIXME. remove the thread better. Now it will try to write and fail on it.
 
 
-	int r,w;
+	int r;
+	onion_connection_status connection_status;
 	char buffer[1024];
 	onion_request *req;
 #ifdef HAVE_GNUTLS
@@ -489,9 +490,10 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 				ONION_ERROR("Error reading data");
 			break;
 		}
-		w=onion_request_write(req, buffer, r);
-		if (w<0){ // request processed. Close connection.
-			if (w==ORS_INTERNAL_ERROR){
+		connection_status=onion_request_write(req, buffer, r);
+		ONION_DEBUG0("Connection status after write %d (%d bytes)",connection_status, r);
+		if (connection_status<0){ // Close the connection, maybe show some error.
+			if (connection_status==OCS_INTERNAL_ERROR || connection_status==OCS_NOT_IMPLEMENTED){
 				onion_handler_handle(o->server->internal_error_handler, req);
 			}
 			break;

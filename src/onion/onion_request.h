@@ -40,20 +40,6 @@ enum onion_request_flags_e{
 
 typedef struct onion_request_method_e onion_request_method;
 
-/**
- * @short Return status from onion_request_write; only if <0.
- * 
- * If <0 it means close conneciton, but may mean also to show something to the client.
- */
-enum onion_request_status_e{
-	ORS_NO_ERROR=0,
-	ORS_CLOSE_CONNECTION=-1,
-	ORS_INTERNAL_ERROR=-500
-};
-
-typedef enum onion_request_status_e onion_request_status;
-
-
 /// Creates a request
 onion_request *onion_request_new(onion_server *server, void *socket, const char *client_info);
 
@@ -64,7 +50,7 @@ void onion_request_free(onion_request *req);
 int onion_request_fill(onion_request *req, const char *data);
 
 /// Reads some data from the input (net, file...) and performs the onion_request_fill
-ssize_t onion_request_write(onion_request *req, const char *data, size_t length);
+onion_connection_status onion_request_write(onion_request *req, const char *data, size_t length);
 
 /// Gets the current path
 const char *onion_request_get_path(onion_request *req);

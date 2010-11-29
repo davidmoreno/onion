@@ -134,7 +134,7 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, const char *p){
 }
 
 /// Parses the first query line, GET / HTTP/1.1
-static int onion_request_fill_query(onion_request *req, const char *data){
+static onion_connection_status onion_request_fill_query(onion_request *req, const char *data){
 	ONION_DEBUG("Request: %s",data);
 	char method[16], url[256], version[16];
 	sscanf(data,"%15s %255s %15s",method, url, version);
@@ -146,7 +146,7 @@ static int onion_request_fill_query(onion_request *req, const char *data){
 	else if (strcmp(method,"HEAD")==0)
 		req->flags|=OR_HEAD;
 	else
-		return 0; // Not valid method detected.
+		return OCS_NOT_IMPLEMENTED; // Not valid method detected.
 
 	if (strcmp(version,"HTTP/1.1")==0)
 		req->flags|=OR_HTTP11;
@@ -155,11 +155,11 @@ static int onion_request_fill_query(onion_request *req, const char *data){
 	req->fullpath=req->path;
 	onion_request_parse_query(req); // maybe it consumes some CPU and not always needed.. but I need the unquotation.
 	
-	return 1;
+	return OCS_NEED_MORE_DATA;
 }
 
 /// Reads a header and sets it at the request
-static int onion_request_fill_header(onion_request *req, const char *data){
+static onion_connection_status onion_request_fill_header(onion_request *req, const char *data){
 	char header[32], value[256];
 	sscanf(data, "%31s", header);
 	int i=0; 
@@ -173,23 +173,25 @@ static int onion_request_fill_header(onion_request *req, const char *data){
 	value[i]=0;
 	header[strlen(header)-1]='\0'; // removes the :
 	onion_dict_add(req->headers, header, value, OD_DUP_ALL);
-	return 1;
+	return OCS_NEED_MORE_DATA;
 }
 
-/// Fills the post data.
-static int onion_request_fill_post(onion_request *req, const char *data){
-	ONION_DEBUG("POST data %s",data);
-	req->post=onion_dict_new();
-	onion_request_parse_query_to_dict(req->post, data);
-	return 1;
+/**
+ * @short Processes one request, calling the handler.
+ */
+static onion_connection_status onion_request_process(onion_request *req){
+	req->parse_state=FINISHED;
+	int s=onion_server_handle_request(req);
+	return s;
 }
 
 /**
  * @short Partially fills a request. One line each time.
  * 
- * @returns 0 is error parsing, 1 if ok, -1 if connection should be closed (petition done, close connection).
+ * @returns onion_request_write_status that sets if there is internal error, keep alive...
+ * @see onion_request_write_status
  */
-int onion_request_fill(onion_request *req, const char *data){
+onion_connection_status onion_request_fill(onion_request *req, const char *data){
 	ONION_DEBUG0("Request (%d): %s",req->parse_state, data);
 
 	switch(req->parse_state){
@@ -200,29 +202,17 @@ int onion_request_fill(onion_request *req, const char *data){
 		if (data[0]=='\0'){
 			if (req->flags&OR_POST){
 				req->parse_state=POST_DATA;
-				return 1;
+				return OCS_NEED_MORE_DATA;
 			}
 			else{
-				req->parse_state=FINISHED;
-				int s=onion_server_handle_request(req);
-				if (s==OR_CLOSE_CONNECTION)
-					return -1;
-				return 1;
+				return onion_request_process(req);
 			}
 		}
-		else
-			return onion_request_fill_header(req, data);
-	case POST_DATA:
-		onion_request_fill_post(req, data);
-		req->parse_state=FINISHED;
-		int s=onion_server_handle_request(req);
-		if (s==OR_CLOSE_CONNECTION)
-			return -1;
-		return 1;
+		return onion_request_fill_header(req, data);
 	case FINISHED:
-		ONION_WARNING("Not accepting more data on this status. Clean the request if you want to start a new one.");
+		ONION_ERROR("Not accepting more data on this status. Clean the request if you want to start a new one.");
 	}
-	return 0;
+	return OCS_INTERNAL_ERROR;
 }
 
 /**
@@ -256,40 +246,52 @@ static int onion_request_parse_query(onion_request *req){
 	return 1;
 }
 
+/// Fills the post data.
+static onion_connection_status onion_request_write_post(onion_request *req, const char *data, size_t length){
+	size_t content_length=0;
+	const char *cl=onion_dict_get(req->headers,"Content-Length");
+	if (!cl){
+		ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
+		return OCS_INTERNAL_ERROR;
+	}
+	content_length=atoi(cl);
+	if (sizeof(req->buffer)<content_length){
+		ONION_WARNING("Onion not yet prepared for POST with more than %ld bytes of data (this have %ld)",(unsigned int)sizeof(req->buffer),(unsigned int)content_length);
+		return OCS_INTERNAL_ERROR;
+	}
+	
+	size_t l=(length<content_length) ? length : content_length;
+	ONION_DEBUG("Expecting a POST of %d bytes, got %d, max %d",(int)content_length,(int)l,(int)sizeof(req->buffer));
+	memcpy(&req->buffer[req->buffer_pos], data, l);
+	req->buffer[l]=0;
+
+	ONION_DEBUG("POST data %s",req->buffer);
+	req->post=onion_dict_new();
+	onion_request_parse_query_to_dict(req->post, req->buffer);
+	req->buffer_pos=0;
+
+	int r=onion_request_process(req);
+	if (l<length){
+		ONION_WARNING("Received more data after POST data. Not expected. Clossing connection");
+		return OCS_CLOSE_CONNECTION;
+	}
+	return r;
+}
+
+
 /**
  * @short Write some data into the request, and passes it line by line to onion_request_fill
  *
- * Just reads line by line and passes the data to onion_request_fill.
+ * Just reads line by line and passes the data to onion_request_fill. If on POST state, calls onion_request_write_post. 
  * 
- * Return the number of bytes writen.
+ * @return Returns the number of bytes writen, or <=0 if connection should close, acording to onion_request_write_status_e.
+ * @see onion_request_write_status_e onion_request_write_post
  */
-ssize_t onion_request_write(onion_request *req, const char *data, size_t length){
+onion_connection_status onion_request_write(onion_request *req, const char *data, size_t length){
 	size_t i;
 	char msgshown=0;
 	if (req->parse_state==POST_DATA){
-		size_t content_length=0;
-		const char *cl=onion_dict_get(req->headers,"Content-Length");
-		if (!cl){
-			ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
-			return ORS_INTERNAL_ERROR;
-		}
-		content_length=atoi(cl);
-		if (sizeof(req->buffer)<content_length){
-			ONION_WARNING("Onion not yet prepared for POST with more than %ld bytes of data (this have %ld)",(unsigned int)sizeof(req->buffer),(unsigned int)content_length);
-			return ORS_INTERNAL_ERROR;
-		}
-		
-		size_t l=(length<content_length) ? length : content_length;
-		ONION_DEBUG("Expecting a POST of %d bytes, got %d, max %d",(int)content_length,(int)l,(int)sizeof(req->buffer));
-		memcpy(&req->buffer[req->buffer_pos], data, l);
-		req->buffer[l]=0;
-		
-		onion_request_fill(req, req->buffer);
-		req->buffer_pos=0;
-		
-		if (l<length)
-			return onion_request_write(req,&data[l],length-l);
-		return l;
+		return onion_request_write_post(req, data, length);
 	}
 	for (i=0;i<length;i++){
 		char c=data[i];
@@ -300,9 +302,9 @@ ssize_t onion_request_write(onion_request *req, const char *data, size_t length)
 			int r=onion_request_fill(req,req->buffer);
 			req->buffer_pos=0;
 			if (r<=0) // Close connection. Might be a rightfull close, or because of an error. Close anyway.
-				return -i;
+				return r;
 			if (req->parse_state==POST_DATA)
-				return onion_request_write(req, &data[i+1], length-(i+1));
+				return onion_request_write_post(req, &data[i+1], length-(i+1));
 		}
 		else{
 			req->buffer[req->buffer_pos]=c;
@@ -317,7 +319,7 @@ ssize_t onion_request_write(onion_request *req, const char *data, size_t length)
 			}
 		}
 	}
-	return i;
+	return OCS_NEED_MORE_DATA;
 }
 
 
