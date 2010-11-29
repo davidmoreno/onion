@@ -40,6 +40,19 @@ enum onion_request_flags_e{
 
 typedef struct onion_request_method_e onion_request_method;
 
+/**
+ * @short Return status from onion_request_write; only if <0.
+ * 
+ * If <0 it means close conneciton, but may mean also to show something to the client.
+ */
+enum onion_request_status_e{
+	ORS_NO_ERROR=0,
+	ORS_CLOSE_CONNECTION=-1,
+	ORS_INTERNAL_ERROR=-500
+};
+
+typedef enum onion_request_status_e onion_request_status;
+
 
 /// Creates a request
 onion_request *onion_request_new(onion_server *server, void *socket, const char *client_info);

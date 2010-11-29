@@ -150,7 +150,7 @@ int onion_response_write_headers(onion_response *res){
 ssize_t onion_response_write(onion_response *res, const char *data, size_t length){
 	if (res->flags&OR_SKIP_CONTENT){
 		ONION_DEBUG("Skipping content as we are in HEAD mode");
-		return -1;
+		return ORS_CLOSE_CONNECTION;
 	}
 	
 	res->sent_bytes+=length;
@@ -192,7 +192,7 @@ static int onion_response_write_buffer(onion_response *res){
 			ONION_ERROR("Error writing at %d. Maybe closed connection. Code %d. ",res->buffer_pos, w);
 			perror("");
 			res->buffer_pos=0;
-			return -1;
+			return ORS_CLOSE_CONNECTION;
 		}
 		pos+=w;
 		res->buffer_pos-=w;

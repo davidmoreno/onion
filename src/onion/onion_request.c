@@ -271,12 +271,12 @@ ssize_t onion_request_write(onion_request *req, const char *data, size_t length)
 		const char *cl=onion_dict_get(req->headers,"Content-Length");
 		if (!cl){
 			ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
-			return 0;
+			return ORS_INTERNAL_ERROR;
 		}
 		content_length=atoi(cl);
 		if (sizeof(req->buffer)<content_length){
 			ONION_WARNING("Onion not yet prepared for POST with more than %ld bytes of data (this have %ld)",(unsigned int)sizeof(req->buffer),(unsigned int)content_length);
-			return -500;
+			return ORS_INTERNAL_ERROR;
 		}
 		
 		size_t l=(length<content_length) ? length : content_length;

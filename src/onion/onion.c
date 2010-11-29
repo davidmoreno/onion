@@ -491,7 +491,7 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 		}
 		w=onion_request_write(req, buffer, r);
 		if (w<0){ // request processed. Close connection.
-			if (w==-500){
+			if (w==ORS_INTERNAL_ERROR){
 				onion_handler_handle(o->server->internal_error_handler, req);
 			}
 			break;
