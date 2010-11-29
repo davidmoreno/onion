@@ -34,15 +34,13 @@
 
 static int onion_request_parse_query(onion_request *req);
 
-// Internally it uses req->parse_state, states are:
+/// Used by req->parse_state, states are:
 typedef enum parse_state_e{
 	CLEAN=0,
 	HEADERS=1,
 	POST_DATA=2,
 	FINISHED=3,
 }parse_state;
-
-
 
 /**
  *  @short Creates a request object
@@ -313,6 +311,10 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
 				req->buffer_pos--;
 				if (!msgshown){
 					ONION_ERROR("Read data too long for me (max data length %d chars). Ignoring from that byte on to the end of this line. (%16s...)",(int) sizeof(req->buffer),req->buffer);
+					if (req->parse_state==CLEAN){
+						ONION_ERROR("It happened on the petition line, so i can not deliver it at all.");
+						return OCS_INTERNAL_ERROR;
+					}
 					ONION_ERROR("Increase it at onion_request.h and recompile onion.");
 					msgshown=1;
 				}
@@ -367,6 +369,14 @@ void onion_request_clean(onion_request* req){
 	if (req->query){
 		onion_dict_free(req->query);
 		req->query=NULL;
+	}
+	if (req->post){
+		onion_dict_free(req->post);
+		req->post=NULL;
+	}
+	if (req->files){
+		onion_dict_free(req->files);
+		req->files=NULL;
 	}
 }
 

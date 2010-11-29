@@ -30,13 +30,18 @@
 
 #include "../test.h"
 
+ssize_t mstrncat(char *a, const char *b, size_t l){
+	strncat(a,b,l);
+	return strlen(a);
+}
+
 void t01_server_min(){
 	INIT_LOCAL();
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
 	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (onion_write)strncat);
+	onion_server_set_write(server, (onion_write)mstrncat);
 	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
 	onion_request *req=onion_request_new(server, buffer, NULL);
@@ -47,7 +52,7 @@ void t01_server_min(){
 	onion_request_write(req, "\r\n",2);
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nSuccedded");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nSuccedded");
 	
 	onion_request_free(req);
 	onion_server_free(server);
@@ -61,7 +66,7 @@ void t02_server_full(){
 	memset(buffer,0,sizeof(buffer));
 	
 	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (onion_write)strncat);
+	onion_server_set_write(server, (onion_write)mstrncat);
 	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
 	onion_request *req=onion_request_new(server, buffer, NULL);
@@ -72,7 +77,7 @@ void t02_server_full(){
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nSuccedded");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nSuccedded");
 
 	onion_request_free(req);
 	onion_server_free(server);
@@ -86,7 +91,7 @@ void t03_server_no_overflow(){
 	memset(buffer,0,sizeof(buffer));
 	
 	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (onion_write)strncat);
+	onion_server_set_write(server, (onion_write)mstrncat);
 	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
 	onion_request *req=onion_request_new(server, buffer, NULL);
@@ -97,7 +102,7 @@ void t03_server_no_overflow(){
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nSuccedded");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nSuccedded");
 
 	onion_request_free(req);
 	onion_server_free(server);
@@ -111,7 +116,7 @@ void t04_server_overflow(){
 	memset(buffer,0,sizeof(buffer));
 	
 	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (onion_write)strncat);
+	onion_server_set_write(server, (onion_write)mstrncat);
 	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
 	
 	onion_request *req=onion_request_new(server, buffer, NULL);
@@ -122,7 +127,7 @@ void t04_server_overflow(){
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 9\nServer: Onion lib - 0.1. http://coralbits.com\n\nSuccedded");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nSuccedded");
 
 	onion_request_free(req);
 	onion_server_free(server);
@@ -156,7 +161,7 @@ void t05_server_with_pipes(){
 	read(p[0], buffer, sizeof(buffer));
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\nContent-Length: 16\nServer: Onion lib - 0.1. http://coralbits.com\n\nWorks with pipes");
+	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 16\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nWorks with pipes");
 
 	onion_request_free(req);
 	onion_server_free(server);

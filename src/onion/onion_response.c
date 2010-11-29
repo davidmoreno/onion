@@ -187,19 +187,19 @@ static int onion_response_write_buffer(onion_response *res){
 		return 0;
 	void *fd=res->request->socket;
 	onion_write write=res->request->server->write;
-	int w;
-	int pos=0;
+	ssize_t w;
+	off_t pos=0;
 	//ONION_DEBUG0("Write %d bytes",res->buffer_pos);
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0){
-			ONION_ERROR("Error writing at %d. Maybe closed connection. Code %d. ",res->buffer_pos, w);
+			ONION_ERROR("Error writing %d bytes. Maybe closed connection. Code %d. ",res->buffer_pos, w);
 			perror("");
 			res->buffer_pos=0;
 			return OCS_CLOSE_CONNECTION;
 		}
 		pos+=w;
+		ONION_DEBUG0("Write %d-%d bytes",res->buffer_pos,w);
 		res->buffer_pos-=w;
-		//ONION_DEBUG0("Write %d bytes",res->buffer_pos);
 	}
 	res->buffer_pos=0;
 	return 0;

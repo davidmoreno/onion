@@ -70,9 +70,22 @@ void t02_create_add_free_overflow(){
 	for (i=0;i<sizeof(of);i++)
 		of[i]='a'+i%26;
 	char get[4096*4];
+	
 	sprintf(get,"%s %s %s",of,of,of);
 	ok=onion_request_fill(req,get);
-	FAIL_IF_NOT_EQUAL(ok,0);
+	FAIL_IF_NOT_EQUAL(ok,OCS_NOT_IMPLEMENTED); 
+	onion_request_clean(req);
+	
+	sprintf(get,"%s %s %s\n",of,of,of);
+	ok=onion_request_write(req,get,strlen(get));
+	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); 
+	onion_request_clean(req);
+
+	
+	sprintf(get,"GET %s %s\n",of,of);
+	ok=onion_request_write(req,get,strlen(get));
+	printf("%d\n",ok);
+	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); 
 	
 	onion_request_free(req);
 	

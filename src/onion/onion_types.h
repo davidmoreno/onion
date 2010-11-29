@@ -123,8 +123,8 @@ typedef enum onion_ssl_certificate_type_e onion_ssl_certificate_type;
  */
 enum onion_connection_status_e{
 	OCS_NEED_MORE_DATA=1,
-	OCS_KEEP_ALIVE=2,
-	OCS_CLOSE_CONNECTION=0,
+	OCS_CLOSE_CONNECTION=2,
+	OCS_KEEP_ALIVE=3,
 	OCS_INTERNAL_ERROR=-500,
 	OCS_NOT_IMPLEMENTED=-501,
 };
