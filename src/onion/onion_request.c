@@ -266,15 +266,30 @@ static int onion_request_parse_query(onion_request *req){
 ssize_t onion_request_write(onion_request *req, const char *data, size_t length){
 	size_t i;
 	char msgshown=0;
-	int content_length=0;
 	if (req->parse_state==POST_DATA){
+		size_t content_length=0;
 		const char *cl=onion_dict_get(req->headers,"Content-Length");
 		if (!cl){
 			ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
 			return 0;
 		}
 		content_length=atoi(cl);
-		ONION_DEBUG("Expecting a POST of %d bytes, %s",content_length,data);
+		if (sizeof(req->buffer)<content_length){
+			ONION_WARNING("Onion not yet prepared for POST with more than %ld bytes of data (this have %ld)",(unsigned int)sizeof(req->buffer),(unsigned int)content_length);
+			return -500;
+		}
+		
+		size_t l=(length<content_length) ? length : content_length;
+		ONION_DEBUG("Expecting a POST of %d bytes, got %d, max %d",(int)content_length,(int)l,(int)sizeof(req->buffer));
+		memcpy(&req->buffer[req->buffer_pos], data, l);
+		req->buffer[l]=0;
+		
+		onion_request_fill(req, req->buffer);
+		req->buffer_pos=0;
+		
+		if (l<length)
+			return onion_request_write(req,&data[l],length-l);
+		return l;
 	}
 	for (i=0;i<length;i++){
 		char c=data[i];
@@ -292,13 +307,6 @@ ssize_t onion_request_write(onion_request *req, const char *data, size_t length)
 		else{
 			req->buffer[req->buffer_pos]=c;
 			req->buffer_pos++;
-			if (content_length && req->buffer_pos>=content_length){
-				req->buffer[req->buffer_pos]='\0';
-				int r=onion_request_fill(req,req->buffer);
-				req->buffer_pos=0;
-				if (r<=0) // Close connection. Might be a rightfull close, or because of an error. Close anyway.
-					return -i;
-			}
 			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on line
 				req->buffer_pos--;
 				if (!msgshown){

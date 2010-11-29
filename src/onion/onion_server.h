@@ -37,6 +37,9 @@ void onion_server_set_write(onion_server *server, onion_write write);
 /// Sets the root handler
 void onion_server_set_root_handler(onion_server *server, onion_handler *handler);
 
+/// Sets the root handler
+void onion_server_set_internal_error_handler(onion_server *server, onion_handler *handler);
+
 /// Handles a request
 int onion_server_handle_request(onion_request *req);
 

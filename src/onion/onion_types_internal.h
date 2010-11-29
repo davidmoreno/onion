@@ -67,6 +67,7 @@ struct onion_t{
 struct onion_server_t{
 	onion_write write;					 	/// Function to call to write. The request has the io handler to write to.
 	onion_handler *root_handler;	/// Root processing handler for this server.
+	onion_handler *internal_error_handler;	/// Root processing handler for this server.
 };
 
 struct onion_request_t{

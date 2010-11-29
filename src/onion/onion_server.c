@@ -25,16 +25,23 @@
 #include "onion_types_internal.h"
 #include "onion_log.h"
 
+/// Default error 500.
+int error_500(void *handler, onion_request *req);
+
+
 onion_server *onion_server_new(void){
 	onion_server *ret=malloc(sizeof(onion_server));
 	ret->root_handler=NULL;
 	ret->write=NULL;
+	ret->internal_error_handler=onion_handler_new((onion_handler_handler)error_500, NULL, NULL);
 	return ret;
 }
 
 void onion_server_free(onion_server *server){
 	if (server->root_handler)
 		onion_handler_free(server->root_handler);
+	if (server->internal_error_handler)
+		onion_handler_free(server->internal_error_handler);
 	free(server);
 }
 
@@ -44,6 +51,12 @@ void onion_server_set_write(onion_server *server, onion_write write){
 
 void onion_server_set_root_handler(onion_server *server, onion_handler *handler){
 	server->root_handler=handler;
+}
+
+void onion_server_set_internal_error_handler(onion_server *server, onion_handler *handler){
+	if (server->internal_error_handler)
+		onion_handler_free(server->internal_error_handler);
+	server->internal_error_handler=handler;
 }
 
 /**
@@ -59,5 +72,23 @@ int onion_server_handle_request(onion_request *req){
 		return OR_KEEP_ALIVE;
 	}
 	return OR_CLOSE_CONNECTION;
+}
+
+
+#define ERROR_500 "<h1>500 - Internal error</h1> Check server logs or contact administrator."
+
+/**
+ * @short Defautl error 500.
+ * 
+ * Not the right way to do it.. FIXME.
+ */
+int error_500(void *handler, onion_request *req){
+	onion_response *res=onion_response_new(req);
+	onion_response_set_code(res,500);
+	onion_response_set_length(res, sizeof(ERROR_500)-1);
+	onion_response_write_headers(res);
+	
+	onion_response_write0(res,ERROR_500);
+	return onion_response_free(res);
 }
 

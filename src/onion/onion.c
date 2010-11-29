@@ -228,11 +228,12 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
  * @see onion_mode_e onion_t
  */
 onion *onion_new(int flags){
+	ONION_DEBUG0("Some internal sizes: onion size: %d, request size %d, response size %d",sizeof(onion),sizeof(onion_request),sizeof(onion_response));
+	
 	onion *o=malloc(sizeof(onion));
 	o->flags=flags&0x0FF;
 	o->listenfd=0;
-	o->server=malloc(sizeof(onion_server));
-	o->server->root_handler=NULL;
+	o->server=onion_server_new();
 	o->timeout=5000; // 5 seconds of timeout, default.
 	o->port=8080;
 #ifdef HAVE_GNUTLS
@@ -251,6 +252,38 @@ onion *onion_new(int flags){
 	return o;
 }
 
+
+/// Removes the allocated data
+void onion_free(onion *onion){
+#ifdef HAVE_PTHREADS
+	if (onion->flags&O_THREADS_ENABLED){
+		int ntries=5;
+		int c;
+		for(;ntries--;){
+			sem_getvalue(&onion->thread_count,&c);
+			if (c==onion->max_threads){
+				break;
+			}
+			ONION_INFO("Still some petitions on process (%d). Wait a little bit (%d).",c,ntries);
+			sleep(1);
+		}
+	}
+#endif
+	
+#ifdef HAVE_GNUTLS
+	if (onion->flags&O_SSL_ENABLED){
+		gnutls_certificate_free_credentials (onion->x509_cred);
+		gnutls_dh_params_deinit(onion->dh_params);
+		gnutls_priority_deinit (onion->priority_cache);
+		if (!(onion->flags&O_SSL_NO_DEINIT))
+			gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
+	}
+#endif
+	onion_server_free(onion->server);
+	free(onion);
+}
+
+/// Basic direct to socket write method.
 static int write_to_socket(int *fd, const char *data, unsigned int len){
 	return write(*fd, data, len);
 }
@@ -345,39 +378,14 @@ int onion_listen(onion *o){
 	return 0;
 }
 
-/// Removes the allocated data
-void onion_free(onion *onion){
-#ifdef HAVE_PTHREADS
-	if (onion->flags&O_THREADS_ENABLED){
-		int ntries=5;
-		int c;
-		for(;ntries--;){
-			sem_getvalue(&onion->thread_count,&c);
-			if (c==onion->max_threads){
-				break;
-			}
-			ONION_INFO("Still some petitions on process (%d). Wait a little bit (%d).",c,ntries);
-			sleep(1);
-		}
-	}
-#endif
-	
-#ifdef HAVE_GNUTLS
-	if (onion->flags&O_SSL_ENABLED){
-		gnutls_certificate_free_credentials (onion->x509_cred);
-		gnutls_dh_params_deinit(onion->dh_params);
-		gnutls_priority_deinit (onion->priority_cache);
-		if (!(onion->flags&O_SSL_NO_DEINIT))
-			gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
-	}
-#endif
-	onion_server_free(onion->server);
-	free(onion);
-}
-
 /// Sets the root handler
 void onion_set_root_handler(onion *onion, onion_handler *handler){
-	onion->server->root_handler=handler;
+	onion_server_set_root_handler(onion->server, handler);
+}
+
+/// Sets the internal error handler
+void onion_set_internal_error_handler(onion* server, onion_handler* handler){
+	onion_server_set_internal_error_handler(server->server, handler);
 }
 
 /**
@@ -483,6 +491,9 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 		}
 		w=onion_request_write(req, buffer, r);
 		if (w<0){ // request processed. Close connection.
+			if (w==-500){
+				onion_handler_handle(o->server->internal_error_handler, req);
+			}
 			break;
 		}
 	}

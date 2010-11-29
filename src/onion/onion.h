@@ -37,6 +37,9 @@ void onion_free(onion *onion);
 /// Sets the root handler
 void onion_set_root_handler(onion *server, onion_handler *handler);
 
+/// Sets the root handler
+void onion_set_internal_error_handler(onion *server, onion_handler *handler);
+
 /// Sets the port to listen
 void onion_set_port(onion *server, int port);
 
