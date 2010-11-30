@@ -411,6 +411,13 @@ const char *onion_request_get_post(onion_request *req, const char *query){
 	return NULL;
 }
 
+/// Gets file data
+const char *onion_request_get_file(onion_request *req, const char *query){
+	if (req->files)
+		return onion_dict_get(req->files, query);
+	return NULL;
+}
+
 /// Gets the header header data dict
 const onion_dict *onion_request_get_header_dict(onion_request *req){
 	return req->headers;
@@ -425,6 +432,12 @@ const onion_dict *onion_request_get_query_dict(onion_request *req){
 const onion_dict *onion_request_get_post_dict(onion_request *req){
 	return req->post;
 }
+
+/// Gets files data dict
+const onion_dict *onion_request_get_file_dict(onion_request *req){
+	return req->files;
+}
+
 
 /**
  * @short Cleans a request object to reuse it.
