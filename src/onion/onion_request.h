@@ -38,7 +38,8 @@ enum onion_request_flags_e{
 	OR_NO_KEEP_ALIVE=0x100,
 };
 
-typedef struct onion_request_method_e onion_request_method;
+typedef enum onion_request_flags_e onion_request_flags;
+
 
 /// Creates a request
 onion_request *onion_request_new(onion_server *server, void *socket, const char *client_info);
@@ -55,6 +56,9 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
 /// Gets the current path
 const char *onion_request_get_path(onion_request *req);
 
+/// Gets the current flags, as in onion_request_flags_e
+onion_request_flags onion_request_get_flags(onion_request *req);
+
 /// Moves the path pointer to later in the fullpath
 void onion_request_advance_path(onion_request *req, int addtopos);
 
@@ -66,6 +70,15 @@ const char *onion_request_get_query(onion_request *req, const char *query);
 
 /// Gets post data
 const char *onion_request_get_post(onion_request *req, const char *query);
+
+/// Gets the header header data dict
+const onion_dict *onion_request_get_header_dict(onion_request *req);
+
+/// Gets request query dict
+const onion_dict *onion_request_get_query_dict(onion_request *req);
+
+/// Gets post data dict
+const onion_dict *onion_request_get_post_dict(onion_request *req);
 
 /// Cleans the request object, to reuse it
 void onion_request_clean(onion_request *req);

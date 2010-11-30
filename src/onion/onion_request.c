@@ -106,7 +106,7 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 		if (state==0){
 			if (*p=='='){
 				*p='\0';
-				value=++p;
+				value=p+1;
 				state=1;
 			}
 		}
@@ -117,7 +117,7 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 				onion_unquote_inplace(value);
 				ONION_DEBUG0("Adding key %s=%-16s",key,value);
 				onion_dict_add(dict, key, value, 0);
-				key=++p;
+				key=p+1;
 				state=0;
 			}
 		}
@@ -382,6 +382,11 @@ const char *onion_request_get_path(onion_request *req){
 	return req->path;
 }
 
+/// Gets the current flags, as in onion_request_flags_e
+onion_request_flags onion_request_get_flags(onion_request *req){
+	return req->flags;
+}
+
 /// Moves the pointer inside fullpath to this new position, relative to current path.
 void onion_request_advance_path(onion_request *req, int addtopos){
 	req->path=&req->path[addtopos];
@@ -404,6 +409,21 @@ const char *onion_request_get_post(onion_request *req, const char *query){
 	if (req->post)
 		return onion_dict_get(req->post, query);
 	return NULL;
+}
+
+/// Gets the header header data dict
+const onion_dict *onion_request_get_header_dict(onion_request *req){
+	return req->headers;
+}
+
+/// Gets request query dict
+const onion_dict *onion_request_get_query_dict(onion_request *req){
+	return req->query;
+}
+
+/// Gets post data dict
+const onion_dict *onion_request_get_post_dict(onion_request *req){
+	return req->post;
 }
 
 /**

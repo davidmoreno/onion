@@ -51,13 +51,17 @@ int onion_dict_remove(onion_dict *dict, const char *key);
 void onion_dict_free(onion_dict *dict);
 
 /// Gets a value
-const char *onion_dict_get(onion_dict *dict, const char *key);
+const char *onion_dict_get(const onion_dict *dict, const char *key);
 
 /// Prints a dot ready graph to stderr
-void onion_dict_print_dot(onion_dict *dict);
+void onion_dict_print_dot(const onion_dict *dict);
 
 /// Visits the full graph in preorder, calling that funciton on each node
-void onion_dict_preorder(onion_dict *dict, void *func, void *data);
+void onion_dict_preorder(const onion_dict *dict, void *func, void *data);
+
+/// Counts elements
+int onion_dict_count(const onion_dict *dict);
+
 
 #ifdef __cplusplus
 }

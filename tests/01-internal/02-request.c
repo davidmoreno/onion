@@ -183,8 +183,8 @@ void t05_create_add_free_POST(){
 	FAIL_IF_NOT_EQUAL(req->socket, 0);
 	
 	const char *query="POST /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n"
-													"Host: 127.0.0.1\n\rContent-Length: 24\n"
-													"Other-Header: My header is very long and with spaces...\r\n\r\npost_data=1&post_data2=2";
+													"Host: 127.0.0.1\n\rContent-Length: 50\n"
+													"Other-Header: My header is very long and with spaces...\r\n\r\nempty_post=&post_data=1&post_data2=2&empty_post_2=";
 	
 	int i; // Straight write, with clean (keep alive like)
 	for (i=0;i<10;i++){
@@ -208,6 +208,8 @@ void t05_create_add_free_POST(){
 		FAIL_IF_EQUAL(req->post,NULL);
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->post,"post_data"), "1");
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->post,"post_data2"), "2");
+		FAIL_IF_NOT_EQUAL_STR( onion_request_get_post(req, "empty_post"), "");
+		FAIL_IF_NOT_EQUAL_STR( onion_request_get_post(req, "empty_post_2"), "");
 
 		onion_request_clean(req);
 		FAIL_IF_NOT_EQUAL(req->query,NULL);

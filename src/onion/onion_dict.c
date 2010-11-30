@@ -37,7 +37,7 @@ onion_dict *onion_dict_new(){
  *
  * If not found, returns the parent where it should be. Nice for adding too.
  */
-static onion_dict *onion_dict_find_node(onion_dict *dict, const char *key, onion_dict **parent){
+static const onion_dict *onion_dict_find_node(const onion_dict *dict, const char *key, const onion_dict **parent){
 	if (!dict || dict->flags&OD_EMPTY){
 		return NULL;
 	}
@@ -58,7 +58,7 @@ static onion_dict *onion_dict_find_node(onion_dict *dict, const char *key, onion
 void onion_dict_add(onion_dict *dict, const char *key, const char *value, int flags){
 	onion_dict *dup, *where=NULL;
 	
-	dup=onion_dict_find_node(dict, key, &where);
+	dup=(onion_dict*)onion_dict_find_node(dict, key, (const onion_dict**)&where);
 	
 	if (dup){ // If dup, try again on left or right tree, it does not matter.
 		if (!dup->left)
@@ -100,7 +100,7 @@ static void onion_dict_free_node_kv(onion_dict *dict){
 }
 
 /// Copies internal data straight into dst. No free's nor any check.
-static void onion_dict_copy_data(onion_dict *src, onion_dict *dst){
+static void onion_dict_copy_data(const onion_dict *src, onion_dict *dst){
 	dst->flags=src->flags;
 	dst->key=src->key;
 	dst->value=src->value;
@@ -117,7 +117,7 @@ static void onion_dict_copy_data(onion_dict *src, onion_dict *dst){
  */ 
 int onion_dict_remove(onion_dict *dict, const char *key){
 	onion_dict *parent=NULL;
-	dict=onion_dict_find_node(dict, key, &parent);
+	dict=(onion_dict*)onion_dict_find_node(dict, key, (const onion_dict **)&parent);
 	
 	if (!dict)
 		return 0;
@@ -164,8 +164,8 @@ void onion_dict_free(onion_dict *dict){
 }
 
 /// Gets a value
-const char *onion_dict_get(onion_dict *dict, const char *key){
-	onion_dict *r;
+const char *onion_dict_get(const onion_dict *dict, const char *key){
+	const onion_dict *r;
 	r=onion_dict_find_node(dict, key, NULL);
 	if (r)
 		return r->value;
@@ -181,7 +181,7 @@ const char *onion_dict_get(onion_dict *dict, const char *key){
  *
  * User of this funciton has to write the 'digraph G{' and '}'
  */
-void onion_dict_print_dot(onion_dict *dict){
+void onion_dict_print_dot(const onion_dict *dict){
 	if (dict->right){
 		fprintf(stderr,"\"%s\" -> \"%s\" [label=\"R\"];\n",dict->key, dict->right->key);
 		onion_dict_print_dot(dict->right);
@@ -195,7 +195,7 @@ void onion_dict_print_dot(onion_dict *dict){
 /**
  * The funciton is of prototype void f(const char *key, const char *value, void *data);
  */
-void onion_dict_preorder(onion_dict *dict, void *func, void *data){
+void onion_dict_preorder(const onion_dict *dict, void *func, void *data){
 	void (*f)(const char *key, const char *value, void *data);
 	f=func;
 	if (dict->left)
@@ -204,4 +204,18 @@ void onion_dict_preorder(onion_dict *dict, void *func, void *data){
 		f(dict->key, dict->value, data);
 	if (dict->right)
 		onion_dict_preorder(dict->right, func, data);
+}
+
+/**
+ * @short Counts elements
+ */
+int onion_dict_count(const onion_dict *dict){
+	if (!dict)
+		return 0;
+	int c=(!(dict->flags&OD_EMPTY)) ? 1 : 0;
+	if (dict->left)
+		c+=onion_dict_count(dict->left);
+	if (dict->right)
+		c+=onion_dict_count(dict->right);
+	return c;
 }
