@@ -68,6 +68,8 @@ struct onion_server_t{
 	onion_write write;					 	/// Function to call to write. The request has the io handler to write to.
 	onion_handler *root_handler;	/// Root processing handler for this server.
 	onion_handler *internal_error_handler;	/// Root processing handler for this server.
+	size_t max_post_size;					/// Maximum size of post data. This is the sum of posts, @see onion_request_write_post
+	size_t max_file_size;					/// Maximum size of files. @see onion_request_write_post
 };
 
 struct onion_request_t{
@@ -83,8 +85,11 @@ struct onion_request_t{
 	void *socket;         /// Write function handler
 	char parse_state;     /// State at buffer parsing (0 headers, 1 POST data, 2 finished).
 	char buffer[ONION_REQUEST_BUFFER_SIZE];     /// Buffer for queries. This should be enough. UGLY. FIXME.
-	off_t buffer_pos;       /// Position on the buffer
+	off_t buffer_pos;     /// Position on the buffer
 	char *client_info;    /// A string that describes the client, normally the IP.
+	char *post_buffer;      /// A post buffer that will be allocated only on POST requests.
+	off_t post_buffer_pos;  /// Position on the post buffer.
+	size_t post_buffer_size;/// Size of the post buffer.
 };
 
 struct onion_response_t{
@@ -95,7 +100,7 @@ struct onion_response_t{
 	unsigned int length;			/// Length, if known of the response, to create the Content-Lenght header. 
 	unsigned int sent_bytes; 	/// Sent bytes at content.
 	unsigned int sent_bytes_total; /// Total sent bytes, including headers.
-	char buffer[ONION_RESPONSE_BUFFER_SIZE]; 				/// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
+	char buffer[ONION_RESPONSE_BUFFER_SIZE]; /// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
 	off_t buffer_pos;						/// Position in the internal buffer. When sizeof(buffer) its flushed to the onion_server IO.
 };
 

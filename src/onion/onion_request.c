@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <libgen.h>
+#include <ctype.h>
 
 #include "onion_server.h"
 #include "onion_dict.h"
@@ -61,6 +62,7 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	req->buffer_pos=0;
 	req->files=NULL;
 	req->post=NULL;
+	req->post_buffer=NULL;
 	if (client_info) // This is kept even on clean
 		req->client_info=strdup(client_info);
 	else
@@ -79,6 +81,8 @@ void onion_request_free(onion_request *req){
 		onion_dict_free(req->query);
 	if (req->post)
 		onion_dict_free(req->post);
+	if (req->post_buffer)
+		free(req->post_buffer);
 	if (req->files)
 		onion_dict_free(req->files);
 
@@ -88,54 +92,87 @@ void onion_request_free(onion_request *req){
 	free(req);
 }
 
-/// Parses the query part to a given dictionary.
-static void onion_request_parse_query_to_dict(onion_dict *dict, const char *p){
-	char key[32], value[256];
+/**
+ * @short Parses the query part to a given dictionary.
+ * 
+ * The data is overwriten as necessary. It is NOT dupped, so if you free this char *p, please free the tree too.
+ */
+static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
+	ONION_DEBUG0("Query to dict %s",p);
+	char *key, *value;
 	int state=0;  // 0 key, 1 value
-	int i=0;
+	key=p;
 	while(*p){
 		if (state==0){
 			if (*p=='='){
-				key[i]='\0';
+				*p='\0';
+				value=++p;
 				state=1;
-				i=-1;
 			}
-			else
-				key[i]=*p;
 		}
 		else{
 			if (*p=='&'){
-				value[i]='\0';
+				*p='\0';
 				onion_unquote_inplace(key);
 				onion_unquote_inplace(value);
-				onion_dict_add(dict, key, value, OD_DUP_ALL);
+				ONION_DEBUG0("Adding key %s=%-16s",key,value);
+				onion_dict_add(dict, key, value, 0);
+				key=++p;
 				state=0;
-				i=-1;
 			}
-			else
-				value[i]=*p;
 		}
 		p++;
-		i++;
 	}
-	if (i!=0 || state!=0){
-		if (state==0){
-			key[i]='\0';
-			value[0]='\0';
-		}
-		else
-			value[i]='\0';
+	if (state!=0){
 		onion_unquote_inplace(key);
 		onion_unquote_inplace(value);
-		onion_dict_add(dict, key, value, OD_DUP_ALL);
+		ONION_DEBUG0("Adding key %s=%-16s",key,value);
+		onion_dict_add(dict, key, value, 0);
 	}
 }
 
 /// Parses the first query line, GET / HTTP/1.1
 static onion_connection_status onion_request_fill_query(onion_request *req, const char *data){
-	ONION_DEBUG("Request: %s",data);
-	char method[16], url[256], version[16];
-	sscanf(data,"%15s %255s %15s",method, url, version);
+	//ONION_DEBUG("Request: %-64s",data);
+	char *method=NULL, *url=NULL, *version=NULL;
+	char *ip=strdup(data);
+	{ // Parses the query line. Might be a simple sscanf, but too generic and I dont know size beforehand.
+		char *p=ip;
+		char *lp=p;
+		char space=0; // Ignore double spaces
+		while(*p){
+			if (isspace(*p)){
+				if (!space){
+					*p='\0';
+					ONION_DEBUG("Got token %s",lp);
+					if (method==NULL)
+						method=lp;
+					else if (url==NULL)
+						url=lp;
+					else if (version==NULL)
+						version=lp;
+					else{
+						free(ip);
+						ONION_ERROR("Read unknown token at request. Closing.");
+						return OCS_INTERNAL_ERROR;
+					}
+					lp=p+1;
+					space=1;
+				}
+			}
+			else
+				space=0;
+			p++;
+		}
+		if (version==NULL && url && method)
+						version=lp;
+		else if (!version){ // If here url = method = NULL
+			free(ip);
+			ONION_ERROR("Bad formed request (no %s). Closing.",(!method) ? "method" : (!url) ? "URL" : "version");
+			return OCS_INTERNAL_ERROR;
+		}
+	}
+
 	
 	if (strcmp(method,"GET")==0)
 		req->flags|=OR_GET;
@@ -143,16 +180,18 @@ static onion_connection_status onion_request_fill_query(onion_request *req, cons
 		req->flags|=OR_POST;
 	else if (strcmp(method,"HEAD")==0)
 		req->flags|=OR_HEAD;
-	else
+	else{
+		free(ip);
 		return OCS_NOT_IMPLEMENTED; // Not valid method detected.
-
+	}
 	if (strcmp(version,"HTTP/1.1")==0)
 		req->flags|=OR_HTTP11;
 
-	req->path=strndup(url,sizeof(url));
+	req->path=strdup(url);
 	req->fullpath=req->path;
 	onion_request_parse_query(req); // maybe it consumes some CPU and not always needed.. but I need the unquotation.
 	
+	free(ip);
 	return OCS_NEED_MORE_DATA;
 }
 
@@ -221,59 +260,72 @@ static int onion_request_parse_query(onion_request *req){
 		return 0;
 	if (req->query) // already done
 		return 1;
-	
-	char cleanurl[256];
-	int i=0;
+
 	char *p=req->path;
+	char have_query=0;
 	while(*p){
-		if (*p=='?')
+		if (*p=='?'){
+			have_query=1;
 			break;
-		cleanurl[i++]=*p;
+		}
 		p++;
 	}
-	cleanurl[i++]='\0';
-	onion_unquote_inplace(cleanurl);
-	if (*p){ // There are querys.
+	*p='\0';
+	onion_unquote_inplace(req->path);
+	if (have_query){ // There are querys.
 		p++;
 		req->query=onion_dict_new();
 		onion_request_parse_query_to_dict(req->query, p);
 	}
-	free(req->fullpath);
-	req->fullpath=strndup(cleanurl, sizeof(cleanurl));
-	req->path=req->fullpath;
 	return 1;
 }
 
-/// Fills the post data.
+/**
+ * @short Fills the post data.
+ * 
+ * It fills the post_buffer (created first time), untill filled, and the parses it. This buffer is not deleted here but at 
+ * free of the request as the post dictionary will use it (deconstructed as each part is decoded in place).
+ */
 static onion_connection_status onion_request_write_post(onion_request *req, const char *data, size_t length){
-	size_t content_length=0;
-	const char *cl=onion_dict_get(req->headers,"Content-Length");
-	if (!cl){
-		ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
-		return OCS_INTERNAL_ERROR;
-	}
-	content_length=atoi(cl);
-	if (sizeof(req->buffer)<content_length){
-		ONION_WARNING("Onion not yet prepared for POST with more than %ld bytes of data (this have %ld)",(unsigned int)sizeof(req->buffer),(unsigned int)content_length);
-		return OCS_INTERNAL_ERROR;
+	if (!req->post_buffer){
+		size_t content_length=0;
+		const char *cl=onion_dict_get(req->headers,"Content-Length");
+		if (!cl){
+			ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
+			return OCS_INTERNAL_ERROR;
+		}
+		content_length=atoi(cl);
+		if (req->server->max_post_size<content_length){
+			ONION_WARNING("Onion not yet prepared for POST with more than %ld bytes of data (this have %ld)",(unsigned long)req->server->max_post_size,(unsigned long)content_length);
+			return OCS_INTERNAL_ERROR;
+		}
+		
+		req->post_buffer_size=content_length;
+		req->post_buffer=malloc(content_length+1);
+		req->post_buffer_pos=0;
+		
+		ONION_DEBUG("Reading a post of %d bytes",content_length);
 	}
 	
-	size_t l=(length<content_length) ? length : content_length;
-	ONION_DEBUG("Expecting a POST of %d bytes, got %d, max %d",(int)content_length,(int)l,(int)sizeof(req->buffer));
-	memcpy(&req->buffer[req->buffer_pos], data, l);
-	req->buffer[l]=0;
-
-	ONION_DEBUG("POST data %s",req->buffer);
-	req->post=onion_dict_new();
-	onion_request_parse_query_to_dict(req->post, req->buffer);
-	req->buffer_pos=0;
-
-	int r=onion_request_process(req);
-	if (l<length){
-		ONION_WARNING("Received more data after POST data. Not expected. Clossing connection");
+	if (length > (req->post_buffer_size-req->post_buffer_pos)){
+		length=(req->post_buffer_size-req->post_buffer_pos);
+		ONION_WARNING("Received more data after POST data. Not expected. Closing connection");
 		return OCS_CLOSE_CONNECTION;
 	}
-	return r;
+	
+	memcpy(&req->post_buffer[req->post_buffer_pos], data, length);
+	req->post_buffer_pos+=length;
+	
+	if (req->post_buffer_pos>=req->post_buffer_size){
+		req->post_buffer[req->post_buffer_pos]='\0'; // To ease parsing. Already malloced this byte.
+		ONION_DEBUG("POST data %s",req->post_buffer);
+		req->post=onion_dict_new();
+		onion_request_parse_query_to_dict(req->post, req->post_buffer);
+
+		int r=onion_request_process(req);
+		return r;
+	}
+	return OCS_NEED_MORE_DATA;
 }
 
 
@@ -377,6 +429,10 @@ void onion_request_clean(onion_request* req){
 	if (req->files){
 		onion_dict_free(req->files);
 		req->files=NULL;
+	}
+	if (req->post_buffer){
+		free(req->post_buffer);
+		req->post_buffer=NULL;
 	}
 }
 

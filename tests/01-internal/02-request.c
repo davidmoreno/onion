@@ -69,6 +69,7 @@ void t02_create_add_free_overflow(){
 	char of[4096];
 	for (i=0;i<sizeof(of);i++)
 		of[i]='a'+i%26;
+	of[i-1]='\0';
 	char get[4096*4];
 	
 	sprintf(get,"%s %s %s",of,of,of);
@@ -217,6 +218,24 @@ void t05_create_add_free_POST(){
 	END_LOCAL();
 }
 
+void t06_create_add_free_bad_method(){
+	INIT_LOCAL();
+	
+	onion_request *req;
+	int ok;
+	
+	req=onion_request_new(server, (void*)111, "localhost");
+	FAIL_IF_NOT_EQUAL(req->socket, (void*)111);
+	
+	FAIL_IF_EQUAL(req,NULL);
+	
+	ok=onion_request_fill(req,"XGETX / HTTP/1.1\n");
+	FAIL_IF_NOT_EQUAL(ok,OCS_NOT_IMPLEMENTED);
+	
+	onion_request_free(req);
+	
+	END_LOCAL();
+}
 
 
 int main(int argc, char **argv){
