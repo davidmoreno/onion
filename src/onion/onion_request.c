@@ -296,7 +296,7 @@ static onion_connection_status onion_request_write_post(onion_request *req, cons
 		}
 		content_length=atoi(cl);
 		if (req->server->max_post_size<content_length){
-			ONION_WARNING("Onion not yet prepared for POST with more than %ld bytes of data (this have %ld)",(unsigned long)req->server->max_post_size,(unsigned long)content_length);
+			ONION_WARNING("Onion POST limit is %ld bytes of data (this have %ld). Increase limit with onion_server_set_max_post_size.",(unsigned long)req->server->max_post_size,(unsigned long)content_length);
 			return OCS_INTERNAL_ERROR;
 		}
 		
