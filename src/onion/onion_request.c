@@ -287,6 +287,10 @@ static int onion_request_parse_query(onion_request *req){
  * free of the request as the post dictionary will use it (deconstructed as each part is decoded in place).
  */
 static onion_connection_status onion_request_write_post(onion_request *req, const char *data, size_t length){
+	const char *content_type=onion_request_get_header(req,"Content-Type"); // only old post method, no multipart.
+	if (content_type && strcasecmp(content_type,"application/x-www-form-urlencoded")!=0)
+		return OCS_NOT_IMPLEMENTED;
+	
 	if (!req->post_buffer){
 		size_t content_length=0;
 		const char *cl=onion_dict_get(req->headers,"Content-Length");
