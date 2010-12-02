@@ -34,6 +34,8 @@
 
 
 static int onion_request_parse_query(onion_request *req);
+static onion_connection_status onion_request_write_post_urlencoded(onion_request *req, const char *data, size_t length);
+static onion_connection_status onion_request_write_post_multipart(onion_request *req, const char *data, size_t length);
 
 /// Used by req->parse_state, states are:
 typedef enum parse_state_e{
@@ -91,6 +93,140 @@ void onion_request_free(onion_request *req){
 	
 	free(req);
 }
+
+/**
+ * @short Parses a delimited multipart part.
+ * 
+ * It overwrites as needed the init_of_part buffer, to set the right data at req->post. This dict uses the
+ * data at init_of_part so dont use it after deleting init_of_part.
+ */
+static onion_connection_status onion_request_parse_multipart_part(onion_request *req, char *init_of_part){
+	//ONION_DEBUG("Parse multipart part:\n%s",init_of_part);
+	
+	// First parse the headers
+	onion_dict *headers=onion_dict_new();
+	int in_headers=1;
+	char *p=init_of_part;
+	char *lp=p;
+	const char *key=NULL;
+	const char *value=NULL;
+	
+	while(in_headers){
+		if (*p=='\0'){
+			ONION_ERROR("Unexpected end of multipart part headers");
+			goto error_part;
+		}
+		if (!key){
+			if (lp==p && ( *p=='\r' || *p=='\n' ) )
+				in_headers=0;
+			else if (*p==':'){
+				value=p+1;
+				*p='\0';
+				key=lp;
+			}
+		}
+		else{ // value
+			if (*p=='\n' || *p=='\r'){
+				*p='\0';
+				while (*value==' ') value++;
+				while (*key==' ' || *key=='\r' || *key=='\n') key++;
+				ONION_DEBUG0("Found header <%s> = <%s>",key,value);
+				onion_dict_add(headers, key, value, 0);
+				key=NULL;
+				value=NULL;
+				lp=p+1;
+			}
+		}
+		p++;
+	}
+	
+	// Remove heading and trailing [\r][\n].
+	if (*p=='\r') p++;
+	if (*p=='\n') p++;
+	int len=strlen(p);
+	if (*(p+len-1)=='\n'){ *(p+len-1)='\0'; len--; }
+	if (*(p+len-1)=='\r') *(p+len-1)='\0';
+	ONION_DEBUG0("Data is <%s>",p);
+	
+	// Get field name
+	char *name=(char*)onion_dict_get(headers, "Content-Disposition");
+	if (!name){
+		ONION_ERROR("Unnamed POST field");
+		return OCS_INTERNAL_ERROR;
+	}
+	name=strstr(name,"name=")+5;
+	
+	if (name[0]=='"'){
+		name++;
+		name[strlen(name)-1]='\0';
+	}
+	
+	ONION_DEBUG0("Set POST data %s=%s",name,p);
+	onion_dict_add(req->post, name, p, 0);
+	
+	onion_dict_free(headers);
+	return 0;
+error_part: // I dont like, but maybe its best solution...
+	onion_dict_free(headers);
+	return OCS_INTERNAL_ERROR;
+}
+
+/**
+ * @short Parses the multipart post
+ * 
+ * Gets the data from req->post_buffer, and at req->buffer is the marker. Reserves memory for req->post always.
+ * 
+ * It overwrites the data at req->post_buffer and uses it to fill (and not copy) data as needed, so dont free(req->post) 
+ * if you plan to use the POST data.
+ * 
+ * @return a close error or 0 if everything ok.
+ */
+static onion_connection_status onion_request_parse_multipart(onion_request *req){
+	if (!req->post)
+		req->post=onion_dict_new();
+	
+	ONION_DEBUG("multipart:\n%s",req->post_buffer);
+	
+	const char *token=req->buffer;
+	unsigned int token_length=strlen(token); // token have -- at head, and maybe -- at end.
+	unsigned int i;
+	char *p=req->post_buffer;
+	char *init_of_part=NULL;
+	int post_size=req->post_buffer_pos-4-token_length; // size, minumum, without the final token.
+	ONION_DEBUG0("Final POST size without the final token: %d",post_size);
+	for (i=0;i<post_size;i++){
+		if (*p=='-' && *(p+1)=='-' && memcmp(p+2,token,token_length)==0){ // found token.
+			*p=0;
+			ONION_DEBUG0("Found part");
+			if (init_of_part){ // Ok, i have it delimited, parse a part
+				int r=onion_request_parse_multipart_part(req, init_of_part);
+				if (r){
+					ONION_DEBUG("Return from parse part. Should not be error (%d)",r);
+					return r;
+				}
+			}
+			p+=2+token_length; // skip the token.
+			if (*p=='-' && *(p+1)=='-'){
+				p+=2;
+				ONION_DEBUG("All parsed");
+				break;
+			}
+			while (*p=='\n' || *p=='\r') p++;
+			init_of_part=p;
+		}
+		else
+			p++;
+	}
+	while (*p=='\n' || *p=='\r') p++;
+	if (*p!='\0'){
+		ONION_ERROR("At end of multipart message, found more data: %-16s...",p);
+		return OCS_INTERNAL_ERROR;
+	}
+	
+	ONION_DEBUG("Multiparts parsed ok");
+	return 0;
+}
+
 
 /**
  * @short Parses the query part to a given dictionary.
@@ -283,14 +419,50 @@ static int onion_request_parse_query(onion_request *req){
 /**
  * @short Fills the post data.
  * 
- * It fills the post_buffer (created first time), untill filled, and the parses it. This buffer is not deleted here but at 
+ * It calls the proper (multipart/urlencoded) post handler. 
+ * 
+ * Both fills the post_buffer (created first time). This buffer is not deleted here but at 
  * free of the request as the post dictionary will use it (deconstructed as each part is decoded in place).
+ * 
+ * Management of such buffer is sligthly diferent on each version.
+ * 
+ * @see onion_request_write_post_multipart onion_request_write_post_urlencoded
  */
 static onion_connection_status onion_request_write_post(onion_request *req, const char *data, size_t length){
-	const char *content_type=onion_request_get_header(req,"Content-Type"); // only old post method, no multipart.
-	if (content_type && strcasecmp(content_type,"application/x-www-form-urlencoded")!=0)
-		return OCS_NOT_IMPLEMENTED;
+	if ( (req->flags & (OR_POST_MULTIPART|OR_POST_URLENCODED) ) == 0){
+		const char *content_type=onion_request_get_header(req,"Content-Type"); // only old post method, no multipart.
+		if (!content_type || strcasecmp(content_type,"application/x-www-form-urlencoded")==0)
+			req->flags|=OR_POST_URLENCODED;
+		else{
+			// maybe ugly but on this state req->buffer is unused, i used it here to store the multipart marker
+			const char *p=strstr(content_type, "boundary=");
+			int i=0;
+			for (i=0;p[i] && p[i]!=';';i++);
+			
+			if (i>sizeof(req->buffer)){
+				ONION_ERROR("Request multipart boundary string too large (%d bytes). Overflows the internal storage (%d bytes).",i,sizeof(req->buffer));
+			}
+			
+			memmove(req->buffer, p+9, i);
+			ONION_DEBUG("POST multipart boundary is '%s'",req->buffer);
+			
+			req->flags|=OR_POST_MULTIPART;
+		}
+	}
 	
+	if (req->flags&OR_POST_MULTIPART)
+		return onion_request_write_post_multipart(req, data, length);
+	else
+		return onion_request_write_post_urlencoded(req, data, length);
+}
+
+/** 
+ * @short Fills the request post on urlencoded petitions
+ * 
+ * All the buffer is requested at a time, and when fully filled it parses it.
+ * 
+ */
+static onion_connection_status onion_request_write_post_urlencoded(onion_request *req, const char *data, size_t length){
 	if (!req->post_buffer){
 		size_t content_length=0;
 		const char *cl=onion_dict_get(req->headers,"Content-Length");
@@ -322,11 +494,62 @@ static onion_connection_status onion_request_write_post(onion_request *req, cons
 	
 	if (req->post_buffer_pos>=req->post_buffer_size){
 		req->post_buffer[req->post_buffer_pos]='\0'; // To ease parsing. Already malloced this byte.
-		ONION_DEBUG("POST data %s",req->post_buffer);
+		//ONION_DEBUG("POST data %s",req->post_buffer);
 		req->post=onion_dict_new();
 		onion_request_parse_query_to_dict(req->post, req->post_buffer);
 
 		int r=onion_request_process(req);
+		return r;
+	}
+	return OCS_NEED_MORE_DATA;
+}
+
+/** 
+ * @short Fills the request post on multipart petitions
+ * 
+ * The buffer is read from part to part, and then copied or to the post_buffer, or straigth to a file.
+ * 
+ * When all fields are readden, it parses the parts.
+ */
+static onion_connection_status onion_request_write_post_multipart(onion_request *req, const char *data, size_t length){
+	if (!req->post_buffer){
+		size_t content_length=0;
+		const char *cl=onion_dict_get(req->headers,"Content-Length");
+		if (!cl){
+			ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
+			return OCS_INTERNAL_ERROR;
+		}
+		content_length=atoi(cl);
+		if (req->server->max_post_size<content_length){
+			ONION_WARNING("Onion POST limit is %ld bytes of data (this have %ld). Increase limit with onion_server_set_max_post_size.",(unsigned long)req->server->max_post_size,(unsigned long)content_length);
+			return OCS_INTERNAL_ERROR;
+		}
+		
+		req->post_buffer_size=content_length;
+		req->post_buffer=malloc(content_length+1);
+		req->post_buffer_pos=0;
+		
+		ONION_DEBUG("Reading a multipart post of %d bytes",content_length);
+	}
+	
+	if (length > (req->post_buffer_size-req->post_buffer_pos)){
+		length=(req->post_buffer_size-req->post_buffer_pos);
+		ONION_WARNING("Received more data after POST data. Not expected. Closing connection");
+		return OCS_CLOSE_CONNECTION;
+	}
+	
+	memcpy(&req->post_buffer[req->post_buffer_pos], data, length);
+	req->post_buffer_pos+=length;
+	
+	if (req->post_buffer_pos>=req->post_buffer_size){
+		req->post_buffer[req->post_buffer_pos]='\0'; // To ease parsing. Already malloced this byte.
+		//ONION_DEBUG("POST data %s",req->post_buffer);
+		int r=onion_request_parse_multipart(req);
+		ONION_DEBUG("multipart error code %d",r);
+		if (r==0){ // 0 ok, all others are closing errors.
+			ONION_DEBUG("Process POST");
+			r=onion_request_process(req);
+		}
 		return r;
 	}
 	return OCS_NEED_MORE_DATA;

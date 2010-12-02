@@ -34,6 +34,8 @@ enum onion_request_flags_e{
 	OR_HEAD=4,
 	
 	OR_HTTP11=0x10,
+	OR_POST_MULTIPART=0x20,
+	OR_POST_URLENCODED=0x40,
 	
 	OR_NO_KEEP_ALIVE=0x100,
 };
