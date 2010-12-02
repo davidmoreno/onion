@@ -22,15 +22,15 @@
 #include <libgen.h>
 #include <ctype.h>
 
-#include "onion_server.h"
-#include "onion_dict.h"
-#include "onion_request.h"
-#include "onion_response.h"
-#include "onion_handler.h"
-#include "onion_server.h"
-#include "onion_types_internal.h"
-#include "onion_codecs.h"
-#include "onion_log.h"
+#include "server.h"
+#include "dict.h"
+#include "request.h"
+#include "response.h"
+#include "handler.h"
+#include "server.h"
+#include "types_internal.h"
+#include "codecs.h"
+#include "log.h"
 
 
 static int onion_request_parse_query(onion_request *req);

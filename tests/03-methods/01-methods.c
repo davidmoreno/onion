@@ -19,9 +19,9 @@
 #include <string.h>
 
 #include <onion/onion.h>
-#include <onion/onion_dict.h>
-#include <onion/onion_handler.h>
-#include <onion/onion_response.h>
+#include <onion/dict.h>
+#include <onion/handler.h>
+#include <onion/response.h>
 
 void print_dict_element(const char *key, const char *value, onion_response *res){
 	onion_response_printf(res,"<li>%s = %s</li>",key,value);

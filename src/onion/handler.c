@@ -19,8 +19,8 @@
 #include <malloc.h>
 #include <string.h>
 
-#include "onion_handler.h"
-#include "onion_types_internal.h"
+#include "handler.h"
+#include "types_internal.h"
 
 /**
  * @short Tryes to handle the petition with that handler.

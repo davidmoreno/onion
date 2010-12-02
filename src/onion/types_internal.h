@@ -19,7 +19,7 @@
 #ifndef __ONION_TYPES_INTERNAL__
 #define __ONION_TYPES_INTERNAL__
 
-#include "onion_types.h"
+#include "types.h"
 
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>

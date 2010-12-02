@@ -23,10 +23,10 @@
 #include <security/pam_appl.h>
 #include <security/pam_misc.h>
 
-#include <onion/onion_handler.h>
-#include <onion/onion_response.h>
-#include <onion/onion_codecs.h>
-#include <onion/onion_log.h>
+#include <onion/handler.h>
+#include <onion/response.h>
+#include <onion/codecs.h>
+#include <onion/log.h>
 
 int authorize(const char *pamname, const char *username, const char *password);
 

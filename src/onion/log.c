@@ -30,7 +30,7 @@
 #include <sys/types.h>
 #endif
 
-#include "onion_log.h"
+#include "log.h"
 
 static int onion_log_flags=0;
 static pthread_mutex_t onion_log_mutex=PTHREAD_MUTEX_INITIALIZER;

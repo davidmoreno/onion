@@ -21,10 +21,10 @@
 #include <unistd.h>
 #include <regex.h>
 
-#include <onion/onion_handler.h>
-#include <onion/onion_response.h>
+#include <onion/handler.h>
+#include <onion/response.h>
 
-#include "onion_handler_opack.h"
+#include "opack.h"
 
 struct onion_handler_opack_data_t{
 	unsigned int length;

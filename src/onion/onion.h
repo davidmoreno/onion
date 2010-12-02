@@ -19,7 +19,7 @@
 #ifndef __ONION__
 #define __ONION__
 
-#include "onion_types.h"
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C"{

@@ -28,12 +28,12 @@
 #include <sys/stat.h>
 #include <pwd.h>
 
-#include <onion/onion_handler.h>
-#include <onion/onion_response.h>
-#include <onion/onion_codecs.h>
-#include <onion/onion_log.h>
+#include <onion/handler.h>
+#include <onion/response.h>
+#include <onion/codecs.h>
+#include <onion/log.h>
 
-#include "onion_handler_directory.h"
+#include "directory.h"
 
 
 struct onion_handler_directory_data_t{

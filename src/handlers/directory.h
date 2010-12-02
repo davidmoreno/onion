@@ -16,17 +16,17 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_HANDLER_STATIC__
-#define __ONION_HANDLER_STATIC__
+#ifndef __ONION_HANDLER_DIRECTORY__
+#define __ONION_HANDLER_DIRECTORY__
 
-#include <onion/onion_types.h>
+#include <onion/types.h>
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
-/// Creates an static handler. Returns some content from memory, like an error html.
-onion_handler *onion_handler_static(const char *path, const char *text, int code);
+/// Creates an directory handler. When path matches, it returns a file from localpath (final localpath + path). No dir listing.
+onion_handler *onion_handler_directory(const char *localpath);
 
 #ifdef __cplusplus
 }

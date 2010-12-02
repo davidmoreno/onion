@@ -19,7 +19,7 @@
 #ifndef __ONION_RESPONSE__
 #define __ONION_RESPONSE__
 
-#include "onion_types.h"
+#include "types.h"
 #include <stdlib.h>
 
 #ifdef __cplusplus

@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include "onion_codecs.h"
+#include "codecs.h"
 
 /// Decode table. Its the inverse of the code table. (cb64).
 static const char db64[]={ // 16 bytes each line, 8 lines. Only 128 registers

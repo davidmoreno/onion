@@ -19,7 +19,7 @@
 #ifndef __ONION_DICT__
 #define __ONION_DICT__
 
-#include "onion_types.h"
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C"{

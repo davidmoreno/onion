@@ -23,10 +23,11 @@
 #include <unistd.h>
 
 #include <onion/onion.h>
-#include <onion/onion_handler.h>
-#include <handlers/onion_handler_directory.h>
-#include <handlers/onion_handler_static.h>
-#include <onion/onion_log.h>
+#include <onion/handler.h>
+#include <onion/log.h>
+
+#include <handlers/directory.h>
+#include <handlers/static.h>
 
 onion *o=NULL;
 

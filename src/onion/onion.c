@@ -177,10 +177,10 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #endif
 
 #include "onion.h"
-#include "onion_handler.h"
-#include "onion_server.h"
-#include "onion_types_internal.h"
-#include "onion_log.h"
+#include "handler.h"
+#include "server.h"
+#include "types_internal.h"
+#include "log.h"
 
 #ifdef HAVE_GNUTLS
 static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);

@@ -22,12 +22,12 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "onion_dict.h"
-#include "onion_request.h"
-#include "onion_server.h"
-#include "onion_response.h"
-#include "onion_types_internal.h"
-#include "onion_log.h"
+#include "dict.h"
+#include "request.h"
+#include "server.h"
+#include "response.h"
+#include "types_internal.h"
+#include "log.h"
 
 const char *onion_response_code_description(int code);
 static int onion_response_write_buffer(onion_response *res);

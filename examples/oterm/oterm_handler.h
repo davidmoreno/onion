@@ -20,7 +20,7 @@
 #ifndef __OTERM_HANDLER__
 #define __OTERM_HANDLER__
 
-#include <onion/onion_types.h>
+#include <onion/types.h>
 
 #ifdef __cplusplus
 extern "C"{

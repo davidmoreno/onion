@@ -16,17 +16,17 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_HANDLER_AUTH_PAM__
-#define __ONION_HANDLER_AUTH_PAM__
+#ifndef __ONION_HANDLER_PATH__
+#define __ONION_HANDLER_PATH__
 
-#include <onion/onion_types.h>
+#include <onion/types.h>
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
-/// Creates an auth handler that do not allow to pass unless user is authenticated using a pam name.
-onion_handler *onion_handler_auth_pam(const char *realm, const char *pamname, onion_handler *inside_level);
+/// Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
+onion_handler *onion_handler_path(const char *path, onion_handler *inside_level);
 
 #ifdef __cplusplus
 }

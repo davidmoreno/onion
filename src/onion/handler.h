@@ -23,8 +23,8 @@
 extern "C"{
 #endif
 
-#include "onion_request.h"
-#include "onion_types.h"
+#include "request.h"
+#include "types.h"
 
 /// checks that handler to handle the request
 int onion_handler_handle(onion_handler *handler, onion_request *request);

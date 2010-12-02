@@ -19,8 +19,8 @@
 #include <malloc.h>
 #include <string.h>
 
-#include "onion_dict.h"
-#include "onion_types_internal.h"
+#include "dict.h"
+#include "types_internal.h"
 
 /**
  * Initializes the basic tree with all the structure in place, but empty.

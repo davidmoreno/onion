@@ -28,15 +28,15 @@
 #include <poll.h>
 #include <pthread.h>
 
-#include <onion/onion_request.h>
-#include <onion/onion_response.h>
-#include <onion/onion_handler.h>
+#include <onion/request.h>
+#include <onion/response.h>
+#include <onion/handler.h>
 
 #ifdef __DEBUG__
-#include <handlers/onion_handler_directory.h>
+#include <handlers/directory.h>
 #endif
 
-#include <handlers/onion_handler_opack.h>
+#include <handlers/opack.h>
 
 /// Time to wait for output, or just return.
 #define TIMEOUT 60000

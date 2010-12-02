@@ -18,12 +18,12 @@
 
 #include <malloc.h>
 
-#include "onion_dict.h"
-#include "onion_response.h"
-#include "onion_server.h"
-#include "onion_handler.h"
-#include "onion_types_internal.h"
-#include "onion_log.h"
+#include "dict.h"
+#include "response.h"
+#include "server.h"
+#include "handler.h"
+#include "types_internal.h"
+#include "log.h"
 
 /// Default error 500.
 int error_500(void *handler, onion_request *req);
