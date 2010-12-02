@@ -33,10 +33,10 @@
 #include <onion/handler.h>
 
 #ifdef __DEBUG__
-#include <handlers/directory.h>
+#include <onion/handlers/directory.h>
 #endif
 
-#include <handlers/opack.h>
+#include <onion/handlers/opack.h>
 
 /// Time to wait for output, or just return.
 #define TIMEOUT 60000

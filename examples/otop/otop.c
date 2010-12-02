@@ -31,9 +31,9 @@
 #include <onion/response.h>
 #include <onion/codecs.h>
 
-#include <handlers/path.h>
-#include <handlers/directory.h>
-#include <handlers/auth_pam.h>
+#include <onion/handlers/path.h>
+#include <onion/handlers/directory.h>
+#include <onion/handlers/auth_pam.h>
 
 onion_handler *otop_handler_new();
 void otop_write_process_data(onion_response *res, int pid);

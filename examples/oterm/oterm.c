@@ -25,13 +25,13 @@
 #include <onion/onion.h>
 #include <onion/handler.h>
 
-#include <handlers/path.h>
-#include <handlers/static.h>
-#include <handlers/auth_pam.h>
-#include <handlers/opack.h>
+#include <onion/handlers/path.h>
+#include <onion/handlers/static.h>
+#include <onion/handlers/auth_pam.h>
+#include <onion/handlers/opack.h>
 
 #ifdef __DEBUG__
-#include <handlers/directory.h>
+#include <onion/handlers/directory.h>
 #endif 
 
 #include "oterm_handler.h"

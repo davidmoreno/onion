@@ -12,3 +12,5 @@ if (PTHREADS)
 	target_link_libraries(onion pthread)
 	target_link_libraries(onion_static pthread)
 endif(PTHREADS)
+
+add_subdirectory(handlers)

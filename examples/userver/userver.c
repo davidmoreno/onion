@@ -26,8 +26,8 @@
 #include <onion/handler.h>
 #include <onion/log.h>
 
-#include <handlers/directory.h>
-#include <handlers/static.h>
+#include <onion/handlers/directory.h>
+#include <onion/handlers/static.h>
 
 onion *o=NULL;
 

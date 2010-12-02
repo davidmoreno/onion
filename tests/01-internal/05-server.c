@@ -25,8 +25,8 @@
 #include <onion/request.h>
 #include <onion/response.h>
 #include <onion/handler.h>
-#include <handlers/static.h>
-#include <handlers/path.h>
+#include <onion/handlers/static.h>
+#include <onion/handlers/path.h>
 
 #include "../test.h"
 

@@ -1,8 +1,8 @@
 /** Licensed under AGPL 3.0. (C) 2010 David Moreno Montero. http://coralbits.com */
 #include <onion/onion.h>
 
-#include <handlers/directory.h>
-#include <handlers/auth_pam.h>
+#include <onion/handlers/directory.h>
+#include <onion/handlers/auth_pam.h>
 
 int main(int argc, char **argv){
 	onion *o=onion_new(O_THREADED);
