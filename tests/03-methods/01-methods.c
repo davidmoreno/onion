@@ -24,7 +24,11 @@
 #include <onion/response.h>
 
 void print_dict_element(const char *key, const char *value, onion_response *res){
-	onion_response_printf(res,"<li>%s = %s</li>",key,value);
+	onion_response_write0(res,"<li> ");
+	onion_response_write0(res,key);
+	onion_response_write0(res," = ");
+	onion_response_write0(res,value);
+	onion_response_write0(res,"</li>\n");
 }
 
 onion_connection_status method(void *ignore, onion_request *req){
@@ -61,9 +65,23 @@ onion_connection_status method(void *ignore, onion_request *req){
 	onion_response_printf(res,"</ul></li>\n");
 
 	onion_response_write0(res,"<p>\n");
-	onion_response_write0(res,"<form method=\"GET\"><input type=\"text\" name=\"test\"><input type=\"submit\" name=\"submit\" value=\"GET\"></form><p>\n");
-	onion_response_write0(res,"<form method=\"POST\" enctype=\"application/x-www-form-urlencoded\"><input type=\"text\" name=\"test\"><input type=\"submit\" name=\"submit\"  value=\"POST urlencoded\"></form><p>\n");
-	onion_response_write0(res,"<form method=\"POST\" enctype=\"multipart/form-data\"><input type=\"text\" name=\"test\"><input type=\"submit\" name=\"submit\" value=\"POST multipart\"></form><p>\n");
+	onion_response_write0(res,"<form method=\"GET\">"
+														"<input type=\"text\" name=\"test\">"
+														"<input type=\"submit\" name=\"submit\" value=\"GET\">"
+														"</form><p>\n");
+	onion_response_write0(res,"<form method=\"POST\" enctype=\"application/x-www-form-urlencoded\">"
+														"<textarea name=\"text\"></textarea>"
+														"<input type=\"text\" name=\"test\">"
+														"<input type=\"submit\" name=\"submit\"  value=\"POST urlencoded\">"
+														"</form>"
+														"<p>\n");
+	onion_response_write0(res,"<form method=\"POST\" enctype=\"multipart/form-data\">"
+														"<input type=\"file\" name=\"file\">"
+														"<textarea name=\"text\"></textarea>"
+														"<input type=\"text\" name=\"test\">"
+														"<input type=\"submit\" name=\"submit\" value=\"POST multipart\">"
+														"</form>"
+														"<p>\n");
 	
 	onion_response_write0(res,"</body></html>");
 	
