@@ -78,6 +78,14 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	return req;
 }
 
+/**
+ * @short Helper to remove temporal files from req->files
+ */
+static void unlink_files(const char *key, const char *value, void *p){
+	ONION_DEBUG0("Unlinking temporal file %s",value);
+	unlink(value);
+}
+
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req){
 	onion_dict_free(req->headers);
@@ -90,8 +98,10 @@ void onion_request_free(onion_request *req){
 		onion_dict_free(req->post);
 	if (req->post_buffer)
 		free(req->post_buffer);
-	if (req->files)
+	if (req->files){
+		onion_dict_preorder(req->files, unlink_files, NULL);
 		onion_dict_free(req->files);
+	}
 
 	if (req->client_info)
 		free(req->client_info);
@@ -534,7 +544,8 @@ static onion_connection_status onion_request_parse_multipart_part(onion_request 
 		ONION_DEBUG0("Set FILE data %s=%s, %d bytes",name,filename, length-header_length);
 		char tfilename[256];
 		const char *tmp=getenv("TEMP");
-		tmp=tmp ? tmp : "/tmp/";
+		if (!tmp)
+			tmp="/tmp/";
 		
 		snprintf(tfilename,sizeof(tfilename),"%s/%s-XXXXXX",tmp,filename);
 		int fd=mkstemp(tfilename);
