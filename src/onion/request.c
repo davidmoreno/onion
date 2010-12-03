@@ -405,6 +405,13 @@ static onion_connection_status onion_request_write_post_multipart(onion_request 
  *
  * Just reads line by line and passes the data to onion_request_fill. If on POST state, calls onion_request_write_post. 
  * 
+ * It generates the query, post and files dictionary as necesary per request. 
+ * 
+ * The files dict contain the field to filename mapping, where filename is a temporal file where the data is written. At post you
+ * have the fieldname -> original filename mapping.
+ * 
+ * There is no way currently to check the progress of a upload. TODO.
+ * 
  * @return Returns the number of bytes writen, or <=0 if connection should close, acording to onion_request_write_status_e.
  * @see onion_request_write_status_e onion_request_write_post
  */
