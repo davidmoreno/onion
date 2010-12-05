@@ -39,15 +39,21 @@ static int onion_request_parse_query(onion_request *req);
 static onion_connection_status onion_request_write_post_urlencoded(onion_request *req, const char *data, size_t length);
 static onion_connection_status onion_request_write_post_multipart(onion_request *req, const char *data, size_t length);
 static void onion_request_parse_query_to_dict(onion_dict *dict, char *p);
-static onion_connection_status onion_request_parse_multipart(onion_request *req);
 static onion_connection_status onion_request_parse_multipart_part(onion_request *req, char *init_of_part, size_t length);
+static onion_connection_status onion_request_write_post(onion_request *req, const char *data, size_t length);
+static onion_connection_status onion_request_write_post_multipart(onion_request *req, const char *data, size_t length);
+static onion_connection_status onion_request_write_post_urlencoded(onion_request *req, const char *data, size_t length);
+static onion_connection_status onion_request_write_post_multipart_file(onion_request *req, const char *data, size_t length);
 
 /// Used by req->parse_state, states are:
 typedef enum parse_state_e{
 	CLEAN=0,
 	HEADERS=1,
 	POST_DATA=2,
-	FINISHED=3,
+	POST_DATA_MULTIPART=3,
+	POST_DATA_MULTIPART_FILE=4,
+	POST_DATA_URLENCODE=5,
+	FINISHED=100,
 }parse_state;
 
 /**
@@ -67,9 +73,7 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	req->socket=socket;
 	req->parse_state=0;
 	req->buffer_pos=0;
-	req->files=NULL;
-	req->post=NULL;
-	req->post_buffer=NULL;
+	req->post_data=NULL;
 	if (client_info) // This is kept even on clean
 		req->client_info=strdup(client_info);
 	else
@@ -86,6 +90,17 @@ static void unlink_files(const char *key, const char *value, void *p){
 	unlink(value);
 }
 
+static void onion_request_free_post_data(onion_request_post_data *post){
+	if (post->post)
+		onion_dict_free(post->post);
+	if (post->files){
+		onion_dict_preorder(post->files, unlink_files, NULL);
+		onion_dict_free(post->files);
+	}
+	free(post->buffer);
+	free(post);
+}
+
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req){
 	onion_dict_free(req->headers);
@@ -94,13 +109,8 @@ void onion_request_free(onion_request *req){
 		free(req->fullpath);
 	if (req->query)
 		onion_dict_free(req->query);
-	if (req->post)
-		onion_dict_free(req->post);
-	if (req->post_buffer)
-		free(req->post_buffer);
-	if (req->files){
-		onion_dict_preorder(req->files, unlink_files, NULL);
-		onion_dict_free(req->files);
+	if (req->post_data){
+		onion_request_free_post_data(req->post_data);
 	}
 
 	if (req->client_info)
@@ -231,6 +241,82 @@ onion_connection_status onion_request_fill(onion_request *req, const char *data)
 	return OCS_INTERNAL_ERROR;
 }
 
+
+/**
+ * @short Write some data into the request, and passes it line by line to onion_request_fill
+ *
+ * Just reads line by line and passes the data to onion_request_fill. If on POST state, calls onion_request_write_post. 
+ * 
+ * It generates the query, post and files dictionary as necesary per request. 
+ * 
+ * The files dict contain the field to filename mapping, where filename is a temporal file where the data is written. At post you
+ * have the fieldname -> original filename mapping.
+ * 
+ * There is no way currently to check the progress of a upload. TODO.
+ * 
+ * @return Returns the number of bytes writen, or <=0 if connection should close, acording to onion_request_write_status_e.
+ * @see onion_request_write_status_e onion_request_write_post
+ */
+onion_connection_status onion_request_write(onion_request *req, const char *data, size_t length){
+	size_t i;
+	char msgshown=0;
+	
+	if (req->parse_state==POST_DATA_MULTIPART ||
+			req->parse_state==POST_DATA_MULTIPART_FILE ||
+			req->parse_state==POST_DATA_URLENCODE){
+			onion_request_post_data *post=req->post_data;
+			if (length > (post->size-post->pos)){
+				length=(post->size-post->pos);
+				ONION_WARNING("Received more data after POST data. Not expected. Closing connection");
+				return OCS_CLOSE_CONNECTION;
+		}
+	}
+
+	switch(req->parse_state){
+		case POST_DATA:
+			return onion_request_write_post(req, data, length);
+		case POST_DATA_MULTIPART:
+			return onion_request_write_post_multipart(req, data, length);
+		case POST_DATA_MULTIPART_FILE:
+			return onion_request_write_post_multipart_file(req, data, length);
+		case POST_DATA_URLENCODE:
+			return onion_request_write_post_urlencoded(req, data, length);
+		default:
+			;
+	}
+	for (i=0;i<length;i++){
+		char c=data[i];
+		if (c=='\r') // Just skip it
+			continue;
+		if (c=='\n'){
+			req->buffer[req->buffer_pos]='\0';
+			int r=onion_request_fill(req,req->buffer);
+			req->buffer_pos=0;
+			if (r<=0) // Close connection. Might be a rightfull close, or because of an error. Close anyway.
+				return r;
+			if (req->parse_state==POST_DATA)
+				return onion_request_write_post(req, &data[i+1], length-(i+1));
+		}
+		else{
+			req->buffer[req->buffer_pos]=c;
+			req->buffer_pos++;
+			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on line
+				req->buffer_pos--;
+				if (!msgshown){
+					ONION_ERROR("Read data too long for me (max data length %d chars). Ignoring from that byte on to the end of this line. (%16s...)",(int) sizeof(req->buffer),req->buffer);
+					if (req->parse_state==CLEAN){
+						ONION_ERROR("It happened on the petition line, so i can not deliver it at all.");
+						return OCS_INTERNAL_ERROR;
+					}
+					ONION_ERROR("Increase it at onion_request.h and recompile onion.");
+					msgshown=1;
+				}
+			}
+		}
+	}
+	return OCS_NEED_MORE_DATA;
+}
+
 /**
  * @short Parses the query to unquote the path and get the query.
  */
@@ -272,28 +358,86 @@ static int onion_request_parse_query(onion_request *req){
  * @see onion_request_write_post_multipart onion_request_write_post_urlencoded
  */
 static onion_connection_status onion_request_write_post(onion_request *req, const char *data, size_t length){
-	if ( (req->flags & (OR_POST_MULTIPART|OR_POST_URLENCODED) ) == 0){
-		const char *content_type=onion_request_get_header(req,"Content-Type"); // only old post method, no multipart.
-		if (!content_type || strcasecmp(content_type,"application/x-www-form-urlencoded")==0)
-			req->flags|=OR_POST_URLENCODED;
-		else{
-			// maybe ugly but on this state req->buffer is unused, i used it here to store the multipart marker
-			const char *p=strstr(content_type, "boundary=");
-			int i=0;
-			for (i=0;p[i] && p[i]!=';';i++);
-			
-			if (i>sizeof(req->buffer)){
-				ONION_ERROR("Request multipart boundary string too large (%d bytes). Overflows the internal storage (%d bytes).",i,sizeof(req->buffer));
+	// allocate it
+	onion_request_post_data *post=malloc(sizeof(onion_request_post_data));
+	memset(post, 0, sizeof(onion_request_post_data));
+	req->post_data=post;
+	post->post=onion_dict_new();
+
+	
+	// check content_length
+	const char *content_type=onion_request_get_header(req,"Content-Type"); // only old post method, no multipart.
+	if (!content_type || strcasecmp(content_type,"application/x-www-form-urlencoded")==0){
+		req->flags|=OR_POST_URLENCODED;
+		req->parse_state=POST_DATA_URLENCODE;
+	}
+	else{
+		// maybe ugly but on this state req->buffer is unused, i used it here to store the multipart marker
+		const char *p=strstr(content_type, "boundary=");
+		if (!p){
+			ONION_ERROR("Not indicated the boundary for multipart POST data");
+			return OCS_INTERNAL_ERROR;
+		}
+		p+=9; // skip boundary= data
+		int i=0;
+		for (i=0;p[i] && p[i]!=';' && p[i]!='\r' && p[i]!='\n';i++);
+		
+		if (i>sizeof(req->buffer)){
+			ONION_ERROR("Request multipart boundary string too large (%d bytes). Overflows the internal storage (%d bytes).",i,sizeof(req->buffer));
+			return OCS_INTERNAL_ERROR;
+		}
+		
+		post->marker=malloc(i+1);
+		memcpy(post->marker,p, i);
+		post->marker[i]='\0';
+		post->marker_size=i;
+		
+		ONION_DEBUG("POST multipart boundary is '%s' (%d bytes)",post->marker,post->marker_size);
+		
+		req->parse_state=POST_DATA_MULTIPART;
+		req->flags|=OR_POST_MULTIPART;
+	}
+	size_t content_length=0;
+	const char *cl=onion_dict_get(req->headers,"Content-Length");
+	if (!cl){
+		ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
+		return OCS_INTERNAL_ERROR;
+	}
+	content_length=atol(cl);
+	// Some checks of limits
+	if (req->server->max_post_size<content_length){
+		if (req->parse_state==POST_DATA_MULTIPART){
+			if (req->server->max_post_size+req->server->max_file_size<content_length){
+				ONION_ERROR("Requested size for POST data (%d bytes) is more than avaliable for both data and files (%d + %d)",
+										(unsigned long)content_length, (unsigned long)req->server->max_post_size, (unsigned long)req->server->max_file_size);
+				return OCS_INTERNAL_ERROR;
 			}
-			
-			memmove(req->buffer, p+9, i);
-			ONION_DEBUG("POST multipart boundary is '%s'",req->buffer);
-			
-			req->flags|=OR_POST_MULTIPART;
+			else{
+				ONION_DEBUG("Total POST data (%d bytes) more than limit (%d bytes). I will read it with the hope that some of it are files.",
+									(unsigned long)req->server->max_post_size,(unsigned long)content_length);
+				content_length=req->server->max_post_size;
+			}
+		}
+		else{
+			ONION_ERROR("Onion POST limit is %ld bytes of data (this have %ld). Increase limit with onion_server_set_max_post_size.",
+									(unsigned long)req->server->max_post_size,(unsigned long)content_length);
+			return OCS_INTERNAL_ERROR;
 		}
 	}
-	
-	if (req->flags&OR_POST_MULTIPART)
+
+	post->size=content_length;
+	post->buffer=malloc(content_length+1);
+
+	// read data.
+	ONION_DEBUG("Reading a post of %d bytes",content_length);
+
+	if (length > (post->size-post->pos)){
+		length=(post->size-post->pos);
+		ONION_WARNING("Received more data after POST data. Not expected. Closing connection");
+		return OCS_CLOSE_CONNECTION;
+	}
+
+	if (req->parse_state==POST_DATA_MULTIPART)
 		return onion_request_write_post_multipart(req, data, length);
 	else
 		return onion_request_write_post_urlencoded(req, data, length);
@@ -306,154 +450,97 @@ static onion_connection_status onion_request_write_post(onion_request *req, cons
  * 
  */
 static onion_connection_status onion_request_write_post_urlencoded(onion_request *req, const char *data, size_t length){
-	if (!req->post_buffer){
-		size_t content_length=0;
-		const char *cl=onion_dict_get(req->headers,"Content-Length");
-		if (!cl){
-			ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
-			return OCS_INTERNAL_ERROR;
-		}
-		content_length=atoi(cl);
-		if (req->server->max_post_size<content_length){
-			ONION_WARNING("Onion POST limit is %ld bytes of data (this have %ld). Increase limit with onion_server_set_max_post_size.",(unsigned long)req->server->max_post_size,(unsigned long)content_length);
-			return OCS_INTERNAL_ERROR;
-		}
-		
-		req->post_buffer_size=content_length;
-		req->post_buffer=malloc(content_length+1);
-		req->post_buffer_pos=0;
-		
-		ONION_DEBUG("Reading a post of %d bytes",content_length);
+	onion_request_post_data *post=req->post_data;
+	memcpy(&post->buffer[post->pos], data, length);
+	post->pos+=length;
+	
+	if (post->pos > post->size){
+		ONION_ERROR("Readen more POST data than space available");
+		return OCS_INTERNAL_ERROR;
 	}
-	
-	if (length > (req->post_buffer_size-req->post_buffer_pos)){
-		length=(req->post_buffer_size-req->post_buffer_pos);
-		ONION_WARNING("Received more data after POST data. Not expected. Closing connection");
-		return OCS_CLOSE_CONNECTION;
-	}
-	
-	memcpy(&req->post_buffer[req->post_buffer_pos], data, length);
-	req->post_buffer_pos+=length;
-	
-	if (req->post_buffer_pos>=req->post_buffer_size){
-		req->post_buffer[req->post_buffer_pos]='\0'; // To ease parsing. Already malloced this byte.
-		//ONION_DEBUG("POST data %s",req->post_buffer);
-		req->post=onion_dict_new();
-		onion_request_parse_query_to_dict(req->post, req->post_buffer);
-
-		int r=onion_request_process(req);
-		return r;
+	if (post->pos==post->size){
+		post->buffer[post->pos]='\0'; // To ease parsing. Already malloced this byte.
+		onion_request_parse_query_to_dict(post->post, post->buffer);
+		
+		return onion_request_process(req);
 	}
 	return OCS_NEED_MORE_DATA;
+}
+
+/**
+ * @short Checks if the part marker is on the latest received data part
+ */
+static off_t get_marker_pos(onion_request *req, size_t length){
+	onion_request_post_data *post=req->post_data;
+	int pos=post->pos - length - (post->marker_size+1); // not +2 as then it would have been found before.
+	if (pos<0)
+		pos=0;
+	char *p=&post->buffer[pos];
+	char *end=&post->buffer[post->pos - (post->marker_size+2)];
+	ONION_DEBUG0("Start looking for marker at %d, end at %d", post->pos-length, post->pos - post->marker_size);
+	ONION_DEBUG0("%s",p);
+	for (;p<end;p++){
+		//ONION_DEBUG0("Looking for marker %c [ %d && %d && %d]",*p,
+		//	*p=='-',*(p+1)=='-', memcmp(p+2,post->marker, post->marker_size)==0);
+		if (*p=='-' && *(p+1)=='-' && memcmp(p+2,post->marker, post->marker_size)==0){
+			ONION_DEBUG("Found marker at %d",(int)(p-post->buffer));
+			return (off_t)(p-post->buffer);
+		}
+	}
+	return -1;
 }
 
 /** 
  * @short Fills the request post on multipart petitions
  * 
- * The buffer is read from part to part, and then copied or to the post_buffer, or straigth to a file.
+ * The buffer is read from part to part, and then copied or to the post_buffer, or straight to a file.
  * 
  * When all fields are readden, it parses the parts.
  */
 static onion_connection_status onion_request_write_post_multipart(onion_request *req, const char *data, size_t length){
-	if (!req->post_buffer){
-		size_t content_length=0;
-		const char *cl=onion_dict_get(req->headers,"Content-Length");
-		if (!cl){
-			ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
-			return OCS_INTERNAL_ERROR;
-		}
-		content_length=atoi(cl);
-		if (req->server->max_post_size<content_length){
-			ONION_WARNING("Onion POST limit is %ld bytes of data (this have %ld). Increase limit with onion_server_set_max_post_size.",
-										(unsigned long)req->server->max_post_size,(unsigned long)content_length);
-			return OCS_INTERNAL_ERROR;
-		}
-		
-		req->post_buffer_size=content_length;
-		req->post_buffer=malloc(content_length+1);
-		req->post_buffer_pos=0;
-		
-		ONION_DEBUG("Reading a multipart post of %d bytes",content_length);
+	onion_request_post_data *post=req->post_data;
+	
+	if (post->pos+length>post->size){
+		ONION_ERROR("Got more data than expected on POST multipart. Expeted %d bytes, got at least %d",post->size,post->pos+length);
+		return OCS_INTERNAL_ERROR;
 	}
 	
-	if (length > (req->post_buffer_size-req->post_buffer_pos)){
-		length=(req->post_buffer_size-req->post_buffer_pos);
-		ONION_WARNING("Received more data after POST data. Not expected. Closing connection");
-		return OCS_CLOSE_CONNECTION;
-	}
+	memcpy(&post->buffer[post->pos], data, length);
+	post->pos+=length;
+	post->buffer[post->pos]='\0';
 	
-	memcpy(&req->post_buffer[req->post_buffer_pos], data, length);
-	req->post_buffer_pos+=length;
-	
-	if (req->post_buffer_pos>=req->post_buffer_size){
-		req->post_buffer[req->post_buffer_pos]='\0'; // To ease parsing. Already malloced this byte.
-		//ONION_DEBUG("POST data %s",req->post_buffer);
-		int r=onion_request_parse_multipart(req);
-		ONION_DEBUG("multipart error code %d",r);
-		if (r==0){ // 0 ok, all others are closing errors.
-			ONION_DEBUG("Process POST");
-			r=onion_request_process(req);
-		}
-		return r;
-	}
-	return OCS_NEED_MORE_DATA;
-}
-
-
-/**
- * @short Write some data into the request, and passes it line by line to onion_request_fill
- *
- * Just reads line by line and passes the data to onion_request_fill. If on POST state, calls onion_request_write_post. 
- * 
- * It generates the query, post and files dictionary as necesary per request. 
- * 
- * The files dict contain the field to filename mapping, where filename is a temporal file where the data is written. At post you
- * have the fieldname -> original filename mapping.
- * 
- * There is no way currently to check the progress of a upload. TODO.
- * 
- * @return Returns the number of bytes writen, or <=0 if connection should close, acording to onion_request_write_status_e.
- * @see onion_request_write_status_e onion_request_write_post
- */
-onion_connection_status onion_request_write(onion_request *req, const char *data, size_t length){
-	size_t i;
-	char msgshown=0;
-	if (req->parse_state==POST_DATA){
-		return onion_request_write_post(req, data, length);
-	}
-	for (i=0;i<length;i++){
-		char c=data[i];
-		if (c=='\r') // Just skip it
-			continue;
-		if (c=='\n'){
-			req->buffer[req->buffer_pos]='\0';
-			int r=onion_request_fill(req,req->buffer);
-			req->buffer_pos=0;
-			if (r<=0) // Close connection. Might be a rightfull close, or because of an error. Close anyway.
+	off_t marker_pos;
+	while ( (marker_pos=get_marker_pos(req, length)) >= 0){
+		if (post->last_part_start){
+			post->buffer[marker_pos]='\0';
+			int r=onion_request_parse_multipart_part(req, &post->buffer[post->last_part_start], marker_pos - post->last_part_start);
+			if (r!=OCS_NEED_MORE_DATA)
 				return r;
-			if (req->parse_state==POST_DATA)
-				return onion_request_write_post(req, &data[i+1], length-(i+1));
+		}
+		post->last_part_start=marker_pos+post->marker_size+2;
+		length=post->pos - post->last_part_start;
+		ONION_DEBUG("Setting length to %d - %d = %d",post->pos, post->last_part_start, length);
+	}
+	if ((post->pos==post->size) && (length<=4)){
+		if (post->buffer[post->pos-1]=='\n')
+			post->pos--;
+		if (post->buffer[post->pos-1]=='\r')
+			post->pos--;
+		if (post->buffer[post->pos-1]=='-' &&post->buffer[post->pos-2]=='-'){
+			return onion_request_process(req);
 		}
 		else{
-			req->buffer[req->buffer_pos]=c;
-			req->buffer_pos++;
-			if (req->buffer_pos>=sizeof(req->buffer)){ // Overflow on line
-				req->buffer_pos--;
-				if (!msgshown){
-					ONION_ERROR("Read data too long for me (max data length %d chars). Ignoring from that byte on to the end of this line. (%16s...)",(int) sizeof(req->buffer),req->buffer);
-					if (req->parse_state==CLEAN){
-						ONION_ERROR("It happened on the petition line, so i can not deliver it at all.");
-						return OCS_INTERNAL_ERROR;
-					}
-					ONION_ERROR("Increase it at onion_request.h and recompile onion.");
-					msgshown=1;
-				}
-			}
+			ONION_ERROR("Error parsing the final POST multipart marker");
+			return OCS_INTERNAL_ERROR;
 		}
 	}
+	
 	return OCS_NEED_MORE_DATA;
 }
 
+static onion_connection_status onion_request_write_post_multipart_file(onion_request *req, const char *data, size_t length){
+	return OCS_INTERNAL_ERROR;
+}
 
 /**
  * @short Parses a delimited multipart part.
@@ -462,6 +549,7 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
  * data at init_of_part so dont use it after deleting init_of_part.
  */
 static onion_connection_status onion_request_parse_multipart_part(onion_request *req, char *init_of_part, size_t length){
+	ONION_DEBUG("Post parse (%d+%d) %s",(int)(init_of_part-req->post_data->buffer), length, init_of_part);
 	// First parse the headers
 	onion_dict *headers=onion_dict_new();
 	int in_headers=1;
@@ -470,6 +558,10 @@ static onion_connection_status onion_request_parse_multipart_part(onion_request 
 	const char *key=NULL;
 	const char *value=NULL;
 	int header_length=0;
+	//onion_request_post_data *post=req->post_data;
+	
+	// Skip initial \r\n
+	while (*p=='\n' || *p=='\r') p++;
 	
 	while(in_headers){
 		if (*p=='\0'){
@@ -571,18 +663,18 @@ static onion_connection_status onion_request_parse_multipart_part(onion_request 
 			onion_dict_free(headers);
 			return OCS_INTERNAL_ERROR;
 		}
-		if (!req->files)
-			req->files=onion_dict_new();
-		onion_dict_add(req->files, filename, tfilename, OD_DUP_VALUE); // Temporal file at files
-		onion_dict_add(req->post, name, filename, 0); // filename at post
+		if (!req->post_data->files)
+			req->post_data->files=onion_dict_new();
+		onion_dict_add(req->post_data->files, filename, tfilename, OD_DUP_VALUE); // Temporal file at files
+		onion_dict_add(req->post_data->post, name, filename, 0); // filename at post
 	}
 	else{
 		ONION_DEBUG0("Set POST data %s=%s",name,p);
-		onion_dict_add(req->post, name, p, 0);
+		onion_dict_add(req->post_data->post, name, p, 0);
 	}
 	
 	onion_dict_free(headers);
-	return 0;
+	return OCS_NEED_MORE_DATA;
 }
 
 /**
@@ -595,6 +687,7 @@ static onion_connection_status onion_request_parse_multipart_part(onion_request 
  * 
  * @return a close error or 0 if everything ok.
  */
+/*
 static onion_connection_status onion_request_parse_multipart(onion_request *req){
 	if (!req->post)
 		req->post=onion_dict_new();
@@ -640,7 +733,7 @@ static onion_connection_status onion_request_parse_multipart(onion_request *req)
 	return 0;
 }
 
-
+*/
 /**
  * @short Parses the query part to a given dictionary.
  * 
@@ -709,15 +802,15 @@ const char *onion_request_get_query(onion_request *req, const char *query){
 
 /// Gets a post data
 const char *onion_request_get_post(onion_request *req, const char *query){
-	if (req->post)
-		return onion_dict_get(req->post, query);
+	if (req->post_data && req->post_data->post)
+		return onion_dict_get(req->post_data->post, query);
 	return NULL;
 }
 
 /// Gets file data
 const char *onion_request_get_file(onion_request *req, const char *query){
-	if (req->files)
-		return onion_dict_get(req->files, query);
+	if (req->post_data && req->post_data->files)
+		return onion_dict_get(req->post_data->files, query);
 	return NULL;
 }
 
@@ -733,12 +826,16 @@ const onion_dict *onion_request_get_query_dict(onion_request *req){
 
 /// Gets post data dict
 const onion_dict *onion_request_get_post_dict(onion_request *req){
-	return req->post;
+	if (req->post_data)
+		return req->post_data->post;
+	return NULL;
 }
 
 /// Gets files data dict
 const onion_dict *onion_request_get_file_dict(onion_request *req){
-	return req->files;
+	if (req->post_data)
+		return req->post_data->files;
+	return NULL;
 }
 
 
@@ -758,17 +855,9 @@ void onion_request_clean(onion_request* req){
 		onion_dict_free(req->query);
 		req->query=NULL;
 	}
-	if (req->post){
-		onion_dict_free(req->post);
-		req->post=NULL;
-	}
-	if (req->files){
-		onion_dict_free(req->files);
-		req->files=NULL;
-	}
-	if (req->post_buffer){
-		free(req->post_buffer);
-		req->post_buffer=NULL;
+	if (req->post_data){
+		onion_request_free_post_data(req->post_data);
+		req->post_data=NULL;
 	}
 }
 

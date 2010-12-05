@@ -72,24 +72,36 @@ struct onion_server_t{
 	size_t max_file_size;					/// Maximum size of files. @see onion_request_write_post
 };
 
+/**
+ * @short Internal post data. Only reserved when in a post.
+ */
+struct onion_request_post_data_t{
+	char *buffer;      /// A post buffer that will be allocated only on POST requests.
+	off_t pos;         /// Position on the post buffer.
+	off_t last_part_start; /// Position where last part started, no marker included, nor \r\n.
+	size_t size;       /// Size of the post buffer.
+	char *marker;      /// Marker on the multipart data
+	size_t marker_size; /// Size of the marker.
+	onion_dict *post;     /// Dictionary with POST values
+	onion_dict *files;    /// Dictionary with files. They are automatically saved at /tmp/ and removed at request free. mapped string is full path.
+};
+
+typedef struct onion_request_post_data_t onion_request_post_data;
+
 struct onion_request_t{
 	onion_server *server; /// Server original data, like write function
 	onion_dict *headers;  /// Headers prepared for this response.
 	int flags;            /// Flags for this response. Ored onion_request_flags_e
 	char *fullpath;       /// Original path for the request
 	char *path;           /// Path at this level. Its actually a pointer inside fullpath, removing the leading parts already processed by handlers
+	onion_request_post_data *post_data; /// Extra data only used on posts
 	onion_dict *query;    /// When the query (?q=query) is processed, the dict with the values @see onion_request_parse_query
-	onion_dict *post;     /// Dictionary with POST values
-	onion_dict *files;    /// Dictionary with files. They are automatically saved at /tmp/ and removed at request free. mapped string is full path.
 	onion_write write;    /// Write function
 	void *socket;         /// Write function handler
-	char parse_state;     /// State at buffer parsing (0 headers, 1 POST data, 2 finished).
-	char buffer[ONION_REQUEST_BUFFER_SIZE];     /// Buffer for queries. This should be enough. UGLY. FIXME.
-	off_t buffer_pos;     /// Position on the buffer
 	char *client_info;    /// A string that describes the client, normally the IP.
-	char *post_buffer;      /// A post buffer that will be allocated only on POST requests.
-	off_t post_buffer_pos;  /// Position on the post buffer.
-	size_t post_buffer_size;/// Size of the post buffer.
+	char buffer[ONION_REQUEST_BUFFER_SIZE];     /// Buffer for queries. This should be enough. UGLY. FIXME.
+	char parse_state;     /// State at buffer parsing (0 headers, 1 POST data, 2 finished).
+	off_t buffer_pos;     /// Position on the buffer
 };
 
 struct onion_response_t{
