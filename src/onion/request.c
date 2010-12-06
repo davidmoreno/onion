@@ -45,8 +45,8 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	req->server=server;
 	req->headers=onion_dict_new();
 	req->socket=socket;
-	req->parse_state=0;
-	req->buffer_pos=0;
+	req->parser=NULL;
+	req->parser_data=NULL;
 	req->post_data=NULL;
 	if (client_info) // This is kept even on clean
 		req->client_info=strdup(client_info);
@@ -86,7 +86,8 @@ void onion_request_free(onion_request *req){
 	if (req->post_data){
 		onion_request_free_post_data(req->post_data);
 	}
-
+	if (req->parser_data)
+		free(req->parser_data);
 	if (req->client_info)
 		free(req->client_info);
 	
@@ -166,7 +167,11 @@ const onion_dict *onion_request_get_file_dict(onion_request *req){
 void onion_request_clean(onion_request* req){
 	onion_dict_free(req->headers);
 	req->headers=onion_dict_new();
-	req->parse_state=0;
+	req->parser=NULL;
+	if (req->parser_data){
+		free(req->parser_data);
+		req->parser_data=NULL;
+	}
 	req->flags&=0xFF00;
 	if (req->fullpath){
 		free(req->fullpath);

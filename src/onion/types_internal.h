@@ -91,17 +91,18 @@ typedef struct onion_request_post_data_t onion_request_post_data;
 struct onion_request_t{
 	onion_server *server; /// Server original data, like write function
 	onion_dict *headers;  /// Headers prepared for this response.
-	int flags;            /// Flags for this response. Ored onion_request_flags_e
-	char *fullpath;       /// Original path for the request
-	char *path;           /// Path at this level. Its actually a pointer inside fullpath, removing the leading parts already processed by handlers
-	onion_request_post_data *post_data; /// Extra data only used on posts
-	onion_dict *query;    /// When the query (?q=query) is processed, the dict with the values @see onion_request_parse_query
 	onion_write write;    /// Write function
 	void *socket;         /// Write function handler
+	int flags;            /// Flags for this response. Ored onion_request_flags_e
+
+	void *parser;         /// When recieving data, where to put it. Check at request_parser.c.
+	void *parser_data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
+
+	char *fullpath;       /// Original path for the request
+	char *path;           /// Path at this level. Its actually a pointer inside fullpath, removing the leading parts already processed by handlers
+	onion_dict *query;    /// When the query (?q=query) is processed, the dict with the values @see onion_request_parse_query
 	char *client_info;    /// A string that describes the client, normally the IP.
-	char buffer[ONION_REQUEST_BUFFER_SIZE];     /// Buffer for queries. This should be enough. UGLY. FIXME.
-	char parse_state;     /// State at buffer parsing (0 headers, 1 POST data, 2 finished).
-	off_t buffer_pos;     /// Position on the buffer
+	onion_request_post_data *post_data; /// Extra data only used on posts
 };
 
 struct onion_response_t{
