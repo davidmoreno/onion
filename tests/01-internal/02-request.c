@@ -205,9 +205,10 @@ void t05_create_add_free_POST(){
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"query2"), "query 2");
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->query,"more_query"), " more query 10");
 
-		FAIL_IF_EQUAL(req->post,NULL);
-		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->post,"post_data"), "1");
-		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->post,"post_data2"), "2");
+		const onion_dict *post=onion_request_get_post_dict(req);
+		FAIL_IF_EQUAL(post,NULL);
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(post,"post_data"), "1");
+		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(post,"post_data2"), "2");
 		FAIL_IF_NOT_EQUAL_STR( onion_request_get_post(req, "empty_post"), "");
 		FAIL_IF_NOT_EQUAL_STR( onion_request_get_post(req, "empty_post_2"), "");
 
