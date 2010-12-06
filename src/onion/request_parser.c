@@ -33,7 +33,18 @@
 #include "types_internal.h"
 #include "codecs.h"
 #include "log.h"
-#include "request_parser.h"
+
+/// Used by req->parse_state, states are:
+typedef enum parse_state_e{
+	CLEAN=0,
+	HEADERS=1,
+	POST_DATA=2,
+	POST_DATA_MULTIPART=3,  // On headers of multipart
+	POST_DATA_MULTIPART_NOFILE=4,  // On multipart, normal post
+	POST_DATA_MULTIPART_FILE=5,  // On multipart, a file
+	POST_DATA_URLENCODE=6,
+	FINISHED=100,
+}parse_state;
 
 static int onion_request_parse_query(onion_request *req);
 static onion_connection_status onion_request_write_post_urlencoded(onion_request *req, const char *data, size_t length);

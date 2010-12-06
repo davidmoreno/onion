@@ -29,7 +29,6 @@
 #include "server.h"
 #include "types_internal.h"
 #include "log.h"
-#include "request_parser.h"
 
 /**
  *  @short Creates a request object
