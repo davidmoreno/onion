@@ -48,6 +48,11 @@ typedef struct parser_data_s{
 	ssize_t length;
 }parser_data;
 
+typedef struct parser_post_data_s{
+	char *buffer;
+	size_t length;
+	off_t pos;
+}parser_post_data;
 
 
 /**
@@ -59,6 +64,7 @@ static onion_connection_status parse_query_method(onion_request *req, parser_dat
 static onion_connection_status parse_query_url(onion_request *req, parser_data *data);
 static onion_connection_status parse_query_version(onion_request *req, parser_data *data);
 static onion_connection_status parse_header(onion_request *req, parser_data *data);
+static onion_connection_status parse_post_urlencoded(onion_request *req, parser_data *data);
 #if 0
 static onion_connection_status onion_request_write_post_urlencoded(onion_request *req, const char *data, size_t length);
 static onion_connection_status onion_request_write_post_multipart(onion_request *req, const char *data, size_t length);
@@ -70,6 +76,7 @@ static onion_connection_status onion_request_write_post_multipart_file(onion_req
 #endif
 /// @}
 
+static onion_connection_status prepare_post_parse(onion_request *req);
 static void onion_request_parse_query_to_dict(onion_dict *dict, char *p);
 static int onion_request_parse_query(onion_request *req);
 static onion_connection_status onion_request_process(onion_request *req);
@@ -248,11 +255,35 @@ static onion_connection_status parse_header(onion_request *req, parser_data *dat
 			buffer->pos=0;
 			if (req->flags&OR_GET)
 				return onion_request_process(req);
-			
+			prepare_post_parse(req);
+			return OCS_NEED_MORE_DATA;
 		}
 	}
 	return OCS_NEED_MORE_DATA;
 }
+
+
+static onion_connection_status parse_post_urlencoded(onion_request *req, parser_data *data){
+	parser_post_data *post=(parser_post_data*)req->parser_data;
+	if (post->length < post->pos + data->length){
+		ONION_ERROR("Trying to set more data than content as set (expected %d, got at least %d)",post->length, post->pos + data->length);
+		return OCS_INTERNAL_ERROR;
+	}
+	memcpy(&post->buffer[post->pos], data->data, data->length);
+	post->pos+=data->length;
+	data->length=0;
+	if (post->length == post->pos + data->length){
+		post->buffer[post->pos]='\0';
+		ONION_DEBUG("All readden. %s",post->buffer);
+		req->POST=onion_dict_new();
+		onion_request_parse_query_to_dict(req->POST, post->buffer);
+		// free(post->buffer); // No free as onion_request_parse_query_to_dict reuses this data.
+		return onion_request_process(req);
+	}
+	ONION_DEBUG("Got %d bytes, need %d",post->pos, post->length);
+	return OCS_NEED_MORE_DATA;
+}
+
 #if 0
 
 	//ONION_DEBUG("Request: %-64s",data);
@@ -953,12 +984,51 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 #endif
 
 /**
+ * @short Prepares the POST parsers.
+ * 
+ * It may need to reserve some memory, sets the next parser...
+ */
+static onion_connection_status prepare_post_parse(onion_request *req){
+	const char *cl=onion_dict_get(req->headers,"Content-Length");
+	if (!cl){
+		ONION_ERROR("Need Content-Length header when in POST method. Aborting petition.");
+		return OCS_INTERNAL_ERROR;
+	}
+	size_t content_length=atol(cl);
+	
+	const char *content_type=onion_request_get_header(req,"Content-Type"); // only old post method, no multipart.
+	ONION_DEBUG("POST content type: %s", content_type);
+	if (!content_type || strcasecmp(content_type,"application/x-www-form-urlencoded")==0){
+		if (content_length > req->server->max_post_size){
+			ONION_ERROR("POST too large. Increase POST size limit.");
+			return OCS_INTERNAL_ERROR;
+		}
+		
+		req->flags|=OR_POST_URLENCODED;
+		req->parser=parse_post_urlencoded;
+		free(req->parser_data);
+		parser_post_data *post=malloc(sizeof(parser_post_data));
+		req->parser_data=post;
+		post->pos=0;
+		post->buffer=malloc(content_length+1);
+		post->length=content_length;
+	}
+	else{
+		ONION_ERROR("Not yet.");
+		return OCS_INTERNAL_ERROR;
+	}
+	
+	return OCS_NEED_MORE_DATA;
+}
+
+
+/**
  * @short Parses the query to unquote the path and get the query.
  */
 static int onion_request_parse_query(onion_request *req){
 	if (!req->fullpath)
 		return 0;
-	if (req->query) // already done
+	if (req->GET) // already done
 		return 1;
 
 	char *p=req->fullpath;
@@ -974,8 +1044,8 @@ static int onion_request_parse_query(onion_request *req){
 	onion_unquote_inplace(req->fullpath);
 	if (have_query){ // There are querys.
 		p++;
-		req->query=onion_dict_new();
-		onion_request_parse_query_to_dict(req->query, p);
+		req->GET=onion_dict_new();
+		onion_request_parse_query_to_dict(req->GET, p);
 	}
 	return 1;
 }

@@ -45,9 +45,6 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	req->server=server;
 	req->headers=onion_dict_new();
 	req->socket=socket;
-	req->parser=NULL;
-	req->parser_data=NULL;
-	req->post_data=NULL;
 	if (client_info) // This is kept even on clean
 		req->client_info=strdup(client_info);
 	else
@@ -64,27 +61,19 @@ static void unlink_files(const char *key, const char *value, void *p){
 	unlink(value);
 }
 
-static void onion_request_free_post_data(onion_request_post_data *post){
-	if (post->post)
-		onion_dict_free(post->post);
-	if (post->files){
-		onion_dict_preorder(post->files, unlink_files, NULL);
-		onion_dict_free(post->files);
-	}
-	free(post->buffer);
-	free(post);
-}
-
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req){
 	onion_dict_free(req->headers);
 	
 	if (req->fullpath)
 		free(req->fullpath);
-	if (req->query)
-		onion_dict_free(req->query);
-	if (req->post_data){
-		onion_request_free_post_data(req->post_data);
+	if (req->GET)
+		onion_dict_free(req->GET);
+	if (req->POST)
+		onion_dict_free(req->POST);
+	if (req->FILES){
+		onion_dict_preorder(req->FILES, unlink_files, NULL);
+		onion_dict_free(req->FILES);
 	}
 	if (req->parser_data)
 		free(req->parser_data);
@@ -117,22 +106,22 @@ const char *onion_request_get_header(onion_request *req, const char *header){
 
 /// Gets a query data
 const char *onion_request_get_query(onion_request *req, const char *query){
-	if (req->query)
-		return onion_dict_get(req->query, query);
+	if (req->GET)
+		return onion_dict_get(req->GET, query);
 	return NULL;
 }
 
 /// Gets a post data
 const char *onion_request_get_post(onion_request *req, const char *query){
-	if (req->post_data && req->post_data->post)
-		return onion_dict_get(req->post_data->post, query);
+	if (req->POST)
+		return onion_dict_get(req->POST, query);
 	return NULL;
 }
 
 /// Gets file data
 const char *onion_request_get_file(onion_request *req, const char *query){
-	if (req->post_data && req->post_data->files)
-		return onion_dict_get(req->post_data->files, query);
+	if (req->FILES)
+		return onion_dict_get(req->FILES, query);
 	return NULL;
 }
 
@@ -143,21 +132,17 @@ const onion_dict *onion_request_get_header_dict(onion_request *req){
 
 /// Gets request query dict
 const onion_dict *onion_request_get_query_dict(onion_request *req){
-	return req->query;
+	return req->GET;
 }
 
 /// Gets post data dict
 const onion_dict *onion_request_get_post_dict(onion_request *req){
-	if (req->post_data)
-		return req->post_data->post;
-	return NULL;
+	return req->POST;
 }
 
 /// Gets files data dict
 const onion_dict *onion_request_get_file_dict(onion_request *req){
-	if (req->post_data)
-		return req->post_data->files;
-	return NULL;
+	return req->FILES;
 }
 
 
@@ -177,14 +162,12 @@ void onion_request_clean(onion_request* req){
 		free(req->fullpath);
 		req->path=req->fullpath=NULL;
 	}
-	if (req->query){
-		onion_dict_free(req->query);
-		req->query=NULL;
-	}
-	if (req->post_data){
-		onion_request_free_post_data(req->post_data);
-		req->post_data=NULL;
-	}
+	if (req->GET)
+		onion_dict_free(req->GET);
+	if (req->POST)
+		onion_dict_free(req->POST);
+	if (req->FILES)
+		onion_dict_free(req->FILES);
 }
 
 /**
