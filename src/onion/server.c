@@ -120,7 +120,6 @@ void onion_server_set_max_file_size(onion_server *server, size_t max_file_size){
  * @see onion_connection_status
  */
 int onion_server_handle_request(onion_request *req){
-	ONION_DEBUG("Handling request");
 	int status=onion_handler_handle(req->server->root_handler, req);
 	if (status==OCS_KEEP_ALIVE) // if keep alive, reset struct to get the new petition.
 		onion_request_clean(req);
