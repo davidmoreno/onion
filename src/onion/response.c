@@ -68,8 +68,8 @@ onion_connection_status onion_response_free(onion_response *res){
 	// it is a rare ocassion that there is no request, but although unlikely, it may happend
 	if (res->request){
 		// keep alive only on HTTP/1.1.
-		ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d)", onion_request_keep_alive(res->request),
-								res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes);
+		//ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d)", onion_request_keep_alive(res->request),
+		//						res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes);
 		if ( onion_request_keep_alive(res->request) && (res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes) )
 			r=OCS_KEEP_ALIVE;
 		
@@ -106,7 +106,7 @@ void onion_response_set_code(onion_response *res, int  code){
 
 /// Helper that is called on each header, and writes the header
 static void write_header(const char *key, const char *value, onion_response *res){
-	ONION_DEBUG0("Response header: %s: %s",key, value);
+	//ONION_DEBUG0("Response header: %s: %s",key, value);
 
 	onion_response_write0(res, key);
 	onion_response_write(res, ": ",2);

@@ -177,7 +177,7 @@ void onion_request_clean(onion_request* req){
  */
 void onion_request_set_no_keep_alive(onion_request *req){
 	req->flags|=OR_NO_KEEP_ALIVE;
-	ONION_DEBUG("Disabling keep alive %X",req->flags);
+//	ONION_DEBUG("Disabling keep alive %X",req->flags);
 }
 
 /**
