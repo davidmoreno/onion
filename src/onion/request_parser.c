@@ -40,13 +40,16 @@ typedef enum{
 	KEY=1002,
 	LINE=1003,
 	NEW_LINE=1004,
+	URLENCODE=1005,
 }onion_token_token;
 
 
 typedef struct onion_token_s{
-	char laststr[32]; // Only used when need some previous data, like at header value, i need the key
 	char str[256];
-	size_t length;
+	size_t pos;
+	
+	char *extra; // Only used when need some previous data, like at header value, i need the key
+	size_t extra_length;
 }onion_token;
 
 typedef struct onion_buffer_s{
@@ -58,6 +61,7 @@ typedef struct onion_buffer_s{
 static onion_connection_status onion_request_process(onion_request *req);
 static void onion_request_parse_query_to_dict(onion_dict *dict, char *p);
 static int onion_request_parse_query(onion_request *req);
+static onion_connection_status prepare_POST(onion_request *req);
 
 /// Reads a string until a non-string char. Returns an onion_token
 onion_token_token token_read_STRING(onion_token *token, onion_buffer *data){
@@ -66,16 +70,16 @@ onion_token_token token_read_STRING(onion_token *token, onion_buffer *data){
 	
 	char c=data->data[data->pos++];
 	while (!isspace(c)){
-		token->str[token->length++]=c;
+		token->str[token->pos++]=c;
 		if (data->pos>=data->length)
 			return OCS_NEED_MORE_DATA;
-		if (token->length>=(sizeof(token->str)-1)){
-			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->length);
+		if (token->pos>=(sizeof(token->str)-1)){
+			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->pos);
 			return OCS_INTERNAL_ERROR;
 		}
 		c=data->data[data->pos++];
 	}
-	token->str[token->length]='\0';
+	token->str[token->pos]='\0';
 	//ONION_DEBUG0("Found STRING token %s",token->str);
 	return STRING;
 }
@@ -87,20 +91,20 @@ onion_token_token token_read_KEY(onion_token *token, onion_buffer *data){
 	
 	char c=data->data[data->pos++];
 	while (c!=':' && c!='\n'){
-		token->str[token->length++]=c;
+		token->str[token->pos++]=c;
 		if (data->pos>=data->length)
 			return OCS_NEED_MORE_DATA;
-		if (token->length>=(sizeof(token->str)-1)){
-			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->length);
+		if (token->pos>=(sizeof(token->str)-1)){
+			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->pos);
 			return OCS_INTERNAL_ERROR;
 		}
 		c=data->data[data->pos++];
 	}
 	int ret=KEY;
-	token->str[token->length]='\0';
+	token->str[token->pos]='\0';
 	if (c!=':'){
-		if ( (token->length==1 && token->str[0]=='\r' && c=='\n' ) ||
-				 (token->length==0 && c=='\n' ) )
+		if ( (token->pos==1 && token->str[0]=='\r' && c=='\n' ) ||
+				 (token->pos==0 && c=='\n' ) )
 			ret=NEW_LINE;
 		else{
 			ONION_ERROR("When parsing header, found a non valid key token: %s",token->str);
@@ -119,22 +123,53 @@ onion_token_token token_read_LINE(onion_token *token, onion_buffer *data){
 	
 	char c=data->data[data->pos++];
 	while (c!='\n'){
-		token->str[token->length++]=c;
+		token->str[token->pos++]=c;
 		if (data->pos>=data->length)
 			return OCS_NEED_MORE_DATA;
-		if (token->length>=(sizeof(token->str)-1)){
-			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->length);
+		if (token->pos>=(sizeof(token->str)-1)){
+			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->pos);
 			return OCS_INTERNAL_ERROR;
 		}
 		c=data->data[data->pos++];
 	}
-	if (token->str[token->length-1]=='\r')
-		token->str[token->length-1]='\0';
+	if (token->str[token->pos-1]=='\r')
+		token->str[token->pos-1]='\0';
 	else
-		token->str[token->length]='\0';
+		token->str[token->pos]='\0';
 	
 	//ONION_DEBUG0("Found LINE token %s",token->str);
 	return LINE;
+}
+
+/// Reads a string until a '\n|\r\n' is found. Returns an onion_token.
+onion_token_token token_read_URLENCODE(onion_token *token, onion_buffer *data){
+	if (data->pos>=data->length)
+		return OCS_NEED_MORE_DATA;
+	
+	int l=data->length-data->pos;
+	if (l > (token->extra_length-token->pos))
+		l=token->extra_length-token->pos;
+	
+	memcpy(&token->extra[token->pos], &data->data[data->pos], l);
+	token->pos+=l;
+	data->length-=l;
+	
+	if (data->length == (token->extra_length-token->pos))
+		return URLENCODE;
+	return OCS_NEED_MORE_DATA;
+}
+
+static onion_connection_status parse_POST_urlencode(onion_request *req, onion_buffer *data){
+	onion_token *token=req->parser_data;
+	onion_token_token res=token_read_URLENCODE(token, data);
+	
+	if (res<=1000)
+		return res;
+	
+	req->POST=onion_dict_new();
+	onion_request_parse_query_to_dict(req->POST, token->extra);
+
+	return onion_request_process(req);
 }
 
 static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffer *data);
@@ -149,9 +184,10 @@ static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buf
 	char *p=token->str; // skips leading spaces
 	while (isspace(*p)) p++;
 	
-	onion_dict_add(req->GET,token->laststr,p, OD_DUP_ALL);
-	//ONION_DEBUG("Added header '%s'='%s'",token->laststr,p);
-	token->length=0;
+	onion_dict_add(req->headers,token->extra,p, OD_DUP_VALUE);
+	token->extra=NULL;
+	
+	token->pos=0;
 	
 	req->parser=parse_headers_KEY;
 	
@@ -167,17 +203,15 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 		return res;
 
 	if ( res == NEW_LINE ){
-		token->length=0;
+		token->pos=0;
 		if (!(req->flags&OR_POST))
 			return onion_request_process(req);
-		return OCS_NOT_IMPLEMENTED;
+		
+		return prepare_POST(req);
 	}
 	
-	if (token->length>=sizeof(token->laststr)-1)
-		ONION_WARNING("Header key too long. Limit is %d bytes. Shortening.",sizeof(token->laststr)-1);
-	// laststr[max-1] always '\0'
-	strncpy(token->laststr, token->str, sizeof(token->laststr)-1);
-	token->length=0;
+	token->extra=strdup(token->str);
+	token->pos=0;
 	
 	req->parser=parse_headers_VALUE;
 	
@@ -210,7 +244,7 @@ static onion_connection_status parse_headers_VERSION(onion_request *req, onion_b
 	if (strcmp(token->str,"HTTP/1.1")==0)
 		req->flags|=OR_HTTP11;
 	
-	token->length=0;
+	token->pos=0;
 	req->parser=parse_headers_KEY_skip_NR;
 	
 	return parse_headers_KEY_skip_NR(req, data);
@@ -227,7 +261,7 @@ static onion_connection_status parse_headers_URL(onion_request *req, onion_buffe
 	req->path=req->fullpath=strdup(token->str);
 	onion_request_parse_query(req);
 	
-	token->length=0;
+	token->pos=0;
 	req->parser=parse_headers_VERSION;
 	
 	return parse_headers_VERSION(req, data);
@@ -251,7 +285,7 @@ static onion_connection_status parse_headers_GET(onion_request *req, onion_buffe
 		return OCS_NOT_IMPLEMENTED;
 	}
 	
-	token->length=0;
+	token->pos=0;
 	req->parser=parse_headers_URL;
 	
 	return parse_headers_URL(req, data);
@@ -270,8 +304,9 @@ static onion_connection_status parse_headers_GET(onion_request *req, onion_buffe
  * @see onion_connection_status
  */
 onion_connection_status onion_request_write(onion_request *req, const char *data, size_t length){
+	onion_token *token;
 	if (!req->parser_data){
-		req->parser_data=calloc(1,sizeof(onion_token));
+		token=req->parser_data=calloc(1,sizeof(onion_token));
 		req->parser=parse_headers_GET;
 	}
 	
@@ -282,8 +317,13 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
 		onion_buffer odata={ data, length, 0};
 		while (odata.length>odata.pos){
 			int r=parse(req, &odata);
-			if (r!=OCS_NEED_MORE_DATA)
+			if (r!=OCS_NEED_MORE_DATA){
+				if (token->extra){
+					free(token->extra);
+					token->extra=NULL;
+				}
 				return r;
+			}
 			parse=req->parser;
 		}
 		return OCS_NEED_MORE_DATA;
@@ -369,4 +409,34 @@ static onion_connection_status onion_request_process(onion_request *req){
 	}
 	req->parser=NULL;
 	return onion_server_handle_request(req);
+}
+
+/**
+ * @short Prepares the POST
+ */
+static onion_connection_status prepare_POST(onion_request *req){
+	// ok post
+	onion_token *token=req->parser_data;
+	const char *content_type=onion_dict_get(req->headers, "Content-Type");
+	const char *content_length=onion_dict_get(req->headers, "Content-Length");
+	
+	if (!content_length){
+		ONION_ERROR("I need the content length header to support POST data");
+		return OCS_INTERNAL_ERROR;
+	}
+	size_t cl=atol(content_length);
+	
+	if (!content_length || strcmp(content_type, "application/x-www-form-urlencoded")==0){
+		if (cl>req->server->max_post_size){
+			ONION_ERROR("Asked to send much POST data. Failing");
+			return OCS_INTERNAL_ERROR;
+		}
+		token->extra=malloc(cl);
+		token->extra_length=cl;
+		token->pos=0;
+		
+		req->parser=parse_POST_urlencode;
+		return OCS_NEED_MORE_DATA;
+	}
+	return OCS_INTERNAL_ERROR;
 }
