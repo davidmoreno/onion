@@ -108,10 +108,14 @@ void onion_response_set_code(onion_response *res, int  code){
 static void write_header(const char *key, const char *value, onion_response *res){
 	ONION_DEBUG0("Response header: %s: %s",key, value);
 
-	onion_response_printf(res, "%s: %s\r\n",key, value);
+	onion_response_write0(res, key);
+	onion_response_write(res, ": ",2);
+	onion_response_write0(res, value);
+	onion_response_write(res, "\r\n",2);
 }
 
 #define CONNECTION_CLOSE "Connection: Close\r\n"
+#define CONNECTION_KEEP_ALIVE "Connection: Keep-Alive\r\n"
 
 /**
  * @short Writes all the header to the given response
@@ -124,13 +128,13 @@ static void write_header(const char *key, const char *value, onion_response *res
 int onion_response_write_headers(onion_response *res){
 	if (res->request->flags&OR_HTTP11){
 		onion_response_printf(res, "HTTP/1.1 %d %s\r\n",res->code, onion_response_code_description(res->code));
-		ONION_DEBUG("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
+		//ONION_DEBUG("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
 	}
 	else{
 		onion_response_printf(res, "HTTP/1.0 %d %s\r\n",res->code, onion_response_code_description(res->code));
-		ONION_DEBUG("Response header: HTTP/1.0 %d %s\n",res->code, onion_response_code_description(res->code));
+		//ONION_DEBUG("Response header: HTTP/1.0 %d %s\n",res->code, onion_response_code_description(res->code));
 		if (res->flags&OR_LENGTH_SET) // On HTTP/1.0, i need to state it. On 1.1 it is default.
-			onion_response_write0(res, "Connection: Keep-Alive\r\n");
+			onion_response_write(res, CONNECTION_KEEP_ALIVE, sizeof(CONNECTION_KEEP_ALIVE)-1);
 	}
 	
 	if (!(res->flags&OR_LENGTH_SET))
