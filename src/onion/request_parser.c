@@ -34,7 +34,231 @@
 #include "codecs.h"
 #include "log.h"
 
-#define QUERY_BUFFER_SIZE 1020
+/// Known token types. This is merged with onion_connection_status as return value at token readers.
+typedef enum{
+	STRING=1001, // I start on 1000, to prevent collission with error codes
+	KEY=1002,
+	LINE=1003,
+	NEW_LINE=1004,
+}onion_token_token;
+
+
+typedef struct onion_token_s{
+	char laststr[32]; // Only used when need some previous data, like at header value, i need the key
+	char str[256];
+	size_t length;
+}onion_token;
+
+typedef struct onion_buffer_s{
+	const char *data;
+	size_t length;
+	off_t pos;
+}onion_buffer;
+
+static onion_connection_status onion_request_process(onion_request *req);
+static void onion_request_parse_query_to_dict(onion_dict *dict, char *p);
+static int onion_request_parse_query(onion_request *req);
+
+/// Reads a string until a non-string char. Returns an onion_token
+onion_token_token token_read_STRING(onion_token *token, onion_buffer *data){
+	if (data->pos>=data->length)
+		return OCS_NEED_MORE_DATA;
+	
+	char c=data->data[data->pos++];
+	while (!isspace(c)){
+		token->str[token->length++]=c;
+		if (data->pos>=data->length)
+			return OCS_NEED_MORE_DATA;
+		if (token->length>=(sizeof(token->str)-1)){
+			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->length);
+			return OCS_INTERNAL_ERROR;
+		}
+		c=data->data[data->pos++];
+	}
+	token->str[token->length]='\0';
+	//ONION_DEBUG0("Found STRING token %s",token->str);
+	return STRING;
+}
+
+/// Reads a string until a ':' is found. Returns an onion_token. Also detects an empty line.
+onion_token_token token_read_KEY(onion_token *token, onion_buffer *data){
+	if (data->pos>=data->length)
+		return OCS_NEED_MORE_DATA;
+	
+	char c=data->data[data->pos++];
+	while (c!=':' && c!='\n'){
+		token->str[token->length++]=c;
+		if (data->pos>=data->length)
+			return OCS_NEED_MORE_DATA;
+		if (token->length>=(sizeof(token->str)-1)){
+			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->length);
+			return OCS_INTERNAL_ERROR;
+		}
+		c=data->data[data->pos++];
+	}
+	int ret=KEY;
+	token->str[token->length]='\0';
+	if (c!=':'){
+		if ( (token->length==1 && token->str[0]=='\r' && c=='\n' ) ||
+				 (token->length==0 && c=='\n' ) )
+			ret=NEW_LINE;
+		else{
+			ONION_ERROR("When parsing header, found a non valid key token: %s",token->str);
+			ret=OCS_INTERNAL_ERROR;
+		}
+	}
+	
+	//ONION_DEBUG0("Found KEY token %s",token->str);
+	return ret;
+}
+
+/// Reads a string until a '\n|\r\n' is found. Returns an onion_token.
+onion_token_token token_read_LINE(onion_token *token, onion_buffer *data){
+	if (data->pos>=data->length)
+		return OCS_NEED_MORE_DATA;
+	
+	char c=data->data[data->pos++];
+	while (c!='\n'){
+		token->str[token->length++]=c;
+		if (data->pos>=data->length)
+			return OCS_NEED_MORE_DATA;
+		if (token->length>=(sizeof(token->str)-1)){
+			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->length);
+			return OCS_INTERNAL_ERROR;
+		}
+		c=data->data[data->pos++];
+	}
+	if (token->str[token->length-1]=='\r')
+		token->str[token->length-1]='\0';
+	else
+		token->str[token->length]='\0';
+	
+	//ONION_DEBUG0("Found LINE token %s",token->str);
+	return LINE;
+}
+
+static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffer *data);
+
+static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buffer *data){
+	onion_token *token=req->parser_data;
+	onion_token_token res=token_read_LINE(token, data);
+	
+	if (res<=1000)
+		return res;
+
+	char *p=token->str; // skips leading spaces
+	while (isspace(*p)) p++;
+	
+	onion_dict_add(req->GET,token->laststr,p, OD_DUP_ALL);
+	//ONION_DEBUG("Added header '%s'='%s'",token->laststr,p);
+	token->length=0;
+	
+	req->parser=parse_headers_KEY;
+	
+	return OCS_NEED_MORE_DATA; // Get back recursion if any, to prevent too long callstack (on long headers) and stack ovrflow.
+}
+
+
+static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffer *data){
+	onion_token *token=req->parser_data;
+	onion_token_token res=token_read_KEY(token, data);
+	
+	if (res<=1000)
+		return res;
+
+	if ( res == NEW_LINE ){
+		token->length=0;
+		if (!(req->flags&OR_POST))
+			return onion_request_process(req);
+		return OCS_NOT_IMPLEMENTED;
+	}
+	
+	if (token->length>=sizeof(token->laststr)-1)
+		ONION_WARNING("Header key too long. Limit is %d bytes. Shortening.",sizeof(token->laststr)-1);
+	// laststr[max-1] always '\0'
+	strncpy(token->laststr, token->str, sizeof(token->laststr)-1);
+	token->length=0;
+	
+	req->parser=parse_headers_VALUE;
+	
+	return parse_headers_VALUE(req, data);
+}
+
+
+static onion_connection_status parse_headers_KEY_skip_NR(onion_request *req, onion_buffer *data){
+	char c=data->data[data->pos];
+	while(c=='\r' || c=='\n'){
+		c=data->data[++data->pos];
+		if (data->pos>=data->length)
+			return OCS_INTERNAL_ERROR;
+	}
+	if (!req->GET)
+		req->GET=onion_dict_new();
+	
+	req->parser=parse_headers_KEY;
+	
+	return parse_headers_KEY(req, data);
+}
+
+static onion_connection_status parse_headers_VERSION(onion_request *req, onion_buffer *data){
+	onion_token *token=req->parser_data;
+	onion_token_token res=token_read_STRING(token, data);
+	
+	if (res<=1000)
+		return res;
+
+	if (strcmp(token->str,"HTTP/1.1")==0)
+		req->flags|=OR_HTTP11;
+	
+	token->length=0;
+	req->parser=parse_headers_KEY_skip_NR;
+	
+	return parse_headers_KEY_skip_NR(req, data);
+}
+
+
+static onion_connection_status parse_headers_URL(onion_request *req, onion_buffer *data){
+	onion_token *token=req->parser_data;
+	onion_token_token res=token_read_STRING(token, data);
+	
+	if (res<=1000)
+		return res;
+
+	req->path=req->fullpath=strdup(token->str);
+	onion_request_parse_query(req);
+	
+	token->length=0;
+	req->parser=parse_headers_VERSION;
+	
+	return parse_headers_VERSION(req, data);
+}
+
+static onion_connection_status parse_headers_GET(onion_request *req, onion_buffer *data){
+	onion_token *token=req->parser_data;
+	onion_token_token res=token_read_STRING(token, data);
+	
+	if (res<=1000)
+		return res;
+	
+	if (strcmp(token->str,"GET")==0)
+		req->flags|=OR_GET;
+	else if (strcmp(token->str,"HEAD")==0)
+		req->flags|=OR_HEAD;
+	else if (strcmp(token->str,"POST")==0)
+		req->flags|=OR_POST;
+	else{
+		ONION_ERROR("Unknown method '%s'",token->str);
+		return OCS_NOT_IMPLEMENTED;
+	}
+	
+	token->length=0;
+	req->parser=parse_headers_URL;
+	
+	return parse_headers_URL(req, data);
+}
+
+
+
 /**
  * @short Write some data into the request, and passes it line by line to onion_request_fill
  *
@@ -42,10 +266,107 @@
  *
  * Depending on the state input is redirected to a diferent parser, one for headers, POST url encoded data... 
  * 
- * @return Returns the number of bytes writen, or <=0 if connection should close, acording to onion_connection_status
+ * @return Returns the number of bytes writen, or <=0 if connection should close, according to onion_connection_status
  * @see onion_connection_status
  */
 onion_connection_status onion_request_write(onion_request *req, const char *data, size_t length){
+	if (!req->parser_data){
+		req->parser_data=calloc(1,sizeof(onion_token));
+		req->parser=parse_headers_GET;
+	}
+	
+	onion_connection_status (*parse)(onion_request *req, onion_buffer *data);
+	parse=req->parser;
+	
+	if (parse){
+		onion_buffer odata={ data, length, 0};
+		while (odata.length>odata.pos){
+			int r=parse(req, &odata);
+			if (r!=OCS_NEED_MORE_DATA)
+				return r;
+			parse=req->parser;
+		}
+		return OCS_NEED_MORE_DATA;
+	}
+	
 	return OCS_INTERNAL_ERROR;
 }
 
+/**
+ * @short Parses the query to unquote the path and get the query.
+ */
+static int onion_request_parse_query(onion_request *req){
+	if (!req->fullpath)
+		return 0;
+	if (req->GET) // already done
+		return 1;
+
+	char *p=req->fullpath;
+	char have_query=0;
+	while(*p){
+		if (*p=='?'){
+			have_query=1;
+			break;
+		}
+		p++;
+	}
+	*p='\0';
+	onion_unquote_inplace(req->fullpath);
+	if (have_query){ // There are querys.
+		p++;
+		req->GET=onion_dict_new();
+		onion_request_parse_query_to_dict(req->GET, p);
+	}
+	return 1;
+}
+
+/**
+ * @short Parses the query part to a given dictionary.
+ * 
+ * The data is overwriten as necessary. It is NOT dupped, so if you free this char *p, please free the tree too.
+ */
+static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
+	ONION_DEBUG0("Query to dict %s",p);
+	char *key, *value;
+	int state=0;  // 0 key, 1 value
+	key=p;
+	while(*p){
+		if (state==0){
+			if (*p=='='){
+				*p='\0';
+				value=p+1;
+				state=1;
+			}
+		}
+		else{
+			if (*p=='&'){
+				*p='\0';
+				onion_unquote_inplace(key);
+				onion_unquote_inplace(value);
+				//ONION_DEBUG0("Adding key %s=%-16s",key,value);
+				onion_dict_add(dict, key, value, 0);
+				key=p+1;
+				state=0;
+			}
+		}
+		p++;
+	}
+	if (state!=0){
+		onion_unquote_inplace(key);
+		onion_unquote_inplace(value);
+		//ONION_DEBUG0("Adding key %s=%-16s",key,value);
+		onion_dict_add(dict, key, value, 0);
+	}
+}
+
+/**
+ * @short Processes one request, calling the handler.
+ */
+static onion_connection_status onion_request_process(onion_request *req){
+	if (req->parser_data){
+					free(req->parser_data);
+					req->parser_data=NULL;
+	}
+	req->parser=NULL;
+	return onion_server_handle_request(req);
+}
