@@ -65,6 +65,17 @@ static void unlink_files(const char *key, const char *value, void *p){
 void onion_request_free(onion_request *req){
 	onion_dict_free(req->headers);
 	
+	if (req->parser_data){
+		if (req->parser_data_free){
+			void (*parser_data_free)(void *);
+			parser_data_free=req->parser_data_free;
+			parser_data_free(req->parser_data);
+		}
+		else
+			free(req->parser_data);
+		req->parser_data=NULL;
+	}
+	
 	if (req->fullpath)
 		free(req->fullpath);
 	if (req->GET)
@@ -152,22 +163,36 @@ const onion_dict *onion_request_get_file_dict(onion_request *req){
 void onion_request_clean(onion_request* req){
 	onion_dict_free(req->headers);
 	req->headers=onion_dict_new();
-	req->parser=NULL;
 	if (req->parser_data){
-		free(req->parser_data);
+		if (req->parser_data_free){
+			void (*parser_data_free)(void *);
+			parser_data_free=req->parser_data_free;
+			parser_data_free(req->parser_data);
+		}
+		else
+			free(req->parser_data);
 		req->parser_data=NULL;
 	}
+	req->parser=NULL;
+	req->parser_data_free=NULL;
 	req->flags&=0xFF00;
 	if (req->fullpath){
 		free(req->fullpath);
 		req->path=req->fullpath=NULL;
 	}
-	if (req->GET)
+	if (req->GET){
 		onion_dict_free(req->GET);
-	if (req->POST)
+		req->GET=NULL;
+	}
+	if (req->POST){
 		onion_dict_free(req->POST);
-	if (req->FILES)
+		req->POST=NULL;
+	}
+	if (req->FILES){
+		onion_dict_preorder(req->FILES, unlink_files, NULL);
 		onion_dict_free(req->FILES);
+		req->FILES=NULL;
+	}
 }
 
 /**

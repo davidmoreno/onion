@@ -46,7 +46,7 @@ ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
 project (onion)
 
-SET(CMAKE_C_FLAGS "-Wall -Werror")
+SET(CMAKE_C_FLAGS "-Wall -Werror -O2")
 
 add_subdirectory(src)
 add_subdirectory(tools)

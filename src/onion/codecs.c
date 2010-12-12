@@ -74,8 +74,9 @@ char *onion_base64_decode(const char *orig, int *length){
 
 	
 	int i,j;
+	char c=0; // Always used properly, but gcc -O2 -Wall thinks it may get used not initialized.
 	for (i=0,j=0;i<ol;i+=4,j+=3){
-		unsigned char o[4],c;
+		unsigned char o[4];
 		int k;
 		for (k=0;k<4;k++){
 			while ( (i+k)<ol && ((c=db64[(int)orig[i+k]]) & 192) ) i++;

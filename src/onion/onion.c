@@ -444,7 +444,7 @@ void onion_set_max_threads(onion *onion, int max_threads){
 static void onion_process_request(onion *o, int clientfd, const char *client_info){
 	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
 #ifdef HAVE_GNUTLS
-	gnutls_session_t session;
+	gnutls_session_t session=NULL;
 	if (o->flags&O_SSL_ENABLED){
 		session=onion_prepare_gnutls_session(o, clientfd);
 		if (session==NULL)

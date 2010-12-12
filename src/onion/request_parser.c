@@ -84,9 +84,10 @@ static onion_connection_status onion_request_process(onion_request *req);
 static void onion_request_parse_query_to_dict(onion_dict *dict, char *p);
 static int onion_request_parse_query(onion_request *req);
 static onion_connection_status prepare_POST(onion_request *req);
+static void parser_data_free(onion_token *token);
 
 /// Reads a string until a non-string char. Returns an onion_token
-onion_token_token token_read_STRING(onion_token *token, onion_buffer *data){
+int token_read_STRING(onion_token *token, onion_buffer *data){
 	if (data->pos>=data->size)
 		return OCS_NEED_MORE_DATA;
 	
@@ -115,13 +116,14 @@ onion_token_token token_read_STRING(onion_token *token, onion_buffer *data){
  * STRING is a delimited string, string new line is that the string finished witha  new line, new line is that I fuond only a new line char.
  */
 ///
-onion_token_token token_read_until(onion_token *token, onion_buffer *data, char delimiter){
+int token_read_until(onion_token *token, onion_buffer *data, char delimiter){
 	if (data->pos>=data->size)
 		return OCS_NEED_MORE_DATA;
 	
 	char c=data->data[data->pos++];
 	while (c!=delimiter && c!='\n'){
-		token->str[token->pos++]=c;
+		if (c!='\r') // Just ignore it here
+			token->str[token->pos++]=c;
 		if (data->pos>=data->size)
 			return OCS_NEED_MORE_DATA;
 		if (token->pos>=(sizeof(token->str)-1)){
@@ -133,13 +135,10 @@ onion_token_token token_read_until(onion_token *token, onion_buffer *data, char 
 	int ret=STRING;
 	token->str[token->pos]='\0';
 	if (c!=delimiter){
-		if ( (token->pos==1 && token->str[0]=='\r' && c=='\n' ) ||
-				 (token->pos==0 && c=='\n' ) ){
+		if ( token->pos==0 && c=='\n' ){
 			ret=NEW_LINE;
 		}
 		else{ // only option left.
-			if (token->pos>=1 && token->str[token->pos-1]=='\r') // Remove \r too.
-				token->str[token->pos-1]='\0';
 			ret=STRING_NEW_LINE;
 		}
 	}
@@ -150,7 +149,7 @@ onion_token_token token_read_until(onion_token *token, onion_buffer *data, char 
 }
 
 /// Reads a key, that is a string ended with ':'.
-onion_token_token token_read_KEY(onion_token *token, onion_buffer *data){
+int token_read_KEY(onion_token *token, onion_buffer *data){
 	int res=token_read_until(token, data, ':');
 	if (res==STRING)
 		return KEY;
@@ -162,7 +161,7 @@ onion_token_token token_read_KEY(onion_token *token, onion_buffer *data){
 }
 
 /// Reads a string until a '\n|\r\n' is found. Returns an onion_token.
-onion_token_token token_read_LINE(onion_token *token, onion_buffer *data){
+int token_read_LINE(onion_token *token, onion_buffer *data){
 	if (data->pos>=data->size)
 		return OCS_NEED_MORE_DATA;
 	
@@ -188,25 +187,25 @@ onion_token_token token_read_LINE(onion_token *token, onion_buffer *data){
 }
 
 /// Reads a string until a '\n|\r\n' is found. Returns an onion_token.
-onion_token_token token_read_URLENCODE(onion_token *token, onion_buffer *data){
-	if (data->pos>=data->size)
-		return OCS_NEED_MORE_DATA;
-	
+int token_read_URLENCODE(onion_token *token, onion_buffer *data){
 	int l=data->size-data->pos;
 	if (l > (token->extra_size-token->pos))
 		l=token->extra_size-token->pos;
+	ONION_DEBUG("Feed %d bytes",l);
 	
 	memcpy(&token->extra[token->pos], &data->data[data->pos], l);
 	token->pos+=l;
 	data->size-=l;
 	
-	if (data->size == (token->extra_size-token->pos))
+	if (token->extra_size==token->pos){
+		token->extra[token->pos]='\0';
 		return URLENCODE;
+	}
 	return OCS_NEED_MORE_DATA;
 }
 
 /// Reads as much as possible from the boundary. 
-onion_token_token token_read_MULTIPART_BOUNDARY(onion_token *token, onion_buffer *data){
+int token_read_MULTIPART_BOUNDARY(onion_token *token, onion_buffer *data){
 	onion_multipart_buffer *multipart=(onion_multipart_buffer*)token->extra;
 	while (multipart->boundary[multipart->pos] && multipart->boundary[multipart->pos]==data->data[data->pos]){
 		multipart->pos++;
@@ -222,7 +221,7 @@ onion_token_token token_read_MULTIPART_BOUNDARY(onion_token *token, onion_buffer
 }
 
 /// Reads as much as possible from the boundary. 
-onion_token_token token_read_MULTIPART_next(onion_token *token, onion_buffer *data){
+int token_read_MULTIPART_next(onion_token *token, onion_buffer *data){
 	//onion_multipart_buffer *multipart=(onion_multipart_buffer*)token->extra;
 	
 	while (token->pos<2 && (data->size-data->pos)>0){
@@ -358,7 +357,7 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *r
 
 static onion_connection_status parse_POST_multipart_content_type(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_until(token, data,';');
+	int res=token_read_until(token, data,';');
 	
 	if (res<=1000)
 		return res;
@@ -414,7 +413,7 @@ static onion_connection_status parse_POST_multipart_content_type(onion_request *
 
 static onion_connection_status parse_POST_multipart_ignore_header(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_LINE(token, data);
+	int res=token_read_LINE(token, data);
 	
 	if (res<=1000)
 		return res;
@@ -425,7 +424,7 @@ static onion_connection_status parse_POST_multipart_ignore_header(onion_request 
 
 static onion_connection_status parse_POST_multipart_headers_key(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_KEY(token, data);
+	int res=token_read_KEY(token, data);
 	
 	if (res<=1000)
 		return res;
@@ -468,7 +467,7 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *r
 
 static onion_connection_status parse_POST_multipart_next(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_MULTIPART_next(token, data);
+	int res=token_read_MULTIPART_next(token, data);
 	
 	if (res<=1000)
 		return res;
@@ -488,7 +487,7 @@ static onion_connection_status parse_POST_multipart_next(onion_request *req, oni
 
 static onion_connection_status parse_POST_multipart_start(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_MULTIPART_BOUNDARY(token, data);
+	int res=token_read_MULTIPART_BOUNDARY(token, data);
 	
 	if (res<=1000)
 		return res;
@@ -499,7 +498,7 @@ static onion_connection_status parse_POST_multipart_start(onion_request *req, on
 
 static onion_connection_status parse_POST_urlencode(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_URLENCODE(token, data);
+	int res=token_read_URLENCODE(token, data);
 	
 	if (res<=1000)
 		return res;
@@ -514,15 +513,15 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 
 static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_LINE(token, data);
+	int res=token_read_LINE(token, data);
 	
 	if (res<=1000)
 		return res;
 
 	char *p=token->str; // skips leading spaces
 	while (isspace(*p)) p++;
-	
-	onion_dict_add(req->headers,token->extra,p, OD_DUP_VALUE);
+	//ONION_DEBUG0("Adding header %s=%s",token->extra,p);
+	onion_dict_add(req->headers,token->extra,p, OD_DUP_VALUE|OD_FREE_KEY);
 	token->extra=NULL;
 	
 	req->parser=parse_headers_KEY;
@@ -533,7 +532,7 @@ static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buf
 
 static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_KEY(token, data);
+	int res=token_read_KEY(token, data);
 	
 	if (res<=1000)
 		return res;
@@ -570,7 +569,7 @@ static onion_connection_status parse_headers_KEY_skip_NR(onion_request *req, oni
 
 static onion_connection_status parse_headers_VERSION(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_STRING(token, data);
+	int res=token_read_STRING(token, data);
 	
 	if (res<=1000)
 		return res;
@@ -586,7 +585,7 @@ static onion_connection_status parse_headers_VERSION(onion_request *req, onion_b
 
 static onion_connection_status parse_headers_URL(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_STRING(token, data);
+	int res=token_read_STRING(token, data);
 	
 	if (res<=1000)
 		return res;
@@ -601,7 +600,7 @@ static onion_connection_status parse_headers_URL(onion_request *req, onion_buffe
 
 static onion_connection_status parse_headers_GET(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
-	onion_token_token res=token_read_STRING(token, data);
+	int res=token_read_STRING(token, data);
 	
 	if (res<=1000)
 		return res;
@@ -641,6 +640,7 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
 		memset(token,0,sizeof(onion_token));
 		req->parser=parse_headers_GET;
 		req->parser_data=token;
+		req->parser_data_free=parser_data_free;
 	}
 	else
 		token=req->parser_data;
@@ -653,14 +653,6 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
 		while (odata.size>odata.pos){
 			int r=parse(req, &odata);
 			if (r!=OCS_NEED_MORE_DATA){
-				// I got response, free the temporal data.
-				if (token->extra){
-					free(token->extra);
-					token->extra=NULL;
-				}
-				free(token);
-				req->parser_data=NULL;
-				
 				return r;
 			}
 			parse=req->parser;
@@ -705,8 +697,8 @@ static int onion_request_parse_query(onion_request *req){
  * The data is overwriten as necessary. It is NOT dupped, so if you free this char *p, please free the tree too.
  */
 static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
-	ONION_DEBUG0("Query to dict %s",p);
-	char *key, *value;
+	//ONION_DEBUG0("Query to dict %s",p);
+	char *key=NULL, *value=NULL;
 	int state=0;  // 0 key, 1 value
 	key=p;
 	while(*p){
@@ -761,13 +753,13 @@ static onion_connection_status prepare_POST(onion_request *req){
 		return OCS_INTERNAL_ERROR;
 	}
 	size_t cl=atol(content_size);
-	
-	if (!content_size || strcmp(content_type, "application/x-www-form-urlencoded")==0){
+	//ONION_DEBUG("Content type %s",content_type);
+	if (!content_type || (strcmp(content_type, "application/x-www-form-urlencoded")==0)){
 		if (cl>req->server->max_post_size){
-			ONION_ERROR("Asked to send much POST data. Failing");
+			ONION_ERROR("Asked to send much POST data. Limit %d. Failing.",req->server->max_post_size);
 			return OCS_INTERNAL_ERROR;
 		}
-		token->extra=malloc(cl);
+		token->extra=malloc(cl+1); // Cl + \0
 		token->extra_size=cl;
 		
 		req->parser=parse_POST_urlencode;
@@ -810,4 +802,12 @@ static onion_connection_status prepare_POST(onion_request *req){
 	req->parser=parse_POST_multipart_start;
 	
 	return OCS_NEED_MORE_DATA;
+}
+
+static void parser_data_free(onion_token *token){
+	if (token->extra){
+		free(token->extra);
+		token->extra=NULL;
+	}
+	free(token);
 }

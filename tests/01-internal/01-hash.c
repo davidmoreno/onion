@@ -207,7 +207,8 @@ void append_as_headers(const char *key, const char *value, void *data){
 }
 
 
-void t04_preorder(){
+void t05_preorder(){
+	INIT_LOCAL();
 	onion_dict *dict;
 	dict=onion_dict_new();
 	
@@ -228,6 +229,21 @@ void t04_preorder(){
 	FAIL_IF_NOT_EQUAL_STR(buffer,"A: B\nC: D\nE: F\nG: H\nI: J\nK: L\nM: N\nO: P\nQ: R\nS: T\n");
 	
 	onion_dict_free(dict);
+	END_LOCAL();
+}
+
+void t06_null_add(){
+	INIT_LOCAL();
+	onion_dict *dict;
+	dict=onion_dict_new();
+	
+	onion_dict_add(dict,"b",NULL,0);
+	onion_dict_add(dict,"a",NULL,0);
+	onion_dict_add(dict,"c","1",0);
+	
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(dict,"c"),"1");
+	FAIL_IF_NOT_EQUAL(onion_dict_get(dict,"a"),NULL);
+	END_LOCAL();
 }
 
 int main(int argc, char **argv){
@@ -235,7 +251,8 @@ int main(int argc, char **argv){
 	t02_create_and_free_a_lot(100);
 	t03_create_and_free_a_lot_random(100);
 	t04_create_and_free_a_dup();
-	t04_preorder();
+	t05_preorder();
+	t06_null_add();
 	
 	END();
 }
