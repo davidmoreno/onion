@@ -298,7 +298,6 @@ static onion_connection_status parse_POST_multipart_data(onion_request *req, oni
 	onion_multipart_buffer *multipart=(onion_multipart_buffer*)token->extra;
 	const char *p=data->data+data->pos;
 	char *d=&multipart->data[token->pos];
-	token->pos+=data->size-data->pos;
 
 	for (;data->pos<data->size;data->pos++){
 		/*
@@ -312,9 +311,11 @@ static onion_connection_status parse_POST_multipart_data(onion_request *req, oni
 			if (multipart->pos==multipart->size){
 				multipart->pos=0;
 				data->pos++; // Not sure why this is needed. FIXME.
-				if (*(d-1)=='\n')
+				if (token->pos>0 && *(d-1)=='\n'){
+					token->pos--;
 					d--;
-				if (*(d-1)=='\r')
+				}
+				if (token->pos>0 && *(d-1)=='\r')
 					d--;
 				
 				*d='\0';
@@ -335,6 +336,7 @@ static onion_connection_status parse_POST_multipart_data(onion_request *req, oni
 				multipart->post_total_size-=multipart->pos;
 				memcpy(d,p,multipart->pos);
 				d+=multipart->pos;
+				token->pos+=multipart->pos;
 				multipart->pos=0;
 			}
 			if (multipart->post_total_size<=0){
@@ -342,8 +344,10 @@ static onion_connection_status parse_POST_multipart_data(onion_request *req, oni
 				return OCS_INTERNAL_ERROR;
 			}
 			multipart->post_total_size--;
+			//ONION_DEBUG0("%d %d",multipart->post_total_size,token->extra_size - (int) (d-token->extra));
 			*d=*p;
 			d++;
+			token->pos++;
 		}
 		p++;
 	}
@@ -633,9 +637,13 @@ static onion_connection_status parse_headers_GET(onion_request *req, onion_buffe
 onion_connection_status onion_request_write(onion_request *req, const char *data, size_t size){
 	onion_token *token;
 	if (!req->parser_data){
-		token=req->parser_data=calloc(1,sizeof(onion_token));
+		token=req->parser_data=malloc(sizeof(onion_token));
+		memset(token,0,sizeof(onion_token));
 		req->parser=parse_headers_GET;
+		req->parser_data=token;
 	}
+	else
+		token=req->parser_data;
 	
 	onion_connection_status (*parse)(onion_request *req, onion_buffer *data);
 	parse=req->parser;
@@ -645,10 +653,14 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
 		while (odata.size>odata.pos){
 			int r=parse(req, &odata);
 			if (r!=OCS_NEED_MORE_DATA){
+				// I got response, free the temporal data.
 				if (token->extra){
 					free(token->extra);
 					token->extra=NULL;
 				}
+				free(token);
+				req->parser_data=NULL;
+				
 				return r;
 			}
 			parse=req->parser;
@@ -728,13 +740,10 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 
 /**
  * @short Processes one request, calling the handler.
+ * 
+ * First do the call, then free the data.
  */
 static onion_connection_status onion_request_process(onion_request *req){
-	if (req->parser_data){
-		free(req->parser_data);
-		req->parser_data=NULL;
-	}
-	req->parser=NULL;
 	return onion_server_handle_request(req);
 }
 
