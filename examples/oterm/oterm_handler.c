@@ -235,7 +235,7 @@ int oterm_resize(process *o, onion_request* req){
 int oterm_out(process *o, onion_request *req){
 	// read data, if any. Else return inmediately empty.
 	char buffer[4096];
-	int n;
+	int n=0; // -O2 complains of maybe used uninitialized
 	struct pollfd p;
 	p.fd=o->fd;
 	p.events=POLLIN|POLLERR;
