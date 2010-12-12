@@ -27,6 +27,8 @@
 
 #include "../test.h"
 
+#define FILL(a,b) onion_request_write(a,b,strlen(b))
+
 void t01_create_add_free(){
 	INIT_LOCAL();
 	
@@ -49,7 +51,7 @@ void t01_create_add_free(){
 int write_append(void *handler, const char *data, unsigned int length){
 	char *str=handler;
 	int p=strlen(str);
-	strcat(str,data);
+	strncat(str,data,length);
 	str[p+length]=0;
 	return length;
 }
@@ -95,7 +97,7 @@ void t03_full_cycle_http11(){
 	memset(buffer,0,sizeof(buffer));
 	
 	request=onion_request_new(server, buffer, NULL);
-	onion_request_fill(request,"GET / HTTP/1.1");
+	FILL(request,"GET / HTTP/1.1\n");
 	
 	onion_response *response=onion_response_new(request);
 	

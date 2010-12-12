@@ -19,12 +19,14 @@
 #include <malloc.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <onion/dict.h>
 #include <onion/server.h>
 #include <onion/request.h>
 #include <onion/response.h>
 #include <onion/handler.h>
+#include <onion/log.h>
 #include <onion/handlers/static.h>
 #include <onion/handlers/path.h>
 
@@ -125,6 +127,7 @@ void t04_server_overflow(){
 #undef S
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
 	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nSuccedded");
@@ -154,11 +157,17 @@ void t05_server_with_pipes(){
 #define S "GET / HTTP/1.1\n\n"
 	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
-
+	
+	close(p[1]);
+	
+	//fcntl(p[0],F_SETFL, O_NONBLOCK);
+	
 	// read from the pipe
 	char buffer[1024];
-	memset(buffer,0,sizeof(buffer)); // better clean it, becaus if this doe snot work, it might get an old value
-	read(p[0], buffer, sizeof(buffer));
+	memset(buffer,0,sizeof(buffer)); // better clean it, because if this does not work, it might get an old value
+	int r=read(p[0], buffer, sizeof(buffer));
+	ONION_DEBUG("Read %d bytes",r);
+	perror("Error");
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
 	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 16\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nWorks with pipes");

@@ -102,10 +102,16 @@ int token_read_STRING(onion_token *token, onion_buffer *data){
 		}
 		c=data->data[data->pos++];
 	}
+	int ret;
+	if (c=='\n')
+		ret=STRING_NEW_LINE;
+	else
+		ret=STRING;
+	
 	token->str[token->pos]='\0';
 	token->pos=0;
 	//ONION_DEBUG0("Found STRING token %s",token->str);
-	return STRING;
+	return ret;
 }
 
 /**
@@ -223,7 +229,6 @@ int token_read_MULTIPART_BOUNDARY(onion_token *token, onion_buffer *data){
 /// Reads as much as possible from the boundary. 
 int token_read_MULTIPART_next(onion_token *token, onion_buffer *data){
 	//onion_multipart_buffer *multipart=(onion_multipart_buffer*)token->extra;
-	
 	while (token->pos<2 && (data->size-data->pos)>0){
 		token->str[token->pos++]=data->data[data->pos++];
 		if (token->pos==1 && token->str[0]=='\n'){
@@ -231,7 +236,7 @@ int token_read_MULTIPART_next(onion_token *token, onion_buffer *data){
 			return MULTIPART_NEXT;
 		}
 	}
-	ONION_DEBUG("pos %d, %d %d (%c %c)",token->pos, token->str[0], token->str[1], token->str[0], token->str[1]);
+	//ONION_DEBUG("pos %d, %d %d (%c %c)",token->pos, token->str[0], token->str[1], token->str[0], token->str[1]);
 	if (token->pos==2){
 		token->pos=0;
 		if (token->str[0]=='-' && token->str[1]=='-')
@@ -242,6 +247,28 @@ int token_read_MULTIPART_next(onion_token *token, onion_buffer *data){
 	}
 	
 	return OCS_NEED_MORE_DATA;
+}
+
+int token_read_NEW_LINE(onion_token *token, onion_buffer *data){
+	while (token->pos<2 && (data->size-data->pos)>0){
+		token->str[token->pos++]=data->data[data->pos++];
+		if (token->pos==1 && token->str[0]=='\n'){
+			token->pos=0;
+			return NEW_LINE;
+		}
+	}
+	//ONION_DEBUG("pos %d, %d %d (%c %c)",token->pos, token->str[0], token->str[1], token->str[0], token->str[1]);
+	int res=OCS_NEED_MORE_DATA;
+	if (token->pos==2){
+		token->pos=0;
+		if (token->str[0]=='\r' && token->str[1]=='\n')
+			res=NEW_LINE;
+		else
+			res=OCS_INTERNAL_ERROR;
+	}
+	token->pos=0;
+	
+	return res;
 }
 
 static onion_connection_status parse_POST_multipart_next(onion_request *req, onion_buffer *data);
@@ -525,7 +552,6 @@ static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buf
 	token->extra=NULL;
 	
 	req->parser=parse_headers_KEY;
-	
 	return OCS_NEED_MORE_DATA; // Get back recursion if any, to prevent too long callstack (on long headers) and stack ovrflow.
 }
 
@@ -533,7 +559,7 @@ static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buf
 static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
 	int res=token_read_KEY(token, data);
-	
+
 	if (res<=1000)
 		return res;
 
@@ -547,23 +573,18 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 	token->extra=strdup(token->str);
 	
 	req->parser=parse_headers_VALUE;
-	
 	return parse_headers_VALUE(req, data);
 }
 
 
 static onion_connection_status parse_headers_KEY_skip_NR(onion_request *req, onion_buffer *data){
-	char c=data->data[data->pos];
-	while(c=='\r' || c=='\n'){
-		c=data->data[++data->pos];
-		if (data->pos>=data->size)
-			return OCS_INTERNAL_ERROR;
-	}
-	if (!req->GET)
-		req->GET=onion_dict_new();
+	onion_token *token=req->parser_data;
+	int r=token_read_NEW_LINE(token,data);
+	
+	if (r<=1000)
+		return r;
 	
 	req->parser=parse_headers_KEY;
-	
 	return parse_headers_KEY(req, data);
 }
 
@@ -576,10 +597,19 @@ static onion_connection_status parse_headers_VERSION(onion_request *req, onion_b
 
 	if (strcmp(token->str,"HTTP/1.1")==0)
 		req->flags|=OR_HTTP11;
-	
-	req->parser=parse_headers_KEY_skip_NR;
-	
-	return parse_headers_KEY_skip_NR(req, data);
+
+	if (!req->GET)
+		req->GET=onion_dict_new();
+
+
+	if (res==STRING){
+		req->parser=parse_headers_KEY_skip_NR;
+		return parse_headers_KEY_skip_NR(req, data);
+	}
+	else{ // STRING_NEW_LINE, only when \n as STRING separator, not \r\n.
+		req->parser=parse_headers_KEY;
+		return parse_headers_KEY(req, data);
+	}
 }
 
 
@@ -615,7 +645,6 @@ static onion_connection_status parse_headers_GET(onion_request *req, onion_buffe
 		ONION_ERROR("Unknown method '%s'",token->str);
 		return OCS_NOT_IMPLEMENTED;
 	}
-	
 	req->parser=parse_headers_URL;
 	
 	return parse_headers_URL(req, data);
@@ -736,6 +765,7 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
  * First do the call, then free the data.
  */
 static onion_connection_status onion_request_process(onion_request *req){
+	ONION_DEBUG0("Process request",req->path);
 	return onion_server_handle_request(req);
 }
 
