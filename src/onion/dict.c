@@ -41,7 +41,7 @@ static const onion_dict *onion_dict_find_node(const onion_dict *dict, const char
 	if (!dict || dict->flags&OD_EMPTY){
 		return NULL;
 	}
-	char cmp=strcmp(key, dict->key);
+	signed char cmp=strcmp(key, dict->key);
 	if (cmp==0)
 		return dict;
 	if (parent) *parent=dict;
