@@ -220,7 +220,7 @@ int token_read_MULTIPART_BOUNDARY(onion_token *token, onion_buffer *data){
 			return OCS_NEED_MORE_DATA;
 	}
 	if (multipart->boundary[multipart->pos]){
-		ONION_ERROR("Expecting multipart boundary, but not here");
+		ONION_ERROR("Expecting multipart boundary, but not here (pos %d) (%c!=%c)", multipart->pos, data->data[data->pos], multipart->boundary[multipart->pos]);
 		return OCS_INTERNAL_ERROR;
 	}
 	return MULTIPART_BOUNDARY;
@@ -285,6 +285,9 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 	onion_multipart_buffer *multipart=(onion_multipart_buffer*)token->extra;
 	const char *p=data->data+data->pos;
 	for (;data->pos<data->size;data->pos++){
+		//ONION_DEBUG("*p %d boundary %d (%s)",*p,multipart->boundary[multipart->pos],multipart->boundary);
+		if (multipart->pos==0 && *p=='\n') // \r is optional.
+			multipart->pos=1;
 		if (*p==multipart->boundary[multipart->pos]){
 			multipart->pos++;
 			if (multipart->pos==multipart->size){
@@ -326,12 +329,8 @@ static onion_connection_status parse_POST_multipart_data(onion_request *req, oni
 	char *d=&multipart->data[token->pos];
 
 	for (;data->pos<data->size;data->pos++){
-		/*
-		ONION_DEBUG("pst %d size %d",data->pos, data->size);
-		ONION_DEBUG("%d",*p);
-		ONION_DEBUG("%d",multipart->boundary[multipart->pos]);
-		ONION_DEBUG("[%d]",multipart->pos);
-		*/
+		if (multipart->pos==0 && *p=='\n') // \r is optional.
+			multipart->pos=1;
 		if (*p==multipart->boundary[multipart->pos]){ // Check boundary
 			multipart->pos++;
 			if (multipart->pos==multipart->size){
@@ -577,7 +576,7 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 }
 
 
-static onion_connection_status parse_headers_KEY_skip_NR(onion_request *req, onion_buffer *data){
+static onion_connection_status parse_headers_KEY_skip_NL(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
 	int r=token_read_NEW_LINE(token,data);
 	
@@ -603,8 +602,8 @@ static onion_connection_status parse_headers_VERSION(onion_request *req, onion_b
 
 
 	if (res==STRING){
-		req->parser=parse_headers_KEY_skip_NR;
-		return parse_headers_KEY_skip_NR(req, data);
+		req->parser=parse_headers_KEY_skip_NL;
+		return parse_headers_KEY_skip_NL(req, data);
 	}
 	else{ // STRING_NEW_LINE, only when \n as STRING separator, not \r\n.
 		req->parser=parse_headers_KEY;
@@ -807,25 +806,22 @@ static onion_connection_status prepare_POST(onion_request *req){
 	if (cl>req->server->max_post_size) // I hope the missing part is files, else error later.
 		cl=req->server->max_post_size;
 	
-	if (sizeof(token->str)>sizeof(onion_multipart_buffer)+cl){
-		ONION_ERROR("Do no have enought data space for boundary. Use smalled boundary marker for multipart POSTS.");
-		return OCS_INTERNAL_ERROR;
-	}
-	
 	int mp_token_size=strlen(mp_token);
 	token->extra_size=cl; // Max size of the multipart->data
 	onion_multipart_buffer *multipart=malloc(token->extra_size+sizeof(onion_multipart_buffer)+mp_token_size+2);
 	token->extra=(char*)multipart;
 	
-	multipart->boundary=(char*)multipart+sizeof(onion_multipart_buffer);
-	multipart->size=mp_token_size+2;
-	multipart->pos=0;
+	multipart->boundary=(char*)multipart+sizeof(onion_multipart_buffer)+1;
+	multipart->size=mp_token_size+4;
+	multipart->pos=2; // First boundary already have [\r]\n readen
 	multipart->post_total_size=cl;
 	multipart->file_total_size=0;
-	multipart->boundary[0]='-';
-	multipart->boundary[1]='-';
-	strcpy(&multipart->boundary[2],mp_token);
-	multipart->data=(char*)multipart+sizeof(onion_multipart_buffer)+mp_token_size+2;
+	multipart->boundary[0]='\r';
+	multipart->boundary[1]='\n';
+	multipart->boundary[2]='-';
+	multipart->boundary[3]='-';
+	strcpy(&multipart->boundary[4],mp_token);
+	multipart->data=(char*)multipart+sizeof(onion_multipart_buffer)+multipart->size+1;
 	
 	ONION_DEBUG("Multipart POST boundary '%s'",multipart->boundary);
 	
