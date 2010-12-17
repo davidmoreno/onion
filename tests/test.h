@@ -37,6 +37,7 @@ int local_successes=0;
 
 #define END() { fprintf(stderr,"TOTAL: %d succeses / %d failures\n",successes,failures); exit(failures); }
 
+#define FAIL(v) { ERROR("%s:%d FAIL %s",basename(__FILE__),__LINE__,v); local_failures++; }
 
 #define FAIL_IF(v) if (v){ ERROR("%s:%d FAIL IF %s",basename(__FILE__),__LINE__,#v); local_failures++; } else { local_successes++; }
 #define FAIL_IF_NOT(v) if ( !(v) ){ ERROR("%s:%d FAIL IF NOT %s",basename(__FILE__),__LINE__,#v); local_failures++; } else { local_successes++; }

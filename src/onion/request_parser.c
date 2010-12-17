@@ -125,13 +125,14 @@ int token_read_STRING(onion_token *token, onion_buffer *data){
 int token_read_until(onion_token *token, onion_buffer *data, char delimiter){
 	if (data->pos>=data->size)
 		return OCS_NEED_MORE_DATA;
-	
+
 	char c=data->data[data->pos++];
 	while (c!=delimiter && c!='\n'){
 		if (c!='\r') // Just ignore it here
 			token->str[token->pos++]=c;
-		if (data->pos>=data->size)
+		if (data->pos>=data->size){
 			return OCS_NEED_MORE_DATA;
+		}
 		if (token->pos>=(sizeof(token->str)-1)){
 			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->pos);
 			return OCS_INTERNAL_ERROR;
@@ -160,7 +161,7 @@ int token_read_KEY(onion_token *token, onion_buffer *data){
 	if (res==STRING)
 		return KEY;
 	if (res==STRING_NEW_LINE){
-		ONION_ERROR("When parsing header, found a non valid delimited string token: %s",token->str);
+		ONION_ERROR("When parsing header, found a non valid delimited string token: '%s'",token->str);
 		return OCS_INTERNAL_ERROR;
 	}
 	return res;
