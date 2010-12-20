@@ -50,8 +50,8 @@ int onion_handler_directory_handler(onion_handler_directory_data *d, onion_reque
 	char realp[PATH_MAX];
 	sprintf(tmp,"%s/%s",d->localpath,onion_request_get_path(request));
 
-	realpath(tmp, realp);
-	if (strncmp(realp, d->localpath, strlen(d->localpath))!=0) // out of secured dir.
+	const char *ret=realpath(tmp, realp);
+	if (!ret || strncmp(realp, d->localpath, strlen(d->localpath))!=0) // out of secured dir.
 		return 0;
 
 	struct stat reals;
@@ -168,9 +168,12 @@ void onion_handler_directory_delete(void *data){
  */
 onion_handler *onion_handler_directory(const char *localpath){
 	onion_handler_directory_data *priv_data=malloc(sizeof(onion_handler_directory_data));
-	char realp[PATH_MAX];
-	realpath(localpath,realp);
-	priv_data->localpath=strdup(realp);
+	char *rp=realpath(localpath, NULL);
+	if (!rp){
+		ONION_ERROR("Cant calculate the realpath of the given directory (%s).",localpath);
+		return NULL;
+	}
+	priv_data->localpath=rp;
 	
 	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_directory_handler,
 																			 priv_data,(onion_handler_private_data_free) onion_handler_directory_delete);

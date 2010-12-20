@@ -306,10 +306,21 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 			}
 			if (multipart->pos!=0){
 				multipart->file_total_size+=multipart->pos;
-				write(multipart->fd, multipart->boundary, multipart->pos);
+				int w=write(multipart->fd, multipart->boundary, multipart->pos);
+				if (w!=multipart->pos){
+					ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+					close(multipart->fd);
+					return OCS_INTERNAL_ERROR;
+				}
 				multipart->pos=0;
 			}
-			write(multipart->fd,p,1); // SLOW!! FIXME.
+			int w=write(multipart->fd,p,1); // SLOW!! FIXME.
+			if (w!=1){
+				ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+				close(multipart->fd);
+				return OCS_INTERNAL_ERROR;
+			}
+
 		}
 		multipart->file_total_size++;
 		p++;
