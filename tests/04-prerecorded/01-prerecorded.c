@@ -32,7 +32,11 @@
 
 onion_server *server;
 
-
+/**
+ * @{ @name Buffer type. 
+ * 
+ * Its just a in memory buffer properly handled
+ */
 typedef struct{
 	char *data;
 	size_t size;
@@ -63,7 +67,11 @@ void buffer_free(buffer *b){
 	free(b->data);
 	free(b);
 }
+/// @}
 
+/**
+ * @short Handler that just echoes all data, writing what was a header, what the method...
+ */
 onion_connection_status allinfo_handler(void *data, onion_request *req){
 	onion_response *res=onion_response_new(req);
 	onion_response_write_headers(res);
@@ -75,6 +83,9 @@ onion_connection_status allinfo_handler(void *data, onion_request *req){
 	return onion_response_free(res);;
 }
 
+/**
+ * @short Opens a script file, and executes it.
+ */
 void prerecorded(const char *script){
 	INIT_LOCAL();
 	FILE *fd=fopen(script, "r");
@@ -163,11 +174,9 @@ void prerecorded(const char *script){
 		onion_request_clean(req);
 	}
 	
-	
 	free(line);
 	
 	buffer_free(buffer);
-	
 	
 	fclose(fd);
 	END_LOCAL();

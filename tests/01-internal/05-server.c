@@ -151,7 +151,11 @@ void t05_server_with_pipes(){
 	onion_server_set_root_handler(server, onion_handler_static("", "Works with pipes", 200));
 	
 	int p[2];
-	pipe(p);
+	int error=pipe(p);
+	if (error){
+		FAIL("Could not create pipe.");
+		END_LOCAL();
+	}
 	
 	onion_request *req=onion_request_new(server, &p[1], NULL);
 #define S "GET / HTTP/1.1\n\n"

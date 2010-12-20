@@ -31,6 +31,7 @@ enum onion_response_codes_e{
 	HTTP_REDIRECT=302,
 	HTTP_UNAUTHORIZED=401,
 	HTTP_NOT_FOUND=404,
+	HTTP_INTERNAL_ERROR=500,
 };
 
 

@@ -61,10 +61,14 @@ onion_connection_status upload_file(upload_file_data *data, onion_request *req){
 				ONION_ERROR("Could not open src or dst file (%d %d)",src,dst);
 				return OCS_INTERNAL_ERROR;
 			}
-			int r;
+			ssize_t r,w;
 			char buffer[1024*4];
 			while ( (r=read(src,buffer,sizeof(buffer))) > 0){
-				write(dst,buffer,r);
+				w=write(dst,buffer,r);
+				if (w!=r){
+					ONION_ERROR("Error writing file");
+					break;
+				}
 			}
 			close(src);
 			close(dst);

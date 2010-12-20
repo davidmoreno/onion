@@ -31,6 +31,7 @@
 #include <onion/request.h>
 #include <onion/response.h>
 #include <onion/handler.h>
+#include <onion/log.h>
 
 #ifdef __DEBUG__
 #include <onion/handlers/directory.h>
@@ -213,11 +214,17 @@ int oterm_status(oterm_t *o, onion_request *req){
 int oterm_in(process *o, onion_request *req){
 	const char *data;
 	data=onion_request_get_post(req,"type");
+	ssize_t w;
 	if (data){
 		//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
-		write(o->fd, data, strlen(data));
+		size_t r=strlen(data);
+		w=write(o->fd, data, r);
+		if (w!=r){
+			ONION_WARNING("Error writing data to process. Not all data written. (%d).",w);
+			return onion_response_shortcut(req, "Error", HTTP_INTERNAL_ERROR);
+		}
 	}
-	return onion_response_shortcut(req, "OK", 200);
+	return onion_response_shortcut(req, "OK", HTTP_OK);
 }
 
 /// Resize the window. Do not work yet, and I dont know whats left. FIXME.
@@ -226,9 +233,9 @@ int oterm_resize(process *o, onion_request* req){
 	int ok=kill(o->pid, SIGWINCH);
 	
 	if (ok==0)
-		return onion_response_shortcut(req,"OK",200);
+		return onion_response_shortcut(req,"OK",HTTP_OK);
 	else
-		return onion_response_shortcut(req,"Error",500);
+		return onion_response_shortcut(req,"Error",HTTP_INTERNAL_ERROR);
 }
 
 /// Gets the output data
