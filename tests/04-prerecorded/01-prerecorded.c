@@ -151,14 +151,15 @@ int regexec_multiline(const regex_t *preg, const char *string, size_t nmatch,
 /**
  * @short Opens a script file, and executes it.
  */
-void prerecorded(const char *script, int do_r){
+void prerecorded(const char *oscript, int do_r){
 	INIT_LOCAL();
-	FILE *fd=fopen(script, "r");
+	FILE *fd=fopen(oscript, "r");
 	if (!fd){
 		FAIL("Could not open script file");
 		END_LOCAL();
 		return;
 	}
+	const char *script=basename((char*)oscript);
 	
 	buffer *buffer=buffer_new(1024*1024);
 	onion_request *req=onion_request_new(server, buffer, "test");
@@ -167,11 +168,12 @@ void prerecorded(const char *script, int do_r){
 	const size_t LINE_SIZE=1024;
 	char *line=malloc(LINE_SIZE);
 	size_t len=LINE_SIZE;
-	onion_connection_status ret=0;
+	onion_connection_status ret;
 	int ntest=0;
 	int linen=0;
 	while (!feof(fd)){
 		ntest++;
+		ret=OCS_NEED_MORE_DATA;
 		ONION_DEBUG("Test %d",ntest);
 		// Read request
 		while ( (r=getline(&line, &len, fd)) != -1 ){
@@ -184,7 +186,8 @@ void prerecorded(const char *script, int do_r){
 				line[r]='\n';
 				r++;
 			}
-			ret=onion_request_write(req, line, r);
+			if (ret==OCS_NEED_MORE_DATA)
+				ret=onion_request_write(req, line, r);
 			//line[r]='\0';
 			//ONION_DEBUG0("Write: %s\\n (%d). Ret %d",line,r,ret);
 			len=LINE_SIZE;
@@ -203,7 +206,12 @@ void prerecorded(const char *script, int do_r){
 		
 		// Check response
 		buffer->data[buffer->pos]='\0';
-		ONION_DEBUG0("Response: %s",buffer->data);
+		if (buffer->pos==0){
+			ONION_DEBUG("Empty response");
+		}
+		else{
+			ONION_DEBUG0("Response: %s",buffer->data);
+		}
 
 		while ( (r=getline(&line, &len, fd)) != -1 ){
 			linen++;
@@ -212,7 +220,7 @@ void prerecorded(const char *script, int do_r){
 			}
 			line[strlen(line)-1]='\0';
 			if (strcmp(line,"INTERNAL_ERROR")==0){ // Checks its an internal error
-				ONION_DEBUG("Check INTERNAL_ERROR");
+				ONION_DEBUG("%s:%d Check INTERNAL_ERROR",script,linen);
 				ONION_DEBUG0("Returned %d",ret);
 				FAIL_IF_NOT_EQUAL(ret, OCS_INTERNAL_ERROR);
 			}
@@ -226,20 +234,30 @@ void prerecorded(const char *script, int do_r){
 				regmatch_t match[1];
 				
 				int l=strlen(line)-1;
+
+				int _not=line[0]=='!';
+				if (_not){
+					ONION_DEBUG("Oposite regexp");
+					memmove(line, line+1, l);
+					l--;
+				}
+
 				memmove(line+1,line,l+1);
 				line[0]='^';
 				line[l+2]='$';
 				line[l+3]='\0';
-				ONION_DEBUG("Check regexp: '%s'",line);
-				int er;
-				if ( (er=regcomp(&re, line, REG_EXTENDED)) !=0){
+				ONION_DEBUG("%s:%d Check regexp: '%s'",script, linen, line);
+				int r;
+				r=regcomp(&re, line, REG_EXTENDED);
+				if ( r !=0 ){
 					char error[1024];
-					regerror(er, &re, error, sizeof(error));
+					regerror(r, &re, error, sizeof(error));
 					ONION_ERROR("%s:%d Error compiling regular expression %s: %s",script, linen, line, error);
 					FAIL(line);
 				}
 				else{
-					if (regexec_multiline(&re, buffer->data, 1, match, 0)!=0){
+					int _match=regexec_multiline(&re, buffer->data, 1, match, 0);
+					if ( (_not && _match==0) || (!_not && _match!=0) ){
 						ONION_ERROR("%s:%d cant find %s",script, linen, line);
 						FAIL(line);
 					}

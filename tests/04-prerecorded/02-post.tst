@@ -176,3 +176,48 @@ POST: test = README
 POST: submit = POST multipart
 POST: file = README.rst
 FILE: file = .*
+++ ++
+POST / HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+Referer: http://localhost:8080/
+Content-Length: 4
+Cache-Control: max-age=0
+Origin: http://localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Accept: application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/534.10 (KHTML, like Gecko) Chrome/8.0.552.224 Safari/534.10
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: es-ES,es;q=0.8
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
+Cookie: sessionid=59bf842eb99b88207aab82e90314f367; csrftoken=3737b812bde8e9e7eb5a5b4e10eba90f
+
+text=&test=&submit=POST+urlencoded
+-- --
+!POST:.*
+Header:.*
+++ ++
+POST / HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+Referer: http://localhost:8080/
+Content-Length: 6
+Cache-Control: max-age=0
+Origin: http://localhost:8080
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryWD5dWHBwOQploGj9
+Accept: application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/534.10 (KHTML, like Gecko) Chrome/8.0.552.224 Safari/534.10
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: es-ES,es;q=0.8
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
+Cookie: sessionid=59bf842eb99b88207aab82e90314f367; csrftoken=3737b812bde8e9e7eb5a5b4e10eba90f
+
+------WebKitFormBoundaryWD5dWHBwOQploGj9
+Content-Disposition: form-data; name="file"; filename="README.rst"
+
+Onion http server library
+=========================
+
+Onion plans to be a lightweight C library that facilitate to create simple HTTP servers. 
+-- --
+INTERNAL_ERROR

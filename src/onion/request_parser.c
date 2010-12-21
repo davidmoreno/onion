@@ -427,7 +427,7 @@ static onion_connection_status parse_POST_multipart_content_type(onion_request *
 		if (name){
 			int l=strlen(token->str)-5;
 			if (l>multipart->post_total_size){
-				ONION_ERROR("Post buffer exhausted. content-Length wrong passed.");
+				ONION_ERROR("Post buffer exhausted. Content-Length had wrong size.");
 				return OCS_INTERNAL_ERROR;
 			}
 			multipart->name=multipart->data;
@@ -512,7 +512,7 @@ static onion_connection_status parse_POST_multipart_next(onion_request *req, oni
 	if (res<=1000)
 		return res;
 	
-	ONION_DEBUG("Found next token: %d",res);
+	//ONION_DEBUG("Found next token: %d",res);
 	
 	if (res==MULTIPART_END)
 		return onion_request_process(req);
@@ -836,7 +836,7 @@ static onion_connection_status prepare_POST(onion_request *req){
 	strcpy(&multipart->boundary[4],mp_token);
 	multipart->data=(char*)multipart+sizeof(onion_multipart_buffer)+multipart->size+1;
 	
-	ONION_DEBUG("Multipart POST boundary '%s'",multipart->boundary);
+	//ONION_DEBUG("Multipart POST boundary '%s'",multipart->boundary);
 	
 	req->parser=parse_POST_multipart_start;
 	
