@@ -13,4 +13,12 @@ GET /?test=1 HTTP/..
 
 -- --
 Path: /
-Query: test=1
+Query: test = 1
+++ ++
+GET / HTTP/1.1
+Connection: Close
+Header-Name: Header-Value
+
+-- --
+Header: Connection = Close
+Header: Header-Name = Header-Value

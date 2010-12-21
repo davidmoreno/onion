@@ -154,6 +154,8 @@ int onion_dict_remove(onion_dict *dict, const char *key){
 
 /// Removes the full dict struct form mem.
 void onion_dict_free(onion_dict *dict){
+	if (!dict)
+		return;
 	if (dict->left)
 		onion_dict_free(dict->left);
 	if (dict->right)
@@ -196,6 +198,8 @@ void onion_dict_print_dot(const onion_dict *dict){
  * The funciton is of prototype void f(const char *key, const char *value, void *data);
  */
 void onion_dict_preorder(const onion_dict *dict, void *func, void *data){
+	if (!dict)
+		return;
 	void (*f)(const char *key, const char *value, void *data);
 	f=func;
 	if (dict->left)

@@ -81,7 +81,6 @@ struct onion_request_t{
 
 	void *parser;         /// When recieving data, where to put it. Check at request_parser.c.
 	void *parser_data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
-	void *parser_data_free; /// Fucntion to call with parser data to free that memory.
 
 	char *fullpath;       /// Original path for the request
 	char *path;           /// Path at this level. Its actually a pointer inside fullpath, removing the leading parts already processed by handlers

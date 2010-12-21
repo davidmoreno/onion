@@ -26,6 +26,7 @@
 #include <onion/response.h>
 #include <onion/handler.h>
 #include <onion/log.h>
+#include <onion/dict.h>
 
 #include "../test.h"
 #include <regex.h>
@@ -63,11 +64,33 @@ buffer *buffer_new(size_t size){
 	return b;
 }
 
+void buffer_clean(buffer *b){
+	b->pos=0;
+	memset(b->data,0,b->size);
+}
+
 void buffer_free(buffer *b){
 	free(b->data);
 	free(b);
 }
 /// @}
+
+typedef struct{
+	onion_response *res;
+	const char *part;
+}allinfo_dict_print_t;
+
+void allinfo_query(const char *key, const char *value, allinfo_dict_print_t *aid){
+	onion_response *res=aid->res;
+	
+	onion_response_write0(res,aid->part);
+	onion_response_write0(res,": ");
+	onion_response_write0(res,key);
+	onion_response_write0(res," = ");
+	onion_response_write0(res,value);
+	onion_response_write0(res,"\n");
+}
+
 
 /**
  * @short Handler that just echoes all data, writing what was a header, what the method...
@@ -79,6 +102,17 @@ onion_connection_status allinfo_handler(void *data, onion_request *req){
 	int f=onion_request_get_flags(req);
 	onion_response_printf(res, "Method: %s\n",(f&OR_GET) ? "GET" : (f%OR_HEAD) ? "HEAD" : "POST");
 	onion_response_printf(res, "Path: %s\n",onion_request_get_path(req));
+
+	allinfo_dict_print_t aid;
+	aid.res=res;
+	aid.part="Query";
+	onion_dict_preorder(onion_request_get_query_dict(req),allinfo_query, &aid);
+	aid.part="Header";
+	onion_dict_preorder(onion_request_get_header_dict(req),allinfo_query, &aid);
+	aid.part="POST";
+	onion_dict_preorder(onion_request_get_post_dict(req),allinfo_query, &aid);
+	aid.part="FILE";
+	onion_dict_preorder(onion_request_get_file_dict(req),allinfo_query, &aid);
 	
 	return onion_response_free(res);;
 }
@@ -99,18 +133,23 @@ void prerecorded(const char *script){
 	onion_request *req=onion_request_new(server, buffer, "test");
 	
 	ssize_t r;
-	char *line=malloc(1024);
-	size_t len=sizeof(line);
+	const size_t LINE_SIZE=1024;
+	char *line=malloc(LINE_SIZE);
+	size_t len=LINE_SIZE;
 	onion_connection_status ret=0;
+	int ntest=0;
 	while (!feof(fd)){
+		ntest++;
+		ONION_DEBUG("Test %d",ntest);
 		// Read request
 		while ( (r=getline(&line, &len, fd)) != -1 ){
 			if (strcmp(line,"-- --\n")==0){
 				break;
 			}
-			ONION_DEBUG0("Write: %s",line);
-			ret=onion_request_write(req, line, len-1);
-			len=1024;
+			ret=onion_request_write(req, line, r);
+			line[r-1]='\0';
+			ONION_DEBUG0("Write: %s\\n (%d). Ret %d",line,r,ret);
+			len=LINE_SIZE;
 		}
 		if (r==0){
 			FAIL_IF("Found end of file before end of request");
@@ -170,11 +209,13 @@ void prerecorded(const char *script){
 		}
 
 		
-		buffer->pos=0;
+		buffer_clean(buffer);
 		onion_request_clean(req);
 	}
 	
 	free(line);
+	
+	onion_request_free(req);
 	
 	buffer_free(buffer);
 	
@@ -192,5 +233,7 @@ int main(int argc, char **argv){
 		ONION_INFO("Launching test %s",argv[i]);
 		prerecorded(argv[1]);
 	}
+	
+	onion_server_free(server);
 	END();
 }

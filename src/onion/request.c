@@ -30,6 +30,8 @@
 #include "types_internal.h"
 #include "log.h"
 
+void onion_request_parser_data_free(void *token); // At request_parser.c
+
 /**
  *  @short Creates a request object
  * 
@@ -66,13 +68,7 @@ void onion_request_free(onion_request *req){
 	onion_dict_free(req->headers);
 	
 	if (req->parser_data){
-		if (req->parser_data_free){
-			void (*parser_data_free)(void *);
-			parser_data_free=req->parser_data_free;
-			parser_data_free(req->parser_data);
-		}
-		else
-			free(req->parser_data);
+		onion_request_parser_data_free(req->parser_data);
 		req->parser_data=NULL;
 	}
 	
@@ -164,18 +160,11 @@ void onion_request_clean(onion_request* req){
 	onion_dict_free(req->headers);
 	req->headers=onion_dict_new();
 	if (req->parser_data){
-		if (req->parser_data_free){
-			void (*parser_data_free)(void *);
-			parser_data_free=req->parser_data_free;
-			parser_data_free(req->parser_data);
-		}
-		else
-			free(req->parser_data);
+		onion_request_parser_data_free(req->parser_data);
 		req->parser_data=NULL;
 	}
 	req->parser=NULL;
-	req->parser_data_free=NULL;
-	req->flags&=0xFF00;
+	req->flags&=0xFF00; // I keep server flags.
 	if (req->fullpath){
 		free(req->fullpath);
 		req->path=req->fullpath=NULL;

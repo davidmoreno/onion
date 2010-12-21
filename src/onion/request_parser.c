@@ -84,7 +84,6 @@ static onion_connection_status onion_request_process(onion_request *req);
 static void onion_request_parse_query_to_dict(onion_dict *dict, char *p);
 static int onion_request_parse_query(onion_request *req);
 static onion_connection_status prepare_POST(onion_request *req);
-static void parser_data_free(onion_token *token);
 
 /// Reads a string until a non-string char. Returns an onion_token
 int token_read_STRING(onion_token *token, onion_buffer *data){
@@ -125,7 +124,9 @@ int token_read_STRING(onion_token *token, onion_buffer *data){
 int token_read_until(onion_token *token, onion_buffer *data, char delimiter){
 	if (data->pos>=data->size)
 		return OCS_NEED_MORE_DATA;
-
+	
+	ONION_DEBUG0("Read data %d bytes, at token pos %d",data->size-data->pos, token->pos);
+	
 	char c=data->data[data->pos++];
 	while (c!=delimiter && c!='\n'){
 		if (c!='\r') // Just ignore it here
@@ -680,7 +681,6 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
 		memset(token,0,sizeof(onion_token));
 		req->parser=parse_headers_GET;
 		req->parser_data=token;
-		req->parser_data_free=parser_data_free;
 	}
 	else
 		token=req->parser_data;
@@ -842,7 +842,11 @@ static onion_connection_status prepare_POST(onion_request *req){
 	return OCS_NEED_MORE_DATA;
 }
 
-static void parser_data_free(onion_token *token){
+/**
+ * @short Frees the parser data.
+ */
+void onion_request_parser_data_free(void *t){
+	onion_token *token=t;
 	if (token->extra){
 		free(token->extra);
 		token->extra=NULL;
