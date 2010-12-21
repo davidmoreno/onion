@@ -100,8 +100,9 @@ onion_connection_status allinfo_handler(void *data, onion_request *req){
 	onion_response_write_headers(res);
 	
 	int f=onion_request_get_flags(req);
-	onion_response_printf(res, "Method: %s\n",(f&OR_GET) ? "GET" : (f%OR_HEAD) ? "HEAD" : "POST");
+	onion_response_printf(res, "Method: %s\n",(f&OR_GET) ? "GET" : (f&OR_HEAD) ? "HEAD" : "POST");
 	onion_response_printf(res, "Path: %s\n",onion_request_get_path(req));
+	onion_response_printf(res, "Version: %s\n",onion_request_get_flags(req)&OR_HTTP11 ? "HTTP/1.1" : "HTTP/1.0");
 
 	allinfo_dict_print_t aid;
 	aid.res=res;
@@ -115,6 +116,30 @@ onion_connection_status allinfo_handler(void *data, onion_request *req){
 	onion_dict_preorder(onion_request_get_file_dict(req),allinfo_query, &aid);
 	
 	return onion_response_free(res);;
+}
+
+int regexec_multiline(const regex_t *preg, const char *string, size_t nmatch,
+                   regmatch_t pmatch[], int eflags){
+	char tmp[1024];
+	int i=0;
+	const char *p=string;
+	int r=1;
+	while (*p){
+		if (*p=='\n'){
+			tmp[i]='\0';
+			//ONION_DEBUG("Check against %s",tmp);
+			if ( (r=regexec(preg,tmp,nmatch, pmatch, eflags))==0 ){
+				return r;
+			}
+			i=0;
+		}
+		else{
+			tmp[i++]=*p;
+		}
+		p++;
+
+	}
+	return r;
 }
 
 /**
@@ -181,11 +206,11 @@ void prerecorded(const char *script){
 				regex_t re;
 				regmatch_t match[1];
 				
-				//int l=strlen(line)-1;
-				//memmove(line+1,line,l);
-				//line[0]='^';
-				//line[l+1]='$';
-				//line[l+2]='\0';
+				int l=strlen(line)-1;
+				memmove(line+1,line,l+1);
+				line[0]='^';
+				line[l+2]='$';
+				line[l+3]='\0';
 				ONION_DEBUG("Check regexp: '%s'",line);
 				int er;
 				if ( (er=regcomp(&re, line, REG_EXTENDED)) !=0){
@@ -195,7 +220,7 @@ void prerecorded(const char *script){
 					FAIL(line);
 				}
 				else{
-					if (regexec(&re, buffer->data, 1, match, 0)!=0){
+					if (regexec_multiline(&re, buffer->data, 1, match, 0)!=0){
 						FAIL(line);
 					}
 					else{

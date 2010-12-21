@@ -22,3 +22,11 @@ Header-Name: Header-Value
 -- --
 Header: Connection = Close
 Header: Header-Name = Header-Value
+++ ++
+POST /?get=true HTTP/1.1
+Content-Type: post/urlencoded
+
+
+-- --
+INTERNAL_ERROR
+++ ++
