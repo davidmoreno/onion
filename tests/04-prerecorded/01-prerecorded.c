@@ -193,13 +193,20 @@ void prerecorded(const char *oscript, int do_r){
 			len=LINE_SIZE;
 		}
 		if (r<0){
+			buffer_free(buffer);
+			fclose(fd);
+			onion_request_free(req);
+			free(line);
 			END_LOCAL();
 			return;
 		}
 		
 		if (r==0){
 			FAIL_IF("Found end of file before end of request");
+			buffer_free(buffer);
 			fclose(fd);
+			onion_request_free(req);
+			free(line);
 			END_LOCAL();
 			return;
 		}
