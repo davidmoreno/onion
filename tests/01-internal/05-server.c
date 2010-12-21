@@ -170,8 +170,10 @@ void t05_server_with_pipes(){
 	char buffer[1024];
 	memset(buffer,0,sizeof(buffer)); // better clean it, because if this does not work, it might get an old value
 	int r=read(p[0], buffer, sizeof(buffer));
-	ONION_DEBUG("Read %d bytes",r);
-	perror("Error");
+	if (r<0){
+		ONION_DEBUG("Read %d bytes",r);
+		perror("Error");
+	}
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
 	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 16\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nWorks with pipes");
