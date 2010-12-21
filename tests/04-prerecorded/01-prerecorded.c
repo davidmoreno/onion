@@ -118,6 +118,12 @@ onion_connection_status allinfo_handler(void *data, onion_request *req){
 	return onion_response_free(res);;
 }
 
+/**
+ * @short Performs regexec on each line of string.
+ * 
+ * As regexec cant use ^$ to find the line limits, but the string limits, we split the string to make
+ * the find of ^ and $ on each line.
+ */
 int regexec_multiline(const regex_t *preg, const char *string, size_t nmatch,
                    regmatch_t pmatch[], int eflags){
 	char tmp[1024];
@@ -145,7 +151,7 @@ int regexec_multiline(const regex_t *preg, const char *string, size_t nmatch,
 /**
  * @short Opens a script file, and executes it.
  */
-void prerecorded(const char *script){
+void prerecorded(const char *script, int do_r){
 	INIT_LOCAL();
 	FILE *fd=fopen(script, "r");
 	if (!fd){
@@ -173,11 +179,21 @@ void prerecorded(const char *script){
 			if (strcmp(line,"-- --\n")==0){
 				break;
 			}
+			if (do_r){
+				line[r-1]='\r';
+				line[r]='\n';
+				r++;
+			}
 			ret=onion_request_write(req, line, r);
-			line[r-1]='\0';
+			//line[r]='\0';
 			//ONION_DEBUG0("Write: %s\\n (%d). Ret %d",line,r,ret);
 			len=LINE_SIZE;
 		}
+		if (r<0){
+			END_LOCAL();
+			return;
+		}
+		
 		if (r==0){
 			FAIL_IF("Found end of file before end of request");
 			fclose(fd);
@@ -252,15 +268,27 @@ void prerecorded(const char *script){
 	END_LOCAL();
 }
 
+/**
+ * @short Executes each script file passed as argument.
+ * 
+ * Optionally a -r sets the new lines to \r\n. It takes care of not changing content types.
+ */
 int main(int argc, char **argv){
 	server=onion_server_new();
 	onion_server_set_root_handler(server,onion_handler_new((void*)allinfo_handler,NULL,NULL));
 	onion_server_set_write(server,(void*)buffer_append);
 	
 	int i;
+	int do_r=0;
 	for (i=1;i<argc;i++){
-		ONION_INFO("Launching test %s",argv[i]);
-		prerecorded(argv[1]);
+		if (strcmp(argv[i],"-r")==0){
+			ONION_WARNING("Setting the end of lines to \\r\\n");
+			do_r=1;
+		}
+		else{
+			ONION_INFO("Launching test %s",argv[i]);
+			prerecorded(argv[i], do_r);
+		}
 	}
 	
 	onion_server_free(server);
