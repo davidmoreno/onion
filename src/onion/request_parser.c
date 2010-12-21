@@ -125,7 +125,7 @@ int token_read_until(onion_token *token, onion_buffer *data, char delimiter){
 	if (data->pos>=data->size)
 		return OCS_NEED_MORE_DATA;
 	
-	ONION_DEBUG0("Read data %d bytes, at token pos %d",data->size-data->pos, token->pos);
+	//ONION_DEBUG0("Read data %d bytes, at token pos %d",data->size-data->pos, token->pos);
 	
 	char c=data->data[data->pos++];
 	while (c!=delimiter && c!='\n'){
@@ -359,7 +359,7 @@ static onion_connection_status parse_POST_multipart_data(onion_request *req, oni
 				*d='\0';
 				ONION_DEBUG("Adding POST data '%s'",multipart->name);
 				onion_dict_add(req->POST, multipart->name, multipart->data, 0);
-				multipart->data=multipart->data+token->pos;
+				multipart->data=multipart->data+token->pos+1;
 				token->pos=0;
 				req->parser=parse_POST_multipart_next;
 				return OCS_NEED_MORE_DATA;
@@ -433,11 +433,12 @@ static onion_connection_status parse_POST_multipart_content_type(onion_request *
 			multipart->name=multipart->data;
 			memcpy(multipart->name, name+5, l);
 			multipart->name[l]=0;
-			multipart->data=multipart->data+l+1;
 			if (*multipart->name=='"' && multipart->name[l-2]=='"'){
-				multipart->name[l-2]='\0';
+				l-=2;
+				multipart->name[l]='\0';
 				multipart->name++;
 			}
+			multipart->data=multipart->name+l+1;
 			ONION_DEBUG0("Set field name '%s'",multipart->name);
 		}
 	}

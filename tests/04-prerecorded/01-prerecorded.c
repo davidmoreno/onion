@@ -163,17 +163,19 @@ void prerecorded(const char *script){
 	size_t len=LINE_SIZE;
 	onion_connection_status ret=0;
 	int ntest=0;
+	int linen=0;
 	while (!feof(fd)){
 		ntest++;
 		ONION_DEBUG("Test %d",ntest);
 		// Read request
 		while ( (r=getline(&line, &len, fd)) != -1 ){
+			linen++;
 			if (strcmp(line,"-- --\n")==0){
 				break;
 			}
 			ret=onion_request_write(req, line, r);
 			line[r-1]='\0';
-			ONION_DEBUG0("Write: %s\\n (%d). Ret %d",line,r,ret);
+			//ONION_DEBUG0("Write: %s\\n (%d). Ret %d",line,r,ret);
 			len=LINE_SIZE;
 		}
 		if (r==0){
@@ -188,6 +190,7 @@ void prerecorded(const char *script){
 		ONION_DEBUG0("Response: %s",buffer->data);
 
 		while ( (r=getline(&line, &len, fd)) != -1 ){
+			linen++;
 			if (strcmp(line,"++ ++\n")==0){
 				break;
 			}
@@ -216,11 +219,12 @@ void prerecorded(const char *script){
 				if ( (er=regcomp(&re, line, REG_EXTENDED)) !=0){
 					char error[1024];
 					regerror(er, &re, error, sizeof(error));
-					ONION_ERROR("Error compiling regular expression %s: %s",line, error);
+					ONION_ERROR("%s:%d Error compiling regular expression %s: %s",script, linen, line, error);
 					FAIL(line);
 				}
 				else{
 					if (regexec_multiline(&re, buffer->data, 1, match, 0)!=0){
+						ONION_ERROR("%s:%d cant find %s",script, linen, line);
 						FAIL(line);
 					}
 					else{

@@ -42,8 +42,8 @@ Cookie: sessionid=59bf842eb99b88207aab82e90314f367; csrftoken=3737b812bde8e9e7eb
 
 text=&test=&submit=POST+urlencoded
 -- --
-POST: text =
-POST: test =
+POST: text = 
+POST: test = 
 POST: submit = POST urlencoded
 ++ ++
 POST / HTTP/1.1
@@ -79,8 +79,8 @@ Content-Disposition: form-data; name="submit"
 POST multipart
 ------WebKitFormBoundaryAwobIbqAyMCaZmpO--
 -- --
-POST: text =
-POST: test =
+POST: text = 
+POST: test = 
 POST: submit = POST multipart
 ++ ++
 POST / HTTP/1.1
