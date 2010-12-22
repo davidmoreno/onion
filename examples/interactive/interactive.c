@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include <onion/onion.h>
+#include <onion/dict.h>
 #include <onion/handler.h>
 #include <onion/request.h>
 #include <onion/response.h>
@@ -40,11 +41,24 @@ char *ask_question(const char *question){
 	return ret;
 }
 
+/// Format query string a little bit to understand the query itself
+void format_query(const char *key, const char *value, char *temp){
+	strcat(temp," ");
+	strcat(temp,key);
+	strcat(temp,"=");
+	strcat(temp,value);
+}
+
 /**
  * @short Just asks the user for the answer.
  */
 onion_connection_status ask_handler(void *none, onion_request *req){
-	char *resp=ask_question(onion_request_get_path(req));
+	char temp[1024];
+	strcpy(temp, onion_request_get_path(req));
+	onion_dict_preorder(onion_request_get_query_dict(req),format_query,temp);
+	
+	char *resp=ask_question(temp);
+	
 	if (!resp)
 		return OCS_INTERNAL_ERROR;
 	

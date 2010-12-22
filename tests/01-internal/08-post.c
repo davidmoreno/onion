@@ -116,10 +116,56 @@ void t01_post_empty_file(){
 	
 	onion_request_clean(req);
 	post.test_ok=0; // Not ok as not called processor yet
+#undef POST_EMPTY
 
 #define POST_EMPTYR "POST / HTTP/1.1\r\nContent-Type: multipart/form-data; boundary=end\r\nContent-Length:84\r\n\r\n--end\r\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\r\n\r\n\r\n--end--"
+	onion_request_write(req,POST_EMPTYR,sizeof(POST_EMPTYR));
+	FAIL_IF_NOT_EQUAL(post.test_ok,1);
+#undef POST_EMPTYR
+
+	onion_request_free(req);
+
+	if (post.tmpfilename){
+		struct stat st;
+		FAIL_IF_EQUAL(stat(post.tmpfilename,&st), 0); // Should not exist
+		free(post.tmpfilename);
+	}
+	
+	onion_server_free(server);
+	buffer_free(b);
+	END_LOCAL();
+}
+
+/// A BUG were detected: transformed \n to \r\n on files.
+void t02_post_new_lines_file(){
+	INIT_LOCAL();
+	
+	buffer *b=buffer_new(1024);
+	
+	expected_post post;
+	post.filename="file.dat";
+	post.test_ok=0; // Not ok as not called processor yet
+	post.tmpfilename=NULL;
+	post.size=1;
+	
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (void*)&buffer_append);
+	onion_server_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
+	
+	onion_request *req=onion_request_new(server,b,"test");
+
+#define POST_EMPTY "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length:81\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\n\n\n\n--end--"
 	onion_request_write(req,POST_EMPTY,sizeof(POST_EMPTY));
 	FAIL_IF_NOT_EQUAL(post.test_ok,1);
+#undef POST_EMPTY
+
+	onion_request_clean(req);
+	post.test_ok=0; // Not ok as not called processor yet
+
+#define POST_EMPTYR "POST / HTTP/1.1\r\nContent-Type: multipart/form-data; boundary=end\r\nContent-Length:85\r\n\r\n--end\r\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\r\n\r\n\n\r\n--end--"
+	onion_request_write(req,POST_EMPTYR,sizeof(POST_EMPTYR));
+	FAIL_IF_NOT_EQUAL(post.test_ok,1);
+#undef POST_EMPTYR
 
 	onion_request_free(req);
 
@@ -138,6 +184,7 @@ void t01_post_empty_file(){
 
 int main(int argc, char **argv){
 	t01_post_empty_file();
+	t02_post_new_lines_file();
 	
 	END();
 }
