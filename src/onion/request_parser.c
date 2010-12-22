@@ -309,18 +309,18 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 			if (multipart->pos!=0){
 				multipart->file_total_size+=multipart->pos;
 				int r=multipart->pos-multipart->startpos;
-				ONION_DEBUG0("Write %d bytes",r);
+				//ONION_DEBUG0("Write %d bytes",r);
 				int w=write(multipart->fd, multipart->boundary+multipart->startpos, r);
 				if (w!=r){
 					ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
 					close(multipart->fd);
 					return OCS_INTERNAL_ERROR;
 				}
-				multipart->pos=0;
+				multipart->startpos=multipart->pos=0;
 				data->pos--; // Ignore read charater, try again. May be start of boundary.
 				continue;
 			}
-			ONION_DEBUG0("Write 1 byte");
+			//ONION_DEBUG0("Write 1 byte");
 			int w=write(multipart->fd,p,1); // SLOW!! FIXME.
 			if (w!=1){
 				ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
