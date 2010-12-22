@@ -468,7 +468,7 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 		req=onion_request_new(o->server, &clientfd, client_info);
 	}
 #else
-	req=onion_request_new(o->server, &clientfd);
+	req=onion_request_new(o->server, &clientfd, client_info);
 	onion_server_set_write(o->server, (onion_write)write_to_socket);
 #endif
 	if (!(o->flags&O_THREADED))
