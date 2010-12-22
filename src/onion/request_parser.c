@@ -72,6 +72,7 @@ typedef struct onion_multipart_buffer_s{
 	char *boundary;
 	size_t size;
 	off_t pos;
+	off_t startpos;
 	char *data;// When need a new buffered data (always from stream), get it from here. This advances as used.
 	char *name; // point to a in data position
 	char *filename; // point to a in data position
@@ -289,11 +290,11 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 	for (;data->pos<data->size;data->pos++){
 		//ONION_DEBUG("*p %d boundary %d (%s)",*p,multipart->boundary[multipart->pos],multipart->boundary);
 		if (multipart->pos==0 && *p=='\n') // \r is optional.
-			multipart->pos=1;
+			multipart->startpos=multipart->pos=1;
 		if (*p==multipart->boundary[multipart->pos]){
 			multipart->pos++;
 			if (multipart->pos==multipart->size){
-				multipart->pos=0;
+				multipart->startpos=multipart->pos=0;
 				data->pos++; // Not sure why this is needed. FIXME.
 				close(multipart->fd);
 				req->parser=parse_POST_multipart_next;
@@ -307,14 +308,19 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 			}
 			if (multipart->pos!=0){
 				multipart->file_total_size+=multipart->pos;
-				int w=write(multipart->fd, multipart->boundary, multipart->pos);
-				if (w!=multipart->pos){
+				int r=multipart->pos-multipart->startpos;
+				ONION_DEBUG0("Write %d bytes",r);
+				int w=write(multipart->fd, multipart->boundary+multipart->startpos, r);
+				if (w!=r){
 					ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
 					close(multipart->fd);
 					return OCS_INTERNAL_ERROR;
 				}
 				multipart->pos=0;
+				data->pos--; // Ignore read charater, try again. May be start of boundary.
+				continue;
 			}
+			ONION_DEBUG0("Write 1 byte");
 			int w=write(multipart->fd,p,1); // SLOW!! FIXME.
 			if (w!=1){
 				ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
