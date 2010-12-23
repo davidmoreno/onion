@@ -72,6 +72,7 @@ void onion_sessions_free_helper(const char *key, const char *value, void *p){
 void onion_sessions_free(onion_sessions* sessions){
 	onion_dict_preorder(sessions->sessions, onion_sessions_free_helper, NULL);
 	onion_dict_free(sessions->sessions);
+	free(sessions);
 }
 
 

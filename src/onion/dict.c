@@ -24,7 +24,6 @@
 
 static void onion_dict_free_node_kv(onion_dict *dict);
 
-
 /**
  * Initializes the basic tree with all the structure in place, but empty.
  */

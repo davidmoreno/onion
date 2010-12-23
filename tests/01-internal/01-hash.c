@@ -243,6 +243,8 @@ void t06_null_add(){
 	
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(dict,"c"),"1");
 	FAIL_IF_NOT_EQUAL(onion_dict_get(dict,"a"),NULL);
+	
+	onion_dict_free(dict);
 	END_LOCAL();
 }
 
