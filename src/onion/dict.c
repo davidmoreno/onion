@@ -22,6 +22,9 @@
 #include "dict.h"
 #include "types_internal.h"
 
+static void onion_dict_free_node_kv(onion_dict *dict);
+
+
 /**
  * Initializes the basic tree with all the structure in place, but empty.
  */
@@ -61,10 +64,16 @@ void onion_dict_add(onion_dict *dict, const char *key, const char *value, int fl
 	dup=(onion_dict*)onion_dict_find_node(dict, key, (const onion_dict**)&where);
 	
 	if (dup){ // If dup, try again on left or right tree, it does not matter.
-		if (!dup->left)
-			dup->left=onion_dict_new();
-		onion_dict_add(dup->left, key, value, flags);
-		return;
+		if (flags&OD_REPLACE){
+			onion_dict_free_node_kv(dup);
+			dup->flags=OD_EMPTY;
+		}
+		else{
+			if (!dup->left)
+				dup->left=onion_dict_new();
+			onion_dict_add(dup->left, key, value, flags);
+			return;
+		}
 	}
 	if (where==NULL)
 		where=dict;

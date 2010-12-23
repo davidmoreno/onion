@@ -93,7 +93,13 @@ char *onion_sessions_create(onion_sessions *sessions){
  */
 onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId){
 	ONION_DEBUG("Accessing session '%s'",sessionId);
-	return (onion_dict*)onion_dict_get(sessions->sessions, sessionId);
+	onion_dict *sess=(onion_dict*)onion_dict_get(sessions->sessions, sessionId);
+	if (!sess){
+		ONION_DEBUG("Unknown session '%s'. Creating it.", sessionId);
+		sess=onion_dict_new();
+		onion_dict_add(sessions->sessions, sessionId, (char*)sess, OD_DUP_KEY);
+	}
+	return sess;
 }
 
 /**

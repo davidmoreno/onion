@@ -96,7 +96,7 @@ const onion_dict *onion_request_get_post_dict(onion_request *req);
 const onion_dict *onion_request_get_file_dict(onion_request *req);
 
 /// Gets session data dict
-const onion_dict *onion_request_get_session_dict(onion_request *req);
+onion_dict *onion_request_get_session_dict(onion_request *req);
 
 /// @}
 

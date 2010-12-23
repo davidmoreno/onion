@@ -253,6 +253,7 @@ int main(int argc, char **argv){
 	t04_create_and_free_a_dup();
 	t05_preorder();
 	t06_null_add();
+	//t07_replace(); // TODO
 	
 	END();
 }

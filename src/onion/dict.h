@@ -36,6 +36,7 @@ enum onion_dict_flags_e{
 	OD_DUP_KEY=0x12,   /// Whether the key has to be dupped
 	OD_DUP_VALUE=0x24, /// Whether the value has to be dupped
 	OD_DUP_ALL=0x36,   /// Whether both, the key and value have to be dupped. In any case its also marked for freeing later.
+	OD_REPLACE=0x100,  /// If already exists, replaces content.
 };
 
 /// Initializes a dict.

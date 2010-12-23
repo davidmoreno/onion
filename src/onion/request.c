@@ -87,6 +87,8 @@ void onion_request_free(onion_request *req){
 		free(req->parser_data);
 	if (req->client_info)
 		free(req->client_info);
+	if (req->session_id)
+		free(req->session_id);
 	
 	free(req);
 }
@@ -135,7 +137,7 @@ const char *onion_request_get_file(onion_request *req, const char *query){
 
 /// Gets session data
 const char *onion_request_get_session(onion_request *req, const char *key){
-	const onion_dict *d=onion_request_get_session_dict(req);
+	onion_dict *d=onion_request_get_session_dict(req);
 	return onion_dict_get(d, key);
 }
 
@@ -169,15 +171,22 @@ void onion_request_guess_session_id(onion_request *req){
 	v=strstr(v,"sessionid=");
 	if (!v)
 		return;
-	char *r=strdup(v); // Maybe allocated more memory. FIXME. Not much anyway.
+	char *r=strdup(v+10); // Maybe allocated more memory. FIXME. Not much anyway.
 	char *p=r;
 	while (*p!='\0' && *p!=';') p++;
 	*p='\0';
 	req->session_id=r;
 }
 
-/// Gets session data dict
-const onion_dict *onion_request_get_session_dict(onion_request *req){
+/**
+ * @short Returns the session dict.
+ * 
+ * If it does not exists it creates it. If there is a cookie with a proper name it is used, 
+ * even for creation.
+ * 
+ * Returned dictionary can be freely managed (added new keys...) and this is the session data.
+ */
+onion_dict *onion_request_get_session_dict(onion_request *req){
 	if (!req->session){
 		onion_request_guess_session_id(req);
 		if (!req->session_id)

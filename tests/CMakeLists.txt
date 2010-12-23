@@ -7,3 +7,5 @@ add_subdirectory(02-fullserver)
 add_subdirectory(03-methods)
 
 add_subdirectory(04-prerecorded)
+
+add_subdirectory(05-sessions)
