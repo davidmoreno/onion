@@ -45,6 +45,7 @@ typedef struct{
 	const char *abspath;
 }upload_file_data;
 
+
 onion_connection_status upload_file(upload_file_data *data, onion_request *req){
 	if (onion_request_get_flags(req)&OR_POST){
 		const char *name=onion_request_get_post(req,"file");
@@ -74,11 +75,15 @@ onion_connection_status upload_file(upload_file_data *data, onion_request *req){
 			close(dst);
 		}
 	}
-	onion_response *res=onion_response_new(req);
-	onion_response_write_headers(res);
-	onion_response_write0(res, "<html><body><form method=\"POST\"  enctype=\"multipart/form-data\">"
-														 "<input type=\"file\" name=\"file\"><p><input type=\"submit\"><form></body></html>");
-	return onion_response_free(res);
+	return 0;
+}
+
+/// Footer that allows to upload files.
+void upload_file_footer(onion_response *res, const char *dirname){
+	onion_response_write0(res, "<p><table><tr><th>Upload a file: <form method=\"POST\" enctype=\"multipart/form-data\">"
+														 "<input type=\"file\" name=\"file\"><input type=\"submit\"><form></th></tr></table>");
+	onion_response_write0(res,"<h2>Onion minimal fileserver. (C) 2010 <a href=\"http://www.coralbits.com\">CoralBits</a>. "
+														"Under <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPL 3.0.</a> License.</h2>\n");
 }
 
 
@@ -98,13 +103,13 @@ int main(int argc, char **argv){
 		dirname
 	};
 	
-	onion_handler *root=onion_handler_path("upload", onion_handler_new((void*)upload_file,(void*)&data,NULL));
-																				 
+	onion_handler *root=onion_handler_new((void*)upload_file,(void*)&data,NULL);
 	onion_handler *dir=onion_handler_directory(argc==2 ? argv[1] : ".");
+	onion_handler_directory_set_footer(dir, upload_file_footer);
 	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
 	onion_handler_add(root,dir);
 	
-	o=onion_new(O_THREADED|O_DETACH_LISTEN);
+	o=onion_new(O_THREADED);
 	onion_set_root_handler(o, root);
 	
 	
@@ -114,13 +119,6 @@ int main(int argc, char **argv){
 	int error=onion_listen(o);
 	if (error){
 		perror("Cant create the server");
-	}
-	fprintf(stderr,"Detached. Printing a message every 10 seconds.\n");
-	i=0;
-	while(1){
-		i++;
-		ONION_INFO("Still alive. Count %d.",i);
-		sleep(10);
 	}
 	
 	onion_free(o);

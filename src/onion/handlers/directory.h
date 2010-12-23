@@ -29,9 +29,9 @@ extern "C"{
 onion_handler *onion_handler_directory(const char *localpath);
 
 /// Calls to render a header after the "Listing of directory..."
-void onion_handler_set_header(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
+void onion_handler_directory_set_header(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
 /// Calls to render a footers before end.
-void onion_handler_set_footer(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
+void onion_handler_directory_set_footer(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
 
 
 #ifdef __cplusplus

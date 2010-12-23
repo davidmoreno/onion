@@ -138,7 +138,7 @@ int onion_handler_directory_handler_directory(onion_handler_directory_data *data
 "	var t=document.getElementById('filetable')\n"
 "  while ( t.childNodes.length >= 1 )\n"
 "		t.removeChild( t.firstChild );       \n"
-"	for (var i=0;i<files.length-1;i++){\n"
+"	for (var i=0;i<files.length;i++){\n"
 "		var f=files[i]\n"
 "		var h='<tr class=\"'+f[3]+'\"><td><a href=\"'+q(f[0])+'\">'+f[0]+'</a></td><td>'+f[1]+'</td><td>'+f[2]+'</td></tr>'\n"
 "		t.innerHTML+=h\n"
@@ -212,15 +212,15 @@ void onion_handler_directory_delete(void *data){
 }
 
 /// Sets the header renderer
-void onion_handler_set_header(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
+void onion_handler_directory_set_header(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
 	onion_handler_directory_data *d=onion_handler_get_private_data(handler);
 	d->renderer_header=renderer;
 }
 
 /// Sets the footer renderer
-void onion_handler_set_footer(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
+void onion_handler_directory_set_footer(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
 	onion_handler_directory_data *d=onion_handler_get_private_data(handler);
-	d->renderer_header=renderer;
+	d->renderer_footer=renderer;
 }
 
 /**
