@@ -92,3 +92,13 @@ void onion_handler_add(onion_handler *base, onion_handler *new_handler){
 		base=base->next;
 	base->next=new_handler;
 }
+
+/**
+ * @short Returns the private data part of a handler
+ * 
+ * This is useful to allow external users of a given handler to modify the behaviour. For example
+ * on the directory handler this helps to change the default header and footers.
+ */
+void *onion_handler_get_private_data(onion_handler *handler){
+	return handler->priv_data;
+}

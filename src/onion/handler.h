@@ -38,6 +38,9 @@ int onion_handler_free(onion_handler *handler);
 /// Adds a handler to the list of handler of this level
 void onion_handler_add(onion_handler *base, onion_handler *new_handler);
 
+/// Returns the private data part of the handler. Useful at handlers, to customize the private data externally.
+void *onion_handler_get_private_data(onion_handler *handler);
+
 #ifdef __cplusplus
 }
 #endif

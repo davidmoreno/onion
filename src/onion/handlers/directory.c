@@ -37,12 +37,14 @@
 
 
 struct onion_handler_directory_data_t{
+	void (*renderer_header)(onion_response *res, const char *dirname);
+	void (*renderer_footer)(onion_response *res, const char *dirname);
 	char *localpath;
 };
 
 typedef struct onion_handler_directory_data_t onion_handler_directory_data;
 
-int onion_handler_directory_handler_directory(const char *realp, const char *showpath, onion_request *req);
+int onion_handler_directory_handler_directory(onion_handler_directory_data *data, const char *realp, const char *showpath, onion_request *req);
 int onion_handler_directory_handler_file(const char *realp, struct stat *reals, onion_request *request);
 
 int onion_handler_directory_handler(onion_handler_directory_data *d, onion_request *request){
@@ -60,7 +62,7 @@ int onion_handler_directory_handler(onion_handler_directory_data *d, onion_reque
 		return 0;
 
 	if (S_ISDIR(reals.st_mode)){
-		return onion_handler_directory_handler_directory(realp, onion_request_get_path(request), request);
+		return onion_handler_directory_handler_directory(d, realp, onion_request_get_path(request), request);
 	}
 	else if (S_ISREG(reals.st_mode)){
 		return onion_handler_directory_handler_file(realp, &reals, request);
@@ -91,10 +93,30 @@ int onion_handler_directory_handler_file(const char *realp, struct stat *reals, 
 		return onion_response_free(res);
 }
 
+/// Default directory handler: The style + dirname on a h1
+void onion_handler_directory_header_default(onion_response *res, const char *dirname){
+	onion_response_write0(res, 
+	"<style>body{ background: #fefefe; font-family: sans-serif; margin-left: 5%; margin-right: 5%; }\n"
+" table{ background: white; width: 100%; border: 1px solid #aaa; border-radius: 5px; -moz-border-radius: 5px; } \n"
+" th{	background: #eee; } tbody tr:hover td{ background: yellow; } tr.dir td{ background: #D4F0FF; }\n"
+" table a{ display: block; } th{ cursor: pointer} h1,h2{ color: black; text-align: center; } \n"
+" a{ color: red; text-decoration: none; }</style>\n");
+
+	onion_response_printf(res,"<h1>Listing of directory %s</h1>\n",dirname);
+	
+	if (dirname[1]!='\0') // It will be 0, when showpath is "/"
+		onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
+}
+
+void onion_handler_directory_footer_default(onion_response *res, const char *dirname){
+	onion_response_write0(res,"<h2>Onion directory list. (C) 2010 <a href=\"http://www.coralbits.com\">CoralBits</a>. "
+														"Under <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPL 3.0.</a> License.</h2>\n");
+}
+
 /**
  * @short Returns the directory listing
  */
-int onion_handler_directory_handler_directory(const char *realp, const char *showpath, onion_request *req){
+int onion_handler_directory_handler_directory(onion_handler_directory_data *data, const char *realp, const char *showpath, onion_request *req){
 	DIR *dir=opendir(realp);
 	if (!dir) // Continue on next. Quite probably a custom error.
 		return 0;
@@ -108,11 +130,6 @@ int onion_handler_directory_handler_directory(const char *realp, const char *sho
 	onion_response_printf(res,"<title>Directory listing of %s</title>\n",showpath);
 	onion_response_write0(res,"</head>\n" 
 " <body>\n"
-"<style>body{ background: #fefefe; font-family: sans-serif; margin-left: 5%; margin-right: 5%; }\n"
-" table{ background: white; width: 100%; border: 1px solid #aaa; border-radius: 5px; -moz-border-radius: 5px; } \n"
-" th{	background: #eee; } tbody tr:hover td{ background: yellow; } tr.dir td{ background: #D4F0FF; }\n"
-" table a{ display: block; } th{ cursor: pointer} h1,h2{ color: black; text-align: center; } \n"
-" a{ color: red; text-decoration: none; }</style>\n"
 "<script>\n"
 "showListing = function(){\n"
 "	var q = function(t){\n"
@@ -164,19 +181,21 @@ int onion_handler_directory_handler_directory(const char *realp, const char *sho
 	}
 
 	onion_response_write0(res,"  [] ]\n</script>\n");
-	onion_response_printf(res,"<h1>Listing of directory %s</h1>\n",showpath);
+
 	
-	if (showpath[1]!='\0') // It will be 0, when showpath is "/"
-		onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
+	if (data->renderer_header)
+		data->renderer_header(res, showpath);
+	
 	
 	onion_response_write0(res,"<table>\n"
 				"<thead><tr><th onclick=\"update(0)\">Filename</th><th onclick=\"update(1)\">Size</th>"
 				"<th onclick=\"update(2)\">Owner</th></tr></thead>\n"
-				"<tbody id=\"filetable\">\n");
-	
-	onion_response_write0(res,"</tbody>\n</table>\n</body>\n");
-	onion_response_write0(res,"<h2>Onion directory list. (C) 2010 <a href=\"http://www.coralbits.com\">CoralBits</a>. "
-														"Under <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPL 3.0.</a> License.</h2>\n</html>");
+				"<tbody id=\"filetable\">\n</tbody>\n</table>\n</body>\n");
+
+	if (data->renderer_footer)
+		data->renderer_footer(res, showpath);
+
+	onion_response_write0(res,"</body></html>");
 
 	int r=onion_response_free(res);
 	
@@ -185,11 +204,23 @@ int onion_handler_directory_handler_directory(const char *realp, const char *sho
 	return r;
 }
 
-
+/// Frees local data from the directory handler
 void onion_handler_directory_delete(void *data){
 	onion_handler_directory_data *d=data;
 	free(d->localpath);
 	free(d);
+}
+
+/// Sets the header renderer
+void onion_handler_set_header(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
+	onion_handler_directory_data *d=onion_handler_get_private_data(handler);
+	d->renderer_header=renderer;
+}
+
+/// Sets the footer renderer
+void onion_handler_set_footer(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
+	onion_handler_directory_data *d=onion_handler_get_private_data(handler);
+	d->renderer_header=renderer;
 }
 
 /**
@@ -205,6 +236,8 @@ onion_handler *onion_handler_directory(const char *localpath){
 		return NULL;
 	}
 	priv_data->localpath=rp;
+	priv_data->renderer_header=onion_handler_directory_header_default;
+	priv_data->renderer_footer=onion_handler_directory_footer_default;
 	
 	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_directory_handler,
 																			 priv_data,(onion_handler_private_data_free) onion_handler_directory_delete);
