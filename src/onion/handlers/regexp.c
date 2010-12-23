@@ -56,7 +56,7 @@ void onion_handler_regexp_free(onion_handler_regexp_data *d){
  * Path is a regex for the url, as arrived here.
  */
 onion_handler *onion_handler_regexp(const char *regexp, onion_handler *next){
-	onion_handler_regexp_data *priv_data=malloc(sizeof(onion_handler_regexp_data));
+	onion_handler_regexp_data *priv_data=calloc(1,sizeof(onion_handler_regexp_data));
 
 	int err=regcomp(&priv_data->regexp, regexp, REG_EXTENDED); // empty regexp, always true. should be fast enough. 
 	if (err){
