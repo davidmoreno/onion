@@ -1,0 +1,3 @@
+FILE(COPY compilerunloop.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+ADD_CUSTOM_TARGET(clr ALL DEPENDS compilerunloop.sh)
+
