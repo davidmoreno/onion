@@ -77,7 +77,7 @@ onion_connection_status upload_file(upload_file_data *data, onion_request *req){
 	onion_response *res=onion_response_new(req);
 	onion_response_write_headers(res);
 	onion_response_write0(res, "<html><body><form method=\"POST\"  enctype=\"multipart/form-data\">"
-														 "<input type=\"file\" name=\"file\"><input type=\"submit\"><form></body></html>");
+														 "<input type=\"file\" name=\"file\"><p><input type=\"submit\"><form></body></html>");
 	return onion_response_free(res);
 }
 
@@ -124,6 +124,7 @@ int main(int argc, char **argv){
 	}
 	
 	onion_free(o);
-	
+	 
 	return 0;
 }
+ 

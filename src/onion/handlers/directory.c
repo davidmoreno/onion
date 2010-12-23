@@ -107,21 +107,44 @@ int onion_handler_directory_handler_directory(const char *realp, const char *sho
 														" <head><meta content=\"text/html; charset=UTF-8\" http-equiv=\"content-type\"/>\n");
 	onion_response_printf(res,"<title>Directory listing of %s</title>\n",showpath);
 	onion_response_write0(res,"</head>\n" 
-														" <body>\n"
-														"<style>body{ background: #fefefe; font-family: sans-serif; margin-left: 5%; margin-right: 5%; }"
-														" table{ background: white; width: 100%; border: 1px solid #aaa; border-radius: 5px; -moz-border-radius: 5px; } "
-														" th{	background: #eee; } tbody tr:hover td{ background: yellow; } tr.dir td{ background: #D4F0FF; }"
-														" table a{ display: block; } th{ cursor: pointer} h1,h2{ color: black; text-align: center; } "
-														" a{ color: red; text-decoration: none; }</style>\n"
-														"<script src=\"http://code.jquery.com/jquery-1.4.3.min.js\"></script>\n"
-														"<script src=\"http://tablesorter.com/jquery.tablesorter.min.js\"></script>\n"
-														"<script>$(document).ready(function(){ $('table').tablesorter({sortList: [ [0,0] ] }); });</script>\n");
-	onion_response_printf(res,"<h1>Listing of directory %s</h1>\n",showpath);
-	
-	if (showpath[1]!='\0') // It will be 0, when showpath is "/"
-		onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
-	
-	onion_response_write0(res,"<table>\n<thead><tr><th>Filename</th><th>Size</th><th>Owner</th></tr></thead>\n<tbody>\n");
+" <body>\n"
+"<style>body{ background: #fefefe; font-family: sans-serif; margin-left: 5%; margin-right: 5%; }\n"
+" table{ background: white; width: 100%; border: 1px solid #aaa; border-radius: 5px; -moz-border-radius: 5px; } \n"
+" th{	background: #eee; } tbody tr:hover td{ background: yellow; } tr.dir td{ background: #D4F0FF; }\n"
+" table a{ display: block; } th{ cursor: pointer} h1,h2{ color: black; text-align: center; } \n"
+" a{ color: red; text-decoration: none; }</style>\n"
+"<script>\n"
+"showListing = function(){\n"
+"	var q = function(t){\n"
+"		return t.replace('\"','%22')\n"
+"	}	\n"
+"	var t=document.getElementById('filetable')\n"
+"  while ( t.childNodes.length >= 1 )\n"
+"		t.removeChild( t.firstChild );       \n"
+"	for (var i=0;i<files.length-1;i++){\n"
+"		var f=files[i]\n"
+"		var h='<tr class=\"'+f[3]+'\"><td><a href=\"'+q(f[0])+'\">'+f[0]+'</a></td><td>'+f[1]+'</td><td>'+f[2]+'</td></tr>'\n"
+"		t.innerHTML+=h\n"
+"	}\n"
+"}\n"
+"\n"
+"update = function(n){\n"
+"	var _cmp = function(a,b){\n"
+"		if (a[n]<b[n])\n"
+"			return -1\n"
+"		if (a[n]>b[n])\n"
+"			return 1\n"
+"		return 0\n"
+"	}\n"
+"	files=files.sort(_cmp)\n"
+"	showListing()\n"
+"}\n"
+"window.onload=function(){\n"
+"	files=files.splice(0,files.length-1)\n"
+"	update(0)\n"
+"}\n"
+"\n"
+"files=[\n");
 	
 	struct dirent *fi;
 	struct stat    st;
@@ -134,15 +157,23 @@ int onion_handler_directory_handler_directory(const char *realp, const char *sho
 		stat(temp, &st);
 		pwd=getpwuid(st.st_uid);
 		
-		char *quotedName=onion_quote_new(fi->d_name);
-		
 		if (S_ISDIR(st.st_mode))
-			onion_response_printf(res, "<tr class=\"dir\"><td><a href=\"%s/\">%s</a></td><td>%d</td><td>%s</td></tr>\n", quotedName, fi->d_name, st.st_size, pwd->pw_name);
+			onion_response_printf(res, "  ['%s',%d,'%s','dir'],\n",fi->d_name, st.st_size, pwd->pw_name);
 		else
-			onion_response_printf(res, "<tr class=\"file\"><td><a href=\"%s\">%s</a></td><td>%d</td><td>%s</td></tr>\n", quotedName, fi->d_name, st.st_size, pwd->pw_name);
-		free(quotedName);
+			onion_response_printf(res, "  ['%s',%d,'%s','file'],\n",fi->d_name, st.st_size, pwd->pw_name);
 	}
 
+	onion_response_write0(res,"  [] ]\n</script>\n");
+	onion_response_printf(res,"<h1>Listing of directory %s</h1>\n",showpath);
+	
+	if (showpath[1]!='\0') // It will be 0, when showpath is "/"
+		onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
+	
+	onion_response_write0(res,"<table>\n"
+				"<thead><tr><th onclick=\"update(0)\">Filename</th><th onclick=\"update(1)\">Size</th>"
+				"<th onclick=\"update(2)\">Owner</th></tr></thead>\n"
+				"<tbody id=\"filetable\">\n");
+	
 	onion_response_write0(res,"</tbody>\n</table>\n</body>\n");
 	onion_response_write0(res,"<h2>Onion directory list. (C) 2010 <a href=\"http://www.coralbits.com\">CoralBits</a>. "
 														"Under <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPL 3.0.</a> License.</h2>\n</html>");
