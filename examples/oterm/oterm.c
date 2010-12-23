@@ -133,7 +133,7 @@ int main(int argc, char **argv){
 		fprintf(stderr,"SSL support is not available. Oterm is in unsecure mode!\n");
 	}
 	else if (ssl){ // Not necesary the else, as onion_use_certificate would just return an error. But then it will exit.
-		error=onion_use_certificate(o, O_SSL_CERTIFICATE_KEY, certificatefile, keyfile);
+		error=onion_set_certificate(o, O_SSL_CERTIFICATE_KEY, certificatefile, keyfile);
 		if (error){
 			fprintf(stderr, "Cant set certificate and key files (%s, %s)\n",certificatefile, keyfile);
 			show_help();
