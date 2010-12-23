@@ -29,6 +29,7 @@
 #include "server.h"
 #include "types_internal.h"
 #include "log.h"
+#include "sessions.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 
@@ -132,6 +133,12 @@ const char *onion_request_get_file(onion_request *req, const char *query){
 	return NULL;
 }
 
+/// Gets session data
+const char *onion_request_get_session(onion_request *req, const char *key){
+	const onion_dict *d=onion_request_get_session_dict(req);
+	return onion_dict_get(d, key);
+}
+
 /// Gets the header header data dict
 const onion_dict *onion_request_get_header_dict(onion_request *req){
 	return req->headers;
@@ -150,6 +157,35 @@ const onion_dict *onion_request_get_post_dict(onion_request *req){
 /// Gets files data dict
 const onion_dict *onion_request_get_file_dict(onion_request *req){
 	return req->FILES;
+}
+
+/**
+ * @short Gets the sessionid cookie, if any, and sets it to req->session_id.
+ */
+void onion_request_guess_session_id(onion_request *req){
+	const char *v=onion_dict_get(req->headers, "Cookie");
+	if (!v)
+		return;
+	v=strstr(v,"sessionid=");
+	if (!v)
+		return;
+	char *r=strdup(v); // Maybe allocated more memory. FIXME. Not much anyway.
+	char *p=r;
+	while (*p!='\0' && *p!=';') p++;
+	*p='\0';
+	req->session_id=r;
+}
+
+/// Gets session data dict
+const onion_dict *onion_request_get_session_dict(onion_request *req){
+	if (!req->session){
+		onion_request_guess_session_id(req);
+		if (!req->session_id)
+			req->session_id=onion_sessions_create(req->server->sessions);
+		req->session=onion_sessions_get(req->server->sessions, req->session_id);
+	}
+	
+	return req->session;
 }
 
 

@@ -24,6 +24,7 @@
 #include "handler.h"
 #include "types_internal.h"
 #include "log.h"
+#include "sessions.h"
 
 /// Default error 500.
 int error_500(void *handler, onion_request *req);
@@ -47,6 +48,7 @@ onion_server *onion_server_new(void){
 	ret->internal_error_handler=onion_handler_new((onion_handler_handler)error_500, NULL, NULL);
 	ret->max_post_size=1024*1024; // 1MB
 	ret->max_file_size=1024*1024*1024; // 1GB
+	ret->sessions=onion_sessions_new();
 	return ret;
 }
 
@@ -58,6 +60,7 @@ void onion_server_free(onion_server *server){
 		onion_handler_free(server->root_handler);
 	if (server->internal_error_handler)
 		onion_handler_free(server->internal_error_handler);
+	onion_sessions_free(server->sessions);
 	free(server);
 }
 

@@ -80,6 +80,9 @@ const char *onion_request_get_post(onion_request *req, const char *query);
 /// Gets file data
 const char *onion_request_get_file(onion_request *req, const char *query);
 
+/// Gets session data
+const char *onion_request_get_session(onion_request *req, const char *query);
+
 /// Gets the header header data dict
 const onion_dict *onion_request_get_header_dict(onion_request *req);
 
@@ -91,6 +94,9 @@ const onion_dict *onion_request_get_post_dict(onion_request *req);
 
 /// Gets post data dict
 const onion_dict *onion_request_get_file_dict(onion_request *req);
+
+/// Gets session data dict
+const onion_dict *onion_request_get_session_dict(onion_request *req);
 
 /// @}
 

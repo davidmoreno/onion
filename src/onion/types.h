@@ -63,6 +63,21 @@ typedef struct onion_server_t onion_server;
  */
 struct onion_t;
 typedef struct onion_t onion;
+/**
+ * @struct onion_sessions_t
+ * @short Storage for all sessions known
+ * 
+ * This is a simple storage for sessions.
+ * 
+ * There is no thread safety mesaures on the usage of sessions. FIXME.
+ * 
+ * The sessions themselves are not created until some data is written to it by the program. This way we avoid
+ * "session attack" where a malicious user sends many petitions asking for new sessions.
+ * 
+ * FIXME to add some LRU so that on some moment we can remove old sessions.
+ */
+struct onion_sessions_t;
+typedef struct onion_sessions_t onion_sessions;
 
 /// Signature of request handlers.
 typedef int (*onion_handler_handler)(onion_handler *handler, onion_request *);

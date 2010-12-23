@@ -70,6 +70,7 @@ struct onion_server_t{
 	onion_handler *internal_error_handler;	/// Root processing handler for this server.
 	size_t max_post_size;					/// Maximum size of post data. This is the sum of posts, @see onion_request_write_post
 	size_t max_file_size;					/// Maximum size of files. @see onion_request_write_post
+	onion_sessions *sessions;			/// Storage for sessions.
 };
 
 struct onion_request_t{
@@ -87,6 +88,8 @@ struct onion_request_t{
 	onion_dict *GET;      /// When the query (?q=query) is processed, the dict with the values @see onion_request_parse_query
 	onion_dict *POST;     /// Dictionary with POST values
 	onion_dict *FILES;    /// Dictionary with files. They are automatically saved at /tmp/ and removed at request free. mapped string is full path.
+	onion_dict *session;  /// Pointer to related session
+	char *session_id;     /// Session id of the request, if any.
 	char *client_info;    /// A string that describes the client, normally the IP.
 };
 
@@ -110,6 +113,9 @@ struct onion_handler_t{
 	struct onion_handler_t *next; /// If parser returns null, i try next parser. If no next parser i go up, or return an error. @see onion_tree_parser
 };
 
+struct onion_sessions_t{
+	onion_dict *sessions; 		/// Where all sessions are stored. Each element is another onion_dict.
+};
 
 #ifdef __cplusplus
 }
