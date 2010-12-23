@@ -19,6 +19,8 @@
 #ifndef __ONION_REQUEST__
 #define __ONION_REQUEST__
 
+#include <sys/types.h>
+
 #include "types.h"
 
 #ifdef __cplusplus

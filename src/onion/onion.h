@@ -19,6 +19,10 @@
 #ifndef __ONION__
 #define __ONION__
 
+#include "request.h"
+#include "response.h"
+#include "handler.h"
+
 #include "types.h"
 
 #ifdef __cplusplus
