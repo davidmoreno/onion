@@ -41,20 +41,20 @@ PIDFILE=$( tempfile )
 while true; do
 	make
 	if [ "$?" != "0" ]; then
-		echo "Error compiling"
-		exit 1
-	fi
-	if [ "$*" ]; then
-		$PROG "$*" &
+		echo "Error compiling. Just waiting"
 	else
-		$PROG &
+		if [ "$*" ]; then
+			$PROG $* &
+		else
+			$PROG &
+		fi
+		sleep 2
+		jobs
+		jobs -p > $PIDFILE
+		PIDS=$( cat $PIDFILE )
+		rm $PIDFILE
+		echo -n "Pid is $PID. Watching..."
 	fi
-	sleep 2
-	jobs
-	jobs -p > $PIDFILE
-	PIDS=$( cat $PIDFILE )
-	rm $PIDFILE
-	echo -n "Pid is $PID. Watching..."
 	inotifywait -e close_write $SOURCES
 	kill $PIDS
 	sleep 1

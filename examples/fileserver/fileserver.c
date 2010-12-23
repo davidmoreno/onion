@@ -30,8 +30,9 @@
 #include <onion/log.h>
 
 #include <onion/handlers/directory.h>
-#include <onion/handlers/static.h>
 #include <onion/handlers/path.h>
+#include <onion/handlers/static.h>
+#include <onion/handlers/auth_pam.h>
 
 onion *o=NULL;
 
@@ -86,14 +87,49 @@ void upload_file_footer(onion_response *res, const char *dirname){
 														"Under <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPL 3.0.</a> License.</h2>\n");
 }
 
+int show_help(){
+	printf("Onion basic fileserver. (C) 2010 Coralbits S.L.\n\n"
+				"Usage: fileserver [options] [directory to serve]\n\n"
+				"Options:\n"
+				"  --pem pemfile   Uses that certificate and key file. Both must be on the same file. Default is at current dir cert.pem.\n"
+				"  --pam pamname   Uses that pam name to allow access. Default login.\n"
+				"  --port N\n" 
+				"   -p N           Listens at given port. Default 8080\n"
+				"  --help\n"
+				"   -h             Shows this help\n"
+				"\n"
+				"fileserver serves an HTML with easy access to current files, and allows to upload new files.\n"
+				"It have SSL encrypting and PAM authentication.\n"
+				"\n");
+	return 0;
+}
+
 
 int main(int argc, char **argv){
 	int port=8080;
 	const char *dirname=".";
+	const char *certfile="cert.pem";
+	const char *pamname="login";
 	int i;
 	for (i=1;i<argc;i++){
-		if (strcmp(argv[i],"-p")==0){
+		if ((strcmp(argv[i],"--port")==0) || (strcmp(argv[i],"-p")==0)){
 			port=atoi(argv[++i]);
+			ONION_INFO("Listening at port %p",port);
+		}
+		else if (strcmp(argv[i],"--pem")==0){
+			if (argc<i+1)
+				return show_help();
+			certfile=argv[++i];
+			ONION_INFO("Certificate file set to %s",certfile);
+		}
+		else if (strcmp(argv[i],"--pam")==0){
+			if (argc<i+1)
+				return show_help();
+			pamname=argv[++i];
+			ONION_INFO("Pam name is now %s",pamname);
+		}
+		else if (strcmp(argv[i],"--help")==0 || strcmp(argv[i],"-h")==0){
+			return show_help();
 		}
 		else
 			dirname=argv[i];
@@ -102,15 +138,18 @@ int main(int argc, char **argv){
 	upload_file_data data={
 		dirname
 	};
-	
+
 	onion_handler *root=onion_handler_new((void*)upload_file,(void*)&data,NULL);
 	onion_handler *dir=onion_handler_directory(argc==2 ? argv[1] : ".");
 	onion_handler_directory_set_footer(dir, upload_file_footer);
 	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
 	onion_handler_add(root,dir);
+	onion_handler *pam=onion_handler_auth_pam("Onion Fileserver", pamname, root);
+
 	
 	o=onion_new(O_THREADED);
-	onion_set_root_handler(o, root);
+	onion_set_root_handler(o, pam);
+	onion_set_certificate(o, O_SSL_CERTIFICATE_KEY, certfile, certfile);
 	
 	
 	onion_set_port(o, port);
@@ -125,4 +164,3 @@ int main(int argc, char **argv){
 	 
 	return 0;
 }
- 

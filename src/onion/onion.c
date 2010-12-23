@@ -579,7 +579,7 @@ static void onion_enable_tls(onion *o){
  * @code
  * 
  * onion *o=onion_new(O_THREADED);
- * onion_use_certificate(o, O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
+ * onion_set_certificate(o, O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
  * onion_set_root_handler(o, onion_handler_directory("."));
  * onion_listen(o);
  * 
@@ -591,7 +591,7 @@ static void onion_enable_tls(onion *o){
  * 
  * @see onion_ssl_certificate_type_e
  */
-int onion_use_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
+int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
 #ifdef HAVE_GNUTLS
 	if (!(onion->flags&O_SSL_ENABLED))
 		onion_enable_tls(onion);
