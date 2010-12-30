@@ -41,6 +41,9 @@ struct onion_dict_node_t;
 
 struct onion_dict_t{
 	struct onion_dict_node_t *root;
+#ifdef HAVE_PTHREADS
+	pthread_rwlock_t lock;
+#endif
 };
 
 

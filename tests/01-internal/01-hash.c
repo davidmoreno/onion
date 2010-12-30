@@ -295,6 +295,7 @@ int main(int argc, char **argv){
 	t05_preorder();
 	t06_null_add();
 	//t07_replace(); // TODO
+	//t08_threaded_lock(); // TODO
 	
 	END();
 }

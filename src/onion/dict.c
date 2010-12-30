@@ -51,9 +51,33 @@ static onion_dict_node *onion_dict_node_new(const char *key, const char *value, 
 onion_dict *onion_dict_new(){
 	onion_dict *dict=malloc(sizeof(onion_dict));
 	memset(dict,0,sizeof(onion_dict));
+#ifdef HAVE_PTHREADS
+	pthread_rwlock_init(&dict->lock, NULL);
+#endif
 	return dict;
 }
 
+/// Removes a node and its data
+static void onion_dict_node_free(onion_dict_node *node){
+	if (node->left)
+		onion_dict_node_free(node->left);
+	if (node->right)
+		onion_dict_node_free(node->right);
+
+	onion_dict_node_data_free(&node->data);
+	free(node);
+}
+
+/// Removes the full dict struct from mem.
+void onion_dict_free(onion_dict *dict){
+#ifdef HAVE_PTHREADS
+	pthread_rwlock_destroy(&dict->lock);
+#endif
+	if (dict->root)
+		onion_dict_node_free(dict->root);
+	free(dict);
+}
+	
 /**
  * @short Searchs for a given key, and returns that node and its parent (if parent!=NULL) 
  *
@@ -252,25 +276,6 @@ int onion_dict_remove(onion_dict *dict, const char *key){
 	return 1;
 }
 
-
-static void onion_dict_node_free(onion_dict_node *node){
-	if (node->left)
-		onion_dict_node_free(node->left);
-	if (node->right)
-		onion_dict_node_free(node->right);
-
-	onion_dict_node_data_free(&node->data);
-	free(node);
-}
-
-/// Removes the full dict struct form mem.
-void onion_dict_free(onion_dict *dict){
-	if (dict->root)
-		onion_dict_node_free(dict->root);
-	free(dict);
-}
-	
-
 /// Gets a value
 const char *onion_dict_get(const onion_dict *dict, const char *key){
 	const onion_dict_node *r;
@@ -344,4 +349,25 @@ int onion_dict_count(const onion_dict *dict){
 	if (dict && dict->root)
 		return onion_dict_node_count(dict->root);
 	return 0;
+}
+
+/// Do a read lock. Several can lock for reading, but only can be writing.
+void onion_dict_lock_read(const onion_dict *dict){
+#ifdef HAVE_PTHREADS
+	pthread_rwlock_rdlock((pthread_rwlock_t*)&dict->lock);
+#endif
+}
+
+/// Do a read lock. Several can lock for reading, but only can be writing.
+void onion_dict_lock_write(onion_dict *dict){
+#ifdef HAVE_PTHREADS
+	pthread_rwlock_wrlock(&dict->lock);
+#endif
+}
+
+/// Free latest lock be it read or write.
+void onion_dict_unlock(onion_dict *dict){
+#ifdef HAVE_PTHREADS
+	pthread_rwlock_unlock(&dict->lock);
+#endif
 }

@@ -63,6 +63,14 @@ void onion_dict_preorder(const onion_dict *dict, void *func, void *data);
 /// Counts elements
 int onion_dict_count(const onion_dict *dict);
 
+/// @{ @name lock management
+/// Locks for reading. Several can read, one can write.
+void onion_dict_lock_read(const onion_dict *dict);
+/// Locks for writing
+void onion_dict_lock_write(onion_dict *dict);
+/// Unlocks last lock
+void onion_dict_unlock(onion_dict *dict);
+/// @}
 
 #ifdef __cplusplus
 }
