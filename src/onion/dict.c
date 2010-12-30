@@ -26,7 +26,7 @@
 typedef struct onion_dict_node_data_t{
 	const char *key;
 	const char *value;
-	char flags;
+	short int flags;
 }onion_dict_node_data;
 
 /**
@@ -147,7 +147,7 @@ static onion_dict_node *onion_dict_node_new(const char *key, const char *value, 
 
 /// Sets the data on the node, on the right way.
 static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key, const char *value, int flags){
-	//ONION_DEBUG("Set data %02X %02X %02X",flags,OD_DUP_KEY, OD_DUP_VALUE);
+	//ONION_DEBUG("Set data %02X",flags);
 	if ((flags&OD_DUP_KEY)==OD_DUP_KEY) // not enought with flag, as its a multiple bit flag, with FREE included
 		data->key=strdup(key);
 	else
@@ -213,8 +213,15 @@ static onion_dict_node  *onion_dict_node_add(onion_dict_node *node, onion_dict_n
 		return nnode;
 	}
 	signed int cmp=strcmp(nnode->data.key, node->data.key);
-	//ONION_DEBUG0("cmp %d",cmp);
-	if (cmp<0){
+	//ONION_DEBUG0("cmp %d, %X, %X %X",cmp, nnode->data.flags,nnode->data.flags&OD_REPLACE, OD_REPLACE);
+	if ((cmp==0) && (nnode->data.flags&OD_REPLACE)){
+		//ONION_DEBUG("Replace %s with %s", node->data.key, nnode->data.key);
+		onion_dict_node_data_free(&node->data);
+		memcpy(&node->data, &nnode->data, sizeof(onion_dict_node_data));
+		free(nnode);
+		return node;
+	}
+	else if (cmp<0){
 		node->left=onion_dict_node_add(node->left, nnode);
 		//ONION_DEBUG("%p[%s]->left=%p[%s]",node, node->data.key, node->left, node->left->data.key);
 	}

@@ -286,6 +286,34 @@ void t06_null_add(){
 	END_LOCAL();
 }
 
+void t07_sum(const char *key, const char *value, int *v){
+	*v+=atoi(value);
+}
+
+void t07_replace(){
+	INIT_LOCAL();
+	onion_dict *dict=onion_dict_new();
+	
+	onion_dict_add(dict,"a","1", OD_DUP_ALL|OD_REPLACE);
+	onion_dict_add(dict,"a","1", OD_REPLACE);
+	onion_dict_add(dict,"a","1", OD_DUP_ALL|OD_REPLACE);
+	onion_dict_add(dict,"a","1", OD_REPLACE);
+	onion_dict_add(dict,"a","1", OD_DUP_ALL|OD_REPLACE);
+	
+	int n=0;
+	onion_dict_preorder(dict, t07_sum, &n);
+	FAIL_IF_NOT_EQUAL_INT(n,1);
+
+	onion_dict_add(dict,"a","1", 0);
+	n=0;
+	onion_dict_preorder(dict, t07_sum, &n);
+	FAIL_IF_NOT_EQUAL_INT(n,2);
+	
+	onion_dict_free(dict);
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	t01_create_add_free();
 	t01_create_add_free_10();
@@ -294,7 +322,7 @@ int main(int argc, char **argv){
 	t04_create_and_free_a_dup();
 	t05_preorder();
 	t06_null_add();
-	//t07_replace(); // TODO
+	t07_replace(); // TODO
 	//t08_threaded_lock(); // TODO
 	
 	END();
