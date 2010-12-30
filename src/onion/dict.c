@@ -19,10 +19,31 @@
 #include <malloc.h>
 #include <string.h>
 
+#include "log.h"
 #include "dict.h"
 #include "types_internal.h"
 
-static void onion_dict_free_node_kv(onion_dict *dict);
+typedef struct onion_dict_node_data_t{
+	const char *key;
+	const char *value;
+	char flags;
+}onion_dict_node_data;
+
+/**
+ * @short Node for the tree.
+ * 
+ * Its implemented as a AA Tree (http://en.wikipedia.org/wiki/AA_tree)
+ */
+typedef struct onion_dict_node_t{
+	onion_dict_node_data data;
+	int level; 
+	struct onion_dict_node_t *left;
+	struct onion_dict_node_t *right;
+}onion_dict_node;
+
+static void onion_dict_node_data_free(onion_dict_node_data *dict);
+static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key, const char *value, int flags);
+static onion_dict_node *onion_dict_node_new(const char *key, const char *value, int flags);
 
 /**
  * Initializes the basic tree with all the structure in place, but empty.
@@ -30,7 +51,6 @@ static void onion_dict_free_node_kv(onion_dict *dict);
 onion_dict *onion_dict_new(){
 	onion_dict *dict=malloc(sizeof(onion_dict));
 	memset(dict,0,sizeof(onion_dict));
-	dict->flags=OD_EMPTY;
 	return dict;
 }
 
@@ -39,82 +59,186 @@ onion_dict *onion_dict_new(){
  *
  * If not found, returns the parent where it should be. Nice for adding too.
  */
-static const onion_dict *onion_dict_find_node(const onion_dict *dict, const char *key, const onion_dict **parent){
-	if (!dict || dict->flags&OD_EMPTY){
+static const onion_dict_node *onion_dict_find_node(const onion_dict_node *current, const char *key, const onion_dict_node **parent){
+	if (!current){
 		return NULL;
 	}
-	signed char cmp=strcmp(key, dict->key);
+	signed char cmp=strcmp(key, current->data.key);
+	//ONION_DEBUG0("%s cmp %s = %d",key, current->data.key, cmp);
 	if (cmp==0)
-		return dict;
-	if (parent) *parent=dict;
+		return current;
+	if (parent) *parent=current;
 	if (cmp<0)
-		return onion_dict_find_node(dict->left, key, parent);
+		return onion_dict_find_node(current->left, key, parent);
 	if (cmp>0)
-		return onion_dict_find_node(dict->right, key, parent);
+		return onion_dict_find_node(current->right, key, parent);
 	return NULL;
 }
+
+
+/// Allocates a new node data, and sets the data itself.
+static onion_dict_node *onion_dict_node_new(const char *key, const char *value, int flags){
+	onion_dict_node *node=malloc(sizeof(onion_dict_node));
+
+	onion_dict_set_node_data(&node->data, key, value, flags);
+	
+	node->left=NULL;
+	node->right=NULL;
+	node->level=1;
+	return node;
+}
+
+/// Sets the data on the node, on the right way.
+static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key, const char *value, int flags){
+	//ONION_DEBUG("Set data %02X %02X %02X",flags,OD_DUP_KEY, OD_DUP_VALUE);
+	if ((flags&OD_DUP_KEY)==OD_DUP_KEY) // not enought with flag, as its a multiple bit flag, with FREE included
+		data->key=strdup(key);
+	else
+		data->key=key;
+	if ((flags&OD_DUP_VALUE)==OD_DUP_VALUE)
+		data->value=strdup(value);
+	else
+		data->value=value;
+	data->flags=flags;
+}
+
+/// Perform the skew operation
+static onion_dict_node *skew(onion_dict_node *node){
+	if (!node || !node->left || (node->left->level != node->level))
+		return node;
+
+	//ONION_DEBUG("Skew %p[%s]",node,node->data.key);
+	onion_dict_node *t;
+	t=node->left;
+	node->left=t->right;
+	t->right=node;
+	return t;
+}
+
+/// Performs the split operation
+static onion_dict_node *split(onion_dict_node *node){
+	if (!node || !node->right || !node->right->right || (node->level != node->right->right->level))
+		return node;
+	
+	//ONION_DEBUG("Split %p[%s]",node,node->data.key);
+	onion_dict_node *t;
+	t=node->right;
+	node->right=t->left;
+	t->left=node;
+	t->level++;
+	return t;
+}
+
+/// Decrease a level
+static void decrease_level(onion_dict_node *node){
+	int level_left=node->left ? node->left->level : 0;
+	int level_right=node->right ? node->right->level : 0;
+	int should_be=((level_left<level_right) ? level_left : level_right) + 1;
+	if (should_be < node->level){
+		//ONION_DEBUG("Decrease level %p[%s] level %d->%d",node, node->data.key, node->level, should_be);
+		node->level=should_be;
+		//ONION_DEBUG0("%p",node->right);
+		if (node->right && ( should_be < node->right->level) ){
+			//ONION_DEBUG("Decrease level right %p[%s], level %d->%d",node->right, node->right->data.key, node->right->level, should_be);
+			node->right->level=should_be;
+		}
+	}
+}
+
+/**
+ * @short AA tree insert
+ * 
+ * Returns the root node of the subtree
+ */
+static onion_dict_node  *onion_dict_node_add(onion_dict_node *node, onion_dict_node *nnode){
+	if (node==NULL){
+		//ONION_DEBUG("Add here %p",nnode);
+		return nnode;
+	}
+	signed int cmp=strcmp(nnode->data.key, node->data.key);
+	//ONION_DEBUG0("cmp %d",cmp);
+	if (cmp<0){
+		node->left=onion_dict_node_add(node->left, nnode);
+		//ONION_DEBUG("%p[%s]->left=%p[%s]",node, node->data.key, node->left, node->left->data.key);
+	}
+	else{ // >=
+		node->right=onion_dict_node_add(node->right, nnode);
+		//ONION_DEBUG("%p[%s]->right=%p[%s]",node, node->data.key, node->right, node->right->data.key);
+	}
+	
+	node=skew(node);
+	node=split(node);
+	
+	return node;
+}
+
 
 /**
  * Adds a value in the tree.
  */
 void onion_dict_add(onion_dict *dict, const char *key, const char *value, int flags){
-	onion_dict *dup, *where=NULL;
-	
-	dup=(onion_dict*)onion_dict_find_node(dict, key, (const onion_dict**)&where);
-	
-	if (dup){ // If dup, try again on left or right tree, it does not matter.
-		if (flags&OD_REPLACE){
-			onion_dict_free_node_kv(dup);
-			dup->flags=OD_EMPTY;
-		}
-		else{
-			if (!dup->left)
-				dup->left=onion_dict_new();
-			onion_dict_add(dup->left, key, value, flags);
-			return;
-		}
-	}
-	if (where==NULL)
-		where=dict;
-	
-	if (!(where->flags&OD_EMPTY)){
-		dict=onion_dict_new();
-		if (strcmp(key, where->key)<0)
-			where->left=dict;
-		else
-			where->right=dict;
-		where=dict;
-	}
-
-	if ((flags&OD_DUP_KEY)==OD_DUP_KEY){ // not enought with flag, as its a multiple bit flag, with FREE included
-		where->key=strdup(key);
-	}
-	else
-		where->key=key;
-	if ((flags&OD_DUP_VALUE)==OD_DUP_VALUE)
-		where->value=strdup(value);
-	else
-		where->value=value;
-	where->flags=flags&~OD_EMPTY;
+	dict->root=onion_dict_node_add(dict->root, onion_dict_node_new(key, value, flags));
 }
 
 /// Frees the memory, if necesary of key and value
-static void onion_dict_free_node_kv(onion_dict *dict){
-	if (dict->flags&OD_FREE_KEY){
-		free((char*)dict->key);
+static void onion_dict_node_data_free(onion_dict_node_data *data){
+	if (data->flags&OD_FREE_KEY){
+		free((char*)data->key);
 	}
-	if (dict->flags&OD_FREE_VALUE)
-		free((char*)dict->value);
+	if (data->flags&OD_FREE_VALUE)
+		free((char*)data->value);
 }
 
-/// Copies internal data straight into dst. No free's nor any check.
-static void onion_dict_copy_data(const onion_dict *src, onion_dict *dst){
-	dst->flags=src->flags;
-	dst->key=src->key;
-	dst->value=src->value;
-	
-	dst->right=src->right;
-	dst->left=src->left;
+/// AA tree remove the node
+static onion_dict_node *onion_dict_node_remove(onion_dict_node *node, const char *key){
+	if (!node)
+		return NULL;
+	int cmp=strcmp(key, node->data.key);
+	if (cmp<0){
+		node->left=onion_dict_node_remove(node->left, key);
+		//ONION_DEBUG("%p[%s]->left=%p[%s]",node, node->data.key, node->left, node->left ? node->left->data.key : "NULL");
+	}
+	else if (cmp>0){
+		node->right=onion_dict_node_remove(node->right, key);
+		//ONION_DEBUG("%p[%s]->right=%p[%s]",node, node->data.key, node->right, node->right ? node->right->data.key : "NULL");
+	}
+	else{ // Real remove
+		//ONION_DEBUG("Remove here %p", node);
+		onion_dict_node_data_free(&node->data);
+		if (node->left==NULL && node->right==NULL){
+			free(node);
+			return NULL;
+		}
+		if (node->left==NULL){
+			onion_dict_node *t=node->right; // Get next key node
+			while (t->left) t=t->left;
+			//ONION_DEBUG("Set data from %p[%s] to %p[already deleted %s]",t,t->data.key, node, key);
+			memcpy(&node->data, &t->data, sizeof(onion_dict_node_data));
+			t->data.flags=0; // No double free later, please
+			node->right=onion_dict_node_remove(node->right, t->data.key);
+			//ONION_DEBUG("%p[%s]->right=%p[%s]",node, node->data.key, node->right, node->right ? node->right->data.key : "NULL");
+		}
+		else{
+			onion_dict_node *t=node->left; // Get prev key node
+			while (t->right) t=t->right;
+			
+			memcpy(&node->data, &t->data, sizeof(onion_dict_node_data));
+			t->data.flags=0; // No double free later, please
+			node->left=onion_dict_node_remove(node->left, t->data.key);
+			//ONION_DEBUG("%p[%s]->left=%p[%s]",node, node->data.key, node->left, node->left ? node->left->data.key : "NULL");
+		}
+	}
+	decrease_level(node);
+	node=skew(node);
+	if (node->right){
+		node->right=skew(node->right);
+		if (node->right->right)
+			node->right->right=skew(node->right->right);
+	}
+	node=split(node);
+	if (node->right)
+		node->right=split(node->right);
+	return node;
 }
 
 
@@ -124,62 +248,47 @@ static void onion_dict_copy_data(const onion_dict *src, onion_dict *dst){
  * Returns if it removed any node.
  */ 
 int onion_dict_remove(onion_dict *dict, const char *key){
-	onion_dict *parent=NULL;
-	dict=(onion_dict*)onion_dict_find_node(dict, key, (const onion_dict **)&parent);
-	
-	if (!dict)
-		return 0;
-	onion_dict_free_node_kv(dict);
-	if (dict->left && dict->right){ // I copy right here, and move left tree to leftmost branch of right branch.
-		onion_dict *left=dict->left;
-		onion_dict *right=dict->right;
-		onion_dict_copy_data(dict->right, dict);
-		onion_dict *t=dict;
-		
-		while (t->left) t=t->left;
-		
-		t->left=left;
-		if (t!=right){
-			free(right); // right is now here. t is the leftmost branch of right
-		}
-	}
-	else if (dict->left){
-		onion_dict *t=dict->left;
-		onion_dict_copy_data(t, dict);
-		free(t);
-	}
-	else if (dict->right){
-		onion_dict *t=dict->right;
-		onion_dict_copy_data(t, dict);
-		free(t);
-	}
-	else{
-		dict->flags=OD_EMPTY;
-		dict->key=dict->value=NULL;
-	}
+	dict->root=onion_dict_node_remove(dict->root, key);
 	return 1;
+}
+
+
+static void onion_dict_node_free(onion_dict_node *node){
+	if (node->left)
+		onion_dict_node_free(node->left);
+	if (node->right)
+		onion_dict_node_free(node->right);
+
+	onion_dict_node_data_free(&node->data);
+	free(node);
 }
 
 /// Removes the full dict struct form mem.
 void onion_dict_free(onion_dict *dict){
-	if (!dict)
-		return;
-	if (dict->left)
-		onion_dict_free(dict->left);
-	if (dict->right)
-		onion_dict_free(dict->right);
-
-	onion_dict_free_node_kv(dict);
+	if (dict->root)
+		onion_dict_node_free(dict->root);
 	free(dict);
 }
+	
 
 /// Gets a value
 const char *onion_dict_get(const onion_dict *dict, const char *key){
-	const onion_dict *r;
-	r=onion_dict_find_node(dict, key, NULL);
+	const onion_dict_node *r;
+	r=onion_dict_find_node(dict->root, key, NULL);
 	if (r)
-		return r->value;
+		return r->data.value;
 	return NULL;
+}
+
+static void onion_dict_node_print_dot(const onion_dict_node *node){
+	if (node->right){
+		fprintf(stderr,"\"%s\" -> \"%s\" [label=\"R\"];\n",node->data.key, node->right->data.key);
+		onion_dict_node_print_dot(node->right);
+	}
+	if (node->left){
+		fprintf(stderr,"\"%s\" -> \"%s\" [label=\"L\"];\n",node->data.key, node->left->data.key);
+		onion_dict_node_print_dot(node->left);
+	}
 }
 
 /**
@@ -189,45 +298,50 @@ const char *onion_dict_get(const onion_dict *dict, const char *key){
  * key1 -> key2;
  * ...
  *
- * User of this funciton has to write the 'digraph G{' and '}'
+ * User of this function has to write the 'digraph G{' and '}'
  */
 void onion_dict_print_dot(const onion_dict *dict){
-	if (dict->right){
-		fprintf(stderr,"\"%s\" -> \"%s\" [label=\"R\"];\n",dict->key, dict->right->key);
-		onion_dict_print_dot(dict->right);
-	}
-	if (dict->left){
-		fprintf(stderr,"\"%s\" -> \"%s\" [label=\"L\"];\n",dict->key, dict->left->key);
-		onion_dict_print_dot(dict->left);
-	}
+	if (dict->root)
+		onion_dict_node_print_dot(dict->root);
+}
+
+void onion_dict_node_preorder(const onion_dict_node *node, void *func, void *data){
+	void (*f)(const char *key, const char *value, void *data);
+	f=func;
+	if (node->left)
+		onion_dict_node_preorder(node->left, func, data);
+	
+	f(node->data.key, node->data.value, data);
+	
+	if (node->right)
+		onion_dict_node_preorder(node->right, func, data);
 }
 
 /**
- * The funciton is of prototype void f(const char *key, const char *value, void *data);
+ * @short Executes a function on each element, in preorder by key.
+ * 
+ * The function is of prototype void func(const char *key, const char *value, void *data);
  */
 void onion_dict_preorder(const onion_dict *dict, void *func, void *data){
-	if (!dict)
+	if (!dict || !dict->root)
 		return;
-	void (*f)(const char *key, const char *value, void *data);
-	f=func;
-	if (dict->left)
-		onion_dict_preorder(dict->left, func, data);
-	if (!(dict->flags&OD_EMPTY))
-		f(dict->key, dict->value, data);
-	if (dict->right)
-		onion_dict_preorder(dict->right, func, data);
+	onion_dict_node_preorder(dict->root, func, data);
+}
+
+static int onion_dict_node_count(const onion_dict_node *node){
+	int c=1;
+	if (node->left)
+		c+=onion_dict_node_count(node->left);
+	if (node->right)
+		c+=onion_dict_node_count(node->right);
+	return c;
 }
 
 /**
  * @short Counts elements
  */
 int onion_dict_count(const onion_dict *dict){
-	if (!dict)
-		return 0;
-	int c=(!(dict->flags&OD_EMPTY)) ? 1 : 0;
-	if (dict->left)
-		c+=onion_dict_count(dict->left);
-	if (dict->right)
-		c+=onion_dict_count(dict->right);
-	return c;
+	if (dict && dict->root)
+		return onion_dict_node_count(dict->root);
+	return 0;
 }

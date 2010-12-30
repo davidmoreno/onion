@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include <onion/dict.h>
+#include <onion/log.h>
 
 #include "../test.h"
 
@@ -46,6 +47,43 @@ void t01_create_add_free(){
 	value=onion_dict_get(dict, "Request");
 	FAIL_IF_NOT_EQUAL(value,NULL);
 
+	onion_dict_free(dict);
+	
+	END_LOCAL();
+}
+
+void t01_create_add_free_10(){
+	INIT_LOCAL();
+	onion_dict *dict;
+	const char *value;
+	
+	dict=onion_dict_new();
+	FAIL_IF_EQUAL(dict,NULL);
+
+	// Get before anything in
+	value=onion_dict_get(dict, "Request");
+	FAIL_IF_NOT_EQUAL(value,NULL);
+
+	// basic add
+	int i;
+	char tmp[256];
+	for (i=0;i<10;i++){
+		snprintf(tmp,sizeof(tmp),"%d",(i*13)%10);
+		//ONION_DEBUG("add key %s",tmp);
+		onion_dict_add(dict, tmp, "GET /", OD_DUP_ALL);
+		value=onion_dict_get(dict, tmp);
+		FAIL_IF_NOT_EQUAL_STR(value,"GET /");
+		//onion_dict_print_dot(dict);
+	}
+	for (i=0;i<10;i++){
+		snprintf(tmp,sizeof(tmp),"%d",i);
+		//ONION_DEBUG("rm key %s",tmp);
+		onion_dict_remove(dict, tmp);
+		value=onion_dict_get(dict, tmp);
+		FAIL_IF_NOT_EQUAL(value,NULL);
+		//onion_dict_print_dot(dict);
+	}
+	
 	onion_dict_free(dict);
 	
 	END_LOCAL();
@@ -250,6 +288,7 @@ void t06_null_add(){
 
 int main(int argc, char **argv){
 	t01_create_add_free();
+	t01_create_add_free_10();
 	t02_create_and_free_a_lot(100);
 	t03_create_and_free_a_lot_random(100);
 	t04_create_and_free_a_dup();

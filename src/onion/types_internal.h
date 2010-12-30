@@ -37,13 +37,12 @@ extern "C"{
 #define ONION_RESPONSE_BUFFER_SIZE 1500
 
 
+struct onion_dict_node_t;
+
 struct onion_dict_t{
-	const char *key;
-	const char *value;
-	char flags;
-	struct onion_dict_t *left;
-	struct onion_dict_t *right;
+	struct onion_dict_node_t *root;
 };
+
 
 struct onion_t{
 	int flags;

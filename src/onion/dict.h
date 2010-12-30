@@ -29,7 +29,7 @@ extern "C"{
  * @short Flags to change some parameters of each key.
  */
 enum onion_dict_flags_e{
-	OD_EMPTY=1,
+//	OD_EMPTY=1,
 	OD_FREE_KEY=2,     /// Whether the key has to be removed at free time
 	OD_FREE_VALUE=4,   /// Whether the value has to be removed at free time
 	OD_FREE_ALL=6,     /// Whether both, the key and value have to be removed at free time. In any case its also marked for freeing later.
