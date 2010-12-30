@@ -23,6 +23,8 @@
 #include <onion/log.h>
 
 #include "../test.h"
+#include <pthread.h>
+#include <unistd.h>
 
 
 void t01_create_add_free(){
@@ -69,7 +71,7 @@ void t01_create_add_free_10(){
 	char tmp[256];
 	for (i=0;i<10;i++){
 		snprintf(tmp,sizeof(tmp),"%d",(i*13)%10);
-		//ONION_DEBUG("add key %s",tmp);
+		////ONION_DEBUG("add key %s",tmp);
 		onion_dict_add(dict, tmp, "GET /", OD_DUP_ALL);
 		value=onion_dict_get(dict, tmp);
 		FAIL_IF_NOT_EQUAL_STR(value,"GET /");
@@ -77,7 +79,7 @@ void t01_create_add_free_10(){
 	}
 	for (i=0;i<10;i++){
 		snprintf(tmp,sizeof(tmp),"%d",i);
-		//ONION_DEBUG("rm key %s",tmp);
+		////ONION_DEBUG("rm key %s",tmp);
 		onion_dict_remove(dict, tmp);
 		value=onion_dict_get(dict, tmp);
 		FAIL_IF_NOT_EQUAL(value,NULL);
@@ -314,6 +316,138 @@ void t07_replace(){
 	END_LOCAL();
 }
 
+#define N_READERS 3
+
+char *t08_thread_read(onion_dict *d){
+	char done=0;
+	char *ret=NULL;
+	while (!done){
+		//ONION_DEBUG("Lock read");
+		onion_dict_lock_read(d);
+		//ONION_DEBUG("Got read lock");
+		const char *test=onion_dict_get(d,"test");
+		if (test){
+			//ONION_DEBUG("Unlock");
+			onion_dict_unlock(d);
+			//ONION_DEBUG("Lock write");
+			onion_dict_lock_write(d);
+			//ONION_DEBUG("Got write lock");
+			char tmp[16];
+			snprintf(tmp,16,"%d",onion_dict_count(d));
+			onion_dict_remove(d,"test");
+			onion_dict_add(d,tmp,"test",OD_DUP_ALL);
+			ONION_INFO("Write answer %d", onion_dict_count(d));
+			done=1;
+			//ONION_DEBUG("Unlock");
+			onion_dict_unlock(d);
+			ret=(char*)1;
+			break;
+		}
+		//ONION_DEBUG("Unlock");
+		onion_dict_unlock(d);
+		sleep(1);
+	}
+	//ONION_DEBUG("dict free");
+	onion_dict_free(d);
+	return ret;
+}
+
+void *t08_thread_write(onion_dict *d){
+	int n=0;
+	while (n!=N_READERS){
+		int i;
+		n=0;
+		//ONION_DEBUG("Lock read");
+		onion_dict_lock_read(d);
+		//ONION_DEBUG("Got read lock");
+		for (i=0;i<N_READERS;i++){
+			char tmp[16];
+			snprintf(tmp,16,"%d",i+1);
+			const char *r=onion_dict_get(d,tmp);
+			if (r)
+				n++;
+		}
+		//ONION_DEBUG("Unlock");
+		onion_dict_unlock(d);
+		//ONION_DEBUG("Lock write");
+		onion_dict_lock_write(d);
+		//ONION_DEBUG("Got write lock");
+		onion_dict_add(d, "test", "test", OD_DUP_ALL|OD_REPLACE);
+		//ONION_DEBUG("Unlock");
+		onion_dict_unlock(d);
+		ONION_INFO("Found %d answers, should be %d.", n, N_READERS);
+		sleep(1);
+	}
+	
+	onion_dict_free(d);
+	return (char*)1;
+}
+
+void t08_threaded_lock(){
+	INIT_LOCAL();
+	
+	onion_dict *d=onion_dict_new();
+	
+	pthread_t thread[N_READERS];
+	int i;
+	for (i=0;i<N_READERS;i++){
+		onion_dict *d2=onion_dict_dup(d);
+		pthread_create(&thread[i], NULL, (void*)t08_thread_read, d2);
+	}
+	sleep(1);
+	t08_thread_write(d);
+	
+	for (i=0;i<N_READERS;i++){
+		char *v;
+		pthread_join(thread[i],(void**) &v);
+		FAIL_IF_NOT_EQUAL(v, (char *)v);
+	}
+	
+	END_LOCAL();
+}
+
+#define NWAR 100
+#define WARLOOPS 1000
+
+void t09_thread_war_thread(onion_dict *d){
+	int i;
+	char tmp[16];
+	for (i=0;i<WARLOOPS;i++){
+		snprintf(tmp,16,"%04X",i);
+		if (rand()%1){
+			onion_dict_lock_read(d);
+			onion_dict_get(d,tmp);
+			onion_dict_unlock(d);
+		}
+		else{
+			onion_dict_lock_write(d);
+			onion_dict_add(d,tmp,tmp,OD_DUP_ALL|OD_REPLACE);
+			onion_dict_unlock(d);
+		}
+	}
+	onion_dict_free(d);
+}
+
+void t09_thread_war(){
+	INIT_LOCAL();
+	
+	pthread_t thread[NWAR];
+	int i;
+	onion_dict *d=onion_dict_new();
+	for (i=0;i<NWAR;i++){
+		onion_dict *dup=onion_dict_dup(d);
+		pthread_create(&thread[i], NULL, (void*)&t09_thread_war_thread, dup);
+	}
+	
+	onion_dict_free(d);
+
+	for (i=0;i<NWAR;i++){
+		pthread_join(thread[i], NULL);
+	}
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	t01_create_add_free();
 	t01_create_add_free_10();
@@ -322,8 +456,9 @@ int main(int argc, char **argv){
 	t04_create_and_free_a_dup();
 	t05_preorder();
 	t06_null_add();
-	t07_replace(); // TODO
-	//t08_threaded_lock(); // TODO
+	t07_replace();
+	t08_threaded_lock();
+	t09_thread_war();
 	
 	END();
 }
