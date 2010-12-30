@@ -53,6 +53,28 @@ onion_dict *onion_dict_new(){
 	memset(dict,0,sizeof(onion_dict));
 #ifdef HAVE_PTHREADS
 	pthread_rwlock_init(&dict->lock, NULL);
+	pthread_mutex_init(&dict->refmutex, NULL);
+#endif
+	dict->refcount=1;
+	return dict;
+}
+
+/**
+ * @short Creates a duplicate of the dict
+ * 
+ * Its actually the same, but with refcount increased, so future frees will free the dict
+ * only on latest one.
+ * 
+ * Any change on one dict is made also on the other one, as well as rwlock... This is usefull on a multhreaded
+ * environment so that multiple threads cna have the same dict and free it when not in use anymore.
+ */
+onion_dict *onion_dict_dup(onion_dict *dict){
+#ifdef HAVE_PTHREADS
+	pthread_mutex_lock(&dict->refmutex);
+#endif
+	dict->refcount++;
+#ifdef HAVE_PTHREADS
+	pthread_mutex_unlock(&dict->refmutex);
 #endif
 	return dict;
 }
@@ -71,11 +93,22 @@ static void onion_dict_node_free(onion_dict_node *node){
 /// Removes the full dict struct from mem.
 void onion_dict_free(onion_dict *dict){
 #ifdef HAVE_PTHREADS
-	pthread_rwlock_destroy(&dict->lock);
+	pthread_mutex_lock(&dict->refmutex);
 #endif
-	if (dict->root)
-		onion_dict_node_free(dict->root);
-	free(dict);
+	dict->refcount--;
+	int remove=(dict->refcount==0);
+#ifdef HAVE_PTHREADS
+	pthread_mutex_unlock(&dict->refmutex);
+#endif
+	if(remove){
+#ifdef HAVE_PTHREADS
+		pthread_rwlock_destroy(&dict->lock);
+		pthread_mutex_destroy(&dict->refmutex);
+#endif
+		if (dict->root)
+			onion_dict_node_free(dict->root);
+		free(dict);
+	}
 }
 	
 /**
