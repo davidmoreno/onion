@@ -100,7 +100,7 @@ onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId){
 		sess=onion_dict_new();
 		onion_dict_add(sessions->sessions, sessionId, (char*)sess, OD_DUP_KEY);
 	}
-	return sess;
+	return onion_dict_dup(sess);
 }
 
 /**

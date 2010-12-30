@@ -89,6 +89,8 @@ void onion_request_free(onion_request *req){
 		free(req->client_info);
 	if (req->session_id)
 		free(req->session_id);
+	if (req->session)
+		onion_dict_free(req->session);
 	
 	free(req);
 }

@@ -18,11 +18,20 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 #include <onion/onion.h>
 #include <onion/dict.h>
-#include <onion/handler.h>
-#include <onion/response.h>
+#include <onion/log.h>
+
+onion *o;
+
+void free_onion(){
+	ONION_INFO("Closing connections");
+	onion_free(o);
+	exit(0);
+}
+
 
 void print_dict_element(const char *key, const char *value, onion_response *res){
 	onion_response_write0(res,"<li> ");
@@ -66,13 +75,14 @@ onion_connection_status sessions(void *ignore, onion_request *req){
 }
 
 int main(int argc, char **argv){
-	onion *onion=onion_new(O_ONE_LOOP);
+	o=onion_new(O_ONE_LOOP);
 	
 	onion_handler *root=onion_handler_new((onion_handler_handler)sessions, NULL, NULL);
 
-	onion_set_root_handler(onion, root);
+	onion_set_root_handler(o, root);
+	signal(SIGINT, free_onion);
 	
-	onion_listen(onion);
+	onion_listen(o);
 	
 	return 0;
 }
