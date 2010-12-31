@@ -1,0 +1,54 @@
+Source: libonion
+Priority: extra
+Maintainer: David Moreno <dmoreno@coralbits.com>
+Build-Depends: debhelper (>= 7.0.50~), cmake, libgnutls-dev, libpam0g-dev, 
+Standards-Version: 3.8.4
+Section: libs
+Homepage: http://www.coralbits.com/libonion/
+Vcs-Git: https://github.com/davidmoreno/onion.git
+Vcs-Browser: https://github.com/davidmoreno/onion
+
+Package: libonion-dev
+Section: libdevel
+Architecture: any
+Depends: libonion
+Description: HTTP server library - development package
+ Onion plans to be a lightweight C library that facilitate to create simple 
+ HTTP servers.
+ .
+ The use case is an existing application, or a new one, that needs some HTTP 
+ interconnection with the world. It uses the library to add some handlers for 
+ specific URLs and generate and serve the dynamic data as needed.
+ .
+ It also has security goals (SSL support) so that you just concentrate on what 
+ you want to serve, and serve it.
+ .
+ Its not a web server per se, as it is not an executable.
+ .
+ If you want to compare to a web server, a web server would use a module or 
+ plugin to add some functionality. With libonion you have the functionality 
+ and add the webserver as a plugin.
+ .
+ API documentation is at http://coralbits.com/staticc/libonion/html/.
+
+Package: libonion
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libgnutls26, libpam0g
+Description: HTTP server library
+ Onion plans to be a lightweight C library that facilitate to create simple 
+ HTTP servers.
+ .
+ The use case is an existing application, or a new one, that needs some HTTP 
+ interconnection with the world. It uses the library to add some handlers for 
+ specific URLs and generate and serve the dynamic data as needed.
+ .
+ It also has security goals (SSL support) so that you just concentrate on what 
+ you want to serve, and serve it.
+ .
+ Its not a web server per se, as it is not an executable.
+ .
+ If you want to compare to a web server, a web server would use a module or 
+ plugin to add some functionality. With libonion you have the functionality 
+ and add the webserver as a plugin.
+
