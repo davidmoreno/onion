@@ -326,6 +326,7 @@ int onion_listen(onion *o){
 		ONION_ERROR("Could not bind to %s:%d", "0.0.0.0", o->port);
 		return errno;
 	}
+	ONION_DEBUG("Listening to %s:%d","0.0.0.0", o->port);
 	listen(sockfd,5); // queue of only 5.
   socklen_t clilen = sizeof(cli_addr);
 	char address[64];
