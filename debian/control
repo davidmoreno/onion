@@ -52,3 +52,39 @@ Description: HTTP server library
  plugin to add some functionality. With libonion you have the functionality 
  and add the webserver as a plugin.
 
+Package: libonion-examples
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: HTTP server library -- Examples
+ Onion plans to be a lightweight C library that facilitate to create simple 
+ HTTP servers.
+ .
+ The use case is an existing application, or a new one, that needs some HTTP 
+ interconnection with the world. It uses the library to add some handlers for 
+ specific URLs and generate and serve the dynamic data as needed.
+ .
+ It also has security goals (SSL support) so that you just concentrate on what 
+ you want to serve, and serve it.
+ .
+ Its not a web server per se, as it is not an executable.
+ .
+ If you want to compare to a web server, a web server would use a module or 
+ plugin to add some functionality. With libonion you have the functionality 
+ and add the webserver as a plugin.
+
+Package: libonion-tools
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: HTTP server library -- Tools
+ Onion plans to be a lightweight C library that facilitate to create simple 
+ HTTP servers.
+ .
+ This includes the tools used to help onion developments (and maybe others):
+ .
+  * opack -- Prepares a file to be embedded into an onion powered server executable
+  * crl   -- Do the compile/run loop, checking source files; as modified the executable 
+             is stopped and the loop starts again.
+
+
