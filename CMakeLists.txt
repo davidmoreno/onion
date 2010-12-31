@@ -46,6 +46,8 @@ ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
 project (onion)
 
+INCLUDE(CPack)
+
 SET(CMAKE_C_FLAGS "-Wall -Werror -O0")
 
 add_subdirectory(src)
