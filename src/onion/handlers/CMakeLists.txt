@@ -11,4 +11,4 @@ MESSAGE("Found include files ${INCLUDES_HANDLERS}")
 
 install(FILES ${INCLUDES_HANDLERS} DESTINATION include/onion/handlers/)
 install(TARGETS onion_handlers EXPORT onion_handlers DESTINATION lib)
-install(EXPORT onion_handlers DESTINATION cmake)
+install(EXPORT onion_handlers DESTINATION share/cmake)

@@ -5,6 +5,7 @@ project(libonion)
 # Some tweak parameters
 SET(ONION_USE_SSL true)
 SET(ONION_USE_PTHREADS true)
+SET(ONION_VERSION 0.2.0)
 ########
 
 
@@ -46,7 +47,9 @@ ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
 project (onion)
 
+INCLUDE(CPackConfig.cmake)
 INCLUDE(CPack)
+
 
 SET(CMAKE_C_FLAGS "-Wall -Werror -O0")
 
