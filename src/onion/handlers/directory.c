@@ -74,23 +74,68 @@ int onion_handler_directory_handler(onion_handler_directory_data *d, onion_reque
  * @short Handler a single file.
  */
 int onion_handler_directory_handler_file(const char *realp, struct stat *reals, onion_request *request){
-		int fd=open(realp,O_RDONLY);
+	int fd=open(realp,O_RDONLY);
+	size_t size=reals->st_size;
+	size_t length=size;
 
-		onion_response *res=onion_response_new(request);
-		onion_response_set_length(res, reals->st_size);
-		onion_response_write_headers(res);
+	onion_response *res=onion_response_new(request);
+
+	
+	const char *range=onion_request_get_header(request, "Range");
+	if (range && strncmp(range,"bytes=",6)==0){
+		ONION_DEBUG("Need just a range: %s",range);
+		char tmp[1024];
+		strncpy(tmp, range+6, 1024);
+		char *start=tmp;
+		char *end=tmp;
+		while (*end!='-' && *end) end++;
+		if (*end=='-'){
+			*end='\0';
+			end++;
 			
-		int r,w;
+			ONION_DEBUG("Start %s, end %s",start,end);
+			size_t ends, starts;
+			if (*end)
+				ends=atol(end);
+			else
+				ends=length;
+			starts=atol(start);
+			length=ends-starts;
+			lseek(fd, starts, SEEK_SET);
+			snprintf(tmp,sizeof(tmp),"%ld-%ld/%ld",starts, ends-1, length);
+			onion_response_set_header(res, "Content-Range",tmp);
+		}
+	}
+	
+	onion_response_set_length(res, length);
+	onion_response_write_headers(res);
+	
+	if (length){
+		int r=0,w;
+		size_t tr=0;
 		char tmp[4046];
-		while( (r=read(fd,tmp,sizeof(tmp))) > 0 ){
+		size_t max=length-sizeof(tmp);
+		while( tr<max ){
+			r=read(fd,tmp,sizeof(tmp));
+			tr+=r;
+			if (r<0)
+				break;
 			w=onion_response_write(res, tmp, r);
 			if (w!=r){
 				ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
 				break;
 			}
 		}
-		close(fd);
-		return onion_response_free(res);
+		if (sizeof(tmp) >= (length-tr)){
+			r=read(fd, tmp, length-tr);
+			w=onion_response_write(res, tmp, r);
+			if (w!=r){
+				ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
+			}
+		}
+	}
+	close(fd);
+	return onion_response_free(res);
 }
 
 /// Default directory handler: The style + dirname on a h1

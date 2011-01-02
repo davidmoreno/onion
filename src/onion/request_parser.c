@@ -566,7 +566,7 @@ static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buf
 
 	char *p=token->str; // skips leading spaces
 	while (isspace(*p)) p++;
-	//ONION_DEBUG0("Adding header %s=%s",token->extra,p);
+	//ONION_DEBUG0("Adding header %s : %s",token->extra,p);
 	onion_dict_add(req->headers,token->extra,p, OD_DUP_VALUE|OD_FREE_KEY);
 	token->extra=NULL;
 	
