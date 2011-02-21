@@ -114,16 +114,18 @@ int onion_handler_directory_handler_file(const char *realp, struct stat *reals, 
 		int r=0,w;
 		size_t tr=0;
 		char tmp[4046];
-		size_t max=length-sizeof(tmp);
-		while( tr<max ){
-			r=read(fd,tmp,sizeof(tmp));
-			tr+=r;
-			if (r<0)
-				break;
-			w=onion_response_write(res, tmp, r);
-			if (w!=r){
-				ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
-				break;
+		if (length>sizeof(tmp)){
+			size_t max=length-sizeof(tmp);
+			while( tr<max ){
+				r=read(fd,tmp,sizeof(tmp));
+				tr+=r;
+				if (r<0)
+					break;
+				w=onion_response_write(res, tmp, r);
+				if (w!=r){
+					ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
+					break;
+				}
 			}
 		}
 		if (sizeof(tmp) >= (length-tr)){
