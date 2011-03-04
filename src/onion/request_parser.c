@@ -69,16 +69,16 @@ typedef struct onion_buffer_s{
  * token->pos is the pointer to the free area and token->extra_size is the real size.
  */
 typedef struct onion_multipart_buffer_s{
-	char *boundary;
-	size_t size;
-	off_t pos;
-	off_t startpos;
-	char *data;// When need a new buffered data (always from stream), get it from here. This advances as used.
-	char *name; // point to a in data position
-	char *filename; // point to a in data position
-	size_t file_total_size;
-	size_t post_total_size;
-	int fd; // If file, the file descriptor.
+	char *boundary; /// Pointer to where the boundary is stored
+	size_t size; 		/// Size of the boundary
+	off_t pos;			/// Pos at the boundarycheck
+	off_t startpos; /// Where did the boundary started (\n\r vs \n)
+	char *data;			/// When need a new buffered data (always from stream), get it from here. This advances as used.
+	char *name; 		/// point to a in data position
+	char *filename; /// point to a in data position
+	size_t file_total_size;	/// Total size of all file read data
+	size_t post_total_size;	/// Total size of post, to check limits
+	int fd; 				/// If file, the file descriptor.
 }onion_multipart_buffer;
 
 static onion_connection_status onion_request_process(onion_request *req);
@@ -284,6 +284,8 @@ static onion_connection_status parse_POST_multipart_next(onion_request *req, oni
  * The boundary may be in two or N parts.
  */
 static onion_connection_status parse_POST_multipart_file(onion_request *req, onion_buffer *data){
+	char tmp[1024]; /// Read 1024 bytes fo the read on this call, and write. If read less write as read. 
+	int tmppos=0;
 	onion_token *token=req->parser_data;
 	onion_multipart_buffer *multipart=(onion_multipart_buffer*)token->extra;
 	const char *p=data->data+data->pos;
@@ -296,6 +298,14 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 			if (multipart->pos==multipart->size){
 				multipart->startpos=multipart->pos=0;
 				data->pos++; // Not sure why this is needed. FIXME.
+
+				int w=write(multipart->fd,tmp,tmppos); 
+				if (w!=tmppos){
+					ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+					close(multipart->fd);
+					return OCS_INTERNAL_ERROR;
+				}
+
 				close(multipart->fd);
 				req->parser=parse_POST_multipart_next;
 				return OCS_NEED_MORE_DATA;
@@ -310,7 +320,15 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 				multipart->file_total_size+=multipart->pos;
 				int r=multipart->pos-multipart->startpos;
 				//ONION_DEBUG0("Write %d bytes",r);
-				int w=write(multipart->fd, multipart->boundary+multipart->startpos, r);
+				int w=write(multipart->fd,tmp,tmppos); 
+				if (w!=tmppos){
+					ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+					close(multipart->fd);
+					return OCS_INTERNAL_ERROR;
+				}
+				tmppos=0;
+				
+				w=write(multipart->fd, multipart->boundary+multipart->startpos, r);
 				if (w!=r){
 					ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
 					close(multipart->fd);
@@ -321,16 +339,25 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 				continue;
 			}
 			//ONION_DEBUG0("Write 1 byte");
-			int w=write(multipart->fd,p,1); // SLOW!! FIXME.
-			if (w!=1){
-				ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
-				close(multipart->fd);
-				return OCS_INTERNAL_ERROR;
+			tmp[tmppos++]=*p;
+			if (tmppos==sizeof(tmp)){
+				int w=write(multipart->fd,tmp,tmppos); 
+				if (w!=tmppos){
+					ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+					close(multipart->fd);
+					return OCS_INTERNAL_ERROR;
+				}
+				tmppos=0;
 			}
-
 		}
 		multipart->file_total_size++;
 		p++;
+	}
+	int w=write(multipart->fd,tmp,tmppos); 
+	if (w!=tmppos){
+		ONION_ERROR("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+		close(multipart->fd);
+		return OCS_INTERNAL_ERROR;
 	}
 	return OCS_NEED_MORE_DATA;
 }

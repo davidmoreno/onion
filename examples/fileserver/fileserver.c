@@ -57,6 +57,7 @@ onion_connection_status upload_file(upload_file_data *data, onion_request *req){
 			snprintf(finalname,sizeof(finalname),"%s/%s",data->abspath,name);
 			ONION_DEBUG("Copying from %s to %s",filename,finalname);
 
+			unlink(finalname); // Just try to unlink it, if fail, sure its because it does not exist.
 			int src=open(filename,O_RDONLY);
 			int dst=open(finalname, O_WRONLY|O_CREAT, 0666);
 			if (!src || !dst){

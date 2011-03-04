@@ -29,6 +29,7 @@
 #include <onion/log.h>
 
 #include "../test.h"
+#include <fcntl.h>
 
 typedef struct{
 	char *data;
@@ -200,6 +201,7 @@ void t03_post_carriage_return_new_lines_file(){
 	onion_request *req=onion_request_new(server,b,"test");
 
 #define POST_EMPTY "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length:81\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\n\n\n\r\n\n--end--"
+	//ONION_DEBUG("%s",POST_EMPTY);
 	onion_request_write(req,POST_EMPTY,sizeof(POST_EMPTY));
 	FAIL_IF_NOT_EQUAL(post.test_ok,1);
 #undef POST_EMPTY
@@ -225,13 +227,97 @@ void t03_post_carriage_return_new_lines_file(){
 	END_LOCAL();
 }
 
+/// There is a bug when posting large files. Introduced when change write 1 by 1, to write by blocks on the FILE parser
+void t04_post_largefile(){
+	INIT_LOCAL();
+	
+	int postfd=open("01-hash", O_RDONLY);
+	off_t filesize=lseek(postfd, 0, SEEK_END);
+	lseek(postfd, 0, SEEK_SET);
+	
+	buffer *b=buffer_new(1024);
+	expected_post post;
+	post.filename="01-hash";
+	post.test_ok=0; // Not ok as not called processor yet
+	post.tmpfilename=NULL;
+	post.size=filesize;
+	
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (void*)&buffer_append);
+	onion_server_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
+	
+	onion_request *req=onion_request_new(server,b,"test");
+
+#define POST_HEADER "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length: %d\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"01-hash\"\n\n"
+	char tmp[1024];
+	ONION_DEBUG("Post size is about %d",filesize+73);
+	snprintf(tmp, sizeof(tmp), POST_HEADER, (int)filesize+73);
+	ONION_DEBUG("%s",tmp);
+	onion_request_write(req,tmp,strlen(tmp));
+	
+	int r=read(postfd, tmp, sizeof(tmp));
+	while ( r ){
+		onion_request_write(req, tmp, r);
+		r=read(postfd, tmp, sizeof(tmp));
+	}
+	
+	onion_request_write(req,"\n--end--",8);
+	FAIL_IF_NOT_EQUAL(post.test_ok,1);
+#undef POST_HEADER
+
+	post.test_ok=0; // Not ok as not called processor yet
+
+	int difffd=open(post.tmpfilename, O_RDONLY);
+	lseek(postfd, 0, SEEK_SET);
+	FAIL_IF_EQUAL_INT(difffd,-1);
+	ONION_DEBUG("tmp filename %s",post.tmpfilename);
+	int r1=1, r2=1;
+	char c1=0, c2=0;
+	int p=0;
+	while ( r1 && r2 && c1==c2){
+		r1=read(difffd, &c1, 1);
+		r2=read(postfd, &c2, 1);
+		//ONION_DEBUG("%d %d",c1,c2);
+		FAIL_IF_NOT_EQUAL_INT(c1,c2);
+		p++;
+	}
+	if ( r1 || r2 ){
+		ONION_ERROR("At %d",p);
+		FAIL_IF_NOT_EQUAL_INT(r1,0);
+		FAIL_IF_NOT_EQUAL_INT(r2,0);
+		FAIL_IF_NOT_EQUAL_INT(c1,c2);
+		FAIL("Files are different");
+	}
+	else
+		ONION_DEBUG("Files are ok");
+	
+	close(difffd);
+	close(postfd);
+
+	onion_request_clean(req);
+
+	onion_request_free(req);
+
+	if (post.tmpfilename){
+		struct stat st;
+		FAIL_IF_EQUAL(stat(post.tmpfilename,&st), 0); // Should not exist
+		free(post.tmpfilename);
+	}
+	
+	onion_server_free(server);
+	buffer_free(b);
+	
+	END_LOCAL();
+}
+
 
 
 int main(int argc, char **argv){
 	t01_post_empty_file();
 	t02_post_new_lines_file();
 	t03_post_carriage_return_new_lines_file();
-
+	t04_post_largefile();
+	
 	END();
 }
 
