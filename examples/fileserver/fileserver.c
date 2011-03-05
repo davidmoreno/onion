@@ -107,14 +107,14 @@ int show_help(){
 
 
 int main(int argc, char **argv){
-	int port=8080;
+	char *port="8080";
 	const char *dirname=".";
 	const char *certfile="cert.pem";
 	const char *pamname="login";
 	int i;
 	for (i=1;i<argc;i++){
 		if ((strcmp(argv[i],"--port")==0) || (strcmp(argv[i],"-p")==0)){
-			port=atoi(argv[++i]);
+			port=argv[++i];
 			ONION_INFO("Listening at port %p",port);
 		}
 		else if (strcmp(argv[i],"--pem")==0){

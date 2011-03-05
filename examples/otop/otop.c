@@ -56,9 +56,9 @@ int main(int argc, char **argv){
 	onion_set_root_handler(onion, otop); // should be onion to ask for user.
 	
 	if (argc>1)
-		onion_set_port(onion, atoi(argv[1]));
+		onion_set_port(onion, argv[1]);
 	else
-		onion_set_port(onion, 8080);
+		onion_set_port(onion, "8080");
 	
 	// Listen.
 	int error=onion_listen(onion);

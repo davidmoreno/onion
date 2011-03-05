@@ -53,7 +53,8 @@ struct onion_t{
 	int flags;
 	int listenfd;
 	onion_server *server;
-	int port;
+	char *port;
+	char *hostname;
 	int timeout; 
 #ifdef HAVE_GNUTLS
 	gnutls_certificate_credentials_t x509_cred;

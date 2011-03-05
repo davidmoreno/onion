@@ -38,12 +38,12 @@ void free_onion(){
 }
 
 int main(int argc, char **argv){
-	int port=8080;
+	char *port="8080";
 	const char *dirname=".";
 	int i;
 	for (i=1;i<argc;i++){
 		if (strcmp(argv[i],"-p")==0){
-			port=atoi(argv[++i]);
+			port=argv[++i];
 		}
 		else
 			dirname=argv[i];

@@ -64,7 +64,7 @@ void free_onion(){
 }
 
 int main(int argc, char **argv){
-	int port=8080;
+	char *port="8080";
 	const char *certificatefile="/etc/pki/tls/certs/pound.pem";
 	const char *keyfile="/etc/pki/tls/certs/pound.key";
 	int error;
@@ -82,8 +82,8 @@ int main(int argc, char **argv){
 				show_help();
 				exit(1);
 			}
-			port=atoi(argv[++i]);
-			fprintf(stderr, "Using port %d\n",port);
+			port=argv[++i];
+			fprintf(stderr, "Using port %s\n",port);
 		}
 		else if(strcmp(argv[i],"-c")==0 || strcmp(argv[i],"--cert")==0){
 			if (i+1>argc){
@@ -145,7 +145,7 @@ int main(int argc, char **argv){
 	
 	signal(SIGINT, free_onion);
 	signal(SIGPIPE, SIG_IGN);
-	fprintf(stderr, "Listening at %d\n",port);
+	fprintf(stderr, "Listening at %s\n",port);
 	error=onion_listen(o);
 	if (error){
 		perror("Cant create the server");

@@ -162,6 +162,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
+
 #ifdef HAVE_GNUTLS
 #include <gcrypt.h>		/* for gcry_control */
 #include <gnutls/gnutls.h>
@@ -181,6 +182,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include "server.h"
 #include "types_internal.h"
 #include "log.h"
+#include <netdb.h>
 
 #ifdef HAVE_GNUTLS
 static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);
@@ -235,7 +237,8 @@ onion *onion_new(int flags){
 	o->listenfd=0;
 	o->server=onion_server_new();
 	o->timeout=5000; // 5 seconds of timeout, default.
-	o->port=8080;
+	o->port=strdup("8080");
+	o->hostname=NULL;
 #ifdef HAVE_GNUTLS
 	o->flags|=O_SSL_AVAILABLE;
 #endif
@@ -279,6 +282,10 @@ void onion_free(onion *onion){
 			gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
 	}
 #endif
+	if (onion->port)
+		free(onion->port);
+	if (onion->hostname)
+		free(onion->hostname);
 	onion_server_free(onion->server);
 	free(onion);
 }
@@ -310,24 +317,45 @@ int onion_listen(onion *o){
 #endif
 	
 	int sockfd;
-	sockfd=socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd<0)
-		return errno;
-	struct sockaddr_in serv_addr, cli_addr;
-	int opt=1;
-	setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt) );
+	struct addrinfo hints;
+	struct addrinfo *result, *rp;
+	struct sockaddr_storage cli_addr;
 	
-	memset((char *) &serv_addr, 0, sizeof(serv_addr));
-
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	serv_addr.sin_port = htons(o->port);
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
-		ONION_ERROR("Could not bind to %s:%d", "0.0.0.0", o->port);
+	memset(&hints,0, sizeof(struct addrinfo));
+	hints.ai_canonname=NULL;
+	hints.ai_addr=NULL;
+	hints.ai_next=NULL;
+	hints.ai_socktype=SOCK_STREAM;
+	hints.ai_family=AF_UNSPEC;
+	hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
+	
+	if (getaddrinfo(o->hostname, o->port, &hints, &result) !=0 ){
+		ONION_ERROR("Error getting local address and port: %s", strerror(errno));
 		return errno;
 	}
-	ONION_DEBUG("Listening to %s:%d","0.0.0.0", o->port);
+	
+	int optval=1;
+	for(rp=result;rp!=NULL;rp=rp->ai_next){
+		sockfd=socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (sockfd<0) // not valid
+			continue;
+		if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) < 0){
+			ONION_ERROR("Could not set socket options: %s",strerror(errno));
+		}
+		if (bind(sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
+			break; // Success
+		close(sockfd);
+	}
+	if (rp==NULL){
+		ONION_ERROR("Could not find any suitable address to bind to.");
+		return errno;
+	}
+	
+	ONION_DEBUG("Listening to %s",rp->ai_canonname);
 	listen(sockfd,5); // queue of only 5.
+	
+	freeaddrinfo(result);
+	
   socklen_t clilen = sizeof(cli_addr);
 	char address[64];
 
@@ -336,13 +364,15 @@ int onion_listen(onion *o){
 		if (o->flags&O_ONE_LOOP){
 			while(1){
 				clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-				inet_ntop(AF_INET, &(cli_addr.sin_addr), address, sizeof(address));
+				getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
+										NULL, 0, 0);
 				onion_process_request(o, clientfd, address);
 			}
 		}
 		else{
 			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-				inet_ntop(AF_INET, &(cli_addr.sin_addr), address, sizeof(address));
+			getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
+										NULL, 0, 0);
 			onion_process_request(o, clientfd, address);
 		}
 	}
@@ -362,7 +392,8 @@ int onion_listen(onion *o){
 #endif
 			sem_wait(&o->thread_count); 
 
-			inet_ntop(AF_INET, &(cli_addr.sin_addr), address, sizeof(address));
+			getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
+										NULL, 0, 0);
 			
 			// Has to be malloc'd. If not it wil be overwritten on next petition. The threads frees it
 			onion_request_thread_data *data=malloc(sizeof(onion_request_thread_data)); 
@@ -395,10 +426,29 @@ void onion_set_internal_error_handler(onion* server, onion_handler* handler){
  * Default listen port is 8080.
  * 
  * @param server The onion server to act on.
- * @param port The number of port to listen to.
+ * @param port The number of port to listen to, or service name, as string always.
  */
-void onion_set_port(onion *server, int port){
-	server->port=port;
+void onion_set_port(onion *server, const char *port){
+	if (server->port)
+		free(server->port);
+	server->port=strdup(port);
+}
+
+/**
+ * @short Sets the hostname to listen to
+ * 
+ * Default listen hostname is NULL, which means all.
+ * 
+ * @param server The onion server to act on.
+ * @param hostname The numeric ip/ipv6 address or hostname. NULL if listen to all interfaces.
+ */
+void onion_set_hostname(onion *server, const char *hostname){
+	if (server->hostname)
+		free(server->hostname);
+	if (hostname)
+		server->hostname=strdup(hostname);
+	else
+		server->hostname=NULL;
 }
 
 /**
