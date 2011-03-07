@@ -175,13 +175,15 @@ int token_read_LINE(onion_token *token, onion_buffer *data){
 		return OCS_NEED_MORE_DATA;
 	
 	char c=data->data[data->pos++];
+	int ignore_to_end=0;
 	while (c!='\n'){
-		token->str[token->pos++]=c;
+		if (!ignore_to_end)
+			token->str[token->pos++]=c;
 		if (data->pos>=data->size)
 			return OCS_NEED_MORE_DATA;
-		if (token->pos>=(sizeof(token->str)-1)){
-			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->pos);
-			return OCS_INTERNAL_ERROR;
+		if (!ignore_to_end && (token->pos>=(sizeof(token->str)-1))){
+			ONION_WARNING("Token too long to parse it. Ignoring remaining. ");
+			ignore_to_end=1;
 		}
 		c=data->data[data->pos++];
 	}
