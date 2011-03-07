@@ -535,7 +535,7 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *r
 		return parse_POST_multipart_content_type(req,data);
 	}
 	
-	ONION_ERROR("Not interested in header '%s'",token->str);
+	ONION_DEBUG("Not interested in header '%s'",token->str);
 	req->parser=parse_POST_multipart_ignore_header;
 	return parse_POST_multipart_ignore_header(req,data);
 }
