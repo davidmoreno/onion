@@ -183,6 +183,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include "types_internal.h"
 #include "log.h"
 #include <netdb.h>
+#include <fcntl.h>
 
 #ifdef HAVE_GNUTLS
 static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);
@@ -340,6 +341,10 @@ int onion_listen(onion *o){
 		if (sockfd<0) // not valid
 			continue;
 		if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) < 0){
+			ONION_ERROR("Could not set socket options: %s",strerror(errno));
+		}
+		int flags=fcntl(sockfd, F_GETFD);
+		if (fcntl(sockfd,F_SETFD, flags | O_CLOEXEC) < 0){ // This is inherited by sockets returned by listen.
 			ONION_ERROR("Could not set socket options: %s",strerror(errno));
 		}
 		if (bind(sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
