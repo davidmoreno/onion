@@ -96,6 +96,8 @@ int show_help(){
 				"  --pam pamname   Uses that pam name to allow access. Default login.\n"
 				"  --port N\n" 
 				"   -p N           Listens at given port. Default 8080\n"
+				"  --listen ADDRESS\n"
+				"   -l ADDRESS     Listen to that address. It can be a IPv4 or IPv6 IP, or a local host name. Default: 0.0.0.0\n"
 				"  --help\n"
 				"   -h             Shows this help\n"
 				"\n"
@@ -108,6 +110,7 @@ int show_help(){
 
 int main(int argc, char **argv){
 	char *port="8080";
+	char *hostname="::";
 	const char *dirname=".";
 	const char *certfile="cert.pem";
 	const char *pamname="login";
@@ -115,7 +118,11 @@ int main(int argc, char **argv){
 	for (i=1;i<argc;i++){
 		if ((strcmp(argv[i],"--port")==0) || (strcmp(argv[i],"-p")==0)){
 			port=argv[++i];
-			ONION_INFO("Listening at port %p",port);
+			ONION_INFO("Listening at port %s",port);
+		}
+		if ((strcmp(argv[i],"--listen")==0) || (strcmp(argv[i],"-l")==0)){
+			hostname=argv[++i];
+			ONION_INFO("Listening at hostname %s",hostname);
 		}
 		else if (strcmp(argv[i],"--pem")==0){
 			if (argc<i+1)
@@ -154,6 +161,7 @@ int main(int argc, char **argv){
 	
 	
 	onion_set_port(o, port);
+	onion_set_hostname(o, hostname);
 	
 	signal(SIGINT, free_onion);
 	int error=onion_listen(o);

@@ -238,7 +238,7 @@ onion *onion_new(int flags){
 	o->server=onion_server_new();
 	o->timeout=5000; // 5 seconds of timeout, default.
 	o->port=strdup("8080");
-	o->hostname=NULL;
+	o->hostname=strdup("::");
 #ifdef HAVE_GNUTLS
 	o->flags|=O_SSL_AVAILABLE;
 #endif
@@ -350,14 +350,16 @@ int onion_listen(onion *o){
 		ONION_ERROR("Could not find any suitable address to bind to.");
 		return errno;
 	}
-	
-	ONION_DEBUG("Listening to %s",rp->ai_canonname);
+
+	char address[64];
+	getnameinfo(rp->ai_addr, rp->ai_addrlen, address, 32,
+							&address[32], 32, NI_NUMERICHOST | NI_NUMERICSERV);
+	ONION_DEBUG("Listening to %s:%s",address,&address[32]);
 	listen(sockfd,5); // queue of only 5.
 	
 	freeaddrinfo(result);
 	
   socklen_t clilen = sizeof(cli_addr);
-	char address[64];
 
 	if (o->flags&O_ONE){
 		int clientfd;
@@ -365,14 +367,14 @@ int onion_listen(onion *o){
 			while(1){
 				clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 				getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
-										NULL, 0, 0);
+										NULL, 0, NI_NUMERICHOST);
 				onion_process_request(o, clientfd, address);
 			}
 		}
 		else{
 			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 			getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
-										NULL, 0, 0);
+										NULL, 0, NI_NUMERICHOST);
 			onion_process_request(o, clientfd, address);
 		}
 	}
@@ -393,7 +395,7 @@ int onion_listen(onion *o){
 			sem_wait(&o->thread_count); 
 
 			getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
-										NULL, 0, 0);
+										NULL, 0, NI_NUMERICHOST);
 			
 			// Has to be malloc'd. If not it wil be overwritten on next petition. The threads frees it
 			onion_request_thread_data *data=malloc(sizeof(onion_request_thread_data)); 
