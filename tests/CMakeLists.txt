@@ -9,3 +9,5 @@ add_subdirectory(03-methods)
 add_subdirectory(04-prerecorded)
 
 add_subdirectory(05-sessions)
+
+add_subdirectory(06-handlers)
