@@ -77,7 +77,7 @@ void onion_handler_url_free(onion_handler_url_data **d){
  *
  * Path is a regex for the url, as arrived here.
  */
-onion_handler *onion_handler_url(){
+onion_handler *onion_handler_url_new(){
 	onion_handler_url_data **priv_data=calloc(1,sizeof(onion_handler_url_data*));
 	*priv_data=NULL;
 	

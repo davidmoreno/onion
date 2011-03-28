@@ -50,5 +50,5 @@ int local_successes=0;
 #define FAIL_IF_NOT_EQUAL_INT(A,B) if ((A)!=(B)){ ERROR("%s:%d FAIL IF NOT EQUAL %s != %s, %d == %d",basename(__FILE__),__LINE__,#A,#B,A,B); local_failures++; } else { local_successes++; }
 
 
-#define FAIL_IF_EQUAL_STR(A,B) { const char *a=(A); const char *b=(B); if ((!a && b) || (a && !b) || strcmp(a,b)==0){ ERROR("%s:%d FAIL IF EQUAL STR %s == %s (\"%s\" == \"%s\")",basename(__FILE__),__LINE__,#A,#B,a,b); local_failures++; } else { local_successes++; } }
+#define FAIL_IF_EQUAL_STR(A,B) { const char *a=(A); const char *b=(B); if ((a == b) || ((a && b) && strcmp(a,b)==0)){ ERROR("%s:%d FAIL IF EQUAL STR %s == %s (\"%s\" == \"%s\")",basename(__FILE__),__LINE__,#A,#B,a,b); local_failures++; } else { local_successes++; } }
 #define FAIL_IF_NOT_EQUAL_STR(A,B) { const char *a=(A); const char *b=(B); if ((a!=b) && ((!a || !b) || strcmp(a,b)!=0)){ ERROR("%s:%d FAIL IF NOT EQUAL STR %s != %s (\"%s\" != \"%s\")",basename(__FILE__),__LINE__,#A,#B,a,b); local_failures++; } else { local_successes++; } }

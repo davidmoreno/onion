@@ -26,7 +26,7 @@ extern "C"{
 #endif
 
 /// Creates an handler that checks taht crrent path matches the current regexp, and passes to next.
-onion_handler *onion_handler_url();
+onion_handler *onion_handler_url_new();
 void onion_handler_url_add(onion_handler *, const char *regexp, onion_handler *next);
 
 #ifdef __cplusplus

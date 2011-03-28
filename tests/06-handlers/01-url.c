@@ -92,7 +92,7 @@ onion_server *server;
 void t01_url(){
 	INIT_LOCAL();
 	
-	onion_handler *url=onion_handler_url();
+	onion_handler *url=onion_handler_url_new();
 	onion_handler_url_add(url, "^/handler1/$", onion_handler_new((onion_handler_handler)handler1, NULL, NULL));
 	onion_handler_url_add(url, "^/handler2/$", onion_handler_new((onion_handler_handler)handler2, NULL, NULL));
 	onion_handler_url_add(url, "^/handler3/", onion_handler_new((onion_handler_handler)handler3, NULL, NULL));
@@ -119,7 +119,15 @@ void t01_url(){
 	FAIL_IF_NOT_EQUAL_INT(handler_called, 3);
 	FAIL_IF_NOT_EQUAL_STR(urltxt, "hello");
 	free(urltxt);
-	
+
+	urltxt=NULL;
+	handler_called=0;
+	onion_request_clean(req);
+	onion_request_write(req,"GET /handler2/hello HTTP/1.1\n\n",sizeof(R)+5);
+	FAIL_IF_NOT_EQUAL_INT(handler_called, 0);
+	FAIL_IF_EQUAL_STR(urltxt, "");
+	free(urltxt);
+
 	onion_request_free(req);
 	onion_handler_free(url);
 	onion_server_set_root_handler(server, NULL);
