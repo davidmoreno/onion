@@ -23,40 +23,8 @@
 #include <onion/handlers/url.h>
 #include <onion/log.h>
 
+#include "buffer.h"
 #include "../test.h"
-
-
-
-
-typedef struct{
-	char *data;
-	size_t size;
-	off_t pos;
-}buffer;
-
-/// Just appends to the handler. Must be big enought or segfault.. Just for tests.
-int buffer_append(buffer *handler, const char *data, unsigned int length){
-	int l=length;
-	if (handler->pos+length>handler->size){
-		l=handler->size-handler->pos;
-	}
-	memcpy(handler->data+handler->pos,data,l);
-	handler->pos+=l;
-	return l;
-}
-
-buffer *buffer_new(size_t size){
-	buffer *b=malloc(sizeof(buffer));
-	b->data=malloc(size);
-	b->pos=0;
-	b->size=size;
-	return b;
-}
-
-void buffer_free(buffer *b){
-	free(b->data);
-	free(b);
-}
 
 buffer *server_buffer;
 

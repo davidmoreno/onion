@@ -35,6 +35,9 @@ int local_successes=0;
 #define INIT_LOCAL() { local_failures=local_successes=0; }
 #define END_LOCAL() { fprintf(stderr,"%s ends: %d succeses / %d failures\n",__FUNCTION__,local_successes,local_failures); failures+=local_failures; successes+=local_successes; }
 
+#define INIT_TEST INIT_LOCAL
+#define END_TEST END_LOCAL
+
 #define END() { fprintf(stderr,"TOTAL: %d succeses / %d failures\n",successes,failures); exit(failures); }
 
 #define FAIL(v) { ERROR("%s:%d FAIL %s",basename(__FILE__),__LINE__,v); local_failures++; }

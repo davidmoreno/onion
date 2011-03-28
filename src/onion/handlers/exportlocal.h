@@ -16,8 +16,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_HANDLER_DIRECTORY__
-#define __ONION_HANDLER_DIRECTORY__
+#ifndef __ONION_HANDLER_EXPORT_LOCAL__
+#define __ONION_HANDLER_EXPORT_LOCAL__
 
 #include <onion/types.h>
 
@@ -25,13 +25,13 @@
 extern "C"{
 #endif
 
-/// Creates an directory handler. When path matches, it returns a file from localpath (final localpath + path). No dir listing.
-onion_handler *onion_handler_directory(const char *localpath);
+/// Creates an export local handler. When path matches, it returns a file from localpath (final localpath + path). No dir listing.
+onion_handler *onion_handler_export_local_new(const char *localpath);
 
 /// Calls to render a header after the "Listing of directory..."
-void onion_handler_directory_set_header(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
+void onion_handler_export_local_set_header(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
 /// Calls to render a footers before end.
-void onion_handler_directory_set_footer(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
+void onion_handler_export_local_set_footer(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
 
 
 #ifdef __cplusplus

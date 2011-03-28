@@ -31,7 +31,7 @@
 #include <onion/handlers/opack.h>
 
 #ifdef __DEBUG__
-#include <onion/handlers/directory.h>
+#include <onion/handlers/exportlocal.h>
 #endif 
 
 #include "oterm_handler.h"
@@ -112,7 +112,7 @@ int main(int argc, char **argv){
 	onion_handler *dir;
 #ifdef __DEBUG__
 	if (getenv("OTERM_DEBUG"))
-		dir=onion_handler_directory(".");
+		dir=onion_handler_export_local_new(".");
 	else{
 		dir=onion_handler_opack("/",opack_index_html, opack_index_html_length);
 		onion_handler_add(dir, onion_handler_opack("/jquery-1.4.3.min.js",opack_jquery_1_4_3_min_js,opack_jquery_1_4_3_min_js_length));

@@ -33,47 +33,61 @@
 #include <onion/codecs.h>
 #include <onion/log.h>
 
-#include "directory.h"
+#include "exportlocal.h"
 
 
-struct onion_handler_directory_data_t{
+struct onion_handler_export_local_data_t{
 	void (*renderer_header)(onion_response *res, const char *dirname);
 	void (*renderer_footer)(onion_response *res, const char *dirname);
 	char *localpath;
+	int is_file:1;
 };
 
-typedef struct onion_handler_directory_data_t onion_handler_directory_data;
+typedef struct onion_handler_export_local_data_t onion_handler_export_local_data;
 
-int onion_handler_directory_handler_directory(onion_handler_directory_data *data, const char *realp, const char *showpath, onion_request *req);
-int onion_handler_directory_handler_file(const char *realp, struct stat *reals, onion_request *request);
+int onion_handler_export_local_handler_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req);
+int onion_handler_export_local_handler_file(const char *realp, struct stat *reals, onion_request *request);
 
-int onion_handler_directory_handler(onion_handler_directory_data *d, onion_request *request){
+int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion_request *request){
 	char tmp[PATH_MAX];
 	char realp[PATH_MAX];
-	sprintf(tmp,"%s/%s",d->localpath,onion_request_get_path(request));
+	
+	if (d->is_file)
+		strncpy(tmp, d->localpath, PATH_MAX);
+	else
+		snprintf(tmp,PATH_MAX, "%s/%s",d->localpath,onion_request_get_path(request));
 
+	ONION_DEBUG("Get %s (base %s)",tmp, d->localpath);
+	
 	const char *ret=realpath(tmp, realp);
-	if (!ret || strncmp(realp, d->localpath, strlen(d->localpath))!=0) // out of secured dir.
+	if (!ret || strncmp(realp, d->localpath, strlen(d->localpath))!=0){ // out of secured dir.
+		ONION_WARNING("Trying to escape from secured dir (secured dir %s, trying %s).", d->localpath, realp);
 		return 0;
+	}
 
 	struct stat reals;
 	int ok=stat(realp,&reals);
 	if (ok<0) // Cant open for even stat
+	{
+		ONION_DEBUG("Not found");
 		return 0;
-
+	}
 	if (S_ISDIR(reals.st_mode)){
-		return onion_handler_directory_handler_directory(d, realp, onion_request_get_path(request), request);
+		ONION_DEBUG("DIR");
+		return onion_handler_export_local_handler_directory(d, realp, onion_request_get_path(request), request);
 	}
 	else if (S_ISREG(reals.st_mode)){
-		return onion_handler_directory_handler_file(realp, &reals, request);
+		ONION_DEBUG("FILE");
+		return onion_handler_export_local_handler_file(realp, &reals, request);
 	}
+	ONION_DEBUG("Dont know how to handle");
 	return 0;
 }
 
 /**
  * @short Handler a single file.
  */
-int onion_handler_directory_handler_file(const char *realp, struct stat *reals, onion_request *request){
+int onion_handler_export_local_handler_file(const char *realp, struct stat *reals, onion_request *request){
 	int fd=open(realp,O_RDONLY);
 	size_t size=reals->st_size;
 	size_t length=size;
@@ -141,7 +155,7 @@ int onion_handler_directory_handler_file(const char *realp, struct stat *reals, 
 }
 
 /// Default directory handler: The style + dirname on a h1
-void onion_handler_directory_header_default(onion_response *res, const char *dirname){
+void onion_handler_export_local_header_default(onion_response *res, const char *dirname){
 	onion_response_write0(res, 
 	"<style>body{ background: #fefefe; font-family: sans-serif; margin-left: 5%; margin-right: 5%; }\n"
 " table{ background: white; width: 100%; border: 1px solid #aaa; border-radius: 5px; -moz-border-radius: 5px; } \n"
@@ -155,7 +169,7 @@ void onion_handler_directory_header_default(onion_response *res, const char *dir
 		onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
 }
 
-void onion_handler_directory_footer_default(onion_response *res, const char *dirname){
+void onion_handler_export_local_footer_default(onion_response *res, const char *dirname){
 	onion_response_write0(res,"<h2>Onion directory list. (C) 2010 <a href=\"http://www.coralbits.com\">CoralBits</a>. "
 														"Under <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPL 3.0.</a> License.</h2>\n");
 }
@@ -163,7 +177,7 @@ void onion_handler_directory_footer_default(onion_response *res, const char *dir
 /**
  * @short Returns the directory listing
  */
-int onion_handler_directory_handler_directory(onion_handler_directory_data *data, const char *realp, const char *showpath, onion_request *req){
+int onion_handler_export_local_handler_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req){
 	DIR *dir=opendir(realp);
 	if (!dir) // Continue on next. Quite probably a custom error.
 		return 0;
@@ -252,21 +266,21 @@ int onion_handler_directory_handler_directory(onion_handler_directory_data *data
 }
 
 /// Frees local data from the directory handler
-void onion_handler_directory_delete(void *data){
-	onion_handler_directory_data *d=data;
+void onion_handler_export_local_delete(void *data){
+	onion_handler_export_local_data *d=data;
 	free(d->localpath);
 	free(d);
 }
 
 /// Sets the header renderer
-void onion_handler_directory_set_header(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
-	onion_handler_directory_data *d=onion_handler_get_private_data(handler);
+void onion_handler_export_local_set_header(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
+	onion_handler_export_local_data *d=onion_handler_get_private_data(handler);
 	d->renderer_header=renderer;
 }
 
 /// Sets the footer renderer
-void onion_handler_directory_set_footer(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
-	onion_handler_directory_data *d=onion_handler_get_private_data(handler);
+void onion_handler_export_local_set_footer(onion_handler *handler, void (*renderer)(onion_response *res, const char *dirname)){
+	onion_handler_export_local_data *d=onion_handler_get_private_data(handler);
 	d->renderer_footer=renderer;
 }
 
@@ -274,20 +288,31 @@ void onion_handler_directory_set_footer(onion_handler *handler, void (*renderer)
  * @short Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
  *
  * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
+ * 
+ * If the localpath is a file, its returned always.
  */
-onion_handler *onion_handler_directory(const char *localpath){
-	onion_handler_directory_data *priv_data=malloc(sizeof(onion_handler_directory_data));
+onion_handler *onion_handler_export_local_new(const char *localpath){
+	onion_handler_export_local_data *priv_data=malloc(sizeof(onion_handler_export_local_data));
 	char *rp=realpath(localpath, NULL);
 	if (!rp){
 		ONION_ERROR("Cant calculate the realpath of the given directory (%s).",localpath);
 		return NULL;
 	}
+	struct stat st;
+	if (stat(rp, &st)!=0){
+		ONION_ERROR("Cant access to the exported directory/file (%s).",rp);
+		return NULL;
+	}
+
 	priv_data->localpath=rp;
-	priv_data->renderer_header=onion_handler_directory_header_default;
-	priv_data->renderer_footer=onion_handler_directory_footer_default;
+	priv_data->renderer_header=onion_handler_export_local_header_default;
+	priv_data->renderer_footer=onion_handler_export_local_footer_default;
 	
-	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_directory_handler,
-																			 priv_data,(onion_handler_private_data_free) onion_handler_directory_delete);
+	
+	priv_data->is_file=S_ISREG(st.st_mode);
+	
+	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_export_local_handler,
+																			 priv_data,(onion_handler_private_data_free) onion_handler_export_local_delete);
 	return ret;
 }
 

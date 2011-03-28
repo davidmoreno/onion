@@ -26,7 +26,7 @@
 #include <onion/handler.h>
 #include <onion/log.h>
 
-#include <onion/handlers/directory.h>
+#include <onion/handlers/exportlocal.h>
 #include <onion/handlers/static.h>
 
 onion *o=NULL;
@@ -50,7 +50,7 @@ int main(int argc, char **argv){
 	}
 
 	
-	onion_handler *dir=onion_handler_directory(argc==2 ? argv[1] : ".");
+	onion_handler *dir=onion_handler_export_local_new(argc==2 ? argv[1] : ".");
 	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
 	
 	o=onion_new(O_THREADED|O_DETACH_LISTEN);

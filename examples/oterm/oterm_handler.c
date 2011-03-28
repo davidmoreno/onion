@@ -34,7 +34,7 @@
 #include <onion/log.h>
 
 #ifdef __DEBUG__
-#include <onion/handlers/directory.h>
+#include <onion/handlers/exportlocal.h>
 #endif
 
 #include <onion/handlers/opack.h>
@@ -290,7 +290,7 @@ onion_handler *oterm_handler_data(){
 	onion_handler *data;
 #ifdef __DEBUG__
 	if (getenv("OTERM_DEBUG"))
-		data=onion_handler_directory(".");
+		data=onion_handler_export_local_new(".");
 	else{
 #endif
 	data=onion_handler_opack("/",opack_oterm_html, opack_oterm_html_length);
