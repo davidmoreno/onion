@@ -32,6 +32,7 @@ buffer *server_buffer;
 
 int GET(onion_request *req, const char *url){
 	onion_request_clean(req);
+	buffer_clear(server_buffer);
 	char tmp[1024];
 	snprintf(tmp, sizeof(tmp), "GET %s HTTP/1.1\n\n", url);
 	ONION_DEBUG("Request: %s",tmp);
@@ -44,18 +45,50 @@ void t01_exportdir(){
 	
 	int code;
 	
-	onion_server_set_root_handler(server, onion_handler_export_local_new("."));
+	onion_handler *handler=onion_handler_export_local_new(".");
+	onion_server_set_root_handler(server, handler);
 	
 	onion_request *req=onion_request_new(server, server_buffer, "TEST");
 	code=GET(req, "/02-exportlocal");
 	FAIL_IF_NOT_EQUAL_INT(code, OCS_KEEP_ALIVE);
 	FAIL_IF_EQUAL_INT((int)server_buffer->pos, 0);
-	
+	int olds=server_buffer->pos;
+
+	code=GET(req, "/");
+	FAIL_IF_EQUAL_INT(code, 0);
+	FAIL_IF_EQUAL_INT((int)server_buffer->pos, olds);
+
 	onion_request_free(req);
+	onion_handler_free(handler);
+	onion_server_set_root_handler(server, NULL);
 	
 	END_TEST();
 }
 
+void t02_exportfile(){
+	INIT_TEST();
+	
+	int code;
+	
+	onion_handler *handler=onion_handler_export_local_new("./02-exportlocal");
+	onion_server_set_root_handler(server, handler);
+	
+	onion_request *req=onion_request_new(server, server_buffer, "TEST");
+	code=GET(req, "/02-exportlocal");
+	FAIL_IF_NOT_EQUAL_INT(code, OCS_KEEP_ALIVE);
+	FAIL_IF_EQUAL_INT((int)server_buffer->pos, 0);
+	int olds=server_buffer->pos;
+
+	code=GET(req, "/");
+	FAIL_IF_NOT_EQUAL_INT(code, OCS_KEEP_ALIVE);
+	FAIL_IF_NOT_EQUAL_INT((int)server_buffer->pos, olds);
+
+	onion_request_free(req);
+	onion_handler_free(handler);
+	onion_server_set_root_handler(server, NULL);
+	
+	END_TEST();
+}
 
 void init(){
 	server=onion_server_new();
@@ -73,7 +106,8 @@ int main(int argc, char **argv){
 	init();
 
 	t01_exportdir();
+	t02_exportfile();
 	
-	
+	end();
 	END();
 }

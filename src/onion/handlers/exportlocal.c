@@ -57,7 +57,7 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
 	else
 		snprintf(tmp,PATH_MAX, "%s/%s",d->localpath,onion_request_get_path(request));
 
-	ONION_DEBUG("Get %s (base %s)",tmp, d->localpath);
+	//ONION_DEBUG("Get %s (base %s)",tmp, d->localpath);
 	
 	const char *ret=realpath(tmp, realp);
 	if (!ret || strncmp(realp, d->localpath, strlen(d->localpath))!=0){ // out of secured dir.
@@ -69,18 +69,18 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
 	int ok=stat(realp,&reals);
 	if (ok<0) // Cant open for even stat
 	{
-		ONION_DEBUG("Not found");
+		//ONION_DEBUG("Not found");
 		return 0;
 	}
 	if (S_ISDIR(reals.st_mode)){
-		ONION_DEBUG("DIR");
+		//ONION_DEBUG("DIR");
 		return onion_handler_export_local_handler_directory(d, realp, onion_request_get_path(request), request);
 	}
 	else if (S_ISREG(reals.st_mode)){
-		ONION_DEBUG("FILE");
+		//ONION_DEBUG("FILE");
 		return onion_handler_export_local_handler_file(realp, &reals, request);
 	}
-	ONION_DEBUG("Dont know how to handle");
+	//ONION_DEBUG("Dont know how to handle");
 	return 0;
 }
 
@@ -97,7 +97,7 @@ int onion_handler_export_local_handler_file(const char *realp, struct stat *real
 	
 	const char *range=onion_request_get_header(request, "Range");
 	if (range && strncmp(range,"bytes=",6)==0){
-		ONION_DEBUG("Need just a range: %s",range);
+		//ONION_DEBUG("Need just a range: %s",range);
 		char tmp[1024];
 		strncpy(tmp, range+6, 1024);
 		char *start=tmp;
@@ -107,7 +107,7 @@ int onion_handler_export_local_handler_file(const char *realp, struct stat *real
 			*end='\0';
 			end++;
 			
-			ONION_DEBUG("Start %s, end %s",start,end);
+			//ONION_DEBUG("Start %s, end %s",start,end);
 			size_t ends, starts;
 			if (*end)
 				ends=atol(end);
@@ -292,7 +292,6 @@ void onion_handler_export_local_set_footer(onion_handler *handler, void (*render
  * If the localpath is a file, its returned always.
  */
 onion_handler *onion_handler_export_local_new(const char *localpath){
-	onion_handler_export_local_data *priv_data=malloc(sizeof(onion_handler_export_local_data));
 	char *rp=realpath(localpath, NULL);
 	if (!rp){
 		ONION_ERROR("Cant calculate the realpath of the given directory (%s).",localpath);
@@ -301,8 +300,10 @@ onion_handler *onion_handler_export_local_new(const char *localpath){
 	struct stat st;
 	if (stat(rp, &st)!=0){
 		ONION_ERROR("Cant access to the exported directory/file (%s).",rp);
+		free(rp);
 		return NULL;
 	}
+	onion_handler_export_local_data *priv_data=malloc(sizeof(onion_handler_export_local_data));
 
 	priv_data->localpath=rp;
 	priv_data->renderer_header=onion_handler_export_local_header_default;
