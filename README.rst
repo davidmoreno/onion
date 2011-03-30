@@ -54,3 +54,16 @@ application and another thread that listens and processes petitions. Its set wit
 O_DETACH_LISTEN flag. This is very useful when adding an extra web server to your application
 as it can be added without changes to the flow of your application, but you will need to
 thread protect your data if you access to it from the web server.
+
+
+ARM Support
+-----------
+
+It can be cross compiled for ARM directly from cmake. Just do:
+
+		$ mkdir arm
+		$ cd arm
+		$ cmake .. -DARM=yes
+		$ make
+
+Tested on ubuntu 10.10, with gcc-4.5-arm-linux-gnueabi installed.
