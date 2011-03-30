@@ -18,7 +18,7 @@ add_subdirectory(handlers)
 SET(INCLUDES_ONION onion.h dict.h request.h response.h codecs.h handler.h server.h log.h sessions.h types.h)
 MESSAGE("Found include files ${INCLUDES_ONION}")
 
-install(FILES ${INCLUDES_ONION} DESTINATION include/onion/)
-install(TARGETS onion onion_static EXPORT onion DESTINATION lib)
+install(FILES ${INCLUDES_ONION} DESTINATION ${INCLUDEDIR})
+install(TARGETS onion onion_static EXPORT onion DESTINATION ${LIBDIR})
 install(EXPORT onion DESTINATION share/cmake)
 

@@ -20,6 +20,6 @@ target_link_libraries(onion_handlers ${PAMLIBS})
 SET(INCLUDES_HANDLERS static.h path.h exportlocal.h regexp.h auth_pam.h opack.h url.h)
 MESSAGE("Found include files ${INCLUDES_HANDLERS}")
 
-install(FILES ${INCLUDES_HANDLERS} DESTINATION include/onion/handlers/)
-install(TARGETS onion_handlers EXPORT onion_handlers DESTINATION lib)
+install(FILES ${INCLUDES_HANDLERS} DESTINATION ${INCLUDEDIR}/handlers/)
+install(TARGETS onion_handlers EXPORT onion_handlers DESTINATION ${LIBDIR})
 install(EXPORT onion_handlers DESTINATION share/cmake)
