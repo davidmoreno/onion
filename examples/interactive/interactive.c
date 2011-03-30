@@ -76,6 +76,8 @@ int main(int argc, char **argv){
 	onion *server;
 	
 	server=onion_new(O_ONE_LOOP);
+	
+	onion_set_hostname(server, "0.0.0.0");
 	onion_set_root_handler(server, onion_handler_new((void*)ask_handler, NULL, NULL));
 	
 	onion_listen(server);

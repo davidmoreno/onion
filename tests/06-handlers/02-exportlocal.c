@@ -16,7 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <onion.h>
+#include <onion/onion.h>
 #include <onion/server.h>
 #include <onion/handlers/exportlocal.h>
 #include <onion/log.h>

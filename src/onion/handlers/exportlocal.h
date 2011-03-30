@@ -25,6 +25,8 @@
 extern "C"{
 #endif
 
+struct stat;
+
 /// Creates an export local handler. When path matches, it returns a file from localpath (final localpath + path). No dir listing.
 onion_handler *onion_handler_export_local_new(const char *localpath);
 
@@ -32,6 +34,9 @@ onion_handler *onion_handler_export_local_new(const char *localpath);
 void onion_handler_export_local_set_header(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
 /// Calls to render a footers before end.
 void onion_handler_export_local_set_footer(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
+
+/// Usefull for exporting static files.
+int onion_handler_export_local_file(const char *realp, struct stat *reals, onion_request *request);
 
 
 #ifdef __cplusplus

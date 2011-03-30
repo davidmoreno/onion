@@ -1,8 +1,12 @@
 
+if (PAM_ENABLED)
+	add_subdirectory(otop)
+	add_subdirectory(oterm)
+	add_subdirectory(basic)
+	add_subdirectory(fileserver)
+else (PAM_ENABLED)
+	message(WARNING "Some examples are disabled as you dont have PAM: otop, oterm, basic, fileserver")
+endif (PAM_ENABLED)
 
 add_subdirectory(userver)
-add_subdirectory(otop)
-add_subdirectory(oterm)
-add_subdirectory(basic)
-add_subdirectory(fileserver)
 add_subdirectory(interactive)

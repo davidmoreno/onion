@@ -1,11 +1,21 @@
 
 include_directories (${CMAKE_SOURCE_DIR}/src/) 
 
-add_library(onion_handlers STATIC static.c path.c exportlocal.c
-																	regexp.c auth_pam.c opack.c
-																	url.c)
 
-target_link_libraries(onion_handlers pam pam_misc)
+if (PAM_ENABLED)
+	SET(PAM auth_pam.c)
+	SET(PAMLIBS pam pam_misc)
+else (PAM_ENABLED)
+	SET(PAM)
+	SET(PAMLIBS)
+endif (PAM_ENABLED)
+
+
+add_library(onion_handlers STATIC static.c path.c exportlocal.c
+																	regexp.c opack.c
+																	url.c ${PAM} )
+
+target_link_libraries(onion_handlers ${PAMLIBS})
 
 SET(INCLUDES_HANDLERS static.h path.h exportlocal.h regexp.h auth_pam.h opack.h url.h)
 MESSAGE("Found include files ${INCLUDES_HANDLERS}")

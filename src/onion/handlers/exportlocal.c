@@ -45,8 +45,8 @@ struct onion_handler_export_local_data_t{
 
 typedef struct onion_handler_export_local_data_t onion_handler_export_local_data;
 
-int onion_handler_export_local_handler_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req);
-int onion_handler_export_local_handler_file(const char *realp, struct stat *reals, onion_request *request);
+int onion_handler_export_local_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req);
+int onion_handler_export_local_file(const char *realp, struct stat *reals, onion_request *request);
 
 int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion_request *request){
 	char tmp[PATH_MAX];
@@ -74,11 +74,11 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
 	}
 	if (S_ISDIR(reals.st_mode)){
 		//ONION_DEBUG("DIR");
-		return onion_handler_export_local_handler_directory(d, realp, onion_request_get_path(request), request);
+		return onion_handler_export_local_directory(d, realp, onion_request_get_path(request), request);
 	}
 	else if (S_ISREG(reals.st_mode)){
 		//ONION_DEBUG("FILE");
-		return onion_handler_export_local_handler_file(realp, &reals, request);
+		return onion_handler_export_local_file(realp, &reals, request);
 	}
 	//ONION_DEBUG("Dont know how to handle");
 	return 0;
@@ -87,8 +87,14 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
 /**
  * @short Handler a single file.
  */
-int onion_handler_export_local_handler_file(const char *realp, struct stat *reals, onion_request *request){
+int onion_handler_export_local_file(const char *realp, struct stat *reals, onion_request *request){
 	int fd=open(realp,O_RDONLY);
+	
+	if (!reals){
+		reals=alloca(sizeof(struct stat));
+		stat(realp, reals);
+	}
+	
 	size_t size=reals->st_size;
 	size_t length=size;
 
@@ -116,7 +122,7 @@ int onion_handler_export_local_handler_file(const char *realp, struct stat *real
 			starts=atol(start);
 			length=ends-starts;
 			lseek(fd, starts, SEEK_SET);
-			snprintf(tmp,sizeof(tmp),"%ld-%ld/%ld",starts, ends-1, length);
+			snprintf(tmp,sizeof(tmp),"%d-%d/%d",(unsigned int)starts, (unsigned int)ends-1, (unsigned int)length);
 			onion_response_set_header(res, "Content-Range",tmp);
 		}
 	}
@@ -177,7 +183,7 @@ void onion_handler_export_local_footer_default(onion_response *res, const char *
 /**
  * @short Returns the directory listing
  */
-int onion_handler_export_local_handler_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req){
+int onion_handler_export_local_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req){
 	DIR *dir=opendir(realp);
 	if (!dir) // Continue on next. Quite probably a custom error.
 		return 0;
