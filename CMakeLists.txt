@@ -3,11 +3,18 @@ cmake_policy(VERSION 2.8)
 project(libonion)
 
 # Some tweak parameters
-SET(ONION_USE_SSL false)
-SET(ONION_USE_PAM false)
+SET(ONION_USE_SSL true)
+SET(ONION_USE_PAM true)
 SET(ONION_USE_PTHREADS true)
 SET(ONION_VERSION 0.2.0)
 ########
+
+if (${ARM} MATCHES "yes")
+	message(STATUS "Compiling for ARM")
+	SET(ONION_USE_SSL false)
+	SET(ONION_USE_PAM false)
+	SET(CMAKE_C_COMPILER /usr/bin/arm-linux-gnueabi-gcc)
+endif (${ARM} MATCHES "yes")
 
 
 if (${ONION_USE_SSL})
