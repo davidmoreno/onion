@@ -293,8 +293,12 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 	const char *p=data->data+data->pos;
 	for (;data->pos<data->size;data->pos++){
 		//ONION_DEBUG("*p %d boundary %d (%s)",*p,multipart->boundary[multipart->pos],multipart->boundary);
-		if (multipart->pos==0 && *p=='\n') // \r is optional.
-			multipart->startpos=multipart->pos=1;
+		if (multipart->pos==0){
+			if (*p=='\n') // \r is optional.
+				multipart->startpos=multipart->pos=1;
+			else
+				multipart->startpos=0;
+		}
 		if (*p==multipart->boundary[multipart->pos]){
 			multipart->pos++;
 			if (multipart->pos==multipart->size){
