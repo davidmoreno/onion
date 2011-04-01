@@ -448,6 +448,70 @@ void t09_thread_war(){
 	END_LOCAL();
 }
 
+void t10_tojson(){
+	INIT_LOCAL();
+	
+	onion_dict *d=onion_dict_new();
+	char tmp[256];
+	ssize_t s;
+	s=onion_dict_to_json(d, tmp, sizeof(tmp));
+	ONION_DEBUG("Json returned is '%s'", tmp);
+	FAIL_IF_NOT_EQUAL_STR(tmp,"{}");
+	
+	onion_dict_add(d, "test", "json", 0);
+	
+	s=onion_dict_to_json(d, tmp, sizeof(tmp));
+	ONION_DEBUG("Json returned is '%s'", tmp);
+	FAIL_IF(s<=0);
+	FAIL_IF_EQUAL(strstr(tmp,"{"), NULL);
+	FAIL_IF_EQUAL(strstr(tmp,"}"), NULL);
+
+	FAIL_IF_EQUAL(strstr(tmp,"\"test\""), NULL);
+	FAIL_IF_EQUAL(strstr(tmp,"\"json\""), NULL);
+	FAIL_IF_NOT_EQUAL(strstr(tmp,","), NULL);
+
+	onion_dict_add(d, "other", "data", 0);
+
+	s=onion_dict_to_json(d, tmp, sizeof(tmp));
+	ONION_DEBUG("Json returned is '%s'", tmp);
+	FAIL_IF(s<=0);
+	FAIL_IF_EQUAL(strstr(tmp,"{"), NULL);
+	FAIL_IF_EQUAL(strstr(tmp,"}"), NULL);
+
+	FAIL_IF_EQUAL(strstr(tmp,"\"test\""), NULL);
+	FAIL_IF_EQUAL(strstr(tmp,"\"json\""), NULL);
+	FAIL_IF_EQUAL(strstr(tmp,","), NULL);
+	FAIL_IF_EQUAL(strstr(tmp,"\"other\""), NULL);
+	FAIL_IF_EQUAL(strstr(tmp,"\"data\""), NULL);
+
+	onion_dict_add(d, "with\"", "data\n", 0);
+
+	s=onion_dict_to_json(d, tmp, sizeof(tmp));
+	ONION_DEBUG("Json returned is '%s'", tmp);
+	FAIL_IF(s<=0);
+
+	FAIL_IF_EQUAL(strstr(tmp,"\\n"), NULL);
+	FAIL_IF_EQUAL(strstr(tmp,"\\\""), NULL);
+
+	// Check no memory errors.
+	// There is a grey areas as it need 2 more bytes as really needed, but its because of internal management.
+	int size=strlen(tmp);
+	int i;
+	for (i=0;i<size;i++){
+		memset(tmp,'#',sizeof(tmp));
+		//ONION_DEBUG("Try with size %d. Real is %d.",i,size);
+		s=onion_dict_to_json(d, tmp, i);
+		FAIL_IF_NOT_EQUAL(s,-1);
+		FAIL_IF_NOT_EQUAL_INT(tmp[i],'#');
+	}
+	s=onion_dict_to_json(d, tmp, i+2);
+	FAIL_IF_EQUAL(s,-1);
+	
+	
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	t01_create_add_free();
 	t01_create_add_free_10();
@@ -459,6 +523,7 @@ int main(int argc, char **argv){
 	t07_replace();
 	t08_threaded_lock();
 	t09_thread_war();
+	t10_tojson();
 	
 	END();
 }

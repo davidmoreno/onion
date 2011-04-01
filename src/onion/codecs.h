@@ -44,7 +44,7 @@ char *onion_c_quote_new(const char *str);
 
 /// Performs the C quotation on the ret str. Max length is l.
 char *onion_c_quote(const char *str, char *ret, int l);
-	
+
 #ifdef __cplusplus
 }
 #endif

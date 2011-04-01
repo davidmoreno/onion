@@ -18,10 +18,12 @@
 
 #include <malloc.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "log.h"
 #include "dict.h"
 #include "types_internal.h"
+#include "codecs.h"
 
 typedef struct onion_dict_node_data_t{
 	const char *key;
@@ -411,3 +413,86 @@ void onion_dict_unlock(onion_dict *dict){
 	pthread_rwlock_unlock(&dict->lock);
 #endif
 }
+
+/// Helper for buffers.
+struct onion_dict_buffer{
+	char *data;
+	off_t pos;
+	size_t size;
+};
+
+/**
+ * @short Helps to prepare each pair.
+ */
+static void onion_dict_json_preorder(const char *key, const char *value, struct onion_dict_buffer *buffer){
+	if (buffer->pos<0) // already an error.
+		return;
+	int blockSize=strlen(key) + strlen(value) + 7;
+	if (buffer->pos + blockSize > buffer->size){ // min, dont even try.
+		buffer->pos=-1;
+		return;
+	}
+	char *s;
+	s=onion_c_quote(key, buffer->data+buffer->pos,buffer->size-buffer->pos-1);
+	if (s==NULL){
+		buffer->pos=-1;
+		return;
+	}
+	buffer->pos+=strlen(s);
+	if (buffer->pos>=buffer->size){
+		buffer->pos=-1;
+		return;
+	}
+	buffer->data[buffer->pos++]=':';
+	s=onion_c_quote(value, buffer->data+buffer->pos,buffer->size-buffer->pos-1);
+	if (s==NULL){
+		buffer->pos=-1;
+		return;
+	}
+	buffer->pos+=strlen(s);
+	if (buffer->pos+2>=buffer->size){
+		buffer->pos=-1;
+		return;
+	}
+	buffer->data[buffer->pos++]=',';
+	buffer->data[buffer->pos++]=' ';
+}
+
+/**
+ * @short Converts a dict to a json string
+ * 
+ * Given a dictionary and a buffer (with size), it writes a json dictionary to it.
+ * 
+ * The data should be at least 8 bytes of will fail. Then if data do not fit it fails too.
+ * 
+ * data should be 2 bytes longer that actually needed because of implementation issues.
+ */
+ssize_t onion_dict_to_json(onion_dict *dict, char *data, size_t datasize){
+	if (datasize<=8){
+		if (datasize>0){
+			//ONION_DEBUG("Buffer to small for data");
+			data[0]=0;
+		}
+		return -1;
+	}
+	
+	struct onion_dict_buffer buffer = { data, 0, datasize };
+	data[buffer.pos++]='{';
+	if (dict && dict->root)
+		onion_dict_node_preorder(dict->root, (void*)onion_dict_json_preorder, &buffer);
+
+	if (buffer.pos<0)
+		return -1;
+	
+	if (buffer.pos==1){
+		data[buffer.pos++]='}';
+		data[buffer.pos++]=0;
+	}
+	else{
+		data[buffer.pos-2]='}';
+		data[buffer.pos-1]=0;
+	}
+	
+	return buffer.pos;
+}
+

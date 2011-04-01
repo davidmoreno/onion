@@ -20,6 +20,7 @@
 #define __ONION_DICT__
 
 #include "types.h"
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -74,6 +75,8 @@ void onion_dict_lock_write(onion_dict *dict);
 /// Unlocks last lock
 void onion_dict_unlock(onion_dict *dict);
 /// @}
+
+ssize_t onion_dict_to_json(onion_dict *dict, char *data, size_t datasize);
 
 #ifdef __cplusplus
 }
