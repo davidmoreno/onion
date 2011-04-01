@@ -11,7 +11,7 @@ SET(ONION_VERSION 0.2.0)
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 SET(LIBDIR lib)
-SET(INCLUDEDIR include)
+SET(INCLUDEDIR include/onion)
 
 if (${ARM} MATCHES "yes")
 	message(STATUS "Compiling for ARM")
