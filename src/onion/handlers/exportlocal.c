@@ -89,7 +89,10 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
  */
 int onion_handler_export_local_file(const char *realp, struct stat *reals, onion_request *request){
 	int fd=open(realp,O_RDONLY);
-	
+
+	if (fd<0)
+		return onion_response_shortcut(request, "<h1>404 - Not found</h1>", HTTP_NOT_FOUND);
+
 	if (!reals){
 		reals=alloca(sizeof(struct stat));
 		stat(realp, reals);
