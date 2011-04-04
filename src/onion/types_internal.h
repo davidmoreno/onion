@@ -56,6 +56,7 @@ struct onion_t{
 	char *port;
 	char *hostname;
 	int timeout; 
+	char *username;
 #ifdef HAVE_GNUTLS
 	gnutls_certificate_credentials_t x509_cred;
 	gnutls_dh_params_t dh_params;

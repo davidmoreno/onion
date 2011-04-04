@@ -184,6 +184,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include "log.h"
 #include <netdb.h>
 #include <fcntl.h>
+#include <pwd.h>
 
 #ifdef HAVE_GNUTLS
 static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);
@@ -240,6 +241,7 @@ onion *onion_new(int flags){
 	o->timeout=5000; // 5 seconds of timeout, default.
 	o->port=strdup("8080");
 	o->hostname=strdup("::");
+	o->username=NULL;
 #ifdef HAVE_GNUTLS
 	o->flags|=O_SSL_AVAILABLE;
 #endif
@@ -273,6 +275,9 @@ void onion_free(onion *onion){
 		}
 	}
 #endif
+	
+	if (onion->username)
+		free(onion->username);
 	
 #ifdef HAVE_GNUTLS
 	if (onion->flags&O_SSL_ENABLED){
@@ -360,6 +365,26 @@ int onion_listen(onion *o){
 	getnameinfo(rp->ai_addr, rp->ai_addrlen, address, 32,
 							&address[32], 32, NI_NUMERICHOST | NI_NUMERICSERV);
 	ONION_DEBUG("Listening to %s:%s",address,&address[32]);
+	
+	// Drops priviledges as it has binded.
+	if (o->username){
+		struct passwd *pw;
+		pw=getpwnam(o->username);
+		int error;
+		if (!pw){
+			ONION_ERROR("Cant find user to drop priviledges: %s", o->username);
+			return errno;
+		}
+		else{
+			error=setgid(pw->pw_gid);
+			error|=setuid(pw->pw_uid);
+		}
+		if (error){
+			ONION_ERROR("Cant set the uid/gid for user %s", o->username);
+			return errno;
+		}
+	}
+	
 	listen(sockfd,5); // queue of only 5.
 	
 	freeaddrinfo(result);
@@ -710,3 +735,15 @@ void *onion_request_thread(void *d){
 }
 
 #endif
+
+/**
+ * @short User to which drop priviledges when listening
+ * 
+ * Drops the priviledges of current program as soon as it starts listening.
+ * 
+ * This is the easiest way to allow low ports and other sensitive info to be used,
+ * but the proper way should be use capabilities and/or SELinux.
+ */
+void onion_set_user(onion *server, const char *username){
+	server->username=strdup(username);
+}

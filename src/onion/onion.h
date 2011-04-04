@@ -62,6 +62,9 @@ void onion_set_timeout(onion *onion, int timeout);
 /// Sets the maximum number of threads to use for requests. default 16.
 void onion_set_max_threads(onion *onion, int max_threads);
 
+/// Sets this user as soon as listen starts.
+void onion_set_user(onion *server, const char *username);
+
 #ifdef __cplusplus
 }
 #endif
