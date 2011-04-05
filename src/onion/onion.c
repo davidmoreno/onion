@@ -348,7 +348,7 @@ int onion_listen(onion *o){
 		if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) < 0){
 			ONION_ERROR("Could not set socket options: %s",strerror(errno));
 		}
-		int flags=fcntl(sockfd, F_GETFD);
+		int flags=fcntl(sockfd, F_GETFD, 0);
 		if (fcntl(sockfd,F_SETFD, flags | O_CLOEXEC) < 0){ // This is inherited by sockets returned by listen.
 			ONION_ERROR("Could not set socket options: %s",strerror(errno));
 		}
@@ -416,6 +416,12 @@ int onion_listen(onion *o){
 		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
 		while(1){
 			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+			
+			int flags=fcntl(clientfd, F_GETFD, 0);
+			if (fcntl(clientfd, F_SETFD, flags | O_CLOEXEC) < 0){ // This is inherited by sockets returned by listen.
+				ONION_ERROR("Could not set connection socket options: %s",strerror(errno));
+			}
+
 			// If more than allowed processes, it waits here blocking socket, as it should be.
 #if __DEBUG__
 			int nt;
