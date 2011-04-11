@@ -64,12 +64,12 @@ int main(int argc, char **argv){
 	if (error){
 		perror("Cant create the server");
 	}
-	fprintf(stderr,"Detached. Printing a message every 10 seconds.\n");
+	ONION_INFO("Detached. Printing a message every 120 seconds.");
 	i=0;
 	while(1){
 		i++;
 		ONION_INFO("Still alive. Count %d.",i);
-		sleep(10);
+		sleep(120);
 	}
 	
 	onion_free(o);
