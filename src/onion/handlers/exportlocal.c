@@ -205,7 +205,7 @@ int onion_handler_export_local_directory(onion_handler_export_local_data *data, 
 "	var q = function(t){\n"
 "		return t.replace('\"','%22')\n"
 "	}	\n"
-"	var t=document.getElementById('filetable')\n"
+"	var t=document.getElementById('filebody')\n"
 "  while ( t.childNodes.length >= 1 )\n"
 "		t.removeChild( t.firstChild );       \n"
 "	for (var i=0;i<files.length;i++){\n"
@@ -257,10 +257,13 @@ int onion_handler_export_local_directory(onion_handler_export_local_data *data, 
 		data->renderer_header(res, showpath);
 	
 	
-	onion_response_write0(res,"<table>\n"
-				"<thead><tr><th onclick=\"update(0)\">Filename</th><th onclick=\"update(1)\">Size</th>"
-				"<th onclick=\"update(2)\">Owner</th></tr></thead>\n"
-				"<tbody id=\"filetable\">\n</tbody>\n</table>\n</body>\n");
+	onion_response_write0(res,"<table id=\"filelist\">\n"
+				"<thead><tr>\n"
+				" <th onclick=\"update(0)\" id=\"filename\">Filename</th>\n"
+				" <th onclick=\"update(1)\" id=\"size\">Size</th>"
+				" <th onclick=\"update(2)\" id=\"owner\">Owner</th></tr>\n"
+				"</thead>\n"
+				"<tbody id=\"filebody\">\n</tbody>\n</table>\n</body>\n");
 
 	if (data->renderer_footer)
 		data->renderer_footer(res, showpath);
