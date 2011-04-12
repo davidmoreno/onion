@@ -73,5 +73,6 @@ int onion_shortcut_response_extra_headers(onion_request* req, const char* respon
  * You can add a message for non-compilant browsers, and the new url to which you redirect.
  */
 int onion_shortcut_redirect(onion_request *req, const char *response, const char *newurl){
-	return onion_shortcut_response_extra_headers(req, response, HTTP_REDIRECT, "Location", newurl, NULL );
+	return onion_shortcut_response_extra_headers(req, response ? response : "<h1>302 - Moved</h1>",
+																							 HTTP_REDIRECT, "Location", newurl, NULL );
 }
