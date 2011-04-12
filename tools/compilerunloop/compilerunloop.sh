@@ -17,28 +17,61 @@ if [ ! "$SOURCEDIR" ]; then
 	SOURCEDIR=.
 fi
 
+ORIGSOURCES=$( readelf -w $1   | grep -A5 '(DW_TAG_compile_unit)' | grep DW_AT_name | awk -F: '{ print $4 }' ) 
+
 SOURCES=""
-for f in $( objdump -x $1 | grep '\sdf\s' | grep 'c$' | awk '{ print $6 }' | sort | uniq ); do
-	S=$( find "$SOURCEDIR" -name $f )
+NOTFOUND=""
+for f in $ORIGSOURCES; do
+	if [ -e "$f" ]; then
+		S="$f"
+	else
+		S="$( find "$SOURCEDIR" -name $f )"
+	fi
 	if [ ! "$S" ]; then
-		echo
-		echo "Could not find source file $f. Consider setting SOURCEDIR environmental var. For example:"
-		echo "SOURCEDIR=../.. $*"
-		echo
+		NOTFOUND="$NOTFOUND $f"
 	else
 		SOURCES="$SOURCES $S"
 	fi
 done
 
 echo
-echo "Source files $SOURCES. Watching them. If they change, kill, recompile, execute and wait again."
+echo "Source files $SOURCES. "
 echo
+echo "Watching them. If they change, kill, recompile, execute and wait again."
+echo
+if [ "$NOTFOUND" ]; then
+		echo
+		echo "Could not find source files $NOTFOUND."
+		echo "Consider setting SOURCEDIR environmental var. For example:"
+		echo "SOURCEDIR=../.. $*"
+		echo
+fi
+
 
 PROG=$1
 shift
 PIDFILE=$( tempfile )
 
+
+killapp(){
+	jobs -p > $PIDFILE
+	PIDS=$( cat $PIDFILE )
+	echo "Killing $PIDS."
+
+	if [ "$PIDS" ]; then
+		echo kill $PIDS
+		kill $PIDS 2>/dev/null
+		sleep 1
+		kill -9 $PIDS 2>/dev/null
+	fi
+	
+	exit
+}
+
+trap killapp INT TERM
+
 while true; do
+	PIDS=""
 	make
 	if [ "$?" != "0" ]; then
 		echo "Error compiling. Just waiting"
@@ -49,16 +82,13 @@ while true; do
 			$PROG &
 		fi
 		sleep 2
-		jobs
 		jobs -p > $PIDFILE
 		PIDS=$( cat $PIDFILE )
 		rm $PIDFILE
 		echo -n "Pid is $PID. Watching..."
 	fi
 	inotifywait -e close_write $SOURCES
-	kill $PIDS
-	sleep 1
-	kill -9 $PIDS 2>/dev/null
+	killapp
 	echo "done."
 	echo "Recompile"
 done
