@@ -26,12 +26,37 @@
 extern "C"{
 #endif
 
+/**
+ * @short This is a list of standard response codes.
+ * 
+ * Not all resposne codes are listed, as some of them may not have sense here.
+ * Check other sources for complete listings.
+ */
 enum onion_response_codes_e{
+	// OK codes
 	HTTP_OK=200,
+	HTTP_CREATED=201,
+	HTTP_PARTIAL_CONTENT=206,
+	
+	// Redirects
+	HTTP_MOVED=301,
 	HTTP_REDIRECT=302,
+	HTTP_SEE_OTHER=303,
+	HTTP_NOT_MODIFIED=304,
+	HTTP_TEMPORARY_REDIRECT=307,
+	
+	// Not allowed to access
+	HTTP_BAD_REQUEST=400,
 	HTTP_UNAUTHORIZED=401,
+	HTTP_FORBIDDEN=403,
 	HTTP_NOT_FOUND=404,
+	HTTP_METHOD_NOT_ALLOWED=405,
+	
+	// Error codes
 	HTTP_INTERNAL_ERROR=500,
+	HTTP_NOT_IMPLEMENTED=501,
+	HTTP_BAD_GATEWAY=502,
+	HTTP_SERVICE_UNAVALIABLE=503,
 };
 
 
@@ -78,9 +103,6 @@ ssize_t onion_response_printf(onion_response *res, const char *fmt, ...);
 onion_write onion_response_get_writer(onion_response *res);
 /// Returns the writing handler, also known as socket object.
 void *onion_response_get_socket(onion_response *res);
-
-/// Shortcut for fast responses, like errors.
-int onion_response_shortcut(onion_request *req, const char *response, int code);
 
 #ifdef __cplusplus
 }

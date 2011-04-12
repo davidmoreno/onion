@@ -38,6 +38,7 @@
 #endif
 
 #include <onion/handlers/opack.h>
+#include <onion/shortcuts.h>
 
 /// Time to wait for output, or just return.
 #define TIMEOUT 60000
@@ -102,7 +103,7 @@ int oterm_data(oterm_t *o, onion_request *req){
 	
 	if (strcmp(path,"new")==0){
 		oterm_new(o);
-		return onion_response_shortcut(req, "ok", 200);
+		return onion_shortcut_response(req, "ok", 200);
 	}
 	if (strcmp(path,"status")==0)
 		return oterm_status(o,req);
@@ -119,7 +120,7 @@ int oterm_data(oterm_t *o, onion_request *req){
 		if (id[i]=='/'){
 			id[i]=0;
 			if (function)
-				return onion_response_shortcut(req, "Bad formed petition. (1)", 500);
+				return onion_shortcut_response(req, "Bad formed petition. (1)", 500);
 			function=id+i+1;
 			func_pos=i;
 			break;
@@ -127,11 +128,11 @@ int oterm_data(oterm_t *o, onion_request *req){
 	}
 	
 	if (!function)
-		return onion_response_shortcut(req, "Bad formed petition. (2)", 500);
+		return onion_shortcut_response(req, "Bad formed petition. (2)", 500);
 	// do it
 	process *term=oterm_get_process(o, id);
 	if (!term)
-		return onion_response_shortcut(req, "Terminal Id unknown", 404);
+		return onion_shortcut_response(req, "Terminal Id unknown", 404);
 	if (strcmp(function,"out")==0)
 		return oterm_out(term,req);
 	if (strcmp(function,"in")==0)
@@ -221,10 +222,10 @@ int oterm_in(process *o, onion_request *req){
 		w=write(o->fd, data, r);
 		if (w!=r){
 			ONION_WARNING("Error writing data to process. Not all data written. (%d).",w);
-			return onion_response_shortcut(req, "Error", HTTP_INTERNAL_ERROR);
+			return onion_shortcut_response(req, "Error", HTTP_INTERNAL_ERROR);
 		}
 	}
-	return onion_response_shortcut(req, "OK", HTTP_OK);
+	return onion_shortcut_response(req, "OK", HTTP_OK);
 }
 
 /// Resize the window. Do not work yet, and I dont know whats left. FIXME.
@@ -233,9 +234,9 @@ int oterm_resize(process *o, onion_request* req){
 	int ok=kill(o->pid, SIGWINCH);
 	
 	if (ok==0)
-		return onion_response_shortcut(req,"OK",HTTP_OK);
+		return onion_shortcut_response(req,"OK",HTTP_OK);
 	else
-		return onion_response_shortcut(req,"Error",HTTP_INTERNAL_ERROR);
+		return onion_shortcut_response(req,"Error",HTTP_INTERNAL_ERROR);
 }
 
 /// Gets the output data

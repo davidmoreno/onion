@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <pwd.h>
 
+#include <onion/shortcuts.h>
 #include <onion/handler.h>
 #include <onion/response.h>
 #include <onion/codecs.h>
@@ -91,7 +92,7 @@ int onion_handler_export_local_file(const char *realp, struct stat *reals, onion
 	int fd=open(realp,O_RDONLY);
 
 	if (fd<0)
-		return onion_response_shortcut(request, "<h1>404 - Not found</h1>", HTTP_NOT_FOUND);
+		return 0;
 
 	if (!reals){
 		reals=alloca(sizeof(struct stat));

@@ -102,7 +102,10 @@ void end(){
 }
 
 int main(int argc, char **argv){
-	chdir(dirname(argv[0]));
+	if (chdir(dirname(argv[0]))!=0){
+		ONION_ERROR("Error changing dir to test dir");
+		exit(1);
+	}
 	init();
 
 	t01_exportdir();
