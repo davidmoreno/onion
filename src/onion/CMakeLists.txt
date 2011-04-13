@@ -15,7 +15,7 @@ endif(PTHREADS)
 
 add_subdirectory(handlers)
 
-SET(INCLUDES_ONION onion.h dict.h request.h response.h codecs.h handler.h server.h log.h sessions.h types.h)
+SET(INCLUDES_ONION onion.h dict.h request.h response.h codecs.h handler.h server.h log.h sessions.h types.h shortcuts.h)
 MESSAGE("Found include files ${INCLUDES_ONION}")
 
 install(FILES ${INCLUDES_ONION} DESTINATION ${INCLUDEDIR})
