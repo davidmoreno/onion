@@ -39,7 +39,7 @@ char *onion_sessions_generate_id(){
 	
 	char *ret=malloc(33);
 	int i;
-	for (i=0;i<33;i++){
+	for (i=0;i<32;i++){
 		int c=rand()%(sizeof(allowed_chars)-1);
 		ret[i]=allowed_chars[c];
 	}
