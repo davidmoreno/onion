@@ -835,7 +835,7 @@ static onion_connection_status prepare_POST(onion_request *req){
 	}
 	size_t cl=atol(content_size);
 	//ONION_DEBUG("Content type %s",content_type);
-	if (!content_type || (strcmp(content_type, "application/x-www-form-urlencoded")==0)){
+	if (!content_type || (strstr(content_type, "application/x-www-form-urlencoded"))){
 		if (cl>req->server->max_post_size){
 			ONION_ERROR("Asked to send much POST data. Limit %d. Failing.",req->server->max_post_size);
 			return OCS_INTERNAL_ERROR;
