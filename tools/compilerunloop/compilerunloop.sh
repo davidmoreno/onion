@@ -65,7 +65,9 @@ killapp(){
 		kill -9 $PIDS 2>/dev/null
 	fi
 	
-	exit
+	if [ ! "$1" ]; then
+		exit
+	fi
 }
 
 trap killapp INT TERM
@@ -88,7 +90,7 @@ while true; do
 		echo -n "Pid is $PID. Watching..."
 	fi
 	inotifywait -e close_write $SOURCES
-	killapp
+	killapp noexit
 	echo "done."
 	echo "Recompile"
 done
