@@ -60,7 +60,11 @@ void block_safe_for_printf(block *bl){
 	int i;
 	for (i=0;i<bl->pos;i++){
 		char c=bl->data[i];
-		if ((isspace(c) || isgraph(c)) && c!='\n' && c!='"')
+		if (c=='\n')
+			block_add_string(tmp, "\\n");
+		else if (c=='\\')
+			block_add_string(tmp, "\\\\");
+		else if ((isspace(c) || isgraph(c)) && c!='"')
 			block_add_char(tmp, c);
 		else{
 			char tmpc[8];

@@ -23,10 +23,12 @@ typedef enum parser_mode_e{
 	TAG=2,
 	CODE=3,
 	
+	END=15,
 	// transitional modes
 	BEGIN=17,
 	END_TAG=18,
 	END_CODE=19,
+	
 }parser_mode;
 
 struct function_data_t{
@@ -42,6 +44,8 @@ struct parser_status_t{
 	FILE *in;
 	FILE *out;
 	
+	const char *infilename; /// Needed for includes using relative path
+	
 	block *rawblock; /// Current block of data as readed by the parser.
 	
 	list *functions; /// List of all known functions
@@ -49,6 +53,7 @@ struct parser_status_t{
 	block *current_code; /// Blocks of C code to be printed. this is final code.
 	char c; /// Last character read
 	int status; /// Exit status.
+	int function_count;
 };
 typedef struct parser_status_t parser_status;
 

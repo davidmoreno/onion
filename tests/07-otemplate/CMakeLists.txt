@@ -5,7 +5,7 @@ add_custom_command(
    OUTPUT test_html.c
    COMMAND otemplate ${CMAKE_CURRENT_SOURCE_DIR}/test.html
                  ${CMAKE_CURRENT_BINARY_DIR}/test_html.c
-   DEPENDS otemplate ${CMAKE_CURRENT_SOURCE_DIR}/test.html 
+   DEPENDS otemplate ${CMAKE_CURRENT_SOURCE_DIR}/test.html ${CMAKE_CURRENT_SOURCE_DIR}/external.html 
    )
 
 

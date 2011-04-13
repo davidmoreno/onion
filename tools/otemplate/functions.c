@@ -30,7 +30,7 @@ void write_other_functions_declarations(parser_status *st){
 	list_item *it=st->functions->head;
 	while (it){
 		function_data *d=it->data;
-		fprintf(st->out, "void %s(onion_dict *context, onion_response *res);\n", d->id);
+		fprintf(st->out, "static void %s(onion_dict *context, onion_response *res);\n", d->id);
 		it=it->next;
 	}
 }
@@ -55,7 +55,7 @@ void write_other_functions(parser_status *st){
 
 void write_function(parser_status *st, function_data *d){
 	fprintf(st->out, 
-"void %s(onion_dict *context, onion_response *res){\n"
+"static void %s(onion_dict *context, onion_response *res){\n"
 "  const char *tmp=NULL;\n"
 "  tmp=tmp;\n" // avoid compiled complain about not using it. I dont know yet.
 "\n", d->id);
@@ -77,7 +77,7 @@ function_data *function_new(parser_status *st){
 	}
 	
 	char tmp[64];
-	snprintf(tmp, sizeof(tmp), "otemplate_f_%X",rand());
+	snprintf(tmp, sizeof(tmp), "otemplate_f_%04X",st->function_count++);
 
 	ONION_DEBUG("New function %s", tmp);
 	

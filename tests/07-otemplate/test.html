@@ -25,5 +25,16 @@
 {% endfor %}
 </ul>
 
+<h2>{% trans "Test include" %}</h2>
+{% include "external.html" %}
+
+<h2>{% trans "Test some C code" %}</h2>
+
+<pre>
+int argc(int argv, char **argv){
+	printf("Hello world!\n");
+}
+</pre>
+
 </body>
 </html>

@@ -27,7 +27,7 @@
 #include "parser.h"
 
 
-int work(FILE *in, FILE *out);
+int work(const char *infilename, FILE *in, FILE *out);
 
 int main(int argc, char **argv){
 	if (argc!=3){
@@ -36,10 +36,15 @@ int main(int argc, char **argv){
 	}
 	
 	FILE *in;
-	if (strcmp(argv[1], "-")==0)
+	const char *infilename;
+	if (strcmp(argv[1], "-")==0){
 		in=stdin;
-	else
+		infilename="";
+	}
+	else{
 		in=fopen(argv[1], "rt");
+		infilename=argv[1];
+	}
 	
 	FILE *out;
 	if (strcmp(argv[2], "-")==0)
@@ -52,7 +57,7 @@ int main(int argc, char **argv){
 		return 1;
 	}
 	
-	int error=work(in,out);
+	int error=work(infilename, in,out);
 	
 	fclose(in);
 	fclose(out);
@@ -61,7 +66,7 @@ int main(int argc, char **argv){
 }
 
 
-int work(FILE *in, FILE *out){
+int work(const char *infilename, FILE *in, FILE *out){
 	parser_status status;
 	memset(&status, 0, sizeof(status));
 	status.in=in;
@@ -71,6 +76,7 @@ int work(FILE *in, FILE *out){
 	status.function_stack=list_new(NULL);
 	status.status=0;
 	status.rawblock=block_new(NULL);
+	status.infilename=infilename;
 	function_new(&status);
 	
 	parse_template(&status);
@@ -174,6 +180,7 @@ void parse_template(parser_status *status){
 				return;
 		}
 	}
+	set_mode(status, END);
 }
 
 void write_tag(parser_status *st, block *b){

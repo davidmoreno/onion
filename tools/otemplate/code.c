@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -25,6 +26,7 @@
 #include "list.h"
 #include "block.h"
 #include "parser.h"
+#include <libgen.h>
 
 typedef enum token_type_e{
 	T_VAR=1,
@@ -55,6 +57,7 @@ void code_if(parser_status *st, list *l);
 void code_else(parser_status *st, list *l);
 void code_endif(parser_status *st, list *l);
 void code_trans(parser_status *st, list *l);
+void code_include(parser_status *st, list *l);
 
 void write_code(parser_status *st, block *b){
 	//ONION_DEBUG("Write code %s",b->data);
@@ -117,6 +120,8 @@ void write_code(parser_status *st, block *b){
 		code_endif(st, command);
 	else if (strcmp(commandname,"trans")==0)
 		code_trans(st, command);
+	else if (strcmp(commandname,"include")==0)
+		code_include(st, command);
 	else{
 		ONION_ERROR("Unknown command '%s'. Ignoring.", commandname);
 		st->status=1;
@@ -131,7 +136,7 @@ void code_load(parser_status *st, list *l){
 	while (it){
 		const char *modulename=((code_token*)it->data)->data;
 
-		ONION_INFO("Loading external module %s",modulename);
+		ONION_WARNING("Loading external module %s not implemented yet.",modulename);
 		
 		it=it->next;
 	}
@@ -178,4 +183,50 @@ void code_trans(parser_status *st, list *l){
 	block_safe_for_printf(tmp);
 	parser_add_text(st, "  onion_response_write0(res, gettext(\"%s\"));\n", tmp->data);
 	block_free(tmp);
+}
+
+void code_include(parser_status* st, list* l){
+	function_new(st);
+	
+	FILE *oldin=st->in;
+	char tmp[256];
+	snprintf(tmp, sizeof(tmp), "%s/%s", dirname(strdupa(st->infilename)), ((code_token*)list_get_n(l,1))->data);
+	ONION_DEBUG("Open file %s, relative to %s",tmp, st->infilename);
+	st->in=fopen(tmp, "rt");
+	const char *tmpinfilename=st->infilename;
+	st->infilename=tmp;
+	if (!st->in){
+		ONION_ERROR("Could not open include file %s", ((code_token*)list_get_n(l,1))->data);
+		st->status=1;
+		st->in=oldin;
+		st->infilename=tmpinfilename;
+		parser_stack_pop(st);
+		return;
+	}
+	st->rawblock->pos=0;
+	st->rawblock->extra=0;
+	int mode=st->mode;
+	st->mode=TEXT;
+	// Real job here, all around is to use this
+	parse_template(st);
+	
+	fclose(st->in);
+	st->in=oldin;
+	st->infilename=tmpinfilename;
+	st->mode=mode;
+	
+	function_data *d=parser_stack_pop(st);
+	
+	free(d->id);
+	d->id=malloc(64);
+	snprintf(d->id, 64, "ot_include_%s", basename(tmp));
+	
+	char *p=d->id;
+	while (*p){
+		if (*p=='.')
+			*p='_';
+		p++;
+	}
+	
+	parser_add_text(st, "  %s(context, res);\n", d->id);
 }
