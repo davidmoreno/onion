@@ -11,5 +11,19 @@
 <p>
 {% trans "Random value" %} {{random}}.
 
+<h2>{% trans "Test if" %}</h2>
+{% if random_gt %}
+{% trans "random_gt is present" %}
+{% else %}
+{% trans "random_gt is not present" %}
+{% endif %}
+
+<h2>{% trans "Test for" %}</h2>
+<ul>
+{% for i in title %}
+<li>{{i}}</li>
+{% endfor %}
+</ul>
+
 </body>
 </html>

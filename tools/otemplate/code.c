@@ -52,10 +52,13 @@ void code_load(parser_status *st, list *l);
 void code_for(parser_status *st, list *l);
 void code_endfor(parser_status *st, list *l);
 void code_if(parser_status *st, list *l);
+void code_else(parser_status *st, list *l);
 void code_endif(parser_status *st, list *l);
 void code_trans(parser_status *st, list *l);
 
 void write_code(parser_status *st, block *b){
+	//ONION_DEBUG("Write code %s",b->data);
+	
 	list *command=list_new((void*)code_token_free);
 	
 	char mode=0; // 0 skip spaces, 1 in single var, 2 in quotes
@@ -107,15 +110,19 @@ void write_code(parser_status *st, block *b){
 	else if (strcmp(commandname,"endfor")==0)
 		code_endfor(st, command);
 	else if (strcmp(commandname,"if")==0)
-		code_for(st, command);
+		code_if(st, command);
+	else if (strcmp(commandname,"else")==0)
+		code_else(st, command);
 	else if (strcmp(commandname,"endif")==0)
-		code_endfor(st, command);
+		code_endif(st, command);
 	else if (strcmp(commandname,"trans")==0)
 		code_trans(st, command);
 	else{
 		ONION_ERROR("Unknown command '%s'. Ignoring.", commandname);
 		st->status=1;
 	}
+	
+	list_free(command);
 }
 
 
@@ -130,26 +137,45 @@ void code_load(parser_status *st, list *l){
 	}
 }
 void code_for(parser_status *st, list *l){
-	ONION_ERROR("Not yet");
-	st->status=1;
+	parser_add_text(st, "  tmp=onion_dict_get(context, \"%s\");\n", ((code_token*)list_get_n(l,3))->data);
+	parser_add_text(st, 
+"  {\n"
+"    onion_dict *tmpcontext=onion_dict_dup(context);\n"
+"    while (*tmp){\n"
+"      char tmp2[2];\n"
+"      tmp2[0]=*tmp++; tmp2[1]='\\0';\n"
+"      onion_dict_add(tmpcontext, \"%s\", tmp2, OD_DUP_VALUE|OD_REPLACE);\n", ((code_token*)list_get_n(l,1))->data
+	);
+	function_new(st);
 }
 void code_endfor(parser_status *st, list *l){
-	ONION_ERROR("Not yet");
-	st->status=1;
+	function_data *d=parser_stack_pop(st);
+	parser_add_text(st, "     %s(tmpcontext, res);\n",d->id);
+	parser_add_text(st, "    }\n    onion_dict_free(tmpcontext);\n  }\n", d->id);
 }
+
 void code_if(parser_status *st, list *l){
-	ONION_ERROR("Not yet");
-	st->status=1;
+	parser_add_text(st, "  tmp=onion_dict_get(context, \"%s\");\n", ((code_token*)list_get_n(l,1))->data);
+	parser_add_text(st, "  if (!tmp || strcmp(tmp, \"false\")==0)\n");
+	function_new(st);
 }
+
+void code_else(parser_status *st, list *l){
+	function_data *d=parser_stack_pop(st);
+	parser_add_text(st, "    %s(context, res);\n  else\n", d->id);
+	
+	function_new(st);
+}
+
 void code_endif(parser_status *st, list *l){
-	ONION_ERROR("Not yet");
-	st->status=1;
+	function_data *d=parser_stack_pop(st);
+	parser_add_text(st, "    %s(context, res);\n", d->id);
 }
 
 void code_trans(parser_status *st, list *l){
 	block *tmp=block_new(NULL);
 	block_add_string(tmp, ((code_token*)l->head->next->data)->data);
 	block_safe_for_printf(tmp);
-	fprintf(st->out, "  onion_response_write0(res, gettext(\"%s\"));\n", tmp->data);
+	parser_add_text(st, "  onion_response_write0(res, gettext(\"%s\"));\n", tmp->data);
 	block_free(tmp);
 }

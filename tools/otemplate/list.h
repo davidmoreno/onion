@@ -36,5 +36,8 @@ list *list_new(void *free_function);
 void list_free(list *l);
 void list_add(list *l, void *p);
 void list_loop(list *l, void *f, void *extra);
+void list_pop(list *l);
+int list_count(list *l);
+void *list_get_n(list *l, int n);
 
 #endif

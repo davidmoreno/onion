@@ -19,6 +19,8 @@
 #include <malloc.h>
 #include <stdio.h>
 
+#include <onion/log.h>
+
 #include "list.h"
 
 list *list_new(void *free_function){
@@ -34,7 +36,8 @@ void list_free(list *l){
 	void (*f)(void *p);
 	f=l->free;
 	while (i){
-		f(i->data);
+		if (f)
+			f(i->data);
 		list_item *last_i=i;
 		i=i->next;
 		free(last_i);
@@ -62,4 +65,43 @@ void list_loop(list *l, void *ff, void *extra){
 		f(extra, i->data);
 		i=i->next;
 	}
+}
+
+void list_pop(list *l){
+	if (!l->tail)
+		return;
+	
+	void (*f)(void *p);
+	list_item *tail=l->tail;
+	f=l->free;
+	if (f)
+		f(tail->data);
+	
+	l->tail=tail->prev;
+	l->tail->next=NULL;
+	free(tail);
+}
+
+int list_count(list *l){
+	list_item *it=l->head;
+	int c=0;
+	while(it){
+		c++;
+		it=it->next;
+	}
+	return c;
+}
+
+void *list_get_n(list *l, int n){
+	int i=0;
+	list_item *it=l->head;
+	while (it){
+		if (i==n){
+			ONION_DEBUG("Found");
+			return it->data;
+		}
+		i++;
+		it=it->next;
+	}
+	return NULL;
 }
