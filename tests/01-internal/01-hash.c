@@ -239,8 +239,7 @@ void t04_create_and_free_a_dup(){
 	END_LOCAL();
 }
 
-void append_as_headers(const char *key, const char *value, void *data){
-	char *str=data;
+void append_as_headers(char *str, const char *key, const char *value, int flags){
 	char tmp[1024];
 	sprintf(tmp,"%s: %s\n", key, value);
 	strcat(str,tmp);
@@ -288,7 +287,7 @@ void t06_null_add(){
 	END_LOCAL();
 }
 
-void t07_sum(const char *key, const char *value, int *v){
+void t07_sum(int *v, const char *key, const char *value, int flags){
 	*v+=atoi(value);
 }
 
@@ -507,12 +506,12 @@ void t10_tojson(){
 	s=onion_dict_to_json(d, tmp, i+2);
 	FAIL_IF_EQUAL(s,-1);
 	
-	
+	onion_dict_free(d);
 	
 	END_LOCAL();
 }
 
-void cmpdict(const char *key, const char *value, onion_dict *d){
+void cmpdict(onion_dict *d, const char *key, const char *value, int flags){
 	FAIL_IF_NOT_EQUAL_STR(value, onion_dict_get(d, key));
 }
 
@@ -540,8 +539,64 @@ void t11_hard_dup(){
 	END_LOCAL();
 }
 
+void t12_dict_in_dict(){
+	INIT_LOCAL();
+	
+	onion_dict *A=onion_dict_new();
+	onion_dict *B=onion_dict_new();
+	onion_dict *C=onion_dict_new();
+	onion_dict *D=onion_dict_new();
+	
+	int i;
+	for (i=0;i<16;i++){
+		char tmp[9];
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(A, tmp, tmp, OD_DUP_ALL);
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(B, tmp, tmp, OD_DUP_ALL);
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(C, tmp, tmp, OD_DUP_ALL);
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(D, tmp, tmp, OD_DUP_ALL);
+	}
+
+	onion_dict_add(A, "B", B, OD_DICT|OD_FREE_VALUE);
+	onion_dict_add(A, "C", C, OD_DICT|OD_FREE_VALUE);
+	onion_dict_add(A, "D", D, OD_DICT|OD_FREE_VALUE);
+	
+	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "B"), B);
+	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "C"), C);
+	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "D"), D);
+	
+	{
+		char *tmpA=malloc(65536);
+		onion_dict_to_json(A, tmpA, 65536);
+		char *tmpB=malloc(65536);
+		onion_dict_to_json(B, tmpB, 65536);
+		char *tmpC=malloc(65536);
+		onion_dict_to_json(C, tmpC, 65536);
+		char *tmpD=malloc(65536);
+		onion_dict_to_json(D, tmpD, 65536);
+		/*
+		ONION_DEBUG("Json is: %s",tmpA);
+		ONION_DEBUG("Json is: %s",tmpB);
+		ONION_DEBUG("Json is: %s",tmpC);
+		ONION_DEBUG("Json is: %s",tmpD);
+		*/
+		FAIL_IF_EQUAL( strstr(tmpA, tmpB), NULL);
+		FAIL_IF_EQUAL( strstr(tmpA, tmpC), NULL);
+		FAIL_IF_EQUAL( strstr(tmpA, tmpD), NULL);
+		free(tmpA);
+		free(tmpB);
+		free(tmpC);
+		free(tmpD);
+	}
+	onion_dict_free(A);
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
-	/*
 	t01_create_add_free();
 	t01_create_add_free_10();
 	t02_create_and_free_a_lot(100);
@@ -553,8 +608,8 @@ int main(int argc, char **argv){
 	t08_threaded_lock();
 	t09_thread_war();
 	t10_tojson();
-	*/
 	t11_hard_dup();
+	t12_dict_in_dict();
 	
 	END();
 }

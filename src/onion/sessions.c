@@ -61,16 +61,10 @@ onion_sessions *onion_sessions_new(){
 	return ret;
 }
 
-/// Helper for preorder to remove all sessions
-void onion_sessions_free_helper(const char *key, const char *value, void *p){
-	onion_dict_free((onion_dict*)value);
-}
-
 /**
  * @short Frees the memory used by sessions
  */
 void onion_sessions_free(onion_sessions* sessions){
-	onion_dict_preorder(sessions->sessions, onion_sessions_free_helper, NULL);
 	onion_dict_free(sessions->sessions);
 	free(sessions);
 }
@@ -84,7 +78,7 @@ void onion_sessions_free(onion_sessions* sessions){
 char *onion_sessions_create(onion_sessions *sessions){
 	char *sessionId=onion_sessions_generate_id();
 	onion_dict *data=onion_dict_new();
-	onion_dict_add(sessions->sessions, sessionId, (char*)data, OD_DUP_KEY);
+	onion_dict_add(sessions->sessions, sessionId, data, OD_DUP_KEY|OD_DICT);
 	ONION_DEBUG("Created the session '%s'",sessionId);
 	return sessionId;
 }
@@ -98,7 +92,7 @@ onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId){
 	if (!sess){
 		ONION_DEBUG("Unknown session '%s'. Creating it.", sessionId);
 		sess=onion_dict_new();
-		onion_dict_add(sessions->sessions, sessionId, (char*)sess, OD_DUP_KEY);
+		onion_dict_add(sessions->sessions, sessionId, sess, OD_DUP_KEY|OD_DICT);
 	}
 	return onion_dict_dup(sess);
 }

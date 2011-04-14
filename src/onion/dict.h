@@ -37,14 +37,18 @@ enum onion_dict_flags_e{
 	OD_DUP_KEY=0x12,   /// Whether the key has to be dupped
 	OD_DUP_VALUE=0x24, /// Whether the value has to be dupped
 	OD_DUP_ALL=0x36,   /// Whether both, the key and value have to be dupped. In any case its also marked for freeing later.
-	OD_REPLACE=0x100,  /// If already exists, replaces content.
+	OD_REPLACE=0x040,  /// If already exists, replaces content.
+	
+	// Types
+	OD_STRING=0,       /// Stored data is a string, this is the most normal situation
+	OD_DICT=0x0100,    /// Stored data is another dictionary
 };
 
 /// Initializes a dict.
 onion_dict *onion_dict_new();
 
 /// Adds a value
-void onion_dict_add(onion_dict *dict, const char *key, const char *value, int flags);
+void onion_dict_add(onion_dict *dict, const char *key, const void *value, int flags);
 
 /// Removes a value
 int onion_dict_remove(onion_dict *dict, const char *key);
@@ -64,7 +68,7 @@ const char *onion_dict_get(const onion_dict *dict, const char *key);
 /// Prints a dot ready graph to stderr
 void onion_dict_print_dot(const onion_dict *dict);
 
-/// Visits the full graph in preorder, calling that funciton on each node
+/// Visits the full graph in preorder, calling that function on each node
 void onion_dict_preorder(const onion_dict *dict, void *func, void *data);
 
 /// Counts elements

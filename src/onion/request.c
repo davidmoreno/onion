@@ -59,7 +59,7 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 /**
  * @short Helper to remove temporal files from req->files
  */
-static void unlink_files(const char *key, const char *value, void *p){
+static void unlink_files(void *p, const char *key, const char *value, int flags){
 	ONION_DEBUG0("Unlinking temporal file %s",value);
 	unlink(value);
 }

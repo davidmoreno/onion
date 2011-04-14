@@ -80,7 +80,7 @@ typedef struct{
 	const char *part;
 }allinfo_dict_print_t;
 
-void allinfo_query(const char *key, const char *value, allinfo_dict_print_t *aid){
+void allinfo_query(allinfo_dict_print_t *aid, const char *key, const char *value, int flags){
 	onion_response *res=aid->res;
 	
 	onion_response_write0(res,aid->part);

@@ -33,7 +33,7 @@ void free_onion(){
 }
 
 
-void print_dict_element(const char *key, const char *value, onion_response *res){
+void print_dict_element(onion_response *res, const char *key, const char *value, int flags){
 	onion_response_write0(res,"<li> ");
 	onion_response_write0(res,key);
 	onion_response_write0(res," = ");

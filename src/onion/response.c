@@ -105,7 +105,7 @@ void onion_response_set_code(onion_response *res, int  code){
 }
 
 /// Helper that is called on each header, and writes the header
-static void write_header(const char *key, const char *value, onion_response *res){
+static void write_header(onion_response *res, const char *key, const char *value, int flags){
 	//ONION_DEBUG0("Response header: %s: %s",key, value);
 
 	onion_response_write0(res, key);

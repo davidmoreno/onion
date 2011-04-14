@@ -27,7 +27,7 @@
 
 typedef struct onion_dict_node_data_t{
 	const char *key;
-	const char *value;
+	const void *value;
 	short int flags;
 }onion_dict_node_data;
 
@@ -44,8 +44,8 @@ typedef struct onion_dict_node_t{
 }onion_dict_node;
 
 static void onion_dict_node_data_free(onion_dict_node_data *dict);
-static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key, const char *value, int flags);
-static onion_dict_node *onion_dict_node_new(const char *key, const char *value, int flags);
+static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key, const void *value, int flags);
+static onion_dict_node *onion_dict_node_new(const char *key, const void *value, int flags);
 
 /**
  * Initializes the basic tree with all the structure in place, but empty.
@@ -81,8 +81,11 @@ onion_dict *onion_dict_dup(onion_dict *dict){
 	return dict;
 }
 
-void onion_dict_hard_dup_helper(const char *key, const char *value, onion_dict *dict){
-	onion_dict_add(dict, key, value, OD_DUP_ALL);
+void onion_dict_hard_dup_helper(onion_dict *dict, const char *key, const void *value, int flags){
+	if (flags&OD_DICT)
+		onion_dict_add(dict, key, onion_dict_hard_dup((onion_dict*)value), OD_DUP_ALL|OD_DICT);
+	else
+		onion_dict_add(dict, key, value, OD_DUP_ALL);
 }
 
 /**
@@ -156,7 +159,7 @@ static const onion_dict_node *onion_dict_find_node(const onion_dict_node *curren
 
 
 /// Allocates a new node data, and sets the data itself.
-static onion_dict_node *onion_dict_node_new(const char *key, const char *value, int flags){
+static onion_dict_node *onion_dict_node_new(const char *key, const void *value, int flags){
 	onion_dict_node *node=malloc(sizeof(onion_dict_node));
 
 	onion_dict_set_node_data(&node->data, key, value, flags);
@@ -168,7 +171,7 @@ static onion_dict_node *onion_dict_node_new(const char *key, const char *value, 
 }
 
 /// Sets the data on the node, on the right way.
-static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key, const char *value, int flags){
+static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key, const void *value, int flags){
 	//ONION_DEBUG("Set data %02X",flags);
 	if ((flags&OD_DUP_KEY)==OD_DUP_KEY) // not enought with flag, as its a multiple bit flag, with FREE included
 		data->key=strdup(key);
@@ -262,7 +265,7 @@ static onion_dict_node  *onion_dict_node_add(onion_dict_node *node, onion_dict_n
 /**
  * Adds a value in the tree.
  */
-void onion_dict_add(onion_dict *dict, const char *key, const char *value, int flags){
+void onion_dict_add(onion_dict *dict, const char *key, const void *value, int flags){
 	dict->root=onion_dict_node_add(dict->root, onion_dict_node_new(key, value, flags));
 }
 
@@ -271,8 +274,13 @@ static void onion_dict_node_data_free(onion_dict_node_data *data){
 	if (data->flags&OD_FREE_KEY){
 		free((char*)data->key);
 	}
-	if (data->flags&OD_FREE_VALUE)
-		free((char*)data->value);
+	if (data->flags&OD_FREE_VALUE){
+		if (data->flags&OD_DICT){
+			onion_dict_free((onion_dict*)data->value);
+		}
+		else
+			free((char*)data->value);
+	}
 }
 
 /// AA tree remove the node
@@ -373,12 +381,12 @@ void onion_dict_print_dot(const onion_dict *dict){
 }
 
 void onion_dict_node_preorder(const onion_dict_node *node, void *func, void *data){
-	void (*f)(const char *key, const char *value, void *data);
+	void (*f)(void *data, const char *key, const void *value, int flags);
 	f=func;
 	if (node->left)
 		onion_dict_node_preorder(node->left, func, data);
 	
-	f(node->data.key, node->data.value, data);
+	f(data, node->data.key, node->data.value, node->data.flags);
 	
 	if (node->right)
 		onion_dict_node_preorder(node->right, func, data);
@@ -387,7 +395,7 @@ void onion_dict_node_preorder(const onion_dict_node *node, void *func, void *dat
 /**
  * @short Executes a function on each element, in preorder by key.
  * 
- * The function is of prototype void func(const char *key, const char *value, void *data);
+ * The function is of prototype void func(void *data, const char *key, const void *value, int flags);
  */
 void onion_dict_preorder(const onion_dict *dict, void *func, void *data){
 	if (!dict || !dict->root)
@@ -444,7 +452,7 @@ struct onion_dict_buffer{
 /**
  * @short Helps to prepare each pair.
  */
-static void onion_dict_json_preorder(const char *key, const char *value, struct onion_dict_buffer *buffer){
+static void onion_dict_json_preorder(struct onion_dict_buffer *buffer, const char *key, const void *value, int flags){
 	if (buffer->pos<0) // already an error.
 		return;
 	int blockSize=strlen(key) + strlen(value) + 7;
@@ -464,15 +472,21 @@ static void onion_dict_json_preorder(const char *key, const char *value, struct 
 		return;
 	}
 	buffer->data[buffer->pos++]=':';
-	s=onion_c_quote(value, buffer->data+buffer->pos,buffer->size-buffer->pos-1);
-	if (s==NULL){
-		buffer->pos=-1;
-		return;
+	if (flags&OD_DICT){
+		onion_dict_to_json((onion_dict*)value, &buffer->data[buffer->pos], buffer->size-buffer->pos - 5 );
+		buffer->pos+=strlen(&buffer->data[buffer->pos]);
 	}
-	buffer->pos+=strlen(s);
-	if (buffer->pos+2>=buffer->size){
-		buffer->pos=-1;
-		return;
+	else{
+		s=onion_c_quote(value, buffer->data+buffer->pos,buffer->size-buffer->pos-1);
+		if (s==NULL){
+			buffer->pos=-1;
+			return;
+		}
+		buffer->pos+=strlen(s);
+		if (buffer->pos+2>=buffer->size){
+			buffer->pos=-1;
+			return;
+		}
 	}
 	buffer->data[buffer->pos++]=',';
 	buffer->data[buffer->pos++]=' ';
