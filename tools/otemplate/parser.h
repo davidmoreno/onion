@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 
+#include "functions.h"
 #include "block.h"
 #include "list.h"
 
@@ -36,13 +37,6 @@ typedef enum parser_mode_e{
 	END_TAG=19,
 	
 }parser_mode;
-
-struct function_data_t{
-	char *id;
-	block *code; /// Blocks of C code to be printed.
-};
-
-typedef struct function_data_t function_data;
 
 
 struct parser_status_t{
@@ -69,17 +63,5 @@ void parse_template(parser_status *status);
 void add_char(parser_status *st, char c);
 void write_block(parser_status *st, block *b);
 
-void write_other_functions_declarations(parser_status *st);
-void write_main_function(parser_status *st);
-void write_other_functions(parser_status *st);
-void write_function_call(parser_status *st, function_data *f);
-void write_function(parser_status *st, function_data *d);
-
-function_data *function_new(parser_status *st);
-void function_free(function_data *d);
-
-
-function_data *template_stack_pop(parser_status *st);
-void template_add_text(parser_status *st, const char *fmt, ...);
 
 #endif

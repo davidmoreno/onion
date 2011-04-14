@@ -20,9 +20,16 @@
 #include "variables.h"
 #include "block.h"
 
+/**
+ * @short Parses a block variable and writes the code necesary.
+ * 
+ * It can go deep inside a dict or list, and apply filters.
+ * 
+ * TODO. Just now only plain vars.
+ */
 void write_variable(parser_status *st, block *b){
 	block_safe_for_printf(b);
-	template_add_text(st, 
+	function_add_code(st, 
 "  tmp=onion_dict_get(context, \"%s\");\n"
 "  if (tmp)\n"
 "    onion_response_write0(res, tmp);\n", b->data);

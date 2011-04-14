@@ -59,6 +59,9 @@ void tag_endif(parser_status *st, list *l);
 void tag_trans(parser_status *st, list *l);
 void tag_include(parser_status *st, list *l);
 
+/**
+ * Current block is a tag, slice it and call the proper handler.
+ */
 void write_tag(parser_status *st, block *b){
 	//ONION_DEBUG("Write tag %s",b->data);
 	
@@ -130,7 +133,15 @@ void write_tag(parser_status *st, block *b){
 	list_free(command);
 }
 
+/// Returns the nth arg oof the tag
+const char *t_arg(list *l, int n){
+	tag_token *t=list_get_n(l,n);
+	if (t)
+		return t->data;
+	return NULL;
+}
 
+/// Loads an external handler set
 void tag_load(parser_status *st, list *l){
 	list_item *it=l->head->next;
 	while (it){
@@ -141,9 +152,11 @@ void tag_load(parser_status *st, list *l){
 		it=it->next;
 	}
 }
+
+/// Do the first for part.
 void tag_for(parser_status *st, list *l){
-	template_add_text(st, "  tmp=onion_dict_get(context, \"%s\");\n", ((tag_token*)list_get_n(l,3))->data);
-	template_add_text(st, 
+	function_add_code(st, "  tmp=onion_dict_get(context, \"%s\");\n", ((tag_token*)list_get_n(l,3))->data);
+	function_add_code(st, 
 "  {\n"
 "    onion_dict *tmpcontext=onion_dict_dup(context);\n"
 "    while (*tmp){\n"
@@ -151,82 +164,52 @@ void tag_for(parser_status *st, list *l){
 "      tmp2[0]=*tmp++; tmp2[1]='\\0';\n"
 "      onion_dict_add(tmpcontext, \"%s\", tmp2, OD_DUP_VALUE|OD_REPLACE);\n", ((tag_token*)list_get_n(l,1))->data
 	);
-	function_new(st);
+	function_new(st, NULL);
 }
+
+/// Ends a for
 void tag_endfor(parser_status *st, list *l){
-	function_data *d=template_stack_pop(st);
-	template_add_text(st, "     %s(tmpcontext, res);\n",d->id);
-	template_add_text(st, "    }\n    onion_dict_free(tmpcontext);\n  }\n", d->id);
+	function_data *d=function_pop(st);
+	function_add_code(st, "     %s(tmpcontext, res);\n",d->id);
+	function_add_code(st, "    }\n    onion_dict_free(tmpcontext);\n  }\n", d->id);
 }
 
+/// Starts an if
 void tag_if(parser_status *st, list *l){
-	template_add_text(st, "  tmp=onion_dict_get(context, \"%s\");\n", ((tag_token*)list_get_n(l,1))->data);
-	template_add_text(st, "  if (!tmp || strcmp(tmp, \"false\")==0)\n");
-	function_new(st);
+	function_add_code(st, "  tmp=onion_dict_get(context, \"%s\");\n", ((tag_token*)list_get_n(l,1))->data);
+	function_add_code(st, "  if (!tmp || strcmp(tmp, \"false\")==0)\n");
+	function_new(st, NULL);
 }
 
+/// Else part
 void tag_else(parser_status *st, list *l){
-	function_data *d=template_stack_pop(st);
-	template_add_text(st, "    %s(context, res);\n  else\n", d->id);
+	function_data *d=function_pop(st);
+	function_add_code(st, "    %s(context, res);\n  else\n", d->id);
 	
-	function_new(st);
+	function_new(st, NULL);
 }
 
+/// endif
 void tag_endif(parser_status *st, list *l){
-	function_data *d=template_stack_pop(st);
-	template_add_text(st, "    %s(context, res);\n", d->id);
+	function_data *d=function_pop(st);
+	function_add_code(st, "    %s(context, res);\n", d->id);
 }
 
+/// Following text is for gettext
 void tag_trans(parser_status *st, list *l){
 	block *tmp=block_new();
 	block_add_string(tmp, ((tag_token*)l->head->next->data)->data);
 	block_safe_for_printf(tmp);
-	template_add_text(st, "  onion_response_write0(res, gettext(\"%s\"));\n", tmp->data);
+	function_add_code(st, "  onion_response_write0(res, gettext(\"%s\"));\n", tmp->data);
 	block_free(tmp);
 }
 
+/// Include an external html. This is only the call, the programmer must compile such html too.
 void tag_include(parser_status* st, list* l){
-	function_new(st);
+	function_data *d=function_new(st, "%s", t_arg(l, 1));
+	function_pop(st);
+	block_free(d->code); // This means no impl
+	d->code=NULL; 
 	
-	FILE *oldin=st->in;
-	char tmp[256];
-	snprintf(tmp, sizeof(tmp), "%s/%s", dirname(strdupa(st->infilename)), ((tag_token*)list_get_n(l,1))->data);
-	ONION_DEBUG("Open file %s, relative to %s",tmp, st->infilename);
-	st->in=fopen(tmp, "rt");
-	const char *tmpinfilename=st->infilename;
-	st->infilename=tmp;
-	if (!st->in){
-		ONION_ERROR("Could not open include file %s", ((tag_token*)list_get_n(l,1))->data);
-		st->status=1;
-		st->in=oldin;
-		st->infilename=tmpinfilename;
-		template_stack_pop(st);
-		return;
-	}
-	st->rawblock->pos=0;
-	st->last_wmode=0;
-	int mode=st->mode;
-	st->mode=TEXT;
-	// Real job here, all around is to use this
-	parse_template(st);
-	
-	fclose(st->in);
-	st->in=oldin;
-	st->infilename=tmpinfilename;
-	st->mode=mode;
-	
-	function_data *d=template_stack_pop(st);
-	
-	free(d->id);
-	d->id=malloc(64);
-	snprintf(d->id, 64, "ot_%s", basename(tmp));
-	
-	char *p=d->id;
-	while (*p){
-		if (*p=='.')
-			*p='_';
-		p++;
-	}
-	
-	template_add_text(st, "  %s(context, res);\n", d->id);
+	function_add_code(st, "  %s(context, res);\n", d->id);
 }

@@ -24,9 +24,8 @@
 #include "tags.h"
 #include "variables.h"
 
-void set_mode(parser_status *status, int mode);
-
-
+/// Set current parser status
+static void set_mode(parser_status *status, int mode);
 
 /**
  * @short Main parsing loop.
@@ -92,6 +91,11 @@ void parse_template(parser_status *status){
 	set_mode(status, END);
 }
 
+/**
+ * @short One block read from in, prepare the output.
+ * 
+ * Depending on the mode of the block it calls the appropiate handler: variable, tag or just write text.
+ */
 void write_block(parser_status *st, block *b){
 	int mode=st->last_wmode;
 	block_add_char(b, '\0');
@@ -102,7 +106,7 @@ void write_block(parser_status *st, block *b){
 			if (b->pos){
 				int oldl=b->pos;
 				block_safe_for_printf(b);
-				template_add_text(st, "  onion_response_write(res, \"%s\", %d);\n", b->data, oldl);
+				function_add_code(st, "  onion_response_write(res, \"%s\", %d);\n", b->data, oldl);
 			}
 			break;
 		case VARIABLE:
@@ -117,10 +121,12 @@ void write_block(parser_status *st, block *b){
 	st->rawblock->pos=0;
 }
 
+/// Read a char from the st->in-
 void add_char(parser_status *st, char c){
 	block_add_char(st->rawblock, c);
 }
 
+/// Mode change, depending of the mode, may indicate that a block must be written
 void set_mode(parser_status *status, int mode){
 	if (mode<16){
 		write_block(status, status->rawblock);

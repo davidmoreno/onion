@@ -80,16 +80,7 @@ int work(const char *infilename, FILE *in, FILE *out){
 	status.rawblock=block_new();
 	status.infilename=infilename;
 	
-	function_data *d=function_new(&status);
-	free(d->id);
-	d->id=malloc(64);
-	snprintf(d->id, 64, "ot_%s", basename(strdupa(infilename)));
-	char *p=d->id;
-	while (*p){
-		if (*p=='.')
-			*p='_';
-		p++;
-	}
+	function_new(&status, basename(strdupa(infilename)));
 	
 	parse_template(&status);
 	
@@ -108,21 +99,12 @@ int work(const char *infilename, FILE *in, FILE *out){
 "#include <onion/dict.h>\n"
 "\n");
 	
-	write_other_functions_declarations(&status);
-	
-	fprintf(out,
-"\n"
-"int work(onion_dict *context, onion_request *req){\n"
-"  onion_response *res=onion_response_new(req);\n"
-"  onion_response_write_headers(res);\n\n");
-	
-	write_main_function(&status);
+	functions_write_declarations(&status);
 
-	fprintf(out,"\n"
-"  return onion_response_free(res);\n"
-"}\n\n");
+	functions_write_main_code(&status);
 
-	write_other_functions(&status);
+
+	functions_write_code(&status);
 	
 	list_free(status.functions);
 	list_free(status.function_stack);
@@ -131,28 +113,3 @@ int work(const char *infilename, FILE *in, FILE *out){
 	return status.status;
 }
 
-
-
-
-function_data *template_stack_pop(parser_status *st){
-	function_data *p=(function_data*)st->function_stack->tail->data;
-	list_pop(st->function_stack);
-	ONION_DEBUG("pop function stack, length is %d", list_count(st->function_stack));
-	st->current_code=((function_data*)st->function_stack->tail->data)->code;
-	return p;
-}
-
-
-
-void template_add_text(parser_status *st, const char *fmt, ...){
-	char tmp[4096];
-	
-	va_list ap;
-	va_start(ap, fmt);
-	vsnprintf(tmp, sizeof(tmp), fmt, ap);
-	va_end(ap);
-	
-	//ONION_DEBUG("Add to level %d text %s",list_count(st->function_stack), tmp);
-
-	block_add_string(st->current_code, tmp);
-}
