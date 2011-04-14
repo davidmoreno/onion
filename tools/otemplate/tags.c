@@ -155,23 +155,35 @@ void tag_load(parser_status *st, list *l){
 
 /// Do the first for part.
 void tag_for(parser_status *st, list *l){
-	function_add_code(st, "  tmp=onion_dict_get(context, \"%s\");\n", ((tag_token*)list_get_n(l,3))->data);
 	function_add_code(st, 
 "  {\n"
-"    onion_dict *tmpcontext=onion_dict_dup(context);\n"
-"    while (*tmp){\n"
-"      char tmp2[2];\n"
-"      tmp2[0]=*tmp++; tmp2[1]='\\0';\n"
-"      onion_dict_add(tmpcontext, \"%s\", tmp2, OD_DUP_VALUE|OD_REPLACE);\n", ((tag_token*)list_get_n(l,1))->data
-	);
+"    onion_dict *loopdict=onion_dict_get_dict(context, \"%s\");\n", ((tag_token*)list_get_n(l,3))->data);
+	function_add_code(st, 
+"    onion_dict *tmpcontext=onion_dict_hard_dup(context);\n"
+"    if (loopdict){\n"
+"      dict_res dr={ .dict = tmpcontext, .res=res };\n"
+"      onion_dict_preorder(loopdict, ");
+	function_data *d=function_new(st, NULL);
+	d->signature="dict_res *dr, const char *key, const void *value, int flags";
+
+	function_add_code(st, 
+"  onion_dict_add(dr->dict, \"%s\", value, OD_DUP_VALUE|OD_REPLACE);\n", ((tag_token*)list_get_n(l,1))->data);
+	
 	function_new(st, NULL);
 }
 
 /// Ends a for
 void tag_endfor(parser_status *st, list *l){
+	// First the preorder function
 	function_data *d=function_pop(st);
-	function_add_code(st, "     %s(tmpcontext, res);\n",d->id);
-	function_add_code(st, "    }\n    onion_dict_free(tmpcontext);\n  }\n", d->id);
+	function_add_code(st, "  %s(dr->dict, dr->res);\n", d->id);
+	
+	// Now the normal code
+	d=function_pop(st);
+	function_add_code(st, "%s, &dr);\n"
+"    }\n"
+"    onion_dict_free(tmpcontext);\n"
+"  }\n", d->id);
 }
 
 /// Starts an if

@@ -34,7 +34,7 @@ void functions_write_declarations(parser_status *st){
 		function_data *d=it->data;
 		if (d->is_static)
 			fprintf(st->out, "static ");
-		fprintf(st->out, "void %s(onion_dict *context, onion_response *res);\n", d->id);
+		fprintf(st->out, "void %s(%s);\n", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res");
 		it=it->next;
 	}
 }
@@ -45,10 +45,11 @@ static void function_write(parser_status *st, function_data *d){
 		if (d->is_static)
 			fprintf(st->out, "static ");
 		fprintf(st->out, 
-	"void %s(onion_dict *context, onion_response *res){\n"
-	"  const char *tmp=NULL;\n"
-	"  tmp=tmp;\n" // avoid compiled complain about not using it. I dont know yet.
-	"\n", d->id);
+"void %s(%s){\n"
+"  const char *tmp=NULL;\n"
+"  tmp=tmp;\n" // avoid compiled complain about not using it. I dont know yet.
+"\n", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res"
+					);
 		
 		fwrite(d->code->data, 1, d->code->pos, st->out);
 		
@@ -112,6 +113,7 @@ function_data *function_new(parser_status *st, const char *fmt, ...){
 		list_add(st->functions, d);
 		ONION_DEBUG("push function stack, length is %d", list_count(st->function_stack));
 	}
+	d->signature=NULL;
 	
 	char tmp[64];
 	if (!fmt){

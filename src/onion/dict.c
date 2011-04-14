@@ -83,7 +83,7 @@ onion_dict *onion_dict_dup(onion_dict *dict){
 
 void onion_dict_hard_dup_helper(onion_dict *dict, const char *key, const void *value, int flags){
 	if (flags&OD_DICT)
-		onion_dict_add(dict, key, onion_dict_hard_dup((onion_dict*)value), OD_DUP_ALL|OD_DICT);
+		onion_dict_add(dict, key, value, OD_DUP_ALL|OD_DICT);
 	else
 		onion_dict_add(dict, key, value, OD_DUP_ALL);
 }
@@ -177,8 +177,12 @@ static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key
 		data->key=strdup(key);
 	else
 		data->key=key;
-	if ((flags&OD_DUP_VALUE)==OD_DUP_VALUE)
-		data->value=strdup(value);
+	if ((flags&OD_DUP_VALUE)==OD_DUP_VALUE){
+		if (flags&OD_DICT)
+			data->value=onion_dict_hard_dup((onion_dict*)value);
+		else
+			data->value=strdup(value);
+	}
 	else
 		data->value=value;
 	data->flags=flags;
@@ -354,6 +358,18 @@ const char *onion_dict_get(const onion_dict *dict, const char *key){
 		return r->data.value;
 	return NULL;
 }
+
+/// Gets a value, only if its a dict
+onion_dict *onion_dict_get_dict(const onion_dict *dict, const char *key){
+	const onion_dict_node *r;
+	r=onion_dict_find_node(dict->root, key, NULL);
+	if (r){
+		if (r->data.flags&OD_DICT)
+			return (onion_dict*)r->data.value;
+	}
+	return NULL;
+}
+
 
 static void onion_dict_node_print_dot(const onion_dict_node *node){
 	if (node->right){

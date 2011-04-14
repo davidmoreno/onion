@@ -526,6 +526,7 @@ void t11_hard_dup(){
 		sprintf(tmp,"%08X",rand());
 		onion_dict_add(orig, tmp, tmp, OD_DUP_ALL);
 	}
+	onion_dict_add(orig, "0", "no frees", 0);
 	
 	onion_dict *dest=onion_dict_hard_dup(orig);
 	
@@ -591,7 +592,10 @@ void t12_dict_in_dict(){
 		free(tmpC);
 		free(tmpD);
 	}
+	B=onion_dict_hard_dup(A);
+	
 	onion_dict_free(A);
+	onion_dict_free(B);
 	
 	END_LOCAL();
 }

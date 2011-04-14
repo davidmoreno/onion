@@ -43,6 +43,11 @@ onion_connection_status test_page(void *ignore, onion_request *req){
 	onion_dict_add(dict, "title", "Test page - works", 0);
 	onion_dict_add(dict, "random", tmp, OD_DUP_VALUE);
 	
+	onion_dict *subd=onion_dict_new();
+	onion_dict_add(subd,"0","Hello", 0);
+	onion_dict_add(subd,"0","World!", 0);
+	onion_dict_add(dict, "subd", subd, OD_DICT|OD_FREE_VALUE);
+	
 	return test_html_template(dict, req);
 }
 

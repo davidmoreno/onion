@@ -97,6 +97,12 @@ int work(const char *infilename, FILE *in, FILE *out){
 "#include <string.h>\n\n"
 "#include <onion/onion.h>\n"
 "#include <onion/dict.h>\n"
+"\n"
+"typedef struct dict_res_t{\n"
+"	onion_dict *dict;\n"
+"	onion_response *res;\n"
+"}dict_res;\n"
+"\n"
 "\n");
 	
 	functions_write_declarations(&status);

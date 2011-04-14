@@ -65,6 +65,9 @@ onion_dict *onion_dict_hard_dup(onion_dict *dict);
 /// Gets a value
 const char *onion_dict_get(const onion_dict *dict, const char *key);
 
+/// Gets a dict. It ensures its a dict.
+onion_dict *onion_dict_get_dict(const onion_dict *dict, const char *key);
+
 /// Prints a dot ready graph to stderr
 void onion_dict_print_dot(const onion_dict *dict);
 
