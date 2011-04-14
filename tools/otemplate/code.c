@@ -178,7 +178,7 @@ void code_endif(parser_status *st, list *l){
 }
 
 void code_trans(parser_status *st, list *l){
-	block *tmp=block_new(NULL);
+	block *tmp=block_new();
 	block_add_string(tmp, ((code_token*)l->head->next->data)->data);
 	block_safe_for_printf(tmp);
 	parser_add_text(st, "  onion_response_write0(res, gettext(\"%s\"));\n", tmp->data);
@@ -204,7 +204,7 @@ void code_include(parser_status* st, list* l){
 		return;
 	}
 	st->rawblock->pos=0;
-	st->rawblock->extra=0;
+	st->last_wmode=0;
 	int mode=st->mode;
 	st->mode=TEXT;
 	// Real job here, all around is to use this
@@ -219,7 +219,7 @@ void code_include(parser_status* st, list* l){
 	
 	free(d->id);
 	d->id=malloc(64);
-	snprintf(d->id, 64, "ot_include_%s", basename(tmp));
+	snprintf(d->id, 64, "ot_%s", basename(tmp));
 	
 	char *p=d->id;
 	while (*p){

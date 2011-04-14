@@ -23,10 +23,9 @@ typedef struct block_t{
 	char *data;
 	int length;
 	int pos;
-	void *extra; /// some metadata about the block
 }block;
 
-block *block_new(void *extra);
+block *block_new();
 void block_free(block *);
 void block_add_char(block *, char c);
 void block_add_string(block *, const char *str);

@@ -16,15 +16,18 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <libgen.h>
 
 #include "onion/log.h"
 #include "list.h"
 #include "block.h"
 #include "parser.h"
+#include <malloc.h>
 
 
 int work(const char *infilename, FILE *in, FILE *out);
@@ -75,9 +78,19 @@ int work(const char *infilename, FILE *in, FILE *out){
 	status.functions=list_new((void*)function_free);
 	status.function_stack=list_new(NULL);
 	status.status=0;
-	status.rawblock=block_new(NULL);
+	status.rawblock=block_new();
 	status.infilename=infilename;
-	function_new(&status);
+	
+	function_data *d=function_new(&status);
+	free(d->id);
+	d->id=malloc(64);
+	snprintf(d->id, 64, "ot_%s", basename(strdupa(infilename)));
+	char *p=d->id;
+	while (*p){
+		if (*p=='.')
+			*p='_';
+		p++;
+	}
 	
 	parse_template(&status);
 	
@@ -192,10 +205,10 @@ void write_tag(parser_status *st, block *b){
 }
 
 void write_block(parser_status *st, block *b){
-	int mode=(long int)b->extra;
+	int mode=st->last_wmode;
 	block_add_char(b, '\0');
 	b->pos--;
-	//ONION_DEBUG("Write mode %d, code %s", mode, b->data);
+	ONION_DEBUG("Write mode %d, code %s", mode, b->data);
 	switch(mode){
 		case TEXT:
 			if (b->pos){
@@ -223,7 +236,7 @@ void add_char(parser_status *st, char c){
 void set_mode(parser_status *status, int mode){
 	if (mode<16){
 		write_block(status, status->rawblock);
-		status->rawblock->extra=(void*)(long int)mode;
+		status->last_wmode=mode;
 	}
 	status->mode=mode;
 }

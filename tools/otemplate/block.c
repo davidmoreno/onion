@@ -21,12 +21,11 @@
 #include <ctype.h>
 #include <string.h>
 
-block *block_new(void *extra){
+block *block_new(){
 	block *ret=malloc(sizeof(block));
 	ret->data=malloc(16);
 	ret->length=16;
 	ret->pos=0;
-	ret->extra=extra;
 	return ret;
 }
 

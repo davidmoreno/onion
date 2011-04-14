@@ -40,6 +40,7 @@ typedef struct function_data_t function_data;
 
 
 struct parser_status_t{
+	parser_mode last_wmode;
 	parser_mode mode;
 	FILE *in;
 	FILE *out;
