@@ -16,18 +16,24 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#ifndef __PARSER_H__
+#define __PARSER_H__
+
+#include <stdio.h>
+
 #include "block.h"
+#include "list.h"
 
 typedef enum parser_mode_e{
 	TEXT=0,
-	TAG=2,
-	CODE=3,
+	VARIABLE=2,
+	TAG=3,
 	
 	END=15,
 	// transitional modes
 	BEGIN=17,
-	END_TAG=18,
-	END_CODE=19,
+	END_VARIABLE=18,
+	END_TAG=19,
 	
 }parser_mode;
 
@@ -58,15 +64,10 @@ struct parser_status_t{
 };
 typedef struct parser_status_t parser_status;
 
-
 void parse_template(parser_status *status);
-void set_mode(parser_status *status, int mode);
 
 void add_char(parser_status *st, char c);
 void write_block(parser_status *st, block *b);
-
-void write_code(parser_status *st, block *b);
-
 
 void write_other_functions_declarations(parser_status *st);
 void write_main_function(parser_status *st);
@@ -78,5 +79,7 @@ function_data *function_new(parser_status *st);
 void function_free(function_data *d);
 
 
-function_data *parser_stack_pop(parser_status *st);
-void parser_add_text(parser_status *st, const char *fmt, ...);
+function_data *template_stack_pop(parser_status *st);
+void template_add_text(parser_status *st, const char *fmt, ...);
+
+#endif

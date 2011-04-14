@@ -17,11 +17,10 @@
 	*/
 
 #define _GNU_SOURCE
-#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdarg.h>
 #include <libgen.h>
+#include <stdarg.h>
 
 #include "onion/log.h"
 #include "list.h"
@@ -132,118 +131,10 @@ int work(const char *infilename, FILE *in, FILE *out){
 	return status.status;
 }
 
-/**
- * @short Main parsing loop.
- */
-void parse_template(parser_status *status){
-	int c;
-	while ( (status->c=fgetc(status->in)) >= 0){
-		c=status->c;
-		switch(status->mode){
-			case TEXT:
-				if (c=='{')
-					set_mode(status, BEGIN);
-				else
-					add_char(status, c);
-				break;
-			case BEGIN:
-				if (c=='{')
-					set_mode(status, TAG);
-				else if (c=='%')
-					set_mode(status, CODE);
-				else{
-					set_mode(status, TEXT);
-					add_char(status, '{');
-					add_char(status, c);
-				}
-				break;
-			case TAG:
-				if (c=='}')
-					set_mode(status, END_TAG);
-				else
-					add_char(status, c);
-				break;
-			case CODE:
-				if (c=='%')
-					set_mode(status, END_CODE);
-				else
-					add_char(status, c);
-				break;
-			case END_TAG:
-				if (c=='}')
-					set_mode(status, TEXT);
-				else{
-					set_mode(status, TAG);
-					add_char(status, '}');
-					add_char(status, c);
-				}
-				break;
-			case END_CODE:
-				if (c=='}')
-					set_mode(status, TEXT);
-				else{
-					set_mode(status, END_CODE);
-					add_char(status, '%');
-					add_char(status, c);
-				}
-				break;
-			default:
-				ONION_ERROR("Unknown mode %d",status->mode);
-				status->status=1;
-				return;
-		}
-	}
-	set_mode(status, END);
-}
-
-void write_tag(parser_status *st, block *b){
-	block_safe_for_printf(b);
-	parser_add_text(st, 
-"  tmp=onion_dict_get(context, \"%s\");\n"
-"  if (tmp)\n"
-"    onion_response_write0(res, tmp);\n", b->data);
-}
-
-void write_block(parser_status *st, block *b){
-	int mode=st->last_wmode;
-	block_add_char(b, '\0');
-	b->pos--;
-	ONION_DEBUG("Write mode %d, code %s", mode, b->data);
-	switch(mode){
-		case TEXT:
-			if (b->pos){
-				int oldl=b->pos;
-				block_safe_for_printf(b);
-				parser_add_text(st, "  onion_response_write(res, \"%s\", %d);\n", b->data, oldl);
-			}
-			break;
-		case TAG:
-			write_tag(st, b);
-			break;
-		case CODE:
-			write_code(st, b);
-			break;
-		default:
-			ONION_ERROR("Unknown final mode %d", mode);
-	}
-	st->rawblock->pos=0;
-}
-
-void add_char(parser_status *st, char c){
-	block_add_char(st->rawblock, c);
-}
-
-void set_mode(parser_status *status, int mode){
-	if (mode<16){
-		write_block(status, status->rawblock);
-		status->last_wmode=mode;
-	}
-	status->mode=mode;
-}
 
 
 
-function_data *parser_stack_pop(parser_status *st){
+function_data *template_stack_pop(parser_status *st){
 	function_data *p=(function_data*)st->function_stack->tail->data;
 	list_pop(st->function_stack);
 	ONION_DEBUG("pop function stack, length is %d", list_count(st->function_stack));
@@ -251,7 +142,9 @@ function_data *parser_stack_pop(parser_status *st){
 	return p;
 }
 
-void parser_add_text(parser_status *st, const char *fmt, ...){
+
+
+void template_add_text(parser_status *st, const char *fmt, ...){
 	char tmp[4096];
 	
 	va_list ap;
