@@ -52,8 +52,11 @@ int onion_dict_remove(onion_dict *dict, const char *key);
 /// Removes the full dict struct form mem.
 void onion_dict_free(onion_dict *dict);
 
-/// Creates a duplicate of the dict.
+/// Creates a soft duplicate of the dict.
 onion_dict *onion_dict_dup(onion_dict *dict);
+
+/// Creates a hard duplicate of the dict.
+onion_dict *onion_dict_hard_dup(onion_dict *dict);
 
 /// Gets a value
 const char *onion_dict_get(const onion_dict *dict, const char *key);

@@ -81,6 +81,26 @@ onion_dict *onion_dict_dup(onion_dict *dict){
 	return dict;
 }
 
+void onion_dict_hard_dup_helper(const char *key, const char *value, onion_dict *dict){
+	onion_dict_add(dict, key, value, OD_DUP_ALL);
+}
+
+/**
+ * @short Creates a full duplicate of the dict
+ * 
+ * Its actually the same, but with refcount increased, so future frees will free the dict
+ * only on latest one.
+ * 
+ * Any change on one dict is made also on the other one, as well as rwlock... This is usefull on a multhreaded
+ * environment so that multiple threads cna have the same dict and free it when not in use anymore.
+ */
+onion_dict *onion_dict_hard_dup(onion_dict *dict){
+	onion_dict *d=onion_dict_new();
+	onion_dict_preorder(dict, onion_dict_hard_dup_helper, d);
+	return d;
+}
+
+
 /// Removes a node and its data
 static void onion_dict_node_free(onion_dict_node *node){
 	if (node->left)

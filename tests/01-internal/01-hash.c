@@ -512,7 +512,36 @@ void t10_tojson(){
 	END_LOCAL();
 }
 
+void cmpdict(const char *key, const char *value, onion_dict *d){
+	FAIL_IF_NOT_EQUAL_STR(value, onion_dict_get(d, key));
+}
+
+void t11_hard_dup(){
+	INIT_LOCAL();
+	
+	onion_dict *orig=onion_dict_new();
+	
+	char tmp[9];
+	int i;
+	for (i=0;i<256;i++){
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(orig, tmp, tmp, OD_DUP_ALL);
+	}
+	
+	onion_dict *dest=onion_dict_hard_dup(orig);
+	
+	/// Check they have exactly the same keys.
+	onion_dict_preorder(orig, cmpdict, dest);
+	onion_dict_preorder(dest, cmpdict, orig);
+	
+	onion_dict_free(orig);
+	onion_dict_free(dest);
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
+	/*
 	t01_create_add_free();
 	t01_create_add_free_10();
 	t02_create_and_free_a_lot(100);
@@ -524,6 +553,8 @@ int main(int argc, char **argv){
 	t08_threaded_lock();
 	t09_thread_war();
 	t10_tojson();
+	*/
+	t11_hard_dup();
 	
 	END();
 }
