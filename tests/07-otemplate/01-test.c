@@ -26,7 +26,7 @@
 
 onion *o;
 
-int test_html_handler(onion_dict *d, onion_request *req);
+int test_html_template(onion_dict *d, onion_request *req);
 
 void free_onion(){
 	ONION_INFO("Closing connections");
@@ -43,9 +43,7 @@ onion_connection_status test_page(void *ignore, onion_request *req){
 	onion_dict_add(dict, "title", "Test page - works", 0);
 	onion_dict_add(dict, "random", tmp, OD_DUP_VALUE);
 	
-	int ok=test_html_handler(dict, req);
-	onion_dict_free(dict);
-	return ok;
+	return test_html_template(dict, req);
 }
 
 int main(int argc, char **argv){
