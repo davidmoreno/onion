@@ -79,90 +79,12 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
 	}
 	else if (S_ISREG(reals.st_mode)){
 		//ONION_DEBUG("FILE");
-		return onion_handler_export_local_file(realp, &reals, request);
+		return onion_shortcut_response_file(realp, request);
 	}
 	//ONION_DEBUG("Dont know how to handle");
 	return 0;
 }
 
-/**
- * @short Handler a single file.
- */
-int onion_handler_export_local_file(const char *realp, struct stat *reals, onion_request *request){
-	int fd=open(realp,O_RDONLY);
-
-	if (fd<0)
-		return 0;
-
-	if (!reals){
-		reals=alloca(sizeof(struct stat));
-		stat(realp, reals);
-	}
-	
-	size_t size=reals->st_size;
-	size_t length=size;
-
-	onion_response *res=onion_response_new(request);
-
-	
-	const char *range=onion_request_get_header(request, "Range");
-	if (range && strncmp(range,"bytes=",6)==0){
-		//ONION_DEBUG("Need just a range: %s",range);
-		char tmp[1024];
-		strncpy(tmp, range+6, 1024);
-		char *start=tmp;
-		char *end=tmp;
-		while (*end!='-' && *end) end++;
-		if (*end=='-'){
-			*end='\0';
-			end++;
-			
-			//ONION_DEBUG("Start %s, end %s",start,end);
-			size_t ends, starts;
-			if (*end)
-				ends=atol(end);
-			else
-				ends=length;
-			starts=atol(start);
-			length=ends-starts;
-			lseek(fd, starts, SEEK_SET);
-			snprintf(tmp,sizeof(tmp),"%d-%d/%d",(unsigned int)starts, (unsigned int)ends-1, (unsigned int)length);
-			onion_response_set_header(res, "Content-Range",tmp);
-		}
-	}
-	
-	onion_response_set_length(res, length);
-	onion_response_write_headers(res);
-	
-	if (length){
-		int r=0,w;
-		size_t tr=0;
-		char tmp[4046];
-		if (length>sizeof(tmp)){
-			size_t max=length-sizeof(tmp);
-			while( tr<max ){
-				r=read(fd,tmp,sizeof(tmp));
-				tr+=r;
-				if (r<0)
-					break;
-				w=onion_response_write(res, tmp, r);
-				if (w!=r){
-					ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
-					break;
-				}
-			}
-		}
-		if (sizeof(tmp) >= (length-tr)){
-			r=read(fd, tmp, length-tr);
-			w=onion_response_write(res, tmp, r);
-			if (w!=r){
-				ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
-			}
-		}
-	}
-	close(fd);
-	return onion_response_free(res);
-}
 
 /// Default directory handler: The style + dirname on a h1
 void onion_handler_export_local_header_default(onion_response *res, const char *dirname){

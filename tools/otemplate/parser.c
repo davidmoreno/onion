@@ -34,6 +34,8 @@ void parse_template(parser_status *status){
 	int c;
 	while ( (status->c=fgetc(status->in)) >= 0){
 		c=status->c;
+		if (c=='\n')
+			status->line++;
 		switch(status->mode){
 			case TEXT:
 				if (c=='{')
@@ -100,7 +102,7 @@ void write_block(parser_status *st, block *b){
 	int mode=st->last_wmode;
 	block_add_char(b, '\0');
 	b->pos--;
-	ONION_DEBUG("Write mode %d, code %s", mode, b->data);
+	//ONION_DEBUG("Write mode %d, code %s", mode, b->data);
 	switch(mode){
 		case TEXT:
 			if (b->pos){

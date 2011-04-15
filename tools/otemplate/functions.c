@@ -71,8 +71,6 @@ void functions_write_main_code(parser_status *st){
 "\n"
 "  %s(context, res);\n"
 "\n"
-"  onion_dict_free(context);\n"
-"\n"
 "  return onion_response_free(res);\n"
 "}\n\n", f, f);
 

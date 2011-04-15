@@ -99,9 +99,11 @@ void write_tag(parser_status *st, block *b){
 				break;
 		}
 	}
+	if (mode==1)
+		list_add(command, tag_token_new(&b->data[li], i-li, T_VAR));
 	
 	if (!command->head){
-		ONION_ERROR("Incomplete command");
+		ONION_ERROR("%s:%d Incomplete command", st->infilename, st->line);
 		st->status=1;
 		return;
 	}
@@ -167,7 +169,7 @@ void tag_for(parser_status *st, list *l){
 	d->signature="dict_res *dr, const char *key, const void *value, int flags";
 
 	function_add_code(st, 
-"  onion_dict_add(dr->dict, \"%s\", value, OD_DUP_VALUE|OD_REPLACE);\n", ((tag_token*)list_get_n(l,1))->data);
+"  onion_dict_add(dr->dict, \"%s\", value, OD_DUP_VALUE|OD_REPLACE|(flags&OD_TYPE_MASK));\n", ((tag_token*)list_get_n(l,1))->data);
 	
 	function_new(st, NULL);
 }

@@ -42,6 +42,8 @@ enum onion_dict_flags_e{
 	// Types
 	OD_STRING=0,       /// Stored data is a string, this is the most normal situation
 	OD_DICT=0x0100,    /// Stored data is another dictionary
+	
+	OD_TYPE_MASK=0x0FF00, /// Mask for the types
 };
 
 /// Initializes a dict.

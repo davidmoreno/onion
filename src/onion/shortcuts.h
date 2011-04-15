@@ -26,14 +26,16 @@ extern "C"{
 #include <onion/types.h>
 
 /// Shortcut for fast responses, like errors.
-int onion_shortcut_response(onion_request *req, const char *response, int code);
+int onion_shortcut_response(const char *response, int code, onion_request *req);
 
 /// Shortcut for fast responses, like errors, with extra headers.
-int onion_shortcut_response_extra_headers(onion_request *req, const char *response, int code, ...);
+int onion_shortcut_response_extra_headers(const char *response, int code, onion_request *req, ...);
 
 /// Shortcut for fast redirect.
-int onion_shortcut_redirect(onion_request *req, const char *response, const char *newurl);
+int onion_shortcut_redirect(const char *newurl, onion_request *req);
 
+/// Shortcut for response a static file on disk
+int onion_shortcut_response_file(const char *filename, onion_request *req);
 
 #ifdef __cplusplus
 }

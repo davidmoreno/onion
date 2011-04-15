@@ -77,6 +77,7 @@ int work(const char *infilename, FILE *in, FILE *out){
 	status.functions=list_new((void*)function_free);
 	status.function_stack=list_new(NULL);
 	status.status=0;
+	status.line=0;
 	status.rawblock=block_new();
 	status.infilename=infilename;
 	

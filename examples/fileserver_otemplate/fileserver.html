@@ -1,0 +1,23 @@
+<html>
+<head>
+ <title>{% trans "Navigation of" %} {{dirname}}</title>
+</head>
+<body>
+
+<h1>{{dirname}}</h1>
+
+{% if go_up %}<a href="..">Go up</a>{%endif%}
+
+<table>
+<thead>
+ <tr><th>{% trans "Filename" %}</th><th>{% trans "Size" %}</th><th>{% trans "Owner" %}</th></tr>
+</thead>
+<tbody>
+{% for file in files %}
+ <tr><td><a href="{{file.name}}">{{file.name}}</a></td><td>{{file.size}}</td><td>{{file.owner}}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+</body>
+</html>

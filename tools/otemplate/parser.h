@@ -55,6 +55,7 @@ struct parser_status_t{
 	char c; /// Last character read
 	int status; /// Exit status.
 	int function_count;
+	int line;
 };
 typedef struct parser_status_t parser_status;
 

@@ -10,3 +10,4 @@ endif (PAM_ENABLED)
 
 add_subdirectory(userver)
 add_subdirectory(interactive)
+add_subdirectory(fileserver_otemplate)
