@@ -31,6 +31,8 @@ void onion_block_min_maxsize(onion_block *b, int minsize);
 off_t onion_block_size(onion_block *b);
 const char *onion_block_data(onion_block *b);
 
+void onion_block_rewind(onion_block *b, off_t n);
+
 void onion_block_add_char(onion_block *b, char c);
 void onion_block_add_str(onion_block *b, const char *str);
 void onion_block_add_data(onion_block *b, const char *data, size_t length);

@@ -25,6 +25,7 @@
 #include "../test.h"
 #include <pthread.h>
 #include <unistd.h>
+#include <onion/block.h>
 
 
 void t01_create_add_free(){
@@ -451,15 +452,20 @@ void t10_tojson(){
 	INIT_LOCAL();
 	
 	onion_dict *d=onion_dict_new();
-	char tmp[256];
-	ssize_t s;
-	s=onion_dict_to_json(d, tmp, sizeof(tmp));
+	const char *tmp;
+	int s;
+	onion_block *b;
+	b=onion_dict_to_json(d);
+	tmp=onion_block_data(b);
 	ONION_DEBUG("Json returned is '%s'", tmp);
 	FAIL_IF_NOT_EQUAL_STR(tmp,"{}");
+	onion_block_free(b);
 	
 	onion_dict_add(d, "test", "json", 0);
 	
-	s=onion_dict_to_json(d, tmp, sizeof(tmp));
+	b=onion_dict_to_json(d);
+	tmp=onion_block_data(b);
+	s=onion_block_size(b);
 	ONION_DEBUG("Json returned is '%s'", tmp);
 	FAIL_IF(s<=0);
 	FAIL_IF_EQUAL(strstr(tmp,"{"), NULL);
@@ -468,10 +474,13 @@ void t10_tojson(){
 	FAIL_IF_EQUAL(strstr(tmp,"\"test\""), NULL);
 	FAIL_IF_EQUAL(strstr(tmp,"\"json\""), NULL);
 	FAIL_IF_NOT_EQUAL(strstr(tmp,","), NULL);
-
+	onion_block_free(b);
+	
 	onion_dict_add(d, "other", "data", 0);
 
-	s=onion_dict_to_json(d, tmp, sizeof(tmp));
+	b=onion_dict_to_json(d);
+	tmp=onion_block_data(b);
+	s=onion_block_size(b);
 	ONION_DEBUG("Json returned is '%s'", tmp);
 	FAIL_IF(s<=0);
 	FAIL_IF_EQUAL(strstr(tmp,"{"), NULL);
@@ -482,29 +491,19 @@ void t10_tojson(){
 	FAIL_IF_EQUAL(strstr(tmp,","), NULL);
 	FAIL_IF_EQUAL(strstr(tmp,"\"other\""), NULL);
 	FAIL_IF_EQUAL(strstr(tmp,"\"data\""), NULL);
-
+	onion_block_free(b);
+	
 	onion_dict_add(d, "with\"", "data\n", 0);
 
-	s=onion_dict_to_json(d, tmp, sizeof(tmp));
+	b=onion_dict_to_json(d);
+	tmp=onion_block_data(b);
+	s=onion_block_size(b);
 	ONION_DEBUG("Json returned is '%s'", tmp);
 	FAIL_IF(s<=0);
 
 	FAIL_IF_EQUAL(strstr(tmp,"\\n"), NULL);
 	FAIL_IF_EQUAL(strstr(tmp,"\\\""), NULL);
-
-	// Check no memory errors.
-	// There is a grey areas as it need 2 more bytes as really needed, but its because of internal management.
-	int size=strlen(tmp);
-	int i;
-	for (i=0;i<size;i++){
-		memset(tmp,'#',sizeof(tmp));
-		//ONION_DEBUG("Try with size %d. Real is %d.",i,size);
-		s=onion_dict_to_json(d, tmp, i);
-		FAIL_IF_NOT_EQUAL(s,-1);
-		FAIL_IF_NOT_EQUAL_INT(tmp[i],'#');
-	}
-	s=onion_dict_to_json(d, tmp, i+2);
-	FAIL_IF_EQUAL(s,-1);
+	onion_block_free(b);
 	
 	onion_dict_free(d);
 	
@@ -570,27 +569,23 @@ void t12_dict_in_dict(){
 	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "D"), D);
 	
 	{
-		char *tmpA=malloc(65536);
-		onion_dict_to_json(A, tmpA, 65536);
-		char *tmpB=malloc(65536);
-		onion_dict_to_json(B, tmpB, 65536);
-		char *tmpC=malloc(65536);
-		onion_dict_to_json(C, tmpC, 65536);
-		char *tmpD=malloc(65536);
-		onion_dict_to_json(D, tmpD, 65536);
+		onion_block *tmpA=onion_dict_to_json(A);
+		onion_block *tmpB=onion_dict_to_json(B);
+		onion_block *tmpC=onion_dict_to_json(C);
+		onion_block *tmpD=onion_dict_to_json(D);
 		/*
 		ONION_DEBUG("Json is: %s",tmpA);
 		ONION_DEBUG("Json is: %s",tmpB);
 		ONION_DEBUG("Json is: %s",tmpC);
 		ONION_DEBUG("Json is: %s",tmpD);
 		*/
-		FAIL_IF_EQUAL( strstr(tmpA, tmpB), NULL);
-		FAIL_IF_EQUAL( strstr(tmpA, tmpC), NULL);
-		FAIL_IF_EQUAL( strstr(tmpA, tmpD), NULL);
-		free(tmpA);
-		free(tmpB);
-		free(tmpC);
-		free(tmpD);
+		FAIL_IF_EQUAL( strstr(onion_block_data(tmpA), onion_block_data(tmpB)), NULL);
+		FAIL_IF_EQUAL( strstr(onion_block_data(tmpA), onion_block_data(tmpC)), NULL);
+		FAIL_IF_EQUAL( strstr(onion_block_data(tmpA), onion_block_data(tmpD)), NULL);
+		onion_block_free(tmpA);
+		onion_block_free(tmpB);
+		onion_block_free(tmpC);
+		onion_block_free(tmpD);
 	}
 	B=onion_dict_hard_dup(A);
 	

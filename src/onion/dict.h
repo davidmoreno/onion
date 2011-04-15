@@ -88,7 +88,7 @@ void onion_dict_lock_write(onion_dict *dict);
 void onion_dict_unlock(onion_dict *dict);
 /// @}
 
-ssize_t onion_dict_to_json(onion_dict *dict, char *data, size_t datasize);
+onion_block *onion_dict_to_json(onion_dict *dict);
 
 #ifdef __cplusplus
 }

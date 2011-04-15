@@ -91,6 +91,17 @@ off_t onion_block_size(onion_block *b){
 }
 
 /**
+ * @short Reduces the size of the block.
+ */
+void onion_block_rewind(onion_block *b, off_t n){
+	if (b->size<n)
+		b->size=0;
+	else
+		b->size-=n;
+}
+
+
+/**
  * @short Adds a character to the block
  */
 void onion_block_add_char(onion_block *bl, char c){

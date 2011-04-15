@@ -24,6 +24,7 @@
 #include "dict.h"
 #include "types_internal.h"
 #include "codecs.h"
+#include "block.h"
 
 typedef struct onion_dict_node_data_t{
 	const char *key;
@@ -458,54 +459,41 @@ void onion_dict_unlock(onion_dict *dict){
 #endif
 }
 
-/// Helper for buffers.
-struct onion_dict_buffer{
-	char *data;
-	off_t pos;
-	size_t size;
-};
-
 /**
  * @short Helps to prepare each pair.
  */
-static void onion_dict_json_preorder(struct onion_dict_buffer *buffer, const char *key, const void *value, int flags){
-	if (buffer->pos<0) // already an error.
+static void onion_dict_json_preorder(onion_block *block, const char *key, const void *value, int flags){
+	if (!onion_block_size(block)) // Error somewhere.
 		return;
-	int blockSize=strlen(key) + strlen(value) + 7;
-	if (buffer->pos + blockSize > buffer->size){ // min, dont even try.
-		buffer->pos=-1;
-		return;
-	}
 	char *s;
-	s=onion_c_quote(key, buffer->data+buffer->pos,buffer->size-buffer->pos-1);
+	s=onion_c_quote_new(key);
 	if (s==NULL){
-		buffer->pos=-1;
+		onion_block_clear(block);
 		return;
 	}
-	buffer->pos+=strlen(s);
-	if (buffer->pos>=buffer->size){
-		buffer->pos=-1;
-		return;
-	}
-	buffer->data[buffer->pos++]=':';
+	onion_block_add_str(block, s);
+	free(s);
+	onion_block_add_char(block, ':');
 	if (flags&OD_DICT){
-		onion_dict_to_json((onion_dict*)value, &buffer->data[buffer->pos], buffer->size-buffer->pos - 5 );
-		buffer->pos+=strlen(&buffer->data[buffer->pos]);
+		onion_block *tmp;
+		tmp=onion_dict_to_json((onion_dict*)value);
+		if (!tmp){
+			onion_block_clear(block);
+			return;
+		}
+		onion_block_add_block(block, tmp);
+		onion_block_free(tmp);
 	}
 	else{
-		s=onion_c_quote(value, buffer->data+buffer->pos,buffer->size-buffer->pos-1);
+		s=onion_c_quote_new(value);
 		if (s==NULL){
-			buffer->pos=-1;
+			onion_block_clear(block);
 			return;
 		}
-		buffer->pos+=strlen(s);
-		if (buffer->pos+2>=buffer->size){
-			buffer->pos=-1;
-			return;
-		}
+		onion_block_add_str(block, s);
+		free(s);
 	}
-	buffer->data[buffer->pos++]=',';
-	buffer->data[buffer->pos++]=' ';
+	onion_block_add_data(block, ", ",2);
 }
 
 /**
@@ -513,36 +501,27 @@ static void onion_dict_json_preorder(struct onion_dict_buffer *buffer, const cha
  * 
  * Given a dictionary and a buffer (with size), it writes a json dictionary to it.
  * 
- * The data should be at least 8 bytes of will fail. Then if data do not fit it fails too.
- * 
- * data should be 2 bytes longer that actually needed because of implementation issues.
+ * @returns an onion_block with the json data, or NULL on error
  */
-ssize_t onion_dict_to_json(onion_dict *dict, char *data, size_t datasize){
-	if (datasize<=8){
-		if (datasize>0){
-			//ONION_DEBUG("Buffer to small for data");
-			data[0]=0;
-		}
-		return -1;
-	}
+block *onion_dict_to_json(onion_dict *dict){
+	onion_block *block=onion_block_new();
 	
-	struct onion_dict_buffer buffer = { data, 0, datasize };
-	data[buffer.pos++]='{';
+	onion_block_add_char(block, '{');
 	if (dict && dict->root)
-		onion_dict_node_preorder(dict->root, (void*)onion_dict_json_preorder, &buffer);
+		onion_dict_node_preorder(dict->root, (void*)onion_dict_json_preorder, block);
 
-	if (buffer.pos<0)
-		return -1;
-	
-	if (buffer.pos==1){
-		data[buffer.pos++]='}';
-		data[buffer.pos++]=0;
+
+	int s=onion_block_size(block);
+	if (s==0){ // Error.
+		onion_block_clear(block);
+		return NULL;
 	}
-	else{
-		data[buffer.pos-2]='}';
-		data[buffer.pos-1]=0;
-	}
+	if (s!=1) // To remove a final ", "
+		onion_block_rewind(block, 2);
 	
-	return buffer.pos;
+	onion_block_add_char(block, '}');
+
+	
+	return block;
 }
 

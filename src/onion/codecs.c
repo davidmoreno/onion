@@ -287,14 +287,14 @@ int onion_quote(const char *str, char *res, int maxlength){
 /// Performs C quotation: changes " for \". Usefull when sending data to be interpreted as JSON. Returned data must be freed.
 char *onion_c_quote_new(const char *str){
 	char *ret;
-	int l=0, i=0;
+	int l=3; // The quotes + \0
 	const char *p=str;
 	while( *p != '\0'){ 
 		if (*p=='\n' || *p=='\r' || *p=='"' || *p=='\\' || *p=='\t')
 			l++;
-		i++; p++;
+		l++; p++;
 	}
-	ret=malloc(i+l+2);
+	ret=malloc(l);
 	onion_c_quote(str, ret, l);
 	return ret;
 }
