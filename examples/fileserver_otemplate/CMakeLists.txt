@@ -10,6 +10,6 @@ add_custom_command(
 
 
 add_executable(fileserver_otemplate fileserver.c fileserver_html.c)
-target_link_libraries(fileserver_otemplate onion_static)
+target_link_libraries(fileserver_otemplate onion)
 
 install(TARGETS fileserver_otemplate DESTINATION bin)

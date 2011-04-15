@@ -193,14 +193,14 @@ void tag_if(parser_status *st, list *l){
 	function_add_code(st, 
 "  {\n"
 "    const char *tmp=onion_dict_get(context, \"%s\");\n"
-"    if (!tmp || strcmp(tmp, \"false\")==0)\n", t_arg(l,1));
+"    if (tmp && strcmp(tmp, \"false\")!=0)\n", t_arg(l,1));
 	function_new(st, NULL);
 }
 
 /// Else part
 void tag_else(parser_status *st, list *l){
 	function_data *d=function_pop(st);
-	function_add_code(st, "    %s(context, res);\n  else\n", d->id);
+	function_add_code(st, "      %s(context, res);\n    else\n", d->id);
 	
 	function_new(st, NULL);
 }
@@ -208,7 +208,7 @@ void tag_else(parser_status *st, list *l){
 /// endif
 void tag_endif(parser_status *st, list *l){
 	function_data *d=function_pop(st);
-	function_add_code(st, "    %s(context, res);\n  }\n", d->id);
+	function_add_code(st, "      %s(context, res);\n  }\n", d->id);
 }
 
 /// Following text is for gettext

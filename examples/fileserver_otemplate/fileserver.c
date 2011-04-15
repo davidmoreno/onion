@@ -106,6 +106,9 @@ int fileserver_page(const char *basepath, onion_request *req){
 	if (!realp)
 		return OCS_INTERNAL_ERROR;
 	
+	if (path[0]!='\0' && path[1]!='\0')
+		onion_dict_add(d, "go_up", "true", 0);
+	
 	onion_dict *files=onion_dict_new();
 	onion_dict_add(d, "files", files, OD_DICT);
 	DIR *dir=opendir(realp);
