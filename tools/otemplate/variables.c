@@ -28,10 +28,53 @@
  * TODO. Just now only plain vars.
  */
 void write_variable(parser_status *st, block *b){
-	block_safe_for_printf(b);
-	function_add_code(st, 
+	list *parts=list_new(block_free);
+	block *lastblock;
+	list_add(parts, lastblock=block_new());
+	
+	
+	int i=0;
+	for (i=0;i<b->pos;i++){
+		if (b->data[i]=='.')
+			list_add(parts, lastblock=block_new());
+		else if (b->data[i]==' ')
+			continue;
+		else
+			block_add_char(lastblock, b->data[i]);
+	}
+
+	if (list_count(parts)==1){
+		block_safe_for_printf(b);
+		function_add_code(st, 
 "  tmp=onion_dict_get(context, \"%s\");\n"
 "  if (tmp)\n"
 "    onion_response_write0(res, tmp);\n", b->data);
+	}
+	else{
+		function_add_code(st,
+"  {\n"
+"    onion_dict *d=context;\n");
+		list_item *it=parts->head;
+		while (it->next){
+			lastblock=it->data;
+			
+			block_safe_for_printf(lastblock);
+			function_add_code(st,
+"    if (d)\n"
+"      d=onion_dict_get_dict(d, \"%s\");\n", lastblock->data);
+			it=it->next;
+		}
+		lastblock=it->data;
+		
+		block_safe_for_printf(lastblock);
+		function_add_code(st, 
+"    if (d)\n"
+"      tmp=onion_dict_get(d, \"%s\");\n", lastblock->data);
+		function_add_code(st, 
+"  }\n"
+"  if (tmp)\n"
+"    onion_response_write0(res, tmp);\n", b->data);
+	}
+	list_free(parts);
 }
 

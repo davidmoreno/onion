@@ -7,9 +7,12 @@
 
 <h1>{{title}}</h1>
 
-{% trans "This is a test." %}
+<h2>{% trans "Test vars." %}</h2>
 <p>
-{% trans "Random value" %} {{random}}.
+<ul>
+<li>{% trans "Random value" %} {{random}}.
+<li>{% trans "sub.0" %} {{ subd.0 }}.
+</ul>
 
 <h2>{% trans "Test if" %}</h2>
 {% if random_gt %}
