@@ -21,3 +21,6 @@ target_link_libraries(07-codecs onion_handlers onion)
 
 add_executable(08-post 08-post.c)
 target_link_libraries(08-post onion)
+
+add_executable(09-block 09-block.c)
+target_link_libraries(09-block onion)

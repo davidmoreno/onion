@@ -123,6 +123,13 @@ struct onion_sessions_t{
 	onion_dict *sessions; 		/// Where all sessions are stored. Each element is another onion_dict.
 };
 
+typedef struct onion_block_t{
+	char *data;
+	int size;
+	int maxsize;
+}block;
+
+
 #ifdef __cplusplus
 }
 #endif

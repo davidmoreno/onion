@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <libgen.h>
 #include <stdlib.h>
+#include <string.h>
 
 /**
  * @short Basic library for testing. Uses a lot of macros and global vars.
@@ -57,4 +58,4 @@ int local_successes=0;
 #define FAIL_IF_NOT_EQUAL_STR(A,B) { const char *a=(A); const char *b=(B); if ((a!=b) && ((!a || !b) || strcmp(a,b)!=0)){ ERROR("%s:%d FAIL IF NOT EQUAL STR %s != %s (\"%s\" != \"%s\")",basename(__FILE__),__LINE__,#A,#B,a,b); local_failures++; } else { local_successes++; } }
 
 #define FAIL_IF_STRSTR(A,B) { const char *a=(A); const char *b=(B); if (a==b || strstr(a,b)){ ERROR("%s:%d FAIL IF STRSTR %s HAS %s (\"%s\" HAS \"%s\")",basename(__FILE__),__LINE__,#A,#B,a,b); local_failures++; } else { local_successes++; } }
-#define FAIL_IF_NOT_STRSTR(A,B) { const char *a=(A); const char *b=(B); if (((a==NULL) && (b==NULL)) || (!strstr(a,b))){ ERROR("%s:%d FAIL IF NOT STRSTR %s HAS NOT %s (\"%s\" NAS NOT \"%s\")",basename(__FILE__),__LINE__,#A,#B,a,b); local_failures++; } else { local_successes++; } }
+#define FAIL_IF_NOT_STRSTR(A,B) { const char *a=(A); const char *b=(B); if (((a==NULL) && (b==NULL)) || (!strstr(a,b))){ ERROR("%s:%d FAIL IF NOT STRSTR %s HAS NOT %s (\"%s\" HAS NOT \"%s\")",basename(__FILE__),__LINE__,#A,#B,a,b); local_failures++; } else { local_successes++; } }

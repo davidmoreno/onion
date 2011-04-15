@@ -69,7 +69,7 @@ typedef struct onion_t onion;
  * 
  * This is a simple storage for sessions.
  * 
- * There is no thread safety mesaures on the usage of sessions. FIXME.
+ * Sessions are thread safe to use.
  * 
  * The sessions themselves are not created until some data is written to it by the program. This way we avoid
  * "session attack" where a malicious user sends many petitions asking for new sessions.
@@ -78,6 +78,20 @@ typedef struct onion_t onion;
  */
 struct onion_sessions_t;
 typedef struct onion_sessions_t onion_sessions;
+
+
+/**
+ * @struct onion_block_t
+ * @short Data type to store some raw data
+ * 
+ * Normally it will be used to store strings when the size is unknown beforehand,
+ * but it can contain any type of data.
+ * 
+ * Use with care as in most situations it might not be needed and more efficient 
+ * alternatives may exist.
+ */
+struct onion_block_t;
+typedef struct onion_block_t onion_block;
 
 /// Signature of request handlers.
 typedef int (*onion_handler_handler)(onion_handler *handler, onion_request *);
