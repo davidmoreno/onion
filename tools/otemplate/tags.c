@@ -27,10 +27,11 @@
 #include "block.h"
 #include "parser.h"
 #include <libgen.h>
+#include "variables.h"
 
 typedef enum token_type_e{
-	T_VAR=1,
-	T_STRING=2,
+	T_VAR=0,
+	T_STRING=1,
 }token_type;
 
 typedef struct tag_token_t{
@@ -136,11 +137,19 @@ void write_tag(parser_status *st, block *b){
 }
 
 /// Returns the nth arg oof the tag
-const char *t_arg(list *l, int n){
+const char *value_arg(list *l, int n){
 	tag_token *t=list_get_n(l,n);
 	if (t)
 		return t->data;
 	return NULL;
+}
+
+/// Returns the nth arg oof the tag
+int type_arg(list *l, int n){
+	tag_token *t=list_get_n(l,n);
+	if (t)
+		return t->type;
+	return 0;
 }
 
 /// Loads an external handler set
@@ -190,10 +199,33 @@ void tag_endfor(parser_status *st, list *l){
 
 /// Starts an if
 void tag_if(parser_status *st, list *l){
-	function_add_code(st, 
+	int lc=list_count(l);
+	if (lc==2){
+		function_add_code(st, 
 "  {\n"
 "    const char *tmp=onion_dict_get(context, \"%s\");\n"
-"    if (tmp && strcmp(tmp, \"false\")!=0)\n", t_arg(l,1));
+"    if (tmp && strcmp(tmp, \"false\")!=0)\n", value_arg(l,1));
+	}
+	else if (lc==4){
+		const char *op=value_arg(l, 2);
+		if (strcmp(op,"==")==0){
+			function_add_code(st,
+"  {\n"
+"    const char *op1, *op2;\n");
+			variable_solve(st, value_arg(l, 1), "op1", type_arg(l,1));
+			variable_solve(st, value_arg(l, 3), "op2", type_arg(l,3));
+			function_add_code(st,
+"    if (op1==op2 || (op1 && op2 && strcmp(op1, op2)==0))\n");
+		}
+		else{
+			ONION_ERROR("%s:%d Unkonwn operator for if: %s", st->infilename, st->line, op);
+			st->status=1;
+		}
+	}
+	else{
+		ONION_ERROR("%s:%d If only allows 1 or 3 arguments. TODO. Has %d.", st->infilename, st->line, lc-1);
+		st->status=1;
+	}
 	function_new(st, NULL);
 }
 
@@ -222,7 +254,7 @@ void tag_trans(parser_status *st, list *l){
 
 /// Include an external html. This is only the call, the programmer must compile such html too.
 void tag_include(parser_status* st, list* l){
-	function_data *d=function_new(st, "%s", t_arg(l, 1));
+	function_data *d=function_new(st, "%s", value_arg(l, 1));
 	function_pop(st);
 	block_free(d->code); // This means no impl
 	d->code=NULL; 

@@ -112,7 +112,7 @@ void write_block(parser_status *st, block *b){
 			}
 			break;
 		case VARIABLE:
-			write_variable(st, b);
+			variable_write(st, b->data);
 			break;
 		case TAG:
 			write_tag(st, b);

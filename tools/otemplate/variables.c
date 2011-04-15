@@ -19,6 +19,7 @@
 #include "parser.h"
 #include "variables.h"
 #include "block.h"
+#include <string.h>
 
 /**
  * @short Parses a block variable and writes the code necesary.
@@ -27,57 +28,76 @@
  * 
  * TODO. Just now only plain vars.
  */
-void write_variable(parser_status *st, block *b){
+void variable_write(parser_status *st, const char *b){
+	
+	function_add_code(st,
+"  {\n"
+"    const char *tmp;\n");
+	variable_solve(st, b, "tmp", 0);
+	function_add_code(st,
+"    onion_response_write0(res, tmp);\n"
+"  }\n");
+}
+
+/**
+ * @short Solves a variable into code.
+ * 
+ * It uses the type to check it its a simple string. (type==1)
+ */
+void variable_solve(parser_status *st, const char *b, const char *tmpname, int type){
+	if (type==1){
+		function_add_code(st,
+"    %s=\"%s\";\n", tmpname, b);
+		return;
+	}
+	
 	list *parts=list_new(block_free);
 	block *lastblock;
 	list_add(parts, lastblock=block_new());
 	
 	
 	int i=0;
-	for (i=0;i<b->pos;i++){
-		if (b->data[i]=='.')
+	int l=strlen(b);
+	for (i=0;i<l;i++){
+		if (b[i]=='.')
 			list_add(parts, lastblock=block_new());
-		else if (b->data[i]==' ')
+		else if (b[i]==' ')
 			continue;
 		else
-			block_add_char(lastblock, b->data[i]);
+			block_add_char(lastblock, b[i]);
 	}
 
 	if (list_count(parts)==1){
 		block_safe_for_printf(lastblock);
 		function_add_code(st, 
-"  {\n"
-"    const char *tmp=onion_dict_get(context, \"%s\");\n"
-"    if (tmp)\n"
-"      onion_response_write0(res, tmp);\n"
-"  }\n", lastblock->data);
+"    %s=onion_dict_get(context, \"%s\");\n", tmpname, lastblock->data);
 	}
 	else{
 		function_add_code(st,
-"  {\n"
-"    const char *tmp=NULL;\n"
-"    onion_dict *d=context;\n");
+"    %s=NULL;\n"
+"    {\n"
+"      onion_dict *d=context;\n", tmpname);
 		list_item *it=parts->head;
 		while (it->next){
 			lastblock=it->data;
 			
 			block_safe_for_printf(lastblock);
 			function_add_code(st,
-"    if (d)\n"
-"      d=onion_dict_get_dict(d, \"%s\");\n", lastblock->data);
+"      if (d)\n"
+"        d=onion_dict_get_dict(d, \"%s\");\n", lastblock->data);
 			it=it->next;
 		}
 		lastblock=it->data;
 		
 		block_safe_for_printf(lastblock);
 		function_add_code(st, 
-"    if (d)\n"
-"      tmp=onion_dict_get(d, \"%s\");\n", lastblock->data);
+"      if (d)\n"
+"        %s=onion_dict_get(d, \"%s\");\n", tmpname, lastblock->data);
 		function_add_code(st, 
-"    if (tmp)\n"
-"      onion_response_write0(res, tmp);\n"
-"  }\n", b->data);
+"    }\n");
 	}
 	list_free(parts);
+
+	
 }
 

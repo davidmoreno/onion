@@ -130,6 +130,11 @@ int fileserver_page(const char *basepath, onion_request *req){
 			
 			snprintf(tmp, sizeof(tmp), "%d", st.st_uid);
 			onion_dict_add(file, "owner", tmp, OD_DUP_VALUE);
+			
+			if (S_ISDIR(st.st_mode))
+				onion_dict_add(file, "type", "dir", 0);
+			else
+				onion_dict_add(file, "type", "file", 0);
 		}
 		closedir(dir);
 		free(realp);

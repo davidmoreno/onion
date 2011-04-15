@@ -19,6 +19,7 @@
 #ifndef __VARIABLES_H__
 #define __VARIABLES_H__
 
-void write_variable(parser_status *st, block *b);
+void variable_write(struct parser_status_t *st, const char *b);
+void variable_solve(struct parser_status_t *st, const char *b, const char *tmpname, int type);
 
 #endif
