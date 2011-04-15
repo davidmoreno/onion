@@ -84,9 +84,10 @@ INCLUDE(CPack)
 
 add_subdirectory(src)
 
-if (NOT ${ARM} MATCHES "yes")
+if (${ARM} MATCHES "yes")
+else (${ARM} MATCHES "yes")
 add_subdirectory(tools)
 add_subdirectory(examples)
 add_subdirectory(tests)
-endif (NOT ${ARM} MATCHES "yes")
+endif (${ARM} MATCHES "yes")
 
