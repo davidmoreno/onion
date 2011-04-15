@@ -35,10 +35,6 @@ void onion_handler_export_local_set_header(onion_handler *dir, void (*renderer)(
 /// Calls to render a footers before end.
 void onion_handler_export_local_set_footer(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
 
-/// Usefull for exporting static files.
-int onion_handler_export_local_file(const char *realp, struct stat *reals, onion_request *request);
-
-
 #ifdef __cplusplus
 }
 #endif

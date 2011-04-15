@@ -16,29 +16,10 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_SHORTCUTS__
-#define __ONION_SHORTCUTS__
+#ifndef __VARIABLES_H__
+#define __VARIABLES_H__
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
-#include <onion/types.h>
-
-/// Shortcut for fast responses, like errors.
-int onion_shortcut_response(const char *response, int code, onion_request *req);
-
-/// Shortcut for fast responses, like errors, with extra headers.
-int onion_shortcut_response_extra_headers(const char *response, int code, onion_request *req, ...);
-
-/// Shortcut for fast redirect.
-int onion_shortcut_redirect(const char *newurl, onion_request *req);
-
-/// Shortcut for response a static file on disk
-int onion_shortcut_response_file(const char *filename, onion_request *req);
-
-#ifdef __cplusplus
-}
-#endif
+void variable_write(struct parser_status_t *st, const char *b);
+void variable_solve(struct parser_status_t *st, const char *b, const char *tmpname, int type);
 
 #endif

@@ -11,3 +11,5 @@ add_subdirectory(04-prerecorded)
 add_subdirectory(05-sessions)
 
 add_subdirectory(06-handlers)
+
+add_subdirectory(07-otemplate)

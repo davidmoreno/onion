@@ -16,29 +16,28 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_SHORTCUTS__
-#define __ONION_SHORTCUTS__
+#ifndef __LIST_H__
+#define __LIST_H__
 
-#ifdef __cplusplus
-extern "C"{
-#endif
+typedef struct list_item_t{
+	void *data;
+	struct list_item_t *next;
+	struct list_item_t *prev;
+}list_item;
 
-#include <onion/types.h>
+typedef struct list_t{
+	list_item *head;
+	list_item *tail;
+	
+	void *free;
+}list;
 
-/// Shortcut for fast responses, like errors.
-int onion_shortcut_response(const char *response, int code, onion_request *req);
-
-/// Shortcut for fast responses, like errors, with extra headers.
-int onion_shortcut_response_extra_headers(const char *response, int code, onion_request *req, ...);
-
-/// Shortcut for fast redirect.
-int onion_shortcut_redirect(const char *newurl, onion_request *req);
-
-/// Shortcut for response a static file on disk
-int onion_shortcut_response_file(const char *filename, onion_request *req);
-
-#ifdef __cplusplus
-}
-#endif
+list *list_new(void *free_function);
+void list_free(list *l);
+void list_add(list *l, void *p);
+void list_loop(list *l, void *f, void *extra);
+void list_pop(list *l);
+int list_count(list *l);
+void *list_get_n(list *l, int n);
 
 #endif
