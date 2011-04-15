@@ -40,6 +40,10 @@ enum onion_request_flags_e{
 	OR_POST_URLENCODED=0x40,
 	
 	OR_NO_KEEP_ALIVE=0x100,
+	
+	OR_INTERNAL_ERROR=0x0100,
+	OR_NOT_IMPLEMENTED=0x0200,
+	OR_NOT_FOUND=0x0300,
 };
 
 typedef enum onion_request_flags_e onion_request_flags;

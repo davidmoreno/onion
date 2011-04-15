@@ -579,14 +579,9 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 				ONION_ERROR("Error reading data");
 			break;
 		}
-		connection_status=onion_request_write(req, buffer, r);
-//		ONION_DEBUG0("Connection status after write %d (%d bytes)",connection_status, r);
-		if (connection_status<0){ // Close the connection, maybe show some error.
-			if (connection_status==OCS_INTERNAL_ERROR || connection_status==OCS_NOT_IMPLEMENTED){
-				onion_handler_handle(o->server->internal_error_handler, req);
-			}
+		connection_status=onion_server_write_to_request(o->server, req, buffer, r);
+		if (connection_status<0)
 			break;
-		}
 	}
 	onion_request_free(req);
 #ifdef HAVE_GNUTLS

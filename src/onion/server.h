@@ -19,6 +19,8 @@
 #ifndef __ONION_SERVER__
 #define __ONION_SERVER__
 
+#include <stddef.h>
+
 #include "types.h"
 
 #ifdef __cplusplus
@@ -49,6 +51,8 @@ void onion_server_set_max_post_size(onion_server *server, size_t max_post_size);
 /// Sets the maximum file size
 void onion_server_set_max_file_size(onion_server *server, size_t max_file_size);
 
+/// Writes some data to a specific request.
+onion_connection_status onion_server_write_to_request(onion_server *server, onion_request *request, const char *data, size_t len);
 
 #ifdef __cplusplus
 }

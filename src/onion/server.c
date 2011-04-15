@@ -26,8 +26,8 @@
 #include "log.h"
 #include "sessions.h"
 
-/// Default error 500.
-int error_500(void *handler, onion_request *req);
+/// Default error handler.
+static int onion_default_error(void *handler, onion_request *req);
 
 /**
  * @short Initializes the server data.
@@ -45,7 +45,7 @@ onion_server *onion_server_new(void){
 	onion_server *ret=malloc(sizeof(onion_server));
 	ret->root_handler=NULL;
 	ret->write=NULL;
-	ret->internal_error_handler=onion_handler_new((onion_handler_handler)error_500, NULL, NULL);
+	ret->internal_error_handler=onion_handler_new((onion_handler_handler)onion_default_error, NULL, NULL);
 	ret->max_post_size=1024*1024; // 1MB
 	ret->max_file_size=1024*1024*1024; // 1GB
 	ret->sessions=onion_sessions_new();
@@ -81,7 +81,10 @@ void onion_server_set_root_handler(onion_server *server, onion_handler *handler)
 }
 
 /**
- * @short Sets the error handler that will be called to return data to users on internal errors (5XX).
+ * @short Sets the error handler that will be called to return data to users on errors.
+ * 
+ * On the called handler, the request objet will have at flags the reason of 
+ * the error: OR_NOT_FOUND, OR_NOT_IMPLEMENTED or OR_INTERNAL_ERROR
  */
 void onion_server_set_internal_error_handler(onion_server *server, onion_handler *handler){
 	if (server->internal_error_handler)
@@ -131,19 +134,67 @@ int onion_server_handle_request(onion_request *req){
 
 
 #define ERROR_500 "<h1>500 - Internal error</h1> Check server logs or contact administrator."
+#define ERROR_404 "<h1>404 - Not found</h1>"
+#define ERROR_505 "<h1>505 - Not implemented</h1>"
 
 /**
- * @short Defautl error for 500 Internal error.
+ * @short Default error for 500 Internal error.
  * 
  * Not the right way to do it.. FIXME.
  */
-int error_500(void *handler, onion_request *req){
+static int onion_default_error(void *handler, onion_request *req){
+	const char *msg;
+	int l;
+	int code;
+	switch(req->flags&0x0F000){
+		case OCS_INTERNAL_ERROR:
+			msg=ERROR_500;
+			l=sizeof(ERROR_500)-1;
+			code=HTTP_INTERNAL_ERROR;
+			break;
+		case OCS_NOT_IMPLEMENTED:
+			msg=ERROR_505;
+			l=sizeof(ERROR_505)-1;
+			code=HTTP_NOT_IMPLEMENTED;
+			break;
+		default:
+			msg=ERROR_404;
+			l=sizeof(ERROR_404)-1;
+			code=HTTP_NOT_FOUND;
+			break;
+	}
+	
+	
 	onion_response *res=onion_response_new(req);
-	onion_response_set_code(res,500);
-	onion_response_set_length(res, sizeof(ERROR_500)-1);
+	onion_response_set_code(res,code);
+	onion_response_set_length(res, l);
 	onion_response_write_headers(res);
 	
-	onion_response_write0(res,ERROR_500);
+	onion_response_write(res,msg,l);
 	return onion_response_free(res);
 }
 
+/**
+ * @short Tells the server to write something on that request.
+ * 
+ * It takes care of moments when it has to process the request, and maybe there was an error, so
+ * it calls the error handlers.
+ */
+onion_connection_status onion_server_write_to_request(onion_server *server, onion_request *request, const char *data, size_t len){
+	// This is one maybe unnecesary indirection, but helps when creating new "onion" like classes.
+	onion_connection_status connection_status=onion_request_write(request, data, len);
+//		ONION_DEBUG0("Connection status after write %d (%d bytes)",connection_status, r);
+	if (connection_status==OCS_INTERNAL_ERROR || 
+		  connection_status==OCS_NOT_IMPLEMENTED || 
+		  connection_status==OCS_NOT_PROCESSED){
+		if (connection_status==OCS_INTERNAL_ERROR)
+			request->flags|=OR_INTERNAL_ERROR;
+		if (connection_status==OCS_NOT_IMPLEMENTED)
+			request->flags|=OR_INTERNAL_ERROR;
+		if (connection_status==OCS_NOT_PROCESSED)
+			request->flags|=OR_NOT_FOUND;
+		
+		onion_handler_handle(server->internal_error_handler, request);
+	}
+	return connection_status;
+}

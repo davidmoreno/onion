@@ -37,6 +37,30 @@ ssize_t mstrncat(char *a, const char *b, size_t l){
 	return strlen(a);
 }
 
+
+void t00_server_empty(){
+	INIT_LOCAL();
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)mstrncat);
+	
+	onion_request *req=onion_request_new(server, buffer, NULL);
+	onion_server_write_to_request(server, req, "GET ",4);
+	onion_server_write_to_request(server, req, "/",1);
+	onion_server_write_to_request(server, req, " HTTP/1.1\r\n",11);
+	onion_server_write_to_request(server, req, "\r\n",2);
+	
+	FAIL_IF_EQUAL_STR(buffer,"");
+	FAIL_IF_NOT_STRSTR(buffer,"404");
+	
+	onion_request_free(req);
+	onion_server_free(server);
+	
+	END_LOCAL();
+}
+
 void t01_server_min(){
 	INIT_LOCAL();
 	char buffer[4096];
@@ -186,6 +210,7 @@ void t05_server_with_pipes(){
 
 
 int main(int argc, char **argv){
+	t00_server_empty();
 	t01_server_min();
 	t02_server_full();
 	t03_server_no_overflow();

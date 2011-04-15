@@ -44,7 +44,8 @@ onion_response *onion_response_new(onion_request *req){
 	res->buffer_pos=0;
 	
 	// Sorry for the publicity.
-	onion_dict_add(res->headers, "Server", "libonion v0.1 - coralbits.com", 0);
+	onion_dict_add(res->headers, "Server", "libonion v0.3 - coralbits.com", 0);
+	onion_dict_add(res->headers, "X-License", "AGPL 3.0", 0);
 	//time_t t=time(NULL);
 	//onion_dict_add(res->headers, "Date", asctime(localtime(&t)), OD_DUP_VALUE);
 	
