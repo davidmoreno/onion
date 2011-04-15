@@ -46,8 +46,6 @@ static void function_write(parser_status *st, function_data *d){
 			fprintf(st->out, "static ");
 		fprintf(st->out, 
 "void %s(%s){\n"
-"  const char *tmp=NULL;\n"
-"  tmp=tmp;\n" // avoid compiled complain about not using it. I dont know yet.
 "\n", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res"
 					);
 		

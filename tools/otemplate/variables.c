@@ -44,15 +44,18 @@ void write_variable(parser_status *st, block *b){
 	}
 
 	if (list_count(parts)==1){
-		block_safe_for_printf(b);
+		block_safe_for_printf(lastblock);
 		function_add_code(st, 
-"  tmp=onion_dict_get(context, \"%s\");\n"
-"  if (tmp)\n"
-"    onion_response_write0(res, tmp);\n", b->data);
+"  {\n"
+"    const char *tmp=onion_dict_get(context, \"%s\");\n"
+"    if (tmp)\n"
+"      onion_response_write0(res, tmp);\n"
+"  }\n", lastblock->data);
 	}
 	else{
 		function_add_code(st,
 "  {\n"
+"    const char *tmp=NULL;\n"
 "    onion_dict *d=context;\n");
 		list_item *it=parts->head;
 		while (it->next){
@@ -71,9 +74,9 @@ void write_variable(parser_status *st, block *b){
 "    if (d)\n"
 "      tmp=onion_dict_get(d, \"%s\");\n", lastblock->data);
 		function_add_code(st, 
-"  }\n"
-"  if (tmp)\n"
-"    onion_response_write0(res, tmp);\n", b->data);
+"    if (tmp)\n"
+"      onion_response_write0(res, tmp);\n"
+"  }\n", b->data);
 	}
 	list_free(parts);
 }

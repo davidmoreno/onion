@@ -10,8 +10,10 @@
 <h2>{% trans "Test vars." %}</h2>
 <p>
 <ul>
-<li>{% trans "Random value" %} {{random}}.
+<li>{% trans "Random value" %} {{random }}.
 <li>{% trans "sub.0" %} {{ subd.0 }}.
+<li>{% trans "Not found" %} {{ does-not-exists }}.
+<li>{% trans "Not found trans" %} {{ subd.0.1 }}.
 </ul>
 
 <h2>{% trans "Test if" %}</h2>

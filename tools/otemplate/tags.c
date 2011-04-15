@@ -188,8 +188,10 @@ void tag_endfor(parser_status *st, list *l){
 
 /// Starts an if
 void tag_if(parser_status *st, list *l){
-	function_add_code(st, "  tmp=onion_dict_get(context, \"%s\");\n", ((tag_token*)list_get_n(l,1))->data);
-	function_add_code(st, "  if (!tmp || strcmp(tmp, \"false\")==0)\n");
+	function_add_code(st, 
+"  {\n"
+"    const char *tmp=onion_dict_get(context, \"%s\");\n"
+"    if (!tmp || strcmp(tmp, \"false\")==0)\n", t_arg(l,1));
 	function_new(st, NULL);
 }
 
@@ -204,7 +206,7 @@ void tag_else(parser_status *st, list *l){
 /// endif
 void tag_endif(parser_status *st, list *l){
 	function_data *d=function_pop(st);
-	function_add_code(st, "    %s(context, res);\n", d->id);
+	function_add_code(st, "    %s(context, res);\n  }\n", d->id);
 }
 
 /// Following text is for gettext
