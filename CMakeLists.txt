@@ -6,7 +6,7 @@ project(libonion)
 SET(ONION_USE_SSL true)
 SET(ONION_USE_PAM true)
 SET(ONION_USE_PTHREADS true)
-SET(ONION_VERSION 0.2.0)
+SET(ONION_VERSION 0.3.0)
 ########
 
 SET(LIBPATH /usr/lib /usr/local/lib)

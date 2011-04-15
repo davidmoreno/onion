@@ -67,3 +67,13 @@ It can be cross compiled for ARM directly from cmake. Just do:
 		$ make
 
 Tested on ubuntu 10.10, with gcc-4.5-arm-linux-gnueabi installed.
+
+
+Templating support
+------------------
+
+Starting on 0.3.0 development onion has templating support via otemplate. It is a template
+system similar to django templates (http://docs.djangoproject.com/en/dev/topics/templates/).
+
+Check more information on how to use them at tools/otemplate/README.rst.
+
