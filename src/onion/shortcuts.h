@@ -37,6 +37,9 @@ int onion_shortcut_redirect(const char *newurl, onion_request *req);
 /// Shortcut for response a static file on disk
 int onion_shortcut_response_file(const char *filename, onion_request *req);
 
+/// Shortcut for response json data. Dict is freed before return.
+int onion_shortcut_response_json(onion_dict *d, onion_request *req);
+
 #ifdef __cplusplus
 }
 #endif

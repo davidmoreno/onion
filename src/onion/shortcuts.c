@@ -27,6 +27,8 @@
 #include "onion.h"
 #include "log.h"
 #include "shortcuts.h"
+#include "dict.h"
+#include "block.h"
 
 /**
  * @short Shortcut for fast responses, like errors.
@@ -175,5 +177,20 @@ int onion_shortcut_response_file(const char *filename, onion_request *request){
 	}
 	close(fd);
 	return onion_response_free(res);
+}
+
+/**
+ * @short Shortcut to answer some json data
+ * 
+ * It converts to json the passed dict and returns it. The dict is freed before returning.
+ */
+int onion_shortcut_response_json(onion_dict *d, onion_request *req){
+	onion_block *bl=onion_dict_to_json(d);
+	onion_dict_free(d);
+	char tmp[16];
+	snprintf(tmp,sizeof(tmp),"%ld",(long)onion_block_size(bl));
+	int ret=onion_shortcut_response_extra_headers(onion_block_data(bl), HTTP_OK, req, "Content-Length", tmp, NULL);
+	onion_block_free(bl);
+	return ret;
 }
 
