@@ -19,7 +19,10 @@
 #ifndef __VARIABLES_H__
 #define __VARIABLES_H__
 
-void variable_write(struct parser_status_t *st, const char *b);
+#include "parser.h"
+#include <onion/types.h>
+
+void variable_write(struct parser_status_t *st, onion_block *b);
 void variable_solve(struct parser_status_t *st, const char *b, const char *tmpname, int type);
 
 #endif

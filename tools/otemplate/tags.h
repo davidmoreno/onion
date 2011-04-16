@@ -19,6 +19,8 @@
 #ifndef __TAGS_H__
 #define __TAGS_H__
 
-void write_tag(parser_status *st, block *b);
+#include <onion/types.h>
+
+void write_tag(parser_status *st, onion_block *b);
 
 #endif

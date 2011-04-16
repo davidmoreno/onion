@@ -22,12 +22,14 @@
 #include <ctype.h>
 #include <malloc.h>
 
-#include "onion/log.h"
+#include <onion/log.h>
+#include <onion/block.h>
+
 #include "list.h"
-#include "block.h"
 #include "parser.h"
 #include <libgen.h>
 #include "variables.h"
+#include <onion/codecs.h>
 
 typedef enum token_type_e{
 	T_VAR=0,
@@ -39,7 +41,7 @@ typedef struct tag_token_t{
 	token_type type;
 }tag_token;
 
-tag_token *tag_token_new(char *data, int l, token_type t){
+tag_token *tag_token_new(const char *data, int l, token_type t){
 	tag_token *ret=malloc(sizeof(tag_token));
 	ret->data=strndup(data,l);
 	ret->type=t;
@@ -63,7 +65,7 @@ void tag_include(parser_status *st, list *l);
 /**
  * Current block is a tag, slice it and call the proper handler.
  */
-void write_tag(parser_status *st, block *b){
+void write_tag(parser_status *st, onion_block *b){
 	//ONION_DEBUG("Write tag %s",b->data);
 	
 	list *command=list_new((void*)tag_token_free);
@@ -71,8 +73,10 @@ void write_tag(parser_status *st, block *b){
 	char mode=0; // 0 skip spaces, 1 in single var, 2 in quotes
 	
 	int i, li=0;
-	for (i=0;i<b->pos;i++){
-		char c=b->data[i];
+	const char *data=onion_block_data(b);
+	int size=onion_block_size(b);
+	for (i=0;i<size;i++){
+		char c=data[i];
 		switch(mode){
 			case 0:
 				if (!isspace(c)){
@@ -89,19 +93,19 @@ void write_tag(parser_status *st, block *b){
 			case 1:
 				if (isspace(c)){
 					mode=0;
-					list_add(command, tag_token_new(&b->data[li], i-li, T_VAR));
+					list_add(command, tag_token_new(&data[li], i-li, T_VAR));
 				}
 				break;
 			case 2:
 				if (c=='"'){
 					mode=0;
-					list_add(command, tag_token_new(&b->data[li], i-li, T_STRING));
+					list_add(command, tag_token_new(&data[li], i-li, T_STRING));
 				}
 				break;
 		}
 	}
 	if (mode==1)
-		list_add(command, tag_token_new(&b->data[li], i-li, T_VAR));
+		list_add(command, tag_token_new(&data[li], i-li, T_VAR));
 	
 	if (!command->head){
 		ONION_ERROR("%s:%d Incomplete command", st->infilename, st->line);
@@ -245,18 +249,16 @@ void tag_endif(parser_status *st, list *l){
 
 /// Following text is for gettext
 void tag_trans(parser_status *st, list *l){
-	block *tmp=block_new();
-	block_add_string(tmp, ((tag_token*)l->head->next->data)->data);
-	block_safe_for_printf(tmp);
-	function_add_code(st, "  onion_response_write0(res, gettext(\"%s\"));\n", tmp->data);
-	block_free(tmp);
+	char *s=onion_c_quote_new(((tag_token*)l->head->next->data)->data);
+	function_add_code(st, "  onion_response_write0(res, gettext(%s));\n", s);
+	free(s);
 }
 
 /// Include an external html. This is only the call, the programmer must compile such html too.
 void tag_include(parser_status* st, list* l){
 	function_data *d=function_new(st, "%s", value_arg(l, 1));
 	function_pop(st);
-	block_free(d->code); // This means no impl
+	onion_block_free(d->code); // This means no impl
 	d->code=NULL; 
 	
 	function_add_code(st, "  %s(context, res);\n", d->id);

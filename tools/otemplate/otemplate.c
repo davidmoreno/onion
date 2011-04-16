@@ -21,12 +21,12 @@
 #include <ctype.h>
 #include <libgen.h>
 #include <stdarg.h>
+#include <malloc.h>
 
 #include "onion/log.h"
+#include "onion/block.h"
 #include "list.h"
-#include "block.h"
 #include "parser.h"
-#include <malloc.h>
 
 
 int work(const char *infilename, FILE *in, FILE *out);
@@ -78,7 +78,7 @@ int work(const char *infilename, FILE *in, FILE *out){
 	status.function_stack=list_new(NULL);
 	status.status=0;
 	status.line=0;
-	status.rawblock=block_new();
+	status.rawblock=onion_block_new();
 	status.infilename=infilename;
 	
 	function_new(&status, basename(strdupa(infilename)));
@@ -115,7 +115,7 @@ int work(const char *infilename, FILE *in, FILE *out){
 	
 	list_free(status.functions);
 	list_free(status.function_stack);
-	block_free(status.rawblock);
+	onion_block_free(status.rawblock);
 	
 	return status.status;
 }

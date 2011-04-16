@@ -18,24 +18,25 @@
 
 #include "parser.h"
 #include "variables.h"
-#include "block.h"
 #include <string.h>
+#include <onion/block.h>
+#include <onion/codecs.h>
+#include <malloc.h>
 
 /**
  * @short Parses a block variable and writes the code necesary.
  * 
  * It can go deep inside a dict or list, and apply filters.
- * 
- * TODO. Just now only plain vars.
  */
-void variable_write(parser_status *st, const char *b){
+void variable_write(parser_status *st, onion_block *b){
 	
 	function_add_code(st,
 "  {\n"
 "    const char *tmp;\n");
-	variable_solve(st, b, "tmp", 0);
+	variable_solve(st, onion_block_data(b), "tmp", 0);
 	function_add_code(st,
-"    onion_response_write0(res, tmp);\n"
+"    if (tmp)\n"
+"      onion_response_write0(res, tmp);\n"
 "  }\n");
 }
 
@@ -44,33 +45,37 @@ void variable_write(parser_status *st, const char *b){
  * 
  * It uses the type to check it its a simple string. (type==1)
  */
-void variable_solve(parser_status *st, const char *b, const char *tmpname, int type){
+void variable_solve(parser_status *st, const char *data, const char *tmpname, int type){
 	if (type==1){
+		char *s=onion_c_quote_new(data);
 		function_add_code(st,
-"    %s=\"%s\";\n", tmpname, b);
+"    %s=%s;\n", tmpname, s);
+		free(s);
 		return;
 	}
 	
-	list *parts=list_new(block_free);
-	block *lastblock;
-	list_add(parts, lastblock=block_new());
+	list *parts=list_new(onion_block_free);
+	onion_block *lastblock;
+	list_add(parts, lastblock=onion_block_new());
 	
 	
 	int i=0;
-	int l=strlen(b);
+	int l=strlen(data);
+	const char *d=data;
 	for (i=0;i<l;i++){
-		if (b[i]=='.')
-			list_add(parts, lastblock=block_new());
-		else if (b[i]==' ')
+		if (d[i]=='.')
+			list_add(parts, lastblock=onion_block_new());
+		else if (d[i]==' ')
 			continue;
 		else
-			block_add_char(lastblock, b[i]);
+			onion_block_add_char(lastblock, d[i]);
 	}
 
 	if (list_count(parts)==1){
-		block_safe_for_printf(lastblock);
+		char *s=onion_c_quote_new(onion_block_data(lastblock));
 		function_add_code(st, 
-"    %s=onion_dict_get(context, \"%s\");\n", tmpname, lastblock->data);
+"    %s=onion_dict_get(context, %s);\n", tmpname, s);
+		free(s);
 	}
 	else{
 		function_add_code(st,
@@ -80,19 +85,20 @@ void variable_solve(parser_status *st, const char *b, const char *tmpname, int t
 		list_item *it=parts->head;
 		while (it->next){
 			lastblock=it->data;
-			
-			block_safe_for_printf(lastblock);
+			char *s=onion_c_quote_new(onion_block_data(lastblock));
 			function_add_code(st,
 "      if (d)\n"
-"        d=onion_dict_get_dict(d, \"%s\");\n", lastblock->data);
+"        d=onion_dict_get_dict(d, %s);\n", s);
+			free(s);
 			it=it->next;
 		}
 		lastblock=it->data;
 		
-		block_safe_for_printf(lastblock);
+		char *s=onion_c_quote_new(onion_block_data(lastblock));
 		function_add_code(st, 
 "      if (d)\n"
-"        %s=onion_dict_get(d, \"%s\");\n", tmpname, lastblock->data);
+"        %s=onion_dict_get(d, %s);\n", tmpname, s);
+		free(s);
 		function_add_code(st, 
 "    }\n");
 	}

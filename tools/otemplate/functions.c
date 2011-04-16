@@ -22,10 +22,10 @@
 #include <stdarg.h>
 
 #include <onion/log.h>
+#include <onion/block.h>
 
 #include "list.h"
 #include "parser.h"
-#include "block.h"
 
 /// Writes to st->out the declarations of the functions for this template
 void functions_write_declarations(parser_status *st){
@@ -49,7 +49,7 @@ static void function_write(parser_status *st, function_data *d){
 "\n", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res"
 					);
 		
-		fwrite(d->code->data, 1, d->code->pos, st->out);
+		fwrite(onion_block_data(d->code), 1, onion_block_size(d->code), st->out);
 		
 		fprintf(st->out,"\n}\n\n");
 	}
@@ -102,7 +102,7 @@ void functions_write_main_code(parser_status *st){
  */
 function_data *function_new(parser_status *st, const char *fmt, ...){
 	function_data *d=malloc(sizeof(function_data));
-	d->code=block_new(NULL);
+	d->code=onion_block_new();
 	if (st){
 		st->current_code=d->code;
 		list_add(st->function_stack, d);
@@ -144,7 +144,7 @@ function_data *function_new(parser_status *st, const char *fmt, ...){
  */
 void function_free(function_data *d){
 	if (d->code)
-		block_free(d->code);
+		onion_block_free(d->code);
 	free(d->id);
 	free(d);
 }
@@ -175,5 +175,5 @@ void function_add_code(parser_status *st, const char *fmt, ...){
 	
 	//ONION_DEBUG("Add to level %d text %s",list_count(st->function_stack), tmp);
 
-	block_add_string(st->current_code, tmp);
+	onion_block_add_str(st->current_code, tmp);
 }
