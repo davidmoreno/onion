@@ -134,10 +134,6 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
  * @short Performs the log to the syslog
  */
 void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
-	if (onion_log_flags&OF_SYSLOGINIT){
-		openlog("onion", LOG_CONS | LOG_PID, LOG_DAEMON); 
-	}
-
 	char pri[]={LOG_DEBUG, LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR};
 
 	if (level>sizeof(pri) || level <0)
