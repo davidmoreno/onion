@@ -29,6 +29,7 @@
 #include "shortcuts.h"
 #include "dict.h"
 #include "block.h"
+#include "mime.h"
 
 /**
  * @short Shortcut for fast responses, like errors.
@@ -143,6 +144,8 @@ int onion_shortcut_response_file(const char *filename, onion_request *request){
 	}
 	
 	onion_response_set_length(res, length);
+	onion_response_set_header(res, "Content-Type", onion_mime_get(filename) );
+	ONION_DEBUG("Mime type is %s",onion_mime_get(filename));
 	onion_response_write_headers(res);
 	
 	if ((onion_request_get_flags(request)&OR_HEAD) == OR_HEAD){ // Just head.

@@ -24,3 +24,6 @@ target_link_libraries(08-post onion)
 
 add_executable(09-block 09-block.c)
 target_link_libraries(09-block onion)
+
+add_executable(10-mime 10-mime.c)
+target_link_libraries(10-mime onion)

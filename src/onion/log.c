@@ -67,8 +67,9 @@ enum onion_log_flags_e{
  * 
  * It can be affected also by the environment variable ONION_LOG, with one or several of:
  * 
- * - "nocolor" -- then output will be without colors.
+ * - "nocolor"  -- then output will be without colors.
  * - "nodebug0" -- omits output of debug0
+ * - "syslog"   -- Switchs the logging to syslog. 
  * 
  * It is thread safe.
  */
@@ -84,6 +85,17 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 				onion_log_flags|=OF_NOCOLOR;
 			if (strstr("nodebug0", ol))
 				onion_log_flags|=OF_NODEBUG0;
+			if (strstr("syslog", ol)){ // Switch to syslog
+				onion_log=onion_log_syslog;
+				char tmp[256];
+				
+				va_list ap;
+				va_start(ap, fmt);
+				vsnprintf(tmp,sizeof(tmp),fmt, ap);
+				va_end(ap);
+				onion_log(level, filename, lineno, tmp);
+				return;
+			}
 		}
 	}
 	
