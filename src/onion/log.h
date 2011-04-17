@@ -45,7 +45,11 @@ enum onion_log_level_e{
 
 typedef enum onion_log_level_e onion_log_level;
 
-void onion_log(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
+/// This function can be overwritten with whatever onion_log facility you want to use, same signature
+extern void (*onion_log)(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
+
+void onion_log_stderr(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
+void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
 
 #ifdef __cplusplus
 }

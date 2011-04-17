@@ -54,6 +54,8 @@ int fileserver_page(const char *basepath, onion_request *req);
 int fileserver_html_template(onion_dict *context, onion_request *req);
 
 int main(int argc, char **argv){
+	onion_log=onion_log_syslog;
+	
 	char *port="8080";
 	char *hostname="::";
 	const char *dirname=".";

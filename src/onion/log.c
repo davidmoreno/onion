@@ -22,6 +22,7 @@
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <syslog.h>
 
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
@@ -35,28 +36,43 @@
 static int onion_log_flags=0;
 static pthread_mutex_t onion_log_mutex=PTHREAD_MUTEX_INITIALIZER;
 
-enum onion_log_flags_e{
-	OF_INIT=1,
-	OF_NOCOLOR=2,
-	OF_NODEBUG0=4,
-};
+
+void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
+void onion_log_stderr(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
 
 /**
  * @short Logs a message to the log facility.
  * 
- * Normally to stderr. FIXME: Add more log facilities, like syslog.
+ * Normally to stderr, but can be set to your own logger or to use syslog.
  * 
- * It can be affected also by the environment variable ONION_LOG, with one or several of:
- * 
- * - "nocolor" -- then output will be without colors.
- * - "nodebug0" -- omits output of debug0
+ * It is actually a variable which you can set to any other log facility. By default it is to 
+ * onion_log_stderr, but also available is onion_log_syslog.
  * 
  * @param level Level of log. 
  * @param filename File where the message appeared. Usefull on debug level, but available on all.
  * @param lineno Line where the message was produced.
  * @param fmt printf-like format string and parameters.
  */
-void onion_log(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
+void (*onion_log)(onion_log_level level, const char *filename, int lineno, const char *fmt, ...)=onion_log_stderr;
+
+enum onion_log_flags_e{
+	OF_INIT=1,
+	OF_NOCOLOR=2,
+	OF_NODEBUG0=4,
+	OF_SYSLOGINIT=8,
+};
+
+/**
+ * @short Logs to stderr.
+ * 
+ * It can be affected also by the environment variable ONION_LOG, with one or several of:
+ * 
+ * - "nocolor" -- then output will be without colors.
+ * - "nodebug0" -- omits output of debug0
+ * 
+ * It is thread safe.
+ */
+void onion_log_stderr(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&onion_log_mutex);
 #endif
@@ -111,4 +127,24 @@ void onion_log(onion_log_level level, const char *filename, int lineno, const ch
 	#ifdef HAVE_PTHREADS
 		pthread_mutex_unlock(&onion_log_mutex);
 	#endif
+}
+
+
+/**
+ * @short Performs the log to the syslog
+ */
+void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
+	if (onion_log_flags&OF_SYSLOGINIT){
+		openlog("onion", LOG_CONS | LOG_PID, LOG_DAEMON); 
+	}
+
+	char pri[]={LOG_DEBUG, LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR};
+
+	if (level>sizeof(pri) || level <0)
+		return;
+	
+	va_list ap;
+	va_start(ap, fmt);
+	vsyslog(pri[level], fmt, ap);
+	va_end(ap);
 }
