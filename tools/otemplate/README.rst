@@ -1,6 +1,8 @@
-= OTEMPLATE =
+OTEMPLATE
+=========
 
-== Introduction ==
+Introduction
+------------
 
 otemplate is onion solution to templating. 
 
@@ -12,7 +14,8 @@ Its syntax is based on django templates (http://docs.djangoproject.com/en/dev/to
 and although it has diferent set of tags, the syntax remains the same, and most common tags
 work as expected. They are listed bellow.
 
-== Usage ==
+Usage
+-----
 
 Each html template that will be used needs to be compiled by otemplate. It includes all the 
 {% include %} templates, so for example if my templates are base.html and index.html, and
@@ -38,7 +41,7 @@ The last is for power users that want to call it from already generated response
 example because extra headers are needed. This is also the function that {% include ... %} calls.
 
 
-=== cmake rule ===
+### cmake rule
 
 If you use cmake, this is the way to compile it, until better integration is implemented:
 
@@ -49,7 +52,7 @@ If you use cmake, this is the way to compile it, until better integration is imp
 		DEPENDS otemplate ${CMAKE_CURRENT_SOURCE_DIR}/test.html
 		)
 
-== Extensibility ==
+### Extensibility
 
 As the django template system, otemplate allows to be extended. It currently only support tag
 extensibility, and the way to add them is create a plugin. This is a share object with a 
@@ -75,7 +78,8 @@ example this is the code for the i18n:
 		tag_add("trans", tag_trans);
 	}
 
-== Current status ==
+Current status
+--------------
 
 Actually its in its infancy and only have limited support:
 
