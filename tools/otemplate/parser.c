@@ -119,7 +119,7 @@ void write_block(parser_status *st, onion_block *b){
 			variable_write(st, b);
 			break;
 		case TAG:
-			write_tag(st, b);
+			tag_write(st, b);
 			break;
 		default:
 			ONION_ERROR("Unknown final mode %d", mode);

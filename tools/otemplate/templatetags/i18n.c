@@ -16,36 +16,22 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __TAGS_H__
-#define __TAGS_H__
+#include <malloc.h>
 
-#include "parser.h"
+#include <onion/codecs.h>
 
-#include <onion/types.h>
+#include "../tags.h"
+#include "../functions.h"
 
-/// Types of tokens.
-typedef enum token_type_e{
-	T_VAR=0,
-	T_STRING=1,
-}token_type;
+/// Following text is for gettext
+void tag_trans(parser_status *st, list *l){
+	char *s=onion_c_quote_new(tag_value_arg(l,1));
+	function_add_code(st, "  onion_response_write0(res, gettext(%s));\n", s);
+	free(s);
+}
 
-/// Pack of token and type. At the list passed to the tag handlers each element is one of these.
-typedef struct tag_token_t{
-	char *data;
-	token_type type;
-}tag_token;
-
-
-
-void tag_write(parser_status *st, onion_block *b);
-void tag_add(const char *tag, void *f);
-void tag_free();
-void tag_init();
-
-const char *tag_value_arg(list *l, int n);
-int tag_type_arg(list *l, int n);
-
-
-
-#endif
+/// Adds the tags.
+void plugin_init(){
+	tag_add("trans", tag_trans);
+}
 

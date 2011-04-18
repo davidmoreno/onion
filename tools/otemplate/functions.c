@@ -107,7 +107,7 @@ function_data *function_new(parser_status *st, const char *fmt, ...){
 		st->current_code=d->code;
 		list_add(st->function_stack, d);
 		list_add(st->functions, d);
-		ONION_DEBUG("push function stack, length is %d", list_count(st->function_stack));
+		//ONION_DEBUG("push function stack, length is %d", list_count(st->function_stack));
 	}
 	d->signature=NULL;
 	
@@ -131,7 +131,7 @@ function_data *function_new(parser_status *st, const char *fmt, ...){
 		}
 	}
 	
-	ONION_DEBUG("New function %s", tmp);
+	//ONION_DEBUG("New function %s", tmp);
 	
 	
 	d->id=strdup(tmp);
@@ -156,7 +156,7 @@ void function_free(function_data *d){
 function_data *function_pop(parser_status *st){
 	function_data *p=(function_data*)st->function_stack->tail->data;
 	list_pop(st->function_stack);
-	ONION_DEBUG("pop function stack, length is %d", list_count(st->function_stack));
+	//ONION_DEBUG("pop function stack, length is %d", list_count(st->function_stack));
 	st->current_code=((function_data*)st->function_stack->tail->data)->code;
 	return p;
 }

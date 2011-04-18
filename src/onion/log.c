@@ -34,7 +34,9 @@
 #include "log.h"
 
 static int onion_log_flags=0;
+#ifdef HAVE_PTHREADS
 static pthread_mutex_t onion_log_mutex=PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 
 void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
