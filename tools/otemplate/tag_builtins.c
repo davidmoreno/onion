@@ -59,8 +59,10 @@ void tag_load(parser_status *st, list *l){
 
 		//ONION_WARNING("Loading external module %s not implemented yet.",modulename);
 		
-		if (load_external(modulename)!=0)
+		if (load_external(modulename)!=0){
+			ONION_ERROR("%s:%d here", st->infilename, st->line);
 			st->status=1;
+		}
 		
 		it=it->next;
 	}
