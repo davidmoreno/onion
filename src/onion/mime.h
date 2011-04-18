@@ -19,6 +19,9 @@
 #ifndef __ONION_MIME_H__
 #define __ONION_MIME_H__
 
+#include "types.h"
+
+void onion_mime_set(onion_dict *);
 const char *onion_mime_get(const char *filename);
 
 

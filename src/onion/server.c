@@ -25,6 +25,7 @@
 #include "types_internal.h"
 #include "log.h"
 #include "sessions.h"
+#include "mime.h"
 
 /// Default error handler.
 static int onion_default_error(void *handler, onion_request *req);
@@ -60,6 +61,7 @@ void onion_server_free(onion_server *server){
 		onion_handler_free(server->root_handler);
 	if (server->internal_error_handler)
 		onion_handler_free(server->internal_error_handler);
+	onion_mime_set(NULL);
 	onion_sessions_free(server->sessions);
 	free(server);
 }

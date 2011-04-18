@@ -32,9 +32,26 @@ static onion_dict *onion_mime_dict=NULL;
 static void onion_mime_fill();
 
 /**
+ * @short Sets a user set dict as mime dict
+ * 
+ * This dict maps "extension" -> "mimetype".
+ * 
+ * At onion_server_free it is freed, as if this function is called again.
+ */
+void onion_mime_set(onion_dict *d){
+	if (onion_mime_dict)
+		onion_dict_free(onion_mime_dict);
+	onion_mime_dict=d;
+}
+
+
+/**
  * @short Given a filename or extensiton, it returns the proper mime type.
  * 
- * Mime types are readden from /etc/mime.types.
+ * If onion_mime_set was called before, it is used, else it reads mime types /etc/mime.types.
+ * 
+ * Full mime catalog, from /etc/mime.types, takes about 36kb on ubuntu 10.10, may depend on
+ * how many mime types are known.
  * 
  * If none is found, returns text/plain.
  */
@@ -67,6 +84,7 @@ const char *onion_mime_get(const char *filename){
  * 
  */
 static void onion_mime_fill(){
+	onion_mime_set(NULL);
 	onion_mime_dict=onion_dict_new();
 	//ONION_DEBUG("Filling mime types");
 	
