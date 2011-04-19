@@ -89,7 +89,7 @@ static void onion_mime_fill(){
 	//ONION_DEBUG("Filling mime types");
 	
 	FILE *fd=fopen("/etc/mime.types", "rt");
-	if (fd<0){
+	if (!fd){
 		ONION_WARNING("Could not read MIME types (etc/mime.types), returned mime types may be incorrect");
 		return;
 	}
