@@ -90,7 +90,13 @@ static void onion_mime_fill(){
 	
 	FILE *fd=fopen("/etc/mime.types", "rt");
 	if (!fd){
-		ONION_WARNING("Could not read MIME types (etc/mime.types), returned mime types may be incorrect");
+		ONION_WARNING("Could not read MIME types (etc/mime.types), returned mime types may be incorrect. Adding minimal set.");
+		onion_dict_add(onion_mime_dict, "html", "text/html",0);
+		onion_dict_add(onion_mime_dict, "htm", "text/html",0);
+		onion_dict_add(onion_mime_dict, "js", "application/javascript",0);
+		onion_dict_add(onion_mime_dict, "css", "text/css",0);
+		onion_dict_add(onion_mime_dict, "png", "image/png",0);
+		onion_dict_add(onion_mime_dict, "jpg", "image/jpeg",0);
 		return;
 	}
 	char mimetype[128];
