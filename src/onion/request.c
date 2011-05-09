@@ -234,7 +234,7 @@ void onion_request_clean(onion_request* req){
 /**
  * @short Forces the request to process only one request, not doing the keep alive.
  * 
- * This is usefull on non threaded modes, as the keep alive blocks the loop.
+ * This is useful on non threaded modes, as the keep alive blocks the loop.
  */
 void onion_request_set_no_keep_alive(onion_request *req){
 	req->flags|=OR_NO_KEEP_ALIVE;

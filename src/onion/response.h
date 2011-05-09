@@ -74,6 +74,7 @@ enum onion_response_flags_e{
 	OR_CLOSE_CONNECTION=1,	/// The connection will be closed when processing finishes.
 	OR_SKIP_CONTENT=8,			/// This is set when the method is HEAD. @see onion_response_write_headers
 	OR_HEADER_SENT=16,			/// The header has already been written. Its done automatically on first user write.
+	OR_CHUNKED=32,					/// The data is to be sent using chunk encoding. Its on if no lenght is set.
 };
 
 typedef enum onion_response_flags_e onion_response_flags;

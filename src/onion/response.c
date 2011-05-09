@@ -32,7 +32,23 @@
 const char *onion_response_code_description(int code);
 static int onion_response_write_buffer(onion_response *res);
 
-/// Generates a new response object
+/**
+ * @short Generates a new response object
+ * 
+ * This response is generated from a request, and gets from there the writer and writer data.
+ * 
+ * Also fills some important data, as server Id, License type, and the default content type.
+ * 
+ * Default content type is HTML, as normally this is what is needed. This is nontheless just 
+ * the default, and can be changed to any other with a call to:
+ * 
+ *   onion_response_set_header(res, "Content-Type", my_type);
+ * 
+ * The response object must be freed with onion_response_free, which also returns the keep alive 
+ * status.
+ * 
+ * @returns An onion_response object for that request.
+ */
 onion_response *onion_response_new(onion_request *req){
 	onion_response *res=malloc(sizeof(onion_response));
 	
@@ -46,6 +62,7 @@ onion_response *onion_response_new(onion_request *req){
 	// Sorry for the publicity.
 	onion_dict_add(res->headers, "Server", "libonion v0.3 - coralbits.com", 0);
 	onion_dict_add(res->headers, "X-License", "AGPL 3.0", 0);
+	onion_dict_add(res->headers, "Content-Type", "text/html", 0); // Maybe not the best guess, but really useful.
 	//time_t t=time(NULL);
 	//onion_dict_add(res->headers, "Date", asctime(localtime(&t)), OD_DUP_VALUE);
 	
@@ -64,18 +81,31 @@ onion_connection_status onion_response_free(onion_response *res){
 	// write pending data.
 	onion_response_write_buffer(res);
 	
+	if (res->flags&OR_CHUNKED){ // Set the chunked data end.
+		void *fd=res->request->socket;
+		onion_write write=res->request->server->write;
+		write(fd, "0\r\n\r\n",7);
+	}
+
+	
 	int r=OCS_CLOSE_CONNECTION;
 	
 	// it is a rare ocassion that there is no request, but although unlikely, it may happend
 	if (res->request){
 		// keep alive only on HTTP/1.1.
-		//ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d)", onion_request_keep_alive(res->request),
-		//						res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes);
-		if ( onion_request_keep_alive(res->request) && (res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes) )
+		//ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d || [chunked] %d)", 
+		//						onion_request_keep_alive(res->request),
+		//						res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes, res->flags&OR_CHUNKED);
+		if ( onion_request_keep_alive(res->request) && 
+				 ( res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes || res->flags&OR_CHUNKED ) 
+			 )
 			r=OCS_KEEP_ALIVE;
 		
 		// FIXME! This is no proper logging at all. Maybe use a handler.
-		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->client_info, (res->request->flags&OR_GET) ? "GET" : (res->request->flags&OR_HEAD) ? "HEAD" : (res->request->flags&OR_POST) ? "POST" : "UNKNOWN_METHOD",
+		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->client_info,
+							(res->request->flags&OR_GET) ? "GET" : 
+							(res->request->flags&OR_HEAD) ? "HEAD" : 
+							(res->request->flags&OR_POST) ? "POST" : "UNKNOWN_METHOD",
 						res->request->fullpath, res->code, res->sent_bytes,
 						(r==OCS_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
 	}
@@ -88,7 +118,7 @@ onion_connection_status onion_response_free(onion_response *res){
 
 /// Adds a header to the response object
 void onion_response_set_header(onion_response *res, const char *key, const char *value){
-	onion_dict_add(res->headers, key, value, OD_DUP_ALL); // FIXME. DUP_ALL not so nice on memory side...
+	onion_dict_add(res->headers, key, value, OD_DUP_ALL|OD_REPLACE); // DUP_ALL not so nice on memory side...
 }
 
 /// Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
@@ -117,6 +147,7 @@ static void write_header(onion_response *res, const char *key, const char *value
 
 #define CONNECTION_CLOSE "Connection: Close\r\n"
 #define CONNECTION_KEEP_ALIVE "Connection: Keep-Alive\r\n"
+#define CONNECTION_CHUNK_ENCODING "Transfer-Encoding: chunked\r\n"
 
 /**
  * @short Writes all the header to the given response
@@ -133,10 +164,15 @@ static void write_header(onion_response *res, const char *key, const char *value
  */
 int onion_response_write_headers(onion_response *res){
 	res->flags|=OR_HEADER_SENT; // I Set at the begining so I can do normal writing.
+	char chunked=0;
 	
 	if (res->request->flags&OR_HTTP11){
 		onion_response_printf(res, "HTTP/1.1 %d %s\r\n",res->code, onion_response_code_description(res->code));
 		//ONION_DEBUG("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
+		if (!(res->flags&OR_LENGTH_SET)  && onion_request_keep_alive(res->request)){
+			onion_response_write(res, CONNECTION_CHUNK_ENCODING, sizeof(CONNECTION_CHUNK_ENCODING)-1);
+			chunked=1;
+		}
 	}
 	else{
 		onion_response_printf(res, "HTTP/1.0 %d %s\r\n",res->code, onion_response_code_description(res->code));
@@ -145,7 +181,7 @@ int onion_response_write_headers(onion_response *res){
 			onion_response_write(res, CONNECTION_KEEP_ALIVE, sizeof(CONNECTION_KEEP_ALIVE)-1);
 	}
 	
-	if (!(res->flags&OR_LENGTH_SET))
+	if (!(res->flags&OR_LENGTH_SET) && !chunked)
 		onion_response_write(res, CONNECTION_CLOSE, sizeof(CONNECTION_CLOSE)-1);
 	
 	onion_dict_preorder(res->headers, write_header, res);
@@ -161,6 +197,11 @@ int onion_response_write_headers(onion_response *res){
 		res->flags|=OR_SKIP_CONTENT;
 		return OR_SKIP_CONTENT;
 	}
+	if (chunked){
+		onion_response_write_buffer(res);
+		res->flags|=OR_CHUNKED;
+	}
+	
 	return 0;
 }
 
@@ -220,6 +261,14 @@ static int onion_response_write_buffer(onion_response *res){
 	ssize_t w;
 	off_t pos=0;
 	//ONION_DEBUG0("Write %d bytes",res->buffer_pos);
+	if (res->flags&OR_CHUNKED){
+		char tmp[16];
+		snprintf(tmp,sizeof(tmp),"%X\r\n",(unsigned int)res->buffer_pos);
+		if (write(fd, tmp, strlen(tmp))<=0){
+			ONION_WARNING("Error writing chunk encoding length. Aborting write.");
+			return OCS_CLOSE_CONNECTION;
+		}
+	}
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0){
 			ONION_ERROR("Error writing %d bytes. Maybe closed connection. Code %d. ",res->buffer_pos, w);
@@ -230,6 +279,9 @@ static int onion_response_write_buffer(onion_response *res){
 		pos+=w;
 		ONION_DEBUG0("Write %d-%d bytes",res->buffer_pos,w);
 		res->buffer_pos-=w;
+	}
+	if (res->flags&OR_CHUNKED){
+		write(fd,"\r\n",2);
 	}
 	res->buffer_pos=0;
 	return 0;
