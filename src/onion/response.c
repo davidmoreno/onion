@@ -122,11 +122,18 @@ static void write_header(onion_response *res, const char *key, const char *value
  * @short Writes all the header to the given response
  * 
  * It writes the headers and depending on the method, return OR_SKIP_CONTENT. this is set when in head mode. Handlers 
- * should react to this return by not trying to write more, but if they try this object will just skip those writings.
+ * should react to this return by not trying to write more, but if they try this object will just skip those writtings.
+ * 
+ * Explicit calling to this function is not necessary, as as soon as the user calls any write function this will 
+ * be performed. 
+ * 
+ * As soon as the headers are written, any modification on them will be just ignored.
  * 
  * @returns 0 if should procced to normal data write, or OR_SKIP_CONTENT if should not write content.
  */
 int onion_response_write_headers(onion_response *res){
+	res->flags|=OR_HEADER_SENT; // I Set at the begining so I can do normal writing.
+	
 	if (res->request->flags&OR_HTTP11){
 		onion_response_printf(res, "HTTP/1.1 %d %s\r\n",res->code, onion_response_code_description(res->code));
 		//ONION_DEBUG("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
@@ -149,7 +156,7 @@ int onion_response_write_headers(onion_response *res){
 	onion_response_write(res,"\r\n",2);
 	
 	res->sent_bytes=0; // the header size is not counted here.
-		
+	
 	if (res->request->flags&OR_HEAD){
 		res->flags|=OR_SKIP_CONTENT;
 		return OR_SKIP_CONTENT;
@@ -157,8 +164,23 @@ int onion_response_write_headers(onion_response *res){
 	return 0;
 }
 
-/// Straight write some data to the response. Only used for real data as it has info about sent bytes for keep alive.
+/**
+ * @short Write some response data.
+ * 
+ * This is the main write data function. If the headers have not been sent yet, they are now.
+ * 
+ * It's internally used also by the write0 and printf versions.
+ * 
+ * Also it does some buffering, so data is not sent as written by code, but only in chunks. 
+ * These chunks are when the response is finished, or when the internal buffer is full. This
+ * helps performance, and eases the programming on the user side.
+ * 
+ * @returns The bytes written, normally just length. On error returns OCS_CLOSE_CONNECTION.
+ */
 ssize_t onion_response_write(onion_response *res, const char *data, size_t length){
+	if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
+		onion_response_write_headers(res);
+	}
 	if (res->flags&OR_SKIP_CONTENT){
 		ONION_DEBUG("Skipping content as we are in HEAD mode");
 		return OCS_CLOSE_CONNECTION;

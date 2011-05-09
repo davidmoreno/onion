@@ -72,7 +72,8 @@ enum onion_response_flags_e{
 	OR_KEEP_ALIVE=4, 				/// Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
 	OR_LENGTH_SET=2,				/// Response has set the length, so we may keep alive.
 	OR_CLOSE_CONNECTION=1,	/// The connection will be closed when processing finishes.
-	OR_SKIP_CONTENT=8,      /// This is set when the method is HEAD. @see onion_response_write_headers
+	OR_SKIP_CONTENT=8,			/// This is set when the method is HEAD. @see onion_response_write_headers
+	OR_HEADER_SENT=16,			/// The header has already been written. Its done automatically on first user write.
 };
 
 typedef enum onion_response_flags_e onion_response_flags;
