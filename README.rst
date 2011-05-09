@@ -15,6 +15,9 @@ Its not a web server per se, as it is not an executable.
 If you want to compare to a web server, a web server would use a module or plugin to add 
 some functionality. With libonion you have the functionality and add the webserver as a plugin.
 
+There is a wiki available at https://github.com/davidmoreno/onion/wiki, with many useful 
+information on how to start and internal workings.
+
 API documentation is at http://coralbits.com/staticc/libonion/html/.
 
 SSL Support
