@@ -70,7 +70,7 @@ onion_request_flags onion_request_get_flags(onion_request *req);
 /// Moves the path pointer to later in the fullpath
 void onion_request_advance_path(onion_request *req, int addtopos);
 
-/// @{ @name Get header, query, post and file data
+/// @{ @name Get header, query, post, file data and session
 
 /// Gets a header data
 const char *onion_request_get_header(onion_request *req, const char *header);
@@ -103,6 +103,9 @@ const onion_dict *onion_request_get_file_dict(onion_request *req);
 onion_dict *onion_request_get_session_dict(onion_request *req);
 
 /// @}
+
+/// Frees the session dictionary.
+void onion_request_session_free(onion_request *req);
 
 /// Cleans the request object, to reuse it
 void onion_request_clean(onion_request *req);

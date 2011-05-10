@@ -61,10 +61,16 @@ onion_sessions *onion_sessions_new(){
 	return ret;
 }
 
+/// Helper to remove all dicts inside session. Called with onion_dict_preorder
+static void onion_sessions_free_helper(void *data, const char *key, onion_dict *value, int flags){
+	onion_dict_free(value);
+}
+
 /**
  * @short Frees the memory used by sessions
  */
 void onion_sessions_free(onion_sessions* sessions){
+	onion_dict_preorder(sessions->sessions, (void*)onion_sessions_free_helper, NULL);
 	onion_dict_free(sessions->sessions);
 	free(sessions);
 }
@@ -85,6 +91,13 @@ char *onion_sessions_create(onion_sessions *sessions){
 
 /**
  * @short Returns a session dictionary
+ * 
+ * It returns a dupped (ref counter ++) version of the dict. All modifications are straight here, but user
+ * (normally onion_request) must dereference it.. as it really do.
+ * 
+ * This is this way to prevent a thread removing the dict, whilst others are using it. to really remove the
+ * dict, call onion_sessions_remove, which will remove the reference here, which is the only
+ * one which should stay across thread lifetimes.
  */
 onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId){
 	ONION_DEBUG("Accessing session '%s'",sessionId);

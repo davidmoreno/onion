@@ -45,6 +45,12 @@ onion_connection_status sessions(void *ignore, onion_request *req){
 	onion_response *res=onion_response_new(req);
 	onion_dict *session=onion_request_get_session_dict(req);
 
+	if (onion_request_get_query(req, "reset")){
+		onion_request_session_free(req);
+		onion_response_write0(res, "ok");
+		return onion_response_free(res);
+	}
+	
 	const char *n=onion_dict_get(session, "count");
 	int count;
 	if (n){

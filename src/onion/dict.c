@@ -76,6 +76,7 @@ onion_dict *onion_dict_dup(onion_dict *dict){
 	pthread_mutex_lock(&dict->refmutex);
 #endif
 	dict->refcount++;
+	//ONION_DEBUG0("Dup %p, refcount %d",dict, dict->refcount);
 #ifdef HAVE_PTHREADS
 	pthread_mutex_unlock(&dict->refmutex);
 #endif
@@ -122,6 +123,7 @@ void onion_dict_free(onion_dict *dict){
 	pthread_mutex_lock(&dict->refmutex);
 #endif
 	dict->refcount--;
+	//ONION_DEBUG0("Free %p refcount %d", dict, dict->refcount);
 	int remove=(dict->refcount==0);
 #ifdef HAVE_PTHREADS
 	pthread_mutex_unlock(&dict->refmutex);

@@ -90,7 +90,7 @@ void onion_request_free(onion_request *req){
 	if (req->session_id)
 		free(req->session_id);
 	if (req->session)
-		onion_dict_free(req->session);
+		onion_dict_free(req->session); // Not really remove, just dereference
 	
 	free(req);
 }
@@ -167,6 +167,8 @@ const onion_dict *onion_request_get_file_dict(onion_request *req){
  * @short Gets the sessionid cookie, if any, and sets it to req->session_id.
  */
 void onion_request_guess_session_id(onion_request *req){
+	if (req->session_id) // already known.
+		return;
 	const char *v=onion_dict_get(req->headers, "Cookie");
 	if (!v)
 		return;
@@ -262,3 +264,24 @@ int onion_request_keep_alive(onion_request *req){
 	}
 	return 0;
 }
+
+
+/** 
+ * @short Frees the session dictionary.
+ * 
+ * If data is under onion_dict scope (just dicts into dicts and strings), all data is freed.
+ * If the user has set some custom data, THAT MEMORY IS LEAKED.
+ */
+void onion_request_session_free(onion_request *req){
+	if (!req->session_id)
+		onion_request_guess_session_id(req);
+	if (req->session_id){
+		onion_sessions_remove(req->server->sessions, req->session_id);
+		onion_dict_free(req->session);
+		req->session=NULL;
+		free(req->session_id);
+		req->session_id=NULL;
+	}
+}
+
+
