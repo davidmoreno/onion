@@ -34,18 +34,17 @@ struct onion_handler_opack_data_t{
 
 typedef struct onion_handler_opack_data_t onion_handler_opack_data;
 
-int onion_handler_opack_handler(onion_handler_opack_data *d, onion_request *request){
+int onion_handler_opack_handler(onion_handler_opack_data *d, onion_request *request, onion_response *res){
 	if (strcmp(d->path, onion_request_get_path(request))!=0)
 		return 0;
 		
-	onion_response *res=onion_response_new(request);
 	if (d->length)
 		onion_response_set_length(res, d->length);
 	onion_response_write_headers(res);
 
 	d->render(res);
 	
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 

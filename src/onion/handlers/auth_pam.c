@@ -40,7 +40,7 @@ struct onion_handler_auth_pam_data_t{
 
 typedef struct onion_handler_auth_pam_data_t onion_handler_auth_pam_data;
 
-int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request *request){
+int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request *request, onion_response *res){
 	const char *o=onion_request_get_header(request, "Authorization");
 	char *auth=NULL;
 	char *username=NULL;
@@ -65,7 +65,7 @@ int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request
 		
 		if (ok){
 			free(auth);
-			return onion_handler_handle(d->inside, request);
+			return onion_handler_handle(d->inside, request, res);
 		}
 	}
 	if (auth)
@@ -73,16 +73,14 @@ int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request
 
 	
 	// Not authorized. Ask for it.
-	onion_response *res=onion_response_new(request);
 	char temp[256];
 	sprintf(temp, "Basic realm=\"%230s\"",d->realm);
 	onion_response_set_header(res, "WWW-Authenticate",temp);
 	onion_response_set_code(res, HTTP_UNAUTHORIZED);
 	onion_response_set_length(res,sizeof(RESPONSE_UNAUTHORIZED));
 	
-	onion_response_write_headers(res);
 	onion_response_write(res,RESPONSE_UNAUTHORIZED,sizeof(RESPONSE_UNAUTHORIZED));
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 

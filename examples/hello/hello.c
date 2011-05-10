@@ -1,10 +1,9 @@
 /** Licensed under AGPL 3.0. (C) 2010 David Moreno Montero. http://coralbits.com */
 #include <onion/onion.h>
 
-int hello(void *p, onion_request *req){
-	onion_response *res=onion_response_new(req);
+int hello(void *p, onion_request *req, onion_response *res){
 	onion_response_write(res,"Hello world",11);
-	return onion_response_free(res);
+	return 1;
 }
 
 int main(int argc, char **argv){

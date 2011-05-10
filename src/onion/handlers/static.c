@@ -37,12 +37,10 @@ typedef struct onion_handler_static_data_t onion_handler_static_data;
 /**
  * @short Performs the real request: checks if its for me, and then write the data.
  */
-int onion_handler_static_handler(onion_handler_static_data *d, onion_request *request){
+int onion_handler_static_handler(onion_handler_static_data *d, onion_request *request, onion_response *res){
 	if (regexec(&d->path, onion_request_get_path(request), 0, NULL, 0)!=0)
 		return 0;
 	
-	onion_response *res=onion_response_new(request);
-
 	int length=strlen(d->data);
 	onion_response_set_length(res, length);
 	onion_response_set_code(res, d->code);
@@ -51,7 +49,7 @@ int onion_handler_static_handler(onion_handler_static_data *d, onion_request *re
 	//fprintf(stderr,"Write %d bytes\n",length);
 	onion_response_write(res, d->data, length);
 
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 /// Removes internal data for this handler.

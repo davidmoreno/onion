@@ -128,9 +128,15 @@ void onion_server_set_max_file_size(onion_server *server, size_t max_file_size){
  * @see onion_connection_status
  */
 int onion_server_handle_request(onion_request *req){
-	int status=onion_handler_handle(req->server->root_handler, req);
+	onion_response *res=onion_response_new(req);
+	
+	// Call the main handler. FIXME. Take care of response.
+	onion_handler_handle(req->server->root_handler, req, res);
+	
+	int status=onion_response_free(res);
 	if (status==OCS_KEEP_ALIVE) // if keep alive, reset struct to get the new petition.
 		onion_request_clean(req);
+	
 	return status;
 }
 
@@ -196,7 +202,9 @@ onion_connection_status onion_server_write_to_request(onion_server *server, onio
 		if (connection_status==OCS_NOT_PROCESSED)
 			request->flags|=OR_NOT_FOUND;
 		
-		onion_handler_handle(server->internal_error_handler, request);
+		onion_response *response=onion_response_new(request);
+		onion_handler_handle(server->internal_error_handler, request, response);
+		onion_response_free(response);
 	}
 	return connection_status;
 }

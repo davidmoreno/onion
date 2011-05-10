@@ -47,7 +47,7 @@ typedef struct{
 }upload_file_data;
 
 
-onion_connection_status upload_file(upload_file_data *data, onion_request *req){
+onion_connection_status upload_file(upload_file_data *data, onion_request *req, onion_response *res){
 	if (onion_request_get_flags(req)&OR_POST){
 		const char *name=onion_request_get_post(req,"file");
 		const char *filename=onion_request_get_file(req,"file");
@@ -77,7 +77,7 @@ onion_connection_status upload_file(upload_file_data *data, onion_request *req){
 			close(dst);
 		}
 	}
-	return 0;
+	return 0; // I just ignore the request, but process over the FILE data
 }
 
 /// Footer that allows to upload files.

@@ -50,8 +50,8 @@ int show_help(){
 	return 0;
 }
 
-int fileserver_page(const char *basepath, onion_request *req);
-int fileserver_html_template(onion_dict *context, onion_request *req);
+int fileserver_page(const char *basepath, onion_request *req, onion_response *res);
+int fileserver_html_template(onion_dict *context, onion_request *req, onion_response *res);
 
 int main(int argc, char **argv){
 	//onion_log=onion_log_syslog;
@@ -96,7 +96,7 @@ int main(int argc, char **argv){
 }
 
 
-int fileserver_page(const char *basepath, onion_request *req){
+int fileserver_page(const char *basepath, onion_request *req, onion_response *res){
 	onion_dict *d=onion_dict_new();
 	
 	const char *path=onion_request_get_path(req);
@@ -141,9 +141,9 @@ int fileserver_page(const char *basepath, onion_request *req){
 		closedir(dir);
 		free(realp);
 		
-		return fileserver_html_template(d, req);
+		return fileserver_html_template(d, req, res);
 	}
 	else{ // Might be a file
-		return onion_shortcut_response_file(realp, req);
+		return onion_shortcut_response_file(realp, req, res);
 	}
 }

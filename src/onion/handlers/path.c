@@ -33,7 +33,7 @@ struct onion_handler_path_data_t{
 
 typedef struct onion_handler_path_data_t onion_handler_path_data;
 
-int onion_handler_path_handler(onion_handler_path_data *d, onion_request *request){
+int onion_handler_path_handler(onion_handler_path_data *d, onion_request *request, onion_response *response){
 	regmatch_t match[1];
 	const char *path=onion_request_get_path(request);
 	
@@ -42,7 +42,7 @@ int onion_handler_path_handler(onion_handler_path_data *d, onion_request *reques
 	
 	onion_request_advance_path(request, match[0].rm_eo);
 	
-	return onion_handler_handle(d->inside, request);
+	return onion_handler_handle(d->inside, request, response);
 }
 
 

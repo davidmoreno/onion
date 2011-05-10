@@ -37,8 +37,8 @@
 
 onion_handler *otop_handler_new();
 void otop_write_process_data(onion_response *res, int pid);
-int otop_index(void *d, onion_request *req);
-int otop_handler(void *d, onion_request *req);
+int otop_index(void *d, onion_request *req, onion_response *res);
+int otop_handler(void *d, onion_request *req, onion_response *res);
 
 /**
  * @short Exports a top like structure
@@ -73,9 +73,7 @@ int main(int argc, char **argv){
 }
 
 /// The handler created here.
-int otop_handler(void *d, onion_request *req){
-	onion_response *res=onion_response_new(req);
-	
+int otop_handler(void *d, onion_request *req, onion_response *res){
 	DIR *dir=opendir("/proc/");
 	if (!dir){
 		onion_response_set_code(res,500);
@@ -100,8 +98,6 @@ int otop_handler(void *d, onion_request *req){
 	}
 	closedir(dir);
 	onion_response_write0(res,"\"-1\":{}}");
-	
-	onion_response_free(res);
 	
 	return 1;
 }
@@ -187,13 +183,8 @@ void otop_write_process_data(onion_response *res, int pid){
 
 void opack_index_html(onion_response *res);
 
-int otop_index(void *d, onion_request *req){
-	onion_response *res=onion_response_new(req);
-	
-	onion_response_write_headers(res);
-	
+int otop_index(void *d, onion_request *req, onion_response *res){
 	opack_index_html(res);
-	
 	return 1;
 }
 

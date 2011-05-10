@@ -65,13 +65,11 @@ void functions_write_main_code(parser_status *st){
 	const char *f=((function_data*)list_get_n(st->function_stack,0))->id;
 
 		fprintf(st->out,"\n\n"
-"int %s_handler_page(onion_dict *context, onion_request *req){\n"
-"  onion_response *res=onion_response_new(req);\n"
-"  onion_response_write_headers(res);\n"
+"int %s_handler_page(onion_dict *context, onion_request *req, onion_response *res){\n"
 "\n"
 "  %s(context, res);\n"
 "\n"
-"  return onion_response_free(res);\n"
+"  return OCS_PROCESSED;\n"
 "}\n\n", f, f);
 
 	fprintf(st->out,
@@ -83,15 +81,13 @@ void functions_write_main_code(parser_status *st){
 
 	fprintf(st->out,
 "\n"
-"int %s_template(onion_dict *context, onion_request *req){\n"
-"  onion_response *res=onion_response_new(req);\n"
-"  onion_response_write_headers(res);\n"
+"int %s_template(onion_dict *context, onion_request *req, onion_response *res){\n"
 "\n"
 "  %s(context, res);\n"
 "\n"
 "  onion_dict_free(context);\n"
 "\n"
-"  return onion_response_free(res);\n"
+"  return OCS_PROCESSED;\n"
 "}\n\n", f, f);
 }
 

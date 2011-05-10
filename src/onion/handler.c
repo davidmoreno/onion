@@ -20,26 +20,29 @@
 #include <string.h>
 
 #include "handler.h"
+#include "response.h"
 #include "types_internal.h"
 
 /**
  * @short Tryes to handle the petition with that handler.
  *
- * If can not, returns NULL.
+ * It needs the handler to handle, the request and the response.
  *
  * It checks this parser, and siblings.
+ * 
+ * @returns If can not, returns OCS_NOT_PROCESSED (0), else the onion_connection_status. (normally OCS_PROCESSED)
  */
-int onion_handler_handle(onion_handler *handler, onion_request *request){
-	int res;
+onion_connection_status onion_handler_handle(onion_handler *handler, onion_request *request, onion_response *response){
+	onion_connection_status res;
 	while (handler){
 		if (handler->handler){
-			res=handler->handler(handler->priv_data, request);
+			res=handler->handler(handler->priv_data, request, response);
 			if (res)
 				return res;
 		}
 		handler=handler->next;
 	}
-	return 0;
+	return OCS_NOT_PROCESSED;
 }
 
 

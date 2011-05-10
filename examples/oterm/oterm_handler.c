@@ -75,11 +75,11 @@ typedef struct{
 
 
 process *oterm_new(oterm_t *o);
-static int oterm_status(oterm_t *o, onion_request *req);
+static int oterm_status(oterm_t *o, onion_request *req, onion_response *res);
 
-static int oterm_resize(process *o, onion_request *req);
-static int oterm_in(process *o, onion_request *req);
-static int oterm_out(process *o, onion_request *req);
+static int oterm_resize(process *o, onion_request *req, onion_response *res);
+static int oterm_in(process *o, onion_request *req, onion_response *res);
+static int oterm_out(process *o, onion_request *req, onion_response *res);
 
 /// Returns the term from the list of known terms. FIXME, make this structure a tree or something faster than linear search.
 process *oterm_get_process(oterm_t *o, const char *id){
@@ -98,15 +98,15 @@ process *oterm_get_process(oterm_t *o, const char *id){
 }
 
 /// Plexes the request depending on arguments.
-int oterm_data(oterm_t *o, onion_request *req){
+int oterm_data(oterm_t *o, onion_request *req, onion_response *res){
 	const char *path=onion_request_get_path(req);
 	
 	if (strcmp(path,"new")==0){
 		oterm_new(o);
-		return onion_shortcut_response("ok", 200, req);
+		return onion_shortcut_response("ok", 200, req, res);
 	}
 	if (strcmp(path,"status")==0)
-		return oterm_status(o,req);
+		return oterm_status(o,req, res);
 
 	// split id / function
 	int l=strlen(path)+1;
@@ -120,7 +120,7 @@ int oterm_data(oterm_t *o, onion_request *req){
 		if (id[i]=='/'){
 			id[i]=0;
 			if (function)
-				return onion_shortcut_response("Bad formed petition. (1)", 500, req);
+				return onion_shortcut_response("Bad formed petition. (1)", 500, req, res);
 			function=id+i+1;
 			func_pos=i;
 			break;
@@ -128,20 +128,20 @@ int oterm_data(oterm_t *o, onion_request *req){
 	}
 	
 	if (!function)
-		return onion_shortcut_response("Bad formed petition. (2)", 500, req);
+		return onion_shortcut_response("Bad formed petition. (2)", 500, req, res);
 	// do it
 	process *term=oterm_get_process(o, id);
 	if (!term)
-		return onion_shortcut_response("Terminal Id unknown", 404, req);
+		return onion_shortcut_response("Terminal Id unknown", 404, req, res);
 	if (strcmp(function,"out")==0)
-		return oterm_out(term,req);
+		return oterm_out(term,req,res);
 	if (strcmp(function,"in")==0)
-		return oterm_in(term,req);
+		return oterm_in(term,req,res);
 	if (strcmp(function,"resize")==0)
-		return oterm_resize(term,req);
+		return oterm_resize(term,req,res);
 	onion_request_advance_path(req, func_pos);
 	
-	return onion_handler_handle(o->data, req);
+	return onion_handler_handle(o->data, req, res);
 }
 
 /// Variables that will be passed to the new environment.
@@ -192,10 +192,7 @@ process *oterm_new(oterm_t *o){
 
 
 /// Returns the status of all known terminals.
-int oterm_status(oterm_t *o, onion_request *req){
-	onion_response *res=onion_response_new(req);
-	onion_response_write_headers(res);
-	
+int oterm_status(oterm_t *o, onion_request *req, onion_response *res){
 	onion_response_write0(res,"{");
 
 	
@@ -208,11 +205,11 @@ int oterm_status(oterm_t *o, onion_request *req){
 	
 	onion_response_write0(res,"}\n");
 	
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 /// Input data to the process
-int oterm_in(process *o, onion_request *req){
+int oterm_in(process *o, onion_request *req, onion_response *res){
 	const char *data;
 	data=onion_request_get_post(req,"type");
 	ssize_t w;
@@ -222,25 +219,25 @@ int oterm_in(process *o, onion_request *req){
 		w=write(o->fd, data, r);
 		if (w!=r){
 			ONION_WARNING("Error writing data to process. Not all data written. (%d).",w);
-			return onion_shortcut_response("Error", HTTP_INTERNAL_ERROR, req);
+			return onion_shortcut_response("Error", HTTP_INTERNAL_ERROR, req, res);
 		}
 	}
-	return onion_shortcut_response("OK", HTTP_OK, req);
+	return onion_shortcut_response("OK", HTTP_OK, req, res);
 }
 
 /// Resize the window. Do not work yet, and I dont know whats left. FIXME.
-int oterm_resize(process *o, onion_request* req){
+int oterm_resize(process *o, onion_request* req, onion_response *res){
 	//const char *data=onion_request_get_query(req,"resize");
 	int ok=kill(o->pid, SIGWINCH);
 	
 	if (ok==0)
-		return onion_shortcut_response("OK",HTTP_OK, req);
+		return onion_shortcut_response("OK",HTTP_OK, req, res);
 	else
-		return onion_shortcut_response("Error",HTTP_INTERNAL_ERROR, req);
+		return onion_shortcut_response("Error",HTTP_INTERNAL_ERROR, req, res);
 }
 
 /// Gets the output data
-int oterm_out(process *o, onion_request *req){
+int oterm_out(process *o, onion_request *req, onion_response *res){
 	// read data, if any. Else return inmediately empty.
 	char buffer[4096];
 	int n=0; // -O2 complains of maybe used uninitialized
@@ -257,12 +254,11 @@ int oterm_out(process *o, onion_request *req){
 	}
 	else
 		n=0;
-	onion_response *res=onion_response_new(req);
 	onion_response_set_length(res, n);
 	onion_response_write_headers(res);
 	if (n)
 		onion_response_write(res,buffer,n);
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 /// Terminates all processes, and frees the memory.

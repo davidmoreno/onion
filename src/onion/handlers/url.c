@@ -40,7 +40,7 @@ typedef struct onion_handler_url_data_t onion_handler_url_data;
 /**
  * @short Performs the real request: checks if its for me, and then calls the inside level.
  */
-int onion_handler_url_handler(onion_handler_url_data **dd, onion_request *request){
+int onion_handler_url_handler(onion_handler_url_data **dd, onion_request *request, onion_response *response){
 	onion_handler_url_data *next=*dd;
 	regmatch_t match[1];
 	
@@ -50,7 +50,7 @@ int onion_handler_url_handler(onion_handler_url_data **dd, onion_request *reques
 			//ONION_DEBUG("Ok,match");
 			if (match[0].rm_so==0)
 				onion_request_advance_path(request, match[0].rm_eo);
-			return onion_handler_handle(next->inside, request);
+			return onion_handler_handle(next->inside, request, response);
 		}
 		
 		next=next->next;

@@ -56,7 +56,9 @@ void t01_handle_static_request(){
 	FAIL_IF_NOT(handler);
 	onion_server_set_root_handler(server, handler);
 	
-	ok=onion_handler_handle(handler, request);
+	onion_response *response=onion_response_new(request);
+	ok=onion_handler_handle(handler, request, response);
+	onion_response_free(response);
 	FAIL_IF_NOT(ok);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 302 REDIRECT\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nNot ready");
 	
@@ -88,10 +90,13 @@ void t02_handle_generic_request(){
 	onion_server_set_root_handler(server, handler);
 	
 	onion_request *request;
+	onion_response *response;
 
 	request=onion_request_new(server, buffer, NULL);
 	FILL(request,"GET / HTTP/1.1\n");
-	onion_handler_handle(handler, request);
+	response=onion_response_new(request);
+	onion_handler_handle(handler, request, response);
+	onion_response_free(response);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 302 REDIRECT\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nNot ready");
 	onion_request_free(request);
 	
@@ -99,14 +104,18 @@ void t02_handle_generic_request(){
 	memset(buffer,0,sizeof(buffer));
 	request=onion_request_new(server, buffer, "localhost");
 	FILL(request,"GET /error HTTP/1.1\n");
-	onion_handler_handle(handler, request);
+	response=onion_response_new(request);
+	onion_handler_handle(handler, request,response);
+	onion_response_free(response);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 500 INTERNAL ERROR\r\nContent-Length: 14\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nInternal error");
 	onion_request_free(request);
 
 	memset(buffer,0,sizeof(buffer));
 	request=onion_request_new(server, buffer, "127.0.0.1");
 	FILL(request,"GET /any HTTP/1.1\n");
-	onion_handler_handle(handler, request);
+	response=onion_response_new(request);
+	onion_handler_handle(handler, request,response);
+	onion_response_free(response);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\r\nContent-Length: 3\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nany");
 	onion_request_free(request);
 
@@ -131,9 +140,13 @@ void t03_handle_path_request(){
 	onion_server_set_root_handler(server, path);
 	
 	onion_request *request;
+	onion_response *response;
+	
 	request=onion_request_new(server, buffer, NULL);
 	FILL(request,"GET / HTTP/1.1\n");
-	onion_handler_handle(path, request);
+	response=onion_response_new(request);
+	onion_handler_handle(path, request, response);
+	onion_response_free(response);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 500 INTERNAL ERROR\r\nContent-Length: 14\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nInternal error");
 	onion_request_free(request);
 	
@@ -141,14 +154,18 @@ void t03_handle_path_request(){
 	memset(buffer,0,sizeof(buffer));
 	request=onion_request_new(server, buffer, NULL);
 	FILL(request,"GET /test/ HTTP/1.1\n");
-	onion_handler_handle(path, request);
+	response=onion_response_new(request);
+	onion_handler_handle(path, request, response);
+	onion_response_free(response);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\r\nContent-Length: 11\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nTest index\n");
 	onion_request_free(request);
 
 	memset(buffer,0,sizeof(buffer));
 	request=onion_request_new(server, buffer, NULL);
 	FILL(request,"GET /test/index.html HTTP/1.1\n");
-	onion_handler_handle(path, request);
+	response=onion_response_new(request);
+	onion_handler_handle(path, request, response);
+	onion_response_free(response);
 	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\r\nContent-Length: 10\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nIndex test");
 	onion_request_free(request);
 

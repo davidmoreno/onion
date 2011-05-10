@@ -27,7 +27,7 @@ extern "C"{
 #include "types.h"
 
 /// checks that handler to handle the request
-int onion_handler_handle(onion_handler *handler, onion_request *request);
+onion_connection_status onion_handler_handle(onion_handler *handler, onion_request *request, onion_response *response);
 
 /// Creates an onion handler with that private datas.
 onion_handler *onion_handler_new(onion_handler_handler handler, void *privdata, onion_handler_private_data_free priv_data_free);

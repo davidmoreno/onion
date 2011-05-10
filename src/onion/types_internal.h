@@ -82,7 +82,6 @@ struct onion_server_t{
 struct onion_request_t{
 	onion_server *server; /// Server original data, like write function
 	onion_dict *headers;  /// Headers prepared for this response.
-	onion_write write;    /// Write function
 	void *socket;         /// Write function handler
 	int flags;            /// Flags for this response. Ored onion_request_flags_e
 
@@ -109,6 +108,8 @@ struct onion_response_t{
 	unsigned int sent_bytes_total; /// Total sent bytes, including headers.
 	char buffer[ONION_RESPONSE_BUFFER_SIZE]; /// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
 	off_t buffer_pos;						/// Position in the internal buffer. When sizeof(buffer) its flushed to the onion_server IO.
+	onion_write write;    /// Write function
+	void *socket;         /// Write function handler
 };
 
 struct onion_handler_t{

@@ -46,10 +46,10 @@ struct onion_handler_export_local_data_t{
 
 typedef struct onion_handler_export_local_data_t onion_handler_export_local_data;
 
-int onion_handler_export_local_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req);
-int onion_handler_export_local_file(const char *realp, struct stat *reals, onion_request *request);
+int onion_handler_export_local_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req, onion_response *res);
+int onion_handler_export_local_file(const char *realp, struct stat *reals, onion_request *request, onion_response *response);
 
-int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion_request *request){
+int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion_request *request, onion_response *response){
 	char tmp[PATH_MAX];
 	char realp[PATH_MAX];
 	
@@ -59,30 +59,32 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
 		snprintf(tmp,PATH_MAX, "%s/%s",d->localpath,onion_request_get_path(request));
 
 	//ONION_DEBUG("Get %s (base %s)",tmp, d->localpath);
-	
+
+	// First check if it exists and so on. If it does not exist, no trying to escape message
+	struct stat reals;
+	int ok=stat(tmp,&reals);
+	if (ok<0) // Cant open for even stat
+	{
+		//ONION_DEBUG("Not found");
+		return 0;
+	}
+		
 	const char *ret=realpath(tmp, realp);
 	if (!ret || strncmp(realp, d->localpath, strlen(d->localpath))!=0){ // out of secured dir.
 		ONION_WARNING("Trying to escape from secured dir (secured dir %s, trying %s).", d->localpath, realp);
 		return 0;
 	}
 
-	struct stat reals;
-	int ok=stat(realp,&reals);
-	if (ok<0) // Cant open for even stat
-	{
-		//ONION_DEBUG("Not found");
-		return 0;
-	}
 	if (S_ISDIR(reals.st_mode)){
 		//ONION_DEBUG("DIR");
-		return onion_handler_export_local_directory(d, realp, onion_request_get_path(request), request);
+		return onion_handler_export_local_directory(d, realp, onion_request_get_path(request), request, response);
 	}
 	else if (S_ISREG(reals.st_mode)){
 		//ONION_DEBUG("FILE");
-		return onion_shortcut_response_file(realp, request);
+		return onion_shortcut_response_file(realp, request, response);
 	}
 	//ONION_DEBUG("Dont know how to handle");
-	return 0;
+	return OCS_NOT_PROCESSED;
 }
 
 
@@ -109,13 +111,11 @@ void onion_handler_export_local_footer_default(onion_response *res, const char *
 /**
  * @short Returns the directory listing
  */
-int onion_handler_export_local_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req){
+int onion_handler_export_local_directory(onion_handler_export_local_data *data, const char *realp, const char *showpath, onion_request *req, onion_response *res){
 	DIR *dir=opendir(realp);
 	if (!dir) // Continue on next. Quite probably a custom error.
 		return 0;
-	onion_response *res=onion_response_new(req);
 	onion_response_set_header(res, "Content-Type", "text/html; charset=utf-8");
-	onion_response_write_headers(res);
 	
 	onion_response_write0(res,"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n"
 														"<html>\n"
@@ -193,11 +193,9 @@ int onion_handler_export_local_directory(onion_handler_export_local_data *data, 
 
 	onion_response_write0(res,"</body></html>");
 
-	int r=onion_response_free(res);
-	
 	closedir(dir);
 	
-	return r;
+	return OCS_PROCESSED;
 }
 
 /// Frees local data from the directory handler

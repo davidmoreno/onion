@@ -52,7 +52,7 @@ void format_query(const char *key, const char *value, char *temp){
 /**
  * @short Just asks the user for the answer.
  */
-onion_connection_status ask_handler(void *none, onion_request *req){
+onion_connection_status ask_handler(void *none, onion_request *req, onion_response *res){
 	char temp[1024];
 	strcpy(temp, onion_request_get_path(req));
 	onion_dict_preorder(onion_request_get_query_dict(req),format_query,temp);
@@ -62,11 +62,9 @@ onion_connection_status ask_handler(void *none, onion_request *req){
 	if (!resp)
 		return OCS_INTERNAL_ERROR;
 	
-	onion_response *res=onion_response_new(req);
-	onion_response_write_headers(res);
 	onion_response_write0(res, resp);
 	free(resp);
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 /**

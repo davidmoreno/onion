@@ -36,11 +36,11 @@ typedef struct onion_handler_regexp_data_t onion_handler_regexp_data;
 /**
  * @short Performs the real request: checks if its for me, and then calls the inside level.
  */
-int onion_handler_regexp_handler(onion_handler_regexp_data *d, onion_request *request){
+int onion_handler_regexp_handler(onion_handler_regexp_data *d, onion_request *request, onion_response *response){
 	if (regexec(&d->regexp, onion_request_get_path(request), 0, NULL, 0)!=0)
 		return 0;
 
-	return onion_handler_handle(d->inside, request);
+	return onion_handler_handle(d->inside, request, response);
 }
 
 /// Removes internal data for this handler.

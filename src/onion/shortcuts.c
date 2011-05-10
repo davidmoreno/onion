@@ -37,9 +37,9 @@
  * Prepares a fast response. You pass only the request, the text and the code, and it do the full response
  * object and sends the data.
  */
-int onion_shortcut_response(const char* response, int code, onion_request* req)
+int onion_shortcut_response(const char* response, int code, onion_request* req, onion_response *res)
 {
-	return onion_shortcut_response_extra_headers(response, code, req, NULL);
+	return onion_shortcut_response_extra_headers(response, code, req, res, NULL);
 }
 
 
@@ -51,8 +51,7 @@ int onion_shortcut_response(const char* response, int code, onion_request* req)
  * 
  * On this version you also pass a NULL terminated list of headers, in key, value pairs.
  */
-int onion_shortcut_response_extra_headers(const char* response, int code, onion_request* req, ... ){
-	onion_response *res=onion_response_new(req);
+int onion_shortcut_response_extra_headers(const char* response, int code, onion_request* req, onion_response *res, ... ){
 	unsigned int l=strlen(response);
 	const char *key, *value;
 	
@@ -60,7 +59,7 @@ int onion_shortcut_response_extra_headers(const char* response, int code, onion_
 	onion_response_set_code(res,code);
 	
 	va_list ap;
-	va_start(ap, req);
+	va_start(ap, res);
 	while ( (key=va_arg(ap, const char *)) ){
 		value=va_arg(ap, const char *);
 		if (key && value)
@@ -73,7 +72,7 @@ int onion_shortcut_response_extra_headers(const char* response, int code, onion_
 	onion_response_write_headers(res);
 	
 	onion_response_write(res,response,l);
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 
@@ -84,8 +83,8 @@ int onion_shortcut_response_extra_headers(const char* response, int code, onion_
  * 
  * The browser message is fixed; if need more flexibility, create your own redirector.
  */
-int onion_shortcut_redirect(const char *newurl, onion_request *req){
-	return onion_shortcut_response_extra_headers("<h1>302 - Moved</h1>", HTTP_REDIRECT, req,
+int onion_shortcut_redirect(const char *newurl, onion_request *req, onion_response *res){
+	return onion_shortcut_response_extra_headers("<h1>302 - Moved</h1>", HTTP_REDIRECT, req, res,
 																							 "Location", newurl, NULL );
 }
 
@@ -99,7 +98,7 @@ int onion_shortcut_redirect(const char *newurl, onion_request *req){
  * 
  * It does no security checks, so caller must be security aware.
  */
-int onion_shortcut_response_file(const char *filename, onion_request *request){
+int onion_shortcut_response_file(const char *filename, onion_request *request, onion_response *res){
 	int fd=open(filename,O_RDONLY);
 
 	if (fd<0)
@@ -114,9 +113,6 @@ int onion_shortcut_response_file(const char *filename, onion_request *request){
 	size_t size=st.st_size;
 	size_t length=size;
 
-	onion_response *res=onion_response_new(request);
-
-	
 	const char *range=onion_request_get_header(request, "Range");
 	if (range && strncmp(range,"bytes=",6)==0){
 		//ONION_DEBUG("Need just a range: %s",range);
@@ -179,7 +175,7 @@ int onion_shortcut_response_file(const char *filename, onion_request *request){
 		}
 	}
 	close(fd);
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 /**
@@ -187,12 +183,12 @@ int onion_shortcut_response_file(const char *filename, onion_request *request){
  * 
  * It converts to json the passed dict and returns it. The dict is freed before returning.
  */
-int onion_shortcut_response_json(onion_dict *d, onion_request *req){
+int onion_shortcut_response_json(onion_dict *d, onion_request *req, onion_response *res){
 	onion_block *bl=onion_dict_to_json(d);
 	onion_dict_free(d);
 	char tmp[16];
 	snprintf(tmp,sizeof(tmp),"%ld",(long)onion_block_size(bl));
-	int ret=onion_shortcut_response_extra_headers(onion_block_data(bl), HTTP_OK, req, "Content-Length", tmp, NULL);
+	int ret=onion_shortcut_response_extra_headers(onion_block_data(bl), HTTP_OK, req, res, "Content-Length", tmp, NULL);
 	onion_block_free(bl);
 	return ret;
 }

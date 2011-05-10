@@ -94,7 +94,7 @@ struct onion_block_t;
 typedef struct onion_block_t onion_block;
 
 /// Signature of request handlers.
-typedef int (*onion_handler_handler)(onion_handler *handler, onion_request *);
+typedef int (*onion_handler_handler)(void *privdata, onion_request *req, onion_response *res);
 /// Signature of free function of private data of request handlers
 typedef void (*onion_handler_private_data_free)(void *privdata);
 
@@ -153,6 +153,7 @@ typedef enum onion_ssl_certificate_type_e onion_ssl_certificate_type;
 enum onion_connection_status_e{
 	OCS_NOT_PROCESSED=0,
 	OCS_NEED_MORE_DATA=1,
+	OCS_PROCESSED=2,
 	OCS_CLOSE_CONNECTION=-2,
 	OCS_KEEP_ALIVE=3,
 	OCS_INTERNAL_ERROR=-500,

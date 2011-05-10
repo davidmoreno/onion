@@ -47,6 +47,9 @@ static int onion_response_write_buffer(onion_response *res);
  * The response object must be freed with onion_response_free, which also returns the keep alive 
  * status.
  * 
+ * onion_response objects are passed by onion internally to process the request, and should not be
+ * created by user normally. Nontheless the option exist.
+ * 
  * @returns An onion_response object for that request.
  */
 onion_response *onion_response_new(onion_request *req){
@@ -58,6 +61,10 @@ onion_response *onion_response_new(onion_request *req){
 	res->flags=0;
 	res->sent_bytes_total=res->length=res->sent_bytes=0;
 	res->buffer_pos=0;
+	if (req){
+		res->write=req->server->write;
+		res->socket=req->socket;
+	}
 	
 	// Sorry for the publicity.
 	onion_dict_add(res->headers, "Server", "libonion v0.3 - coralbits.com", 0);
@@ -82,11 +89,10 @@ onion_connection_status onion_response_free(onion_response *res){
 	onion_response_write_buffer(res);
 	
 	if (res->flags&OR_CHUNKED){ // Set the chunked data end.
-		void *fd=res->request->socket;
-		onion_write write=res->request->server->write;
+		void *fd=res->socket;
+		onion_write write=res->write;
 		write(fd, "0\r\n\r\n",7);
 	}
-
 	
 	int r=OCS_CLOSE_CONNECTION;
 	
@@ -257,7 +263,7 @@ static int onion_response_write_buffer(onion_response *res){
 	if (res->buffer_pos==0)
 		return 0;
 	void *fd=res->request->socket;
-	onion_write write=res->request->server->write;
+	onion_write write=res->write;
 	ssize_t w;
 	off_t pos=0;
 	//ONION_DEBUG0("Write %d bytes",res->buffer_pos);
@@ -308,12 +314,12 @@ ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
  * Returns the writer method that can be used to write to the socket.
  */
 onion_write onion_response_get_writer(onion_response *response){
-	return response->request->server->write;
+	return response->write;
 }
 
 /// Returns the socket object.
 void *onion_response_get_socket(onion_response *response){
-	return response->request->socket;
+	return response->socket;
 }
 
 
@@ -332,4 +338,15 @@ const char *onion_response_code_description(int code){
 			return "REDIRECT";
 	}
 	return "INTERNAL ERROR - CODE UNKNOWN";
+}
+
+/**
+ * @short Sets the writer to use on this response
+ * 
+ * Normally this is automatically get from the origin request object. Anyway 
+ * it exists the option to overwrite it, for example to have a gzip layer.
+ */
+void onion_response_set_writer(onion_response *res, onion_write write, void *socket){
+	res->write=write;
+	res->socket=socket;
 }
