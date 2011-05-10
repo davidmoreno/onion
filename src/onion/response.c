@@ -276,7 +276,7 @@ static int onion_response_write_buffer(onion_response *res){
 		}
 	}
 	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
-		if (w<=0){
+		if (w<=0 || res->buffer_pos<0){
 			ONION_ERROR("Error writing %d bytes. Maybe closed connection. Code %d. ",res->buffer_pos, w);
 			perror("");
 			res->buffer_pos=0;

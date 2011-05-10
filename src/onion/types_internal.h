@@ -120,6 +120,11 @@ struct onion_handler_t{
 	struct onion_handler_t *next; /// If parser returns null, i try next handler. If no next handler i go up, or return an error. @see onion_handler_handle
 };
 
+// onion_url is really a handler. It has its own "fake" type to ensure user dont call the url_* functions
+// by mistacke with a non url object.
+// struct onion_url_t;
+
+
 struct onion_sessions_t{
 	onion_dict *sessions; 		/// Where all sessions are stored. Each element is another onion_dict.
 };

@@ -68,7 +68,7 @@ void t01_server_min(){
 	
 	onion_server *server=onion_server_new();
 	onion_server_set_write(server, (onion_write)mstrncat);
-	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
+	onion_server_set_root_handler(server, onion_handler_static("Succedded", 200));
 	
 	onion_request *req=onion_request_new(server, buffer, NULL);
 	onion_request_write(req, "GET ",4);
@@ -78,7 +78,10 @@ void t01_server_min(){
 	onion_request_write(req, "\r\n",2);
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nSuccedded");
+	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 200 OK\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\nContent-Length: 9\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "libonion");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nSuccedded");
 	
 	onion_request_free(req);
 	onion_server_free(server);
@@ -93,7 +96,7 @@ void t02_server_full(){
 	
 	onion_server *server=onion_server_new();
 	onion_server_set_write(server, (onion_write)mstrncat);
-	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
+	onion_server_set_root_handler(server, onion_handler_static("Succedded", 200));
 	
 	onion_request *req=onion_request_new(server, buffer, NULL);
 #define S "GET / HTTP/1.1\r\nHeader-1: This is header1\r\nHeader-2: This is header 2\r\n"
@@ -103,7 +106,10 @@ void t02_server_full(){
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nSuccedded");
+	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 200 OK\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\nContent-Length: 9\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "libonion");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nSuccedded");
 
 	onion_request_free(req);
 	onion_server_free(server);
@@ -118,7 +124,7 @@ void t03_server_no_overflow(){
 	
 	onion_server *server=onion_server_new();
 	onion_server_set_write(server, (onion_write)mstrncat);
-	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
+	onion_server_set_root_handler(server, onion_handler_static("Succedded", 200));
 	
 	onion_request *req=onion_request_new(server, buffer, NULL);
 #define S "GET / HTTP/1.1\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\nHeader-1: This is header1\nHeader-2: This is header 2\n"
@@ -126,9 +132,12 @@ void t03_server_no_overflow(){
 #undef S
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
-	
+
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nSuccedded");
+	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 200 OK\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\nContent-Length: 9\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "libonion");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nSuccedded");
 
 	onion_request_free(req);
 	onion_server_free(server);
@@ -143,7 +152,7 @@ void t04_server_overflow(){
 	
 	onion_server *server=onion_server_new();
 	onion_server_set_write(server, (onion_write)mstrncat);
-	onion_server_set_root_handler(server, onion_handler_static("", "Succedded", 200));
+	onion_server_set_root_handler(server, onion_handler_static("Succedded", 200));
 	
 	onion_request *req=onion_request_new(server, buffer, NULL);
 #define S "GET / HTTP/1.1\nHeader-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2 n Header-1: This is header1 n Header-2: This is header 2\n"
@@ -154,7 +163,10 @@ void t04_server_overflow(){
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nSuccedded");
+	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 200 OK\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\nContent-Length: 9\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "libonion");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nSuccedded");
 
 	onion_request_free(req);
 	onion_server_free(server);
@@ -172,7 +184,7 @@ void t05_server_with_pipes(){
 	
 	onion_server *server=onion_server_new();
 	onion_server_set_write(server, (onion_write)write_p);
-	onion_server_set_root_handler(server, onion_handler_static("", "Works with pipes", 200));
+	onion_server_set_root_handler(server, onion_handler_static("Works with pipes", 200));
 	
 	int p[2];
 	int error=pipe(p);
@@ -200,7 +212,9 @@ void t05_server_with_pipes(){
 	}
 	
 	FAIL_IF_EQUAL_STR(buffer,"");
-	FAIL_IF_NOT_EQUAL_STR(buffer,"HTTP/1.1 200 OK\r\nContent-Length: 16\r\nServer: libonion v0.1 - coralbits.com\r\n\r\nWorks with pipes");
+	FAIL_IF_NOT_STRSTR(buffer,"HTTP/1.1 200 OK\r\n");
+	FAIL_IF_NOT_STRSTR(buffer,"Content-Length: 16\r\n");
+	FAIL_IF_NOT_STRSTR(buffer,"\r\n\r\nWorks with pipes");
 
 	onion_request_free(req);
 	onion_server_free(server);

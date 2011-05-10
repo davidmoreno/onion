@@ -11,13 +11,12 @@ else (PAM_ENABLED)
 endif (PAM_ENABLED)
 
 
-add_library(onion_handlers STATIC static.c path.c exportlocal.c
-																	regexp.c opack.c
-																	url.c ${PAM} )
+add_library(onion_handlers STATIC static.c exportlocal.c auth_pam.c opack.c
+																	${PAM} )
 
 target_link_libraries(onion_handlers ${PAMLIBS})
 
-SET(INCLUDES_HANDLERS static.h path.h exportlocal.h regexp.h auth_pam.h opack.h url.h)
+SET(INCLUDES_HANDLERS static.h exportlocal.h auth_pam.h opack.h)
 MESSAGE("Found include files ${INCLUDES_HANDLERS}")
 
 install(FILES ${INCLUDES_HANDLERS} DESTINATION ${INCLUDEDIR}/handlers/)

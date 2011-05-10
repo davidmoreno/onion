@@ -28,7 +28,7 @@
 #include "mime.h"
 
 /// Default error handler.
-static int onion_default_error(void *handler, onion_request *req);
+static int onion_default_error(void *handler, onion_request *req, onion_response *res);
 
 /**
  * @short Initializes the server data.
@@ -125,19 +125,39 @@ void onion_server_set_max_file_size(onion_server *server, size_t max_file_size){
  * 
  * Returns the OCS_KEEP_ALIVE or OCS_CLOSE_CONNECTION value. If on keep alive the struct is already reinitialized.
  * 
+ * It calls the root_handler and if it returns an error of any type (or not processed), it calls the
+ * default internal_error_handler.
+ * 
+ * Normally it could get the server from the request, but it is passed for homogenity, and
+ * to allow unforseen posibilities.
+ * 
  * @see onion_connection_status
  */
-int onion_server_handle_request(onion_request *req){
+onion_connection_status onion_server_handle_request(onion_server *server, onion_request *req){
 	onion_response *res=onion_response_new(req);
 	
-	// Call the main handler. FIXME. Take care of response.
-	onion_handler_handle(req->server->root_handler, req, res);
+	// Call the main handler.
+	onion_connection_status hs=onion_handler_handle(server->root_handler, req, res);
+
+	if (hs==OCS_INTERNAL_ERROR || 
+		hs==OCS_NOT_IMPLEMENTED || 
+		hs==OCS_NOT_PROCESSED){
+		if (hs==OCS_INTERNAL_ERROR)
+			req->flags|=OR_INTERNAL_ERROR;
+		if (hs==OCS_NOT_IMPLEMENTED)
+			req->flags|=OR_INTERNAL_ERROR;
+		if (hs==OCS_NOT_PROCESSED)
+			req->flags|=OR_NOT_FOUND;
+		
+		hs=onion_handler_handle(server->internal_error_handler, req, res);
+	}
+
 	
-	int status=onion_response_free(res);
-	if (status==OCS_KEEP_ALIVE) // if keep alive, reset struct to get the new petition.
+	int rs=onion_response_free(res);
+	if (hs>=0 && rs==OCS_KEEP_ALIVE) // if keep alive, reset struct to get the new petition.
 		onion_request_clean(req);
 	
-	return status;
+	return hs>0 ? rs : hs;
 }
 
 
@@ -146,11 +166,11 @@ int onion_server_handle_request(onion_request *req){
 #define ERROR_505 "<h1>505 - Not implemented</h1>"
 
 /**
- * @short Default error for 500 Internal error.
+ * @short Default error printer. 
  * 
- * Not the right way to do it.. FIXME.
+ * Ugly errors, that can be reimplemented setting a handler with onion_server_set_internal_error_handler.
  */
-static int onion_default_error(void *handler, onion_request *req){
+static int onion_default_error(void *handler, onion_request *req, onion_response *res){
 	const char *msg;
 	int l;
 	int code;
@@ -173,13 +193,12 @@ static int onion_default_error(void *handler, onion_request *req){
 	}
 	
 	
-	onion_response *res=onion_response_new(req);
 	onion_response_set_code(res,code);
 	onion_response_set_length(res, l);
 	onion_response_write_headers(res);
 	
 	onion_response_write(res,msg,l);
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 /**
@@ -191,20 +210,5 @@ static int onion_default_error(void *handler, onion_request *req){
 onion_connection_status onion_server_write_to_request(onion_server *server, onion_request *request, const char *data, size_t len){
 	// This is one maybe unnecesary indirection, but helps when creating new "onion" like classes.
 	onion_connection_status connection_status=onion_request_write(request, data, len);
-//		ONION_DEBUG0("Connection status after write %d (%d bytes)",connection_status, r);
-	if (connection_status==OCS_INTERNAL_ERROR || 
-		  connection_status==OCS_NOT_IMPLEMENTED || 
-		  connection_status==OCS_NOT_PROCESSED){
-		if (connection_status==OCS_INTERNAL_ERROR)
-			request->flags|=OR_INTERNAL_ERROR;
-		if (connection_status==OCS_NOT_IMPLEMENTED)
-			request->flags|=OR_INTERNAL_ERROR;
-		if (connection_status==OCS_NOT_PROCESSED)
-			request->flags|=OR_NOT_FOUND;
-		
-		onion_response *response=onion_response_new(request);
-		onion_handler_handle(server->internal_error_handler, request, response);
-		onion_response_free(response);
-	}
 	return connection_status;
 }

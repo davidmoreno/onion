@@ -60,12 +60,12 @@ onion_server *server;
 void t01_url(){
 	INIT_LOCAL();
 	
-	onion_handler *url=onion_handler_url_new();
-	onion_handler_url_add(url, "^/handler1/$", onion_handler_new((onion_handler_handler)handler1, NULL, NULL));
-	onion_handler_url_add(url, "^/handler2/$", onion_handler_new((onion_handler_handler)handler2, NULL, NULL));
-	onion_handler_url_add(url, "^/handler3/", onion_handler_new((onion_handler_handler)handler3, NULL, NULL));
+	onion_url *url=onion_url_new();
+	onion_url_add_handler(url, "^/handler1/$", onion_handler_new((onion_handler_handler)handler1, NULL, NULL));
+	onion_url_add(url, "^/handler2/$", handler2);
+	onion_url_add_with_data(url, "^/handler3/", handler3, NULL, NULL);
 	
-	onion_server_set_root_handler(server, url);
+	onion_server_set_root_handler(server, onion_url_to_handler(url));
 	
 	onion_request *req=onion_request_new(server, server_buffer, "test");
 	
@@ -97,7 +97,7 @@ void t01_url(){
 	free(urltxt);
 
 	onion_request_free(req);
-	onion_handler_free(url);
+	onion_url_free(url);
 	onion_server_set_root_handler(server, NULL);
 	
 	END_LOCAL();

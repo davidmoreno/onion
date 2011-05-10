@@ -33,9 +33,9 @@ const char *onion_block_data(onion_block *b);
 
 void onion_block_rewind(onion_block *b, off_t n);
 
-void onion_block_add_char(onion_block *b, char c);
-void onion_block_add_str(onion_block *b, const char *str);
-void onion_block_add_data(onion_block *b, const char *data, size_t length);
-void onion_block_add_block(onion_block *b, onion_block *toadd);
+int onion_block_add_char(onion_block *b, char c);
+int onion_block_add_str(onion_block *b, const char *str);
+int onion_block_add_data(onion_block *b, const char *data, size_t length);
+int onion_block_add_block(onion_block *b, onion_block *toadd);
 
 #endif

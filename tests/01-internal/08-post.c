@@ -256,7 +256,7 @@ void t04_post_largefile(){
 	onion_request_write(req,tmp,strlen(tmp));
 	
 	int r=read(postfd, tmp, sizeof(tmp));
-	while ( r ){
+	while ( r>0 ){
 		onion_request_write(req, tmp, r);
 		r=read(postfd, tmp, sizeof(tmp));
 	}

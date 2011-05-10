@@ -1,9 +1,9 @@
 # the lib itself. Two versions, static and shared.
 add_library(onion SHARED codecs.c dict.c onion.c request.c request_parser.c response.c handler.c 
-												server.c log.c sessions.c shortcuts.c block.c mime.c)
+												server.c log.c sessions.c shortcuts.c block.c mime.c url.c)
 
 add_library(onion_static STATIC codecs.c dict.c onion.c request.c request_parser.c response.c handler.c 
-												server.c log.c sessions.c shortcuts.c block.c mime.c)
+												server.c log.c sessions.c shortcuts.c block.c mime.c url.c)
 
 # library dependencies
 if (GNUTLS_ENABLED)

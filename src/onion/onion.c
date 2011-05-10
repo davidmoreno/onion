@@ -423,7 +423,8 @@ int onion_listen(onion *o){
 			}
 
 			// If more than allowed processes, it waits here blocking socket, as it should be.
-#if __DEBUG__
+			// __DEBUG__
+#if 0 
 			int nt;
 			sem_getvalue(&o->thread_count, &nt); 
 			ONION_DEBUG("%d threads working, %d max threads", o->max_threads-nt, o->max_threads);
@@ -725,10 +726,10 @@ void *onion_request_thread(void *d){
 	onion_request_thread_data *td=(onion_request_thread_data*)d;
 	onion *o=td->o;
 	
-	ONION_DEBUG0("Open connection %d",td->clientfd);
+	//ONION_DEBUG0("Open connection %d",td->clientfd);
 	onion_process_request(o,td->clientfd, td->client_info);
 		
-	ONION_DEBUG0("Closed connection %d",td->clientfd);
+	//ONION_DEBUG0("Closed connection %d",td->clientfd);
 	free(td);
 	
 	sem_post(&o->thread_count);
@@ -748,3 +749,22 @@ void *onion_request_thread(void *d){
 void onion_set_user(onion *server, const char *username){
 	server->username=strdup(username);
 }
+
+void onion_url_free_data(void *);
+
+/**
+ * @short If no root handler is set, creates an url handler and returns it.
+ * 
+ * It can also check if the current root handler is a url handler, and if it is, returns it. Else returns NULL.
+ */
+onion_url *onion_root_url(onion *server){
+	if (server->server->root_handler){
+		if (server->server->root_handler->priv_data_free==onion_url_free_data) // Only available check
+			return (onion_url*)server->server->root_handler;
+		return NULL;
+	}
+	onion_url *url=onion_url_new();
+	onion_set_root_handler(server, (onion_handler*)url);
+	return url;
+}
+

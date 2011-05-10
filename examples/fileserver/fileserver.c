@@ -150,7 +150,7 @@ int main(int argc, char **argv){
 	onion_handler *root=onion_handler_new((void*)upload_file,(void*)&data,NULL);
 	onion_handler *dir=onion_handler_export_local_new(argc==2 ? argv[1] : ".");
 	onion_handler_export_local_set_footer(dir, upload_file_footer);
-	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
+	onion_handler_add(dir, onion_handler_static("<h1>404 - File not found.</h1>", 404) );
 	onion_handler_add(root,dir);
 	onion_handler *pam=onion_handler_auth_pam("Onion Fileserver", pamname, root);
 

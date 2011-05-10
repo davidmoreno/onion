@@ -31,7 +31,6 @@
 #include <onion/response.h>
 #include <onion/codecs.h>
 
-#include <onion/handlers/path.h>
 #include <onion/handlers/exportlocal.h>
 #include <onion/handlers/auth_pam.h>
 
@@ -45,11 +44,12 @@ int otop_handler(void *d, onion_request *req, onion_response *res);
  */
 int main(int argc, char **argv){
 	// Setup the server layout
-	onion_handler *withauth=onion_handler_path("/ps/",
-																				onion_handler_new((onion_handler_handler)otop_handler, NULL, NULL));
-	onion_handler_add(withauth, onion_handler_path("/static/", onion_handler_export_local_new(".")));
-	onion_handler_add(withauth, onion_handler_new((onion_handler_handler)otop_index, NULL, NULL));
-	onion_handler *otop=onion_handler_auth_pam("Onion Top", "login", withauth);
+	onion_url *withauth=onion_url_new();
+	onion_url_add(withauth, "^ps/$", otop_handler);
+	onion_url_add_handler(withauth, "^static/", onion_handler_export_local_new("."));
+	onion_url_add(withauth, "", otop_index);
+	
+	onion_handler *otop=onion_handler_auth_pam("Onion Top", "login", onion_url_to_handler(withauth));
 	
 	// Create server and setup
 	onion *onion=onion_new(O_ONE);

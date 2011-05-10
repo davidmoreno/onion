@@ -22,6 +22,7 @@
 #include "request.h"
 #include "response.h"
 #include "handler.h"
+#include "url.h"
 
 #include "types.h"
 
@@ -64,6 +65,9 @@ void onion_set_max_threads(onion *onion, int max_threads);
 
 /// Sets this user as soon as listen starts.
 void onion_set_user(onion *server, const char *username);
+
+/// If no root handler is set, creates an url handler and returns it.
+onion_url *onion_root_url(onion *server);
 
 #ifdef __cplusplus
 }

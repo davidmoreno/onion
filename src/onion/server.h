@@ -43,7 +43,7 @@ void onion_server_set_root_handler(onion_server *server, onion_handler *handler)
 void onion_server_set_internal_error_handler(onion_server *server, onion_handler *handler);
 
 /// Handles a request
-int onion_server_handle_request(onion_request *req);
+onion_connection_status onion_server_handle_request(onion_server *server, onion_request *req);
 
 /// Sets the maximum post size
 void onion_server_set_max_post_size(onion_server *server, size_t max_post_size);

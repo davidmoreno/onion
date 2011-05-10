@@ -673,6 +673,7 @@ static onion_connection_status parse_headers_URL(onion_request *req, onion_buffe
 		return res;
 
 	req->path=req->fullpath=strdup(token->str);
+	req->path++; // Skip the leading /
 	onion_request_parse_query(req);
 	
 	req->parser=parse_headers_VERSION;
@@ -813,11 +814,11 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 /**
  * @short Processes one request, calling the handler.
  * 
- * First do the call, then free the data.
+ * Just calls the onion_server handler. May return an error code from onion_connection_status
  */
 static onion_connection_status onion_request_process(onion_request *req){
-	ONION_DEBUG0("Process request",req->path);
-	return onion_server_handle_request(req);
+	//ONION_DEBUG0("Process request",req->path);
+	return onion_server_handle_request(req->server, req);
 }
 
 /**

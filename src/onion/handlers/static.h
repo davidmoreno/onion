@@ -26,7 +26,7 @@ extern "C"{
 #endif
 
 /// Creates an static handler. Returns some content from memory, like an error html.
-onion_handler *onion_handler_static(const char *path, const char *text, int code);
+onion_handler *onion_handler_static(const char *text, int code);
 
 #ifdef __cplusplus
 }

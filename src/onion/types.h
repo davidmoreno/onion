@@ -31,6 +31,14 @@ typedef struct onion_dict_t onion_dict;
  */
 struct onion_handler_t;
 typedef struct onion_handler_t onion_handler;
+
+/**
+ * @struct onion_url_t
+ * @short Url regexp pack. This is also a handler, and can be converted with onion_url_to_handle.
+ */
+struct onion_url_t;
+typedef struct onion_url_t onion_url;
+
 /**
  * @struct onion_request_t
  * @short Basic information about a request
@@ -148,7 +156,7 @@ typedef enum onion_ssl_certificate_type_e onion_ssl_certificate_type;
 /**
  * @short The desired connection state of the connection.
  * 
- * If <0 it means close connection, but may mean also to show something to the client.
+ * If <0 it means close connection. May mean also to show something to the client.
  */
 enum onion_connection_status_e{
 	OCS_NOT_PROCESSED=0,

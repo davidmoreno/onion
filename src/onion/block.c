@@ -104,7 +104,7 @@ void onion_block_rewind(onion_block *b, off_t n){
 /**
  * @short Adds a character to the block
  */
-void onion_block_add_char(onion_block *bl, char c){
+int onion_block_add_char(onion_block *bl, char c){
 	if (bl->size>=bl->maxsize){ // Grows ^2, until 1024, and then on 1024 chunks.
 		int grow=bl->maxsize;
 		if (grow>ONION_BLOCK_GROW_EXPONENTIAL_LIMIT)
@@ -113,21 +113,23 @@ void onion_block_add_char(onion_block *bl, char c){
 		bl->data=realloc(bl->data, bl->maxsize);
 	}
 	bl->data[bl->size++]=c;
+	return 1;
 }
 
 /**
  * @short Adds a string to the block
  */
-void onion_block_add_str(onion_block *b, const char *str){
+int onion_block_add_str(onion_block *b, const char *str){
 	int l=strlen(str)+1;
 	onion_block_add_data(b, str, l);
 	b->size--;
+	return l;
 }
 
 /**
  * @short Adds raw data to the block
  */
-void onion_block_add_data(onion_block *bl, const char *data, size_t l){
+int onion_block_add_data(onion_block *bl, const char *data, size_t l){
 	// I have to perform manual realloc as if I append same block, realloc may free the data, so I do it manually.
 	char *manualrealloc=NULL;
 	if (bl->size+l>bl->maxsize){
@@ -144,12 +146,13 @@ void onion_block_add_data(onion_block *bl, const char *data, size_t l){
 	bl->size+=l;
 	if (manualrealloc)
 		free(manualrealloc);
+	return l;
 }
 
 /**
  * @short Appends both blocks on the first.
  */
-void onion_block_add_block(onion_block *b, onion_block *toadd){
-	onion_block_add_data(b, toadd->data, toadd->size);
+int onion_block_add_block(onion_block *b, onion_block *toadd){
+	return onion_block_add_data(b, toadd->data, toadd->size);
 }
 

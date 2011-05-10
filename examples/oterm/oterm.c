@@ -25,7 +25,6 @@
 #include <onion/onion.h>
 #include <onion/handler.h>
 
-#include <onion/handlers/path.h>
 #include <onion/handlers/static.h>
 #include <onion/handlers/auth_pam.h>
 #include <onion/handlers/opack.h>
@@ -109,22 +108,21 @@ int main(int argc, char **argv){
 		}
 	}
 	
-	onion_handler *dir;
+	onion_url *url=onion_url_new();
 #ifdef __DEBUG__
 	if (getenv("OTERM_DEBUG"))
-		dir=onion_handler_export_local_new(".");
+		onion_url_add_handler(url, ".*", onion_handler_export_local_new("."));
 	else{
-		dir=onion_handler_opack("/",opack_index_html, opack_index_html_length);
-		onion_handler_add(dir, onion_handler_opack("/jquery-1.4.3.min.js",opack_jquery_1_4_3_min_js,opack_jquery_1_4_3_min_js_length));
+		onion_url_add_handler(url, "^$", onion_handler_opack("",opack_index_html, opack_index_html_length));
+		onion_url_add_handler(url, "^jquery-1.4.3.min.js$", onion_handler_opack("",opack_jquery_1_4_3_min_js, opack_jquery_1_4_3_min_js_length));
 	}
 #else
-	dir=onion_handler_opack("/",opack_index_html, opack_index_html_length);
-	onion_handler_add(dir, onion_handler_opack("/jquery-1.4.3.min.js",opack_jquery_1_4_3_min_js,opack_jquery_1_4_3_min_js_length));
+	onion_url_add_handler(url, "^$", onion_handler_opack("",opack_index_html, opack_index_html_length));
+	onion_url_add_handler(url, "^jquery-1.4.3.min.js$", onion_handler_opack("",opack_jquery_1_4_3_min_js, opack_jquery_1_4_3_min_js_length));
 #endif
-	onion_handler_add(dir, onion_handler_path("^/term/",oterm_handler_data()));
-	onion_handler_add(dir, onion_handler_static(NULL,"<h1>404 - File not found.</h1>", 404) );
+	onion_url_add_handler(url, "^term/", oterm_handler_data());
 
-	onion_handler *oterm=onion_handler_auth_pam("Onion Terminal", "login", dir);
+	onion_handler *oterm=onion_handler_auth_pam("Onion Terminal", "login", onion_url_to_handler(url));
 	
 	o=onion_new(O_THREADED);
 	onion_set_root_handler(o, oterm);
