@@ -25,6 +25,8 @@
 #include "handler.h"
 #include "response.h"
 #include "url.h"
+#include "types_internal.h"
+#include "dict.h"
 
 
 struct onion_url_data_t{
@@ -41,14 +43,31 @@ typedef struct onion_url_data_t onion_url_data;
  */
 int onion_url_handler(onion_url_data **dd, onion_request *request, onion_response *response){
 	onion_url_data *next=*dd;
-	regmatch_t match[1];
+	regmatch_t match[16];
+	int i;
 	
 	while (next){
 		//ONION_DEBUG("Check %s against %s", onion_request_get_path(request), next->orig);
-		if (regexec(&next->regexp, onion_request_get_path(request), 1, match, 0)==0){
+		if (regexec(&next->regexp, onion_request_get_path(request), 16, match, 0)==0){
 			//ONION_DEBUG("Ok,match");
+			const char *path=onion_request_get_path(request);
+			onion_dict *reqheader=request->GET;
+			for (i=1;i<16;i++){
+				regmatch_t *rm=&match[i];
+				if (rm->rm_so!=-1){
+					char *tmp=strndup(&path[rm->rm_so], rm->rm_eo-rm->rm_so);
+					char tmpn[4];
+					snprintf(tmpn,sizeof(tmpn),"%d",i);
+					onion_dict_add(reqheader, tmpn, tmp, OD_DUP_KEY|OD_FREE_VALUE);
+					ONION_DEBUG("Add group %d: %s (%d-%d)", i, tmp, rm->rm_so, rm->rm_eo);
+				}
+				else
+					break;
+			}
 			if (match[0].rm_so==0)
 				onion_request_advance_path(request, match[0].rm_eo);
+			
+			
 			return onion_handler_handle(next->inside, request, response);
 		}
 		
@@ -107,6 +126,19 @@ void onion_url_free(onion_url* url){
  *  onion_url_add(url, "^icons/", directory); // No end $, so directory will get the path without the icons/
  *  onion_url_add(url, "^$", redirect_to_index);
  * @endcode
+ * 
+ * Regexp can have groups, and they will be added as request query parameters, with just the number of the 
+ * group as key. The groups start at 1, as 0 should be the full match, but its not added for performance
+ * reasons; its a very strange situation that user will need it, and always can access full path with
+ * onion_request_get_fullpath. Also all expression can be a group, and passed as nr 1.:
+ * 
+ * @code
+ *  onion_url_add(url, "^index(.html)", index);
+ *  ...
+ *  onion_request_get_query(req, "1") == ".html"
+ * @endcode
+ * 
+ * Be careful as . means every character, and dots in URLs must be with a backslash \.
  * 
  * @returns 0 if everything ok. Else its a regexp error.
  */
