@@ -35,24 +35,21 @@ int handler1(void *p, onion_request *r){
 	ONION_DEBUG("1");
 	handler_called=1;
 	urltxt=strdup(onion_request_get_path(r));
-	onion_response *res=onion_response_new(r);
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 int handler2(void *p, onion_request *r){
 	ONION_DEBUG("2");
 	handler_called=2;
 	urltxt=strdup(onion_request_get_path(r));
-	onion_response *res=onion_response_new(r);
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 int handler3(void *p, onion_request *r){
 	ONION_DEBUG("3");
 	handler_called=3;
 	urltxt=strdup(onion_request_get_path(r));
-	onion_response *res=onion_response_new(r);
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 onion_server *server;
@@ -61,9 +58,9 @@ void t01_url(){
 	INIT_LOCAL();
 	
 	onion_url *url=onion_url_new();
-	onion_url_add_handler(url, "^/handler1/$", onion_handler_new((onion_handler_handler)handler1, NULL, NULL));
-	onion_url_add(url, "^/handler2/$", handler2);
-	onion_url_add_with_data(url, "^/handler3/", handler3, NULL, NULL);
+	onion_url_add_handler(url, "^handler1.$", onion_handler_new((onion_handler_handler)handler1, NULL, NULL));
+	onion_url_add(url, "handler2/", handler2);
+	onion_url_add_with_data(url, "^handler(3|4)/", handler3, NULL, NULL);
 	
 	onion_server_set_root_handler(server, onion_url_to_handler(url));
 	
@@ -74,6 +71,7 @@ void t01_url(){
 	FAIL_IF_NOT_EQUAL_INT(handler_called, 1);
 	FAIL_IF_NOT_EQUAL_STR(urltxt, "");
 	free(urltxt);
+	urltxt=NULL;
 	
 	onion_request_clean(req);
 	onion_request_write(req,"GET /handler2/ HTTP/1.1\n\n",sizeof(R));
@@ -81,20 +79,22 @@ void t01_url(){
 	ONION_DEBUG("%s", urltxt);
 	FAIL_IF_NOT_EQUAL_STR(urltxt, "");
 	free(urltxt);
+	urltxt=NULL;
 	
 	onion_request_clean(req);
 	onion_request_write(req,"GET /handler3/hello HTTP/1.1\n\n",sizeof(R)+5);
 	FAIL_IF_NOT_EQUAL_INT(handler_called, 3);
 	FAIL_IF_NOT_EQUAL_STR(urltxt, "hello");
 	free(urltxt);
-
 	urltxt=NULL;
+	
 	handler_called=0;
 	onion_request_clean(req);
 	onion_request_write(req,"GET /handler2/hello HTTP/1.1\n\n",sizeof(R)+5);
 	FAIL_IF_NOT_EQUAL_INT(handler_called, 0);
 	FAIL_IF_EQUAL_STR(urltxt, "");
 	free(urltxt);
+	urltxt=NULL;
 
 	onion_request_free(req);
 	onion_url_free(url);

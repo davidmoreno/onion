@@ -66,16 +66,16 @@
  * The way to create this structure would be something like:
  * 
  * @code
- * onion_handler *login=onion_handler_path("/login/", 
+ * onion_url *urls=onion_url_new();
+ * 
+ * onion_url_add_handler(urls, "^login$", 
  *                            onion_handler_auth_pam("libonion real,","libonion",
- *                                  onion_handler_session(
  *                                        onion_handler_redirect("/")
- *                                                       )
- *                                        )
- *                            );
- * onion_handler_add(login, onion_handler_path("/",custom_handler()));
- * onion_handler_add(login, onion_handler_static_file("/favicon.ico","favicon.ico"));
- * onion_handler *root=onion_handler_servername("libonion.coralbits.com", login);
+ *                            )
+ *                       );
+ * onion_url_add_handler(urls, "^$", custom_handler());
+ * onion_url_add_handler(urls, "^favicon\\.ico$", onion_handler_static_file("/favicon.ico","favicon.ico"));
+ * onion_handler *root=onion_handler_servername("libonion.coralbits.com", onion_url_to_handler(urls));
  * onion_handler_add(root, onion_handler_static("<h1>404 - not found</h1>",404));
  * @endcode
  *
@@ -89,7 +89,7 @@
  * Creating a custom handler is just to create a couple of functions with this signature:
  * 
  * @code
- * int custom_handler(custom_handler_data *d, onion_request *request);
+ * int custom_handler(custom_handler_data *d, onion_request *request, onion_response *response);
  * void custom_handler_free(custom_handler_data *d);
  * @endcode
  * 
@@ -110,13 +110,9 @@
  * The custom_handler must then make use of the onion_response object, created from the onion_request. For example:
  * 
  * @code
- * int custom_handler(custom_handler_data *d, onion_request *request){
- *   onion_response *r=onion_response_new(r);
- *   onion_response_set_length(r,11);
- *   onion_response_write_headers(r);
- * 
- *   onion_response_printf(r,"Hello %s","world");
- *   return onion_response_free(r);
+ * int custom_handler(custom_handler_data *d, onion_request *request, onion_response *response){
+ *   onion_response_printf(response,"Hello %s","world");
+ *   return OCS_PROCESSED;
  * }
  * @endcode
  * 
