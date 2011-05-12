@@ -31,11 +31,9 @@ void print_dict_element(onion_response *res, const char *key, const char *value,
 	onion_response_write0(res,"</li>\n");
 }
 
-onion_connection_status method(void *ignore, onion_request *req){
-	onion_response *res=onion_response_new(req);
-	
+onion_connection_status method(void *ignore, onion_request *req, onion_response *res){
 	if (onion_response_write_headers(res)==OR_SKIP_CONTENT) // Head
-		return onion_response_free(res);
+		return OCS_PROCESSED;
 	
 	onion_response_write0(res, "<html><body>\n<h1>Petition resume</h1>\n");
 	int flags=onion_request_get_flags(req);
@@ -85,7 +83,7 @@ onion_connection_status method(void *ignore, onion_request *req){
 	
 	onion_response_write0(res,"</body></html>");
 	
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 int main(int argc, char **argv){

@@ -14,8 +14,8 @@ int main(int argc, char **argv){
 	onion *o=onion_new(O_THREADED);
 	onion_url *urls=onion_root_url(o);
 	
-	onion_url_add_static(urls, "^static$", "Hello static world", HTTP_OK);
-	onion_url_add(urls, "^$", hello);
+	onion_url_add_static(urls, "static", "Hello static world", HTTP_OK);
+	onion_url_add(urls, "", hello);
 	onion_url_add(urls, "^(.*)$", hello);
 	
 	onion_listen(o);
