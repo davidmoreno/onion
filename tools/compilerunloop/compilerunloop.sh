@@ -5,7 +5,9 @@ if [ ! "$1" ]; then
 	echo
 	echo "Compiles (make) a program, executes it, and watch for source file changes. If any change, recompile it all, and loop again."
 	echo 
-	echo "Optionally you can have the environmental variable SOURCEDIR to point to where the source files are"
+	echo "Optionally you can have the environmental variables:"
+	echo "  SOURCEDIR to point to where the source files are"
+	echo "  EXTRASOURCES to add more files for watch modification, for example sources that later generate the source files, or data"
 	echo
 	echo "Using compulerunloop you can easily modify an onion program and have the changes 'instantly' applied.. but only if you"
 	echo "dont use memory to store status."
@@ -17,7 +19,7 @@ if [ ! "$SOURCEDIR" ]; then
 	SOURCEDIR=.
 fi
 
-ORIGSOURCES=$( readelf -w $1   | grep -A5 '(DW_TAG_compile_unit)' | grep DW_AT_name | awk -F: '{ print $4 }' ) 
+ORIGSOURCES="$EXTRASOURCES $( readelf -w $1   | grep -A5 '(DW_TAG_compile_unit)' | grep DW_AT_name | awk -F: '{ print $4 }' )"
 
 SOURCES=""
 NOTFOUND=""
@@ -68,6 +70,7 @@ killapp(){
 	if [ ! "$1" ]; then
 		exit
 	fi
+	wait $PIDS
 }
 
 trap killapp INT TERM
