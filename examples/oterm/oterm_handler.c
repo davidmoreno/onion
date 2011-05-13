@@ -228,8 +228,14 @@ int oterm_in(process *o, onion_request *req, onion_response *res){
 /// Resize the window. Do not work yet, and I dont know whats left. FIXME.
 int oterm_resize(process *o, onion_request* req, onion_response *res){
 	//const char *data=onion_request_get_query(req,"resize");
-	int ok=kill(o->pid, SIGWINCH);
+	//int ok=kill(o->pid, SIGWINCH);
 	
+	struct winsize winSize;
+	memset(&winSize, 0, sizeof(winSize));
+	winSize.ws_row = (unsigned short)atoi(onion_request_get_queryd(req,"width","80"));
+	winSize.ws_col = (unsigned short)atoi(onion_request_get_queryd(req,"height","25"));
+	int ok=ioctl(o->fd, TIOCSWINSZ, (char *)&winSize) == 0;
+
 	if (ok==0)
 		return onion_shortcut_response("OK",HTTP_OK, req, res);
 	else

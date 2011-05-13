@@ -50,6 +50,7 @@ void show_help(){
 								 "It uses HTTP(S)+HTML+CSS+JavaScript to show a remote terminal inside a browser.\n\n"
 								 "Options:\n"
 								 "   -p|--port <port_number>      -- Set the port number to use. Default 8080\n"
+								 "   -i|--ip   <server_ip>        -- Set the ip to attach to. Default ::\n"
 								 "   -c|--cert <certificate file> -- Set the SSL certificate file. Default: /etc/pki/tls/certs/pound.pem\n"
 								 "   -k|--key  <key file>         -- Set the SSL key file. Default: /etc/pki/tls/certs/pound.key\n"
 								 "   --no-ssl                     -- Do not uses SSL. WARNING! Very unsecure\n"
@@ -64,6 +65,7 @@ void free_onion(){
 
 int main(int argc, char **argv){
 	char *port="8080";
+	char *serverip="::";
 	const char *certificatefile="/etc/pki/tls/certs/pound.pem";
 	const char *keyfile="/etc/pki/tls/certs/pound.key";
 	int error;
@@ -83,6 +85,15 @@ int main(int argc, char **argv){
 			}
 			port=argv[++i];
 			fprintf(stderr, "Using port %s\n",port);
+		}
+		else if(strcmp(argv[i],"-i")==0 || strcmp(argv[i],"--ip")==0){
+			if (i+1>argc){
+				fprintf(stderr, "Need to set the ip address or hostname.\n");
+				show_help();
+				exit(1);
+			}
+			serverip=argv[++i];
+			fprintf(stderr, "Using ip %s\n",serverip);
 		}
 		else if(strcmp(argv[i],"-c")==0 || strcmp(argv[i],"--cert")==0){
 			if (i+1>argc){
@@ -140,6 +151,7 @@ int main(int argc, char **argv){
 	}
 	
 	onion_set_port(o, port);
+	onion_set_hostname(o, serverip);
 	
 	signal(SIGINT, free_onion);
 	signal(SIGPIPE, SIG_IGN);

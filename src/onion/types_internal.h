@@ -19,6 +19,8 @@
 #ifndef __ONION_TYPES_INTERNAL__
 #define __ONION_TYPES_INTERNAL__
 
+#include <sys/types.h>
+
 #include "types.h"
 
 #ifdef HAVE_GNUTLS

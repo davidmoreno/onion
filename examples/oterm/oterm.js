@@ -727,13 +727,13 @@ showMsg = function(msg){
 /// Updates the geometry, and sends a message if necessary.
 updateGeometry = function(){
 	var t=$(document)
-	var r = parseInt(t.height()/charHeight)
-	var c = parseInt(t.width()/charWidth)
+	var r = parseInt(t.height()/charHeight)-3
+	var c = parseInt(t.width()/charWidth)-3
 	if (r!=nrRows || c!=nrCols){
 		nrRows=r
 		nrCols=c
 		showMsg('New geometry is '+nrRows+' rows, '+nrCols+' columns.')
-		$.get('resize',{size:nrRows})
+		$.get('resize',{width:nrRows, height:nrCols})
 	}
 }
 
