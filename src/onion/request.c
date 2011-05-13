@@ -123,6 +123,15 @@ const char *onion_request_get_query(onion_request *req, const char *query){
 	return NULL;
 }
 
+/// Gets a query data, but has a default value if the key is not there.
+const char *onion_request_get_queryd(onion_request *req, const char *key, const char *def){
+	const char *ret;
+	ret=onion_request_get_query(req,key);
+	if (ret)
+		return ret;
+	return def;
+}
+
 /// Gets a post data
 const char *onion_request_get_post(onion_request *req, const char *query){
 	if (req->POST)

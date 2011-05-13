@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2011 David Moreno Montero
+	Copyright (C) 2010 David Moreno Montero
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU Affero General Public License as
@@ -16,31 +16,17 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __BLOCK_H__
-#define __BLOCK_H__
+#ifndef __ONION_PNG_H__
+#define __ONION_PNG_H__
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
-#include "types.h"
-#include <stddef.h>
-#include <unistd.h>
+#include <onion/types.h>
 
-onion_block *onion_block_new();
-void onion_block_free(onion_block *b);
-void onion_block_clear(onion_block *b);
-
-void onion_block_min_maxsize(onion_block *b, int minsize);
-off_t onion_block_size(onion_block *b);
-const char *onion_block_data(onion_block *b);
-
-void onion_block_rewind(onion_block *b, off_t n);
-
-int onion_block_add_char(onion_block *b, char c);
-int onion_block_add_str(onion_block *b, const char *str);
-int onion_block_add_data(onion_block *b, const char *data, size_t length);
-int onion_block_add_block(onion_block *b, onion_block *toadd);
+/// Writes an image data to a response object
+int onion_png_response(unsigned char *image, int Bpp, int width, int height, onion_response *res);
 
 #ifdef __cplusplus
 }

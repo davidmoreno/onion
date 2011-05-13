@@ -1,0 +1,111 @@
+<html>
+<header>
+<title>Mandelbrot explorer</title>
+<style>
+body{
+	font-family: sans-serif;
+}
+a{
+	color: #FF2740;
+}
+</style>
+</header>
+<body>
+
+<h1>Use mouse wheel to zoom in and out.</h1>
+<img src="mandel.png?width=512&height=512&zoom=1.0&X=-2.0&Y=-2.0" id="mandel" 
+		 onmousedown="mandelMoveDown(event)" onmouseup="mandelMoveUp(event)"  onmousewheel="mandelZoom(event)" style="float: left; margin-right: 2em;">
+All data is processed at the server and sent back to the client.
+<ul>
+ <li> Zoom <b id="zoom">1.0</b></li>
+ <li> Position (<b id="X">-2.0</b>, <b id="Y">2.0</b>)</li>
+</ul>
+
+
+<br style="clear: left;">
+Tested on Google Chrome.
+<br>
+(C)2011 <a href="http://www.coralbits.com">Coralbits S.L.</a> Under AGPL license.
+
+<script>
+X=-2.5
+Y=-2.0
+width=512.0
+height=512.0
+zoom=1.0
+W=4.0
+H=4.0
+
+mouseDownX=0
+mouseDownY=0
+
+mandelMoveDown = function(ev){
+	sX=ev.offsetX || ev.clientX
+	sY=ev.offsetY || ev.clientY
+
+	mouseDownX=X+(sX/width)*W
+	mouseDownY=Y+(sY/height)*H
+
+	ev.preventDefault()
+}
+
+mandelMoveUp = function(ev){
+	sX=ev.offsetX || ev.clientX
+	sY=ev.offsetY || ev.clientY
+
+	realX=X+(sX/width)*W
+	realY=Y+(sY/height)*H
+
+	X+=mouseDownX-realX
+	Y+=mouseDownY-realY
+
+	mandelRefresh();
+
+	ev.preventDefault()
+}
+
+/**
+ * Zooms on the current point. 
+ *
+ * It forces the mouse where it is in, to stay there.
+ */
+mandelZoom = function(ev){
+	sX=ev.offsetX || ev.clientX
+	sY=ev.offsetY || ev.clientY
+	
+	realX=X+(sX/width)*W
+	realY=Y+(sY/height)*H
+
+	if ((ev.wheelDelta || -ev.detail)>0)
+		zoom=1.1;
+	else
+		zoom=1/1.1;
+
+	W=W/zoom
+	H=H/zoom
+
+	X=realX-(sX/width)*W
+	Y=realY-(sY/height)*H
+
+	mandelRefresh()
+	ev.preventDefault();
+}
+
+t=0
+mandelRefresh = function(){
+	clearTimeout(t)
+	t=setTimeout(function(){
+		document.getElementById("mandel").src="mandel.png?width="+width+"&height="+height+"&W="+W+"&H="+H+"&X="+X+"&Y="+Y;
+		document.getElementById("zoom").innerText=zoom
+		document.getElementById("X").innerText=X
+		document.getElementById("Y").innerText=Y
+	}, 50)
+}
+
+mandelRefresh()
+if (window.addEventListener)
+        /** DOMMouseScroll is for mozilla. */
+        document.getElementById("mandel").addEventListener('DOMMouseScroll', mandelZoom, false);
+</script>
+
+</body>

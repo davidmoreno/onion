@@ -78,6 +78,9 @@ const char *onion_request_get_header(onion_request *req, const char *header);
 /// Gets query data
 const char *onion_request_get_query(onion_request *req, const char *query);
 
+/// Gets query data, but returns a default value if key not found.
+const char *onion_request_get_queryd(onion_request *req, const char *key, const char *def);
+
 /// Gets post data
 const char *onion_request_get_post(onion_request *req, const char *query);
 

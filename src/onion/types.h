@@ -170,6 +170,5 @@ enum onion_connection_status_e{
 
 typedef enum onion_connection_status_e onion_connection_status;
 
-
 #endif
 

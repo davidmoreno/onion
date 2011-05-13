@@ -85,7 +85,7 @@ void functions_write_main_code(parser_status *st){
 "\n"
 "  %s(context, res);\n"
 "\n"
-"  onion_dict_free(context);\n"
+"  if (context) onion_dict_free(context);\n"
 "\n"
 "  return OCS_PROCESSED;\n"
 "}\n\n", f, f);
