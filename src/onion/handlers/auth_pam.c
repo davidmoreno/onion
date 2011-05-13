@@ -27,6 +27,7 @@
 #include <onion/response.h>
 #include <onion/codecs.h>
 #include <onion/log.h>
+#include <onion/dict.h>
 
 int authorize(const char *pamname, const char *username, const char *password);
 
@@ -63,7 +64,12 @@ int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request
 	if (username && passwd){
 		int ok=authorize(d->pamname, username, passwd);
 		
-		if (ok){
+		if (ok){ // I save the username at the session, so it can be accessed later.
+			onion_dict *session=onion_request_get_session_dict(request);
+			onion_dict_lock_write(session);
+			onion_dict_add(session, "username", username, OD_REPLACE|OD_DUP_VALUE);
+			onion_dict_unlock(session);
+			
 			free(auth);
 			return onion_handler_handle(d->inside, request, res);
 		}
@@ -74,7 +80,7 @@ int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request
 	
 	// Not authorized. Ask for it.
 	char temp[256];
-	sprintf(temp, "Basic realm=\"%230s\"",d->realm);
+	sprintf(temp, "Basic realm=\"%s\"",d->realm);
 	onion_response_set_header(res, "WWW-Authenticate",temp);
 	onion_response_set_code(res, HTTP_UNAUTHORIZED);
 	onion_response_set_length(res,sizeof(RESPONSE_UNAUTHORIZED));

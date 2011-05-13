@@ -39,6 +39,8 @@
 
 #include <onion/handlers/opack.h>
 #include <onion/shortcuts.h>
+#include <pwd.h>
+#include <onion/dict.h>
 
 /// Time to wait for output, or just return.
 #define TIMEOUT 60000
@@ -70,11 +72,11 @@ typedef struct process_t{
 typedef struct{
 	pthread_mutex_t head_mutex;
 	process *head;
-	onion_handler *data;
 }oterm_t;
 
 
-process *oterm_new(oterm_t *o);
+process *oterm_new(oterm_t *d, const char *username);
+oterm_t *oterm_data_new();
 static int oterm_status(oterm_t *o, onion_request *req, onion_response *res);
 
 static int oterm_resize(process *o, onion_request *req, onion_response *res);
@@ -98,11 +100,21 @@ process *oterm_get_process(oterm_t *o, const char *id){
 }
 
 /// Plexes the request depending on arguments.
-int oterm_data(oterm_t *o, onion_request *req, onion_response *res){
+int oterm_data(onion_handler *next_handler, onion_request *req, onion_response *res){
+	oterm_t *o=(oterm_t*)onion_request_get_session(req,"oterm_data");
+	if (!o){
+		o=oterm_data_new();
+		onion_dict *session=onion_request_get_session_dict(req);
+		onion_dict_lock_write(session);
+		onion_dict_add(session,"oterm_data",o, 0);
+		onion_dict_unlock(session);
+	}
+	
+	
 	const char *path=onion_request_get_path(req);
 	
 	if (strcmp(path,"new")==0){
-		oterm_new(o);
+		oterm_new(o, onion_request_get_session(req, "username"));
 		return onion_shortcut_response("ok", 200, req, res);
 	}
 	if (strcmp(path,"status")==0)
@@ -141,7 +153,7 @@ int oterm_data(oterm_t *o, onion_request *req, onion_response *res){
 		return oterm_resize(term,req,res);
 	onion_request_advance_path(req, func_pos);
 	
-	return onion_handler_handle(o->data, req, res);
+	return onion_handler_handle(next_handler, req, res);
 }
 
 /// Variables that will be passed to the new environment.
@@ -152,9 +164,11 @@ const char *onion_extraenvs[]={ "TERM=xterm" };
 #define ONION_EXTRAENV_COUNT (sizeof(onion_extraenvs)/sizeof(onion_extraenvs[0]))
 
 /// Creates a new oterm
-process *oterm_new(oterm_t *o){
+process *oterm_new(oterm_t *o, const char *username){
 	process *oterm=malloc(sizeof(process));
 
+	ONION_DEBUG("Created new terminal");
+	
 	oterm->pid=forkpty(&oterm->fd, NULL, NULL, NULL);
 	if ( oterm->pid== 0 ){ // on child
 		// Copy env vars.
@@ -176,6 +190,24 @@ process *oterm_new(oterm_t *o){
 		}
 		envs[j]=NULL;
 
+		// Change personality to that user
+		struct passwd *pw;
+		pw=getpwnam(username);
+		int error;
+		if (!pw){
+			ONION_ERROR("Cant find user to drop priviledges: %s", username);
+			exit(1);
+		}
+		else{
+			error=setgid(pw->pw_gid);
+			error|=setuid(pw->pw_uid);
+		}
+		if (error){
+			ONION_ERROR("Cant set the uid/gid for user %s", username);
+			exit(1);
+		}
+
+		
 		int ok=execle("/bin/bash","bash",NULL,envs);
 		fprintf(stderr,"%s:%d Could not exec shell: %d\n",__FILE__,__LINE__,ok);
 		perror("");
@@ -195,13 +227,14 @@ process *oterm_new(oterm_t *o){
 int oterm_status(oterm_t *o, onion_request *req, onion_response *res){
 	onion_response_write0(res,"{");
 
-	
-	process *n=o->head;
-	while(n->next){
-		onion_response_printf(res, " \"%d\":{ \"pid\":\"%d\" }, ", n->pid, n->pid);
-		n=n->next;
+	if (o->head){
+		process *n=o->head;
+		while(n->next){
+			onion_response_printf(res, " \"%d\":{ \"pid\":\"%d\" }, ", n->pid, n->pid);
+			n=n->next;
+		}
+		onion_response_printf(res, " \"%d\":{ \"pid\":\"%d\" } ", n->pid, n->pid);
 	}
-	onion_response_printf(res, " \"%d\":{ \"pid\":\"%d\" } ", n->pid, n->pid);
 	
 	onion_response_write0(res,"}\n");
 	
@@ -278,18 +311,21 @@ void oterm_oterm_free(oterm_t *o){
 		p=p->next;
 		free(t);
 	}
-	onion_handler_free(o->data);
 	pthread_mutex_destroy(&o->head_mutex);
 	free(o);
 }
 
-/// Prepares the oterm handler
-onion_handler *oterm_handler_data(){
+oterm_t *oterm_data_new(){
 	oterm_t *oterm=malloc(sizeof(oterm_t));
 	
 	pthread_mutex_init(&oterm->head_mutex, NULL);
 	oterm->head=NULL;
-	oterm->head=oterm_new(oterm);
+	
+	return oterm;
+}
+
+/// Prepares the oterm handler
+onion_handler *oterm_handler_data(){
 	onion_handler *data;
 #ifdef __DEBUG__
 	if (getenv("OTERM_DEBUG"))
@@ -305,8 +341,6 @@ onion_handler *oterm_handler_data(){
 	}
 #endif
 	
-	oterm->data=data;
-	
-	return onion_handler_new((onion_handler_handler)oterm_data, oterm, (onion_handler_private_data_free) oterm_oterm_free);
+	return onion_handler_new((void*)oterm_data, data, (void*)onion_handler_free);
 }
 
