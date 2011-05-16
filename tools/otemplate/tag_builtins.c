@@ -16,8 +16,11 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#define _GNU_SOURCE
+
 #include <string.h>
 #include <malloc.h>
+#include <libgen.h>
 
 #include <onion/log.h>
 #include <onion/codecs.h>
@@ -36,6 +39,9 @@ void tag_if(parser_status *st, list *l);
 void tag_else(parser_status *st, list *l);
 void tag_endif(parser_status *st, list *l);
 void tag_include(parser_status *st, list *l);
+void tag_extends(parser_status *st, list *l);
+void tag_block(parser_status *st, list *l);
+void tag_endblock(parser_status *st, list *l);
 
 /**
  * @short Initializes all builtins
@@ -48,6 +54,9 @@ void tag_init_builtins(){
 	tag_add("else", tag_else);
 	tag_add("endif", tag_endif);
 	tag_add("include", tag_include);
+	tag_add("extends", tag_extends);
+	tag_add("block", tag_block);
+	tag_add("endblock", tag_endblock);
 }
 
 
@@ -168,4 +177,36 @@ void tag_include(parser_status* st, list* l){
 	d->code=NULL; 
 	
 	function_add_code(st, "  %s(context, res);\n", d->id);
+}
+
+
+void tag_extends(parser_status *st, list *l){
+	function_data *d=function_new(st, "%s", tag_value_arg(l, 1));
+	function_pop(st);
+	onion_block_free(d->code);
+	d->code=NULL;
+	
+	function_add_code(st, "  %s(context, res);", d->id);
+	d=(function_data*)st->function_stack->tail->data;
+	d->flags|=F_NO_MORE_WRITE;
+}
+
+void tag_block(parser_status *st, list *l){
+	const char *block_name=tag_value_arg(l, 1);
+	function_add_code(st, 
+"  {\n"
+"    void (*f)(onion_dict *context, onion_response *res);\n"
+"    f=(void*)onion_dict_get(context, \"__block_%s__\");\n"
+"    if (f)\n"
+"      f(context, res);\n"
+"  }\n", block_name);
+
+	function_data *d=function_new(st, "%s__block_%s", basename(strdupa(st->infilename)),  block_name);
+	function_add_code_f(st->blocks_init, 
+"  if (!onion_dict_get(context, \"__block_%s__\"))\n"
+"    onion_dict_add(context, \"__block_%s__\", %s, 0);\n", block_name, block_name, d->id);
+}
+
+void tag_endblock(parser_status *st, list *l){
+	function_pop(st);
 }

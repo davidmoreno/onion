@@ -52,6 +52,7 @@ struct parser_status_t{
 	
 	list *functions; /// List of all known functions
 	list *function_stack; /// Current stack of functions, to know where to write.
+	function_data *blocks_init; /// List of block names
 	onion_block *current_code; /// Blocks of C code to be printed. this is final code.
 	char c; /// Last character read
 	int status; /// Exit status.

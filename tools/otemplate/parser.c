@@ -17,6 +17,7 @@
 	*/
 
 #include <stdio.h>
+#include <malloc.h>
 
 #include <onion/codecs.h>
 #include <onion/block.h>
@@ -25,7 +26,6 @@
 #include "parser.h"
 #include "tags.h"
 #include "variables.h"
-#include <malloc.h>
 
 /// Set current parser status
 static void set_mode(parser_status *status, int mode);

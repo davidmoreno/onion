@@ -146,6 +146,9 @@ int work(const char *infilename, const char *outfilename){
 	status.line=1;
 	status.rawblock=onion_block_new();
 	status.infilename=infilename;
+	const char *tname=basename(strdupa(infilename));
+	status.blocks_init=function_new(&status, "%s_blocks_init", tname);
+	status.blocks_init->signature="onion_dict *context";
 	
 	if (strcmp(infilename, "-")==0)
 		status.in=stdin;
@@ -157,7 +160,9 @@ int work(const char *infilename, const char *outfilename){
 		goto work_end;
 	}
 
-	function_new(&status, basename(strdupa(infilename)));
+	function_new(&status, tname);
+	
+	function_add_code(&status, "  %s(context);\n",  status.blocks_init->id);
 	
 	parse_template(&status);
 	
@@ -204,6 +209,7 @@ work_end:
 		fclose(status.out);
 	list_free(status.functions);
 	list_free(status.function_stack);
+	//list_free(status.blocks);
 	onion_block_free(status.rawblock);
 	
 	tag_free();

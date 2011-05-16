@@ -26,7 +26,8 @@
 
 onion *o;
 
-int test_html_template(onion_dict *d, onion_request *req);
+int test_html_template(onion_dict *d, onion_request *req, onion_response *res);
+int toextend_html_template(onion_dict *d, onion_request *req, onion_response *res);
 
 void free_onion(){
 	ONION_INFO("Closing connections");
@@ -34,7 +35,7 @@ void free_onion(){
 	exit(0);
 }
 
-onion_connection_status test_page(void *ignore, onion_request *req){
+onion_connection_status test_page(void *ignore, onion_request *req, onion_response *res){
 	onion_dict *dict=onion_dict_new();
 	
 	char tmp[16];
@@ -48,15 +49,33 @@ onion_connection_status test_page(void *ignore, onion_request *req){
 	onion_dict_add(subd,"0","World!", 0);
 	onion_dict_add(dict, "subd", subd, OD_DICT|OD_FREE_VALUE);
 	
-	return test_html_template(dict, req);
+	return test_html_template(dict, req, res);
+}
+
+onion_connection_status test2_page(void *ignore, onion_request *req, onion_response *res){
+	onion_dict *dict=onion_dict_new();
+	
+	char tmp[16];
+	snprintf(tmp, sizeof(tmp), "%d", rand());
+	
+	onion_dict_add(dict, "title", "Test page - works", 0);
+	onion_dict_add(dict, "random", tmp, OD_DUP_VALUE);
+	
+	onion_dict *subd=onion_dict_new();
+	onion_dict_add(subd,"0","Hello", 0);
+	onion_dict_add(subd,"0","World!", 0);
+	onion_dict_add(dict, "subd", subd, OD_DICT|OD_FREE_VALUE);
+	
+	return toextend_html_template(dict, req, res);
 }
 
 int main(int argc, char **argv){
 	o=onion_new(O_ONE_LOOP);
 	
-	onion_handler *root=onion_handler_new((onion_handler_handler)test_page, NULL, NULL);
+	onion_url *root=onion_root_url(o);
+	onion_url_add(root, "test1", test_page);
+	onion_url_add(root, "test2", test2_page);
 
-	onion_set_root_handler(o, root);
 	signal(SIGINT, free_onion);
 	
 	onion_listen(o);

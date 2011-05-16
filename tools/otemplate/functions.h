@@ -21,6 +21,12 @@
 
 #include <onion/types.h>
 
+enum function_data_flags_e{
+	F_NO_MORE_WRITE=1,
+};
+
+typedef enum function_data_flags_e function_data_flags;
+
 struct function_data_t{
 	char *id;
 	onion_block *code; /// Blocks of C code to be printed.
@@ -42,5 +48,6 @@ function_data *function_new(struct parser_status_t *st, const char *fmt, ...);
 void function_free(function_data *d);
 function_data *function_pop(struct parser_status_t *st);
 void function_add_code(struct parser_status_t *st, const char *fmt, ...);
+void function_add_code_f(struct function_data_t *f, const char *fmt, ...);
 
 #endif

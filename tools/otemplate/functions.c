@@ -62,7 +62,7 @@ void functions_write_code(parser_status *st){
 
 /// Writes the main function code.
 void functions_write_main_code(parser_status *st){
-	const char *f=((function_data*)list_get_n(st->function_stack,0))->id;
+	const char *f=((function_data*)list_get_n(st->function_stack,1))->id;
 
 		fprintf(st->out,"\n\n"
 "int %s_handler_page(onion_dict *context, onion_request *req, onion_response *res){\n"
@@ -98,6 +98,7 @@ void functions_write_main_code(parser_status *st){
  */
 function_data *function_new(parser_status *st, const char *fmt, ...){
 	function_data *d=malloc(sizeof(function_data));
+	d->flags=0;
 	d->code=onion_block_new();
 	if (st){
 		st->current_code=d->code;
@@ -162,6 +163,10 @@ function_data *function_pop(parser_status *st){
  * @short Adds some code to the top function
  */
 void function_add_code(parser_status *st, const char *fmt, ...){
+	function_data *p=(function_data*)st->function_stack->tail->data;
+	if (p->flags&F_NO_MORE_WRITE)
+		return;
+	
 	char tmp[4096];
 	
 	va_list ap;
@@ -170,6 +175,19 @@ void function_add_code(parser_status *st, const char *fmt, ...){
 	va_end(ap);
 	
 	//ONION_DEBUG("Add to level %d text %s",list_count(st->function_stack), tmp);
-
+	
 	onion_block_add_str(st->current_code, tmp);
+}
+
+void function_add_code_f(struct function_data_t *f, const char *fmt, ...){
+	char tmp[4096];
+	
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf(tmp, sizeof(tmp), fmt, ap);
+	va_end(ap);
+	
+	//ONION_DEBUG("Add to level %d text %s",list_count(st->function_stack), tmp);
+	
+	onion_block_add_str(f->code, tmp);
 }
