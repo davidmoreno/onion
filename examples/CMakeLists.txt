@@ -1,7 +1,9 @@
 
 if (PAM_ENABLED)
+if (OPACK)
 	add_subdirectory(otop)
 	add_subdirectory(oterm)
+endif(OPACK)
 	add_subdirectory(basic)
 	add_subdirectory(fileserver)
 else (PAM_ENABLED)
@@ -10,6 +12,12 @@ endif (PAM_ENABLED)
 
 add_subdirectory(userver)
 add_subdirectory(interactive)
-add_subdirectory(fileserver_otemplate)
 add_subdirectory(hello)
-add_subdirectory(mandelbrot)
+
+
+if (OTEMPLATE)
+	add_subdirectory(fileserver_otemplate)
+if (PNG_ENABLED)
+	add_subdirectory(mandelbrot)
+endif (PNG_ENABLED)
+endif(OTEMPLATE)

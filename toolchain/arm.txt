@@ -28,5 +28,22 @@ SET(LIBPATH /usr/arm-linux-gnueabi/lib)
 SET(LIBDIR /usr/arm-linux-gnueabi/lib)
 SET(INCLUDEDIR /usr/arm-linux-gnueabi/include/onion)
 
+SET(CROSS_COMPILING true)
+
+MESSAGE(STATUS "search otemplate, opack")
 FIND_PROGRAM(OTEMPLATE otemplate)
 FIND_PROGRAM(OPACK opack)
+
+IF (OTEMPLATE)
+ message(STATUS "Otemplate at ${OTEMPLATE}")
+ELSE (OTEMPLATE)
+ message("Otemplate not found, some examples will not be compiled")
+ENDIF(OTEMPLATE)
+
+
+IF (OPACK)
+ message(STATUS "Opack at ${OPACK}")
+ELSE (OPACK)
+ message("Opack not found, some examples will not be compiled")
+ENDIF(OPACK)
+

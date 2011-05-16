@@ -6,6 +6,7 @@ project(libonion)
 SET(ONION_USE_SSL true)
 SET(ONION_USE_PAM true)
 SET(ONION_USE_PTHREADS true)
+SET(ONION_USE_PNG true)
 SET(ONION_VERSION 0.3.0)
 ########
 
@@ -20,7 +21,7 @@ if (${ONION_USE_SSL})
 		set(GNUTLS_ENABLED true)
 		message(STATUS "Gnutls found. SSL support is compiled in.")
 	else(GNUTLS_LIB AND GCRYPT_LIB)
-		message(WARNING "Gnutls not found. SSL support is not compiled in.")
+		message("Gnutls not found. SSL support is not compiled in.")
 	endif(GNUTLS_LIB AND GCRYPT_LIB)
 endif(${ONION_USE_SSL})
 
@@ -30,7 +31,7 @@ if (${ONION_USE_PTHREADS})
 		message(STATUS "pthreads found. Threading support is compiled in.")
 		set(PTHREADS true)
 	else(PTHREADS_LIB)
-		message(WARNING "pthreads not found. Threading is not supported.")
+		message("pthreads not found. Threading is not supported.")
 	endif(PTHREADS_LIB)
 endif(${ONION_USE_PTHREADS})
 
@@ -41,9 +42,21 @@ if (${ONION_USE_PAM})
 		set(PAM_ENABLED true)
 		message(STATUS "pam found. PAM support is compiled in in handlers.")
 	else (PAM_LIB)
-		message(STATUS "pam not found. No PAM support.")
+		message("pam not found. No PAM support.")
   endif (PAM_LIB)
 endif (${ONION_USE_PAM})
+
+
+if (${ONION_USE_PNG})
+	find_library(PNG_LIB NAMES png z PATH ${LIBPATH})
+	if (PNG_LIB)
+		set(PNG_ENABLED true)
+		set(PNG_LIB ${PNG_LIB} z)
+		message(STATUS "libpng found. png support is compiled in at extras.")
+	else (PNG_LIB)
+		message("libpng not found. No png support.")
+  endif (PNG_LIB)
+endif (${ONION_USE_PNG})
 
 # defines
 if (GNUTLS_ENABLED)
@@ -73,7 +86,13 @@ INCLUDE(CPack)
 
 add_subdirectory(src)
 
-add_subdirectory(tools)
+if (CROSS_COMPILING)
+else (CROSS_COMPILING)
+  add_subdirectory(tools)
+	SET(OTEMPLATE otemplate)
+	SET(OPACK opack)
+endif (CROSS_COMPILING)
+
 add_subdirectory(examples)
 add_subdirectory(tests)
 

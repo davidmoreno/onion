@@ -12,4 +12,6 @@ add_subdirectory(05-sessions)
 
 add_subdirectory(06-handlers)
 
+if (OTEMPLATE)
 add_subdirectory(07-otemplate)
+endif (OTEMPLATE)
