@@ -8,8 +8,6 @@ add_executable(otemplate otemplate.c parser.c tags.c variables.c list.c function
 
 target_link_libraries(otemplate dl)
 
-if ( ${ARM} MATCHES "yes" )
 install(TARGETS otemplate DESTINATION bin)
-endif ( ${ARM} MATCHES "yes" )
 
 add_subdirectory(templatetags)

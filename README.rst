@@ -66,10 +66,13 @@ It can be cross compiled for ARM directly from cmake. Just do:
 
 		$ mkdir arm
 		$ cd arm
-		$ cmake .. -DARM=yes
+		$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
 		$ make
 
-Tested on ubuntu 10.10, with gcc-4.5-arm-linux-gnueabi installed.
+It needs the current system opack and otemplate to compile some examples, so if you want to use
+the examples on your instalation, compile and install libonion for the current system first.
+
+Tested on ubuntu 10.10, with gcc-4.5-arm-linux-gnueabi and g++-4.5-arm-linux-gnueabi installed.
 
 
 Templating support

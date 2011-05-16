@@ -4,7 +4,7 @@ include_directories (${CMAKE_SOURCE_DIR}/src/)
 
 add_library(onion_extras STATIC png.c)
 
-target_link_libraries(onion_extras png)
+target_link_libraries(onion_extras png z)
 
 SET(INCLUDES_EXTRAS png.h)
 MESSAGE("Found include files ${INCLUDES_EXTRAS}")

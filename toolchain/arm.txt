@@ -1,0 +1,32 @@
+message(STATUS "Compiling for ARM")
+
+# this one is important
+SET(CMAKE_SYSTEM_NAME Linux)
+#this one not so much
+SET(CMAKE_SYSTEM_VERSION 1)
+
+SET(ARM yes)
+
+# specify the cross compiler
+SET(CMAKE_C_COMPILER   /usr/bin/arm-linux-gnueabi-gcc-4.5)
+SET(CMAKE_CXX_COMPILER /usr/bin/arm-linux-gnueabi-g++-4.5)
+
+# where is the target environment 
+SET(CMAKE_FIND_ROOT_PATH  /usr/arm-linux-gnueabi/)
+
+# search for programs in the build host directories
+SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+# for libraries and headers in the target directories
+SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+
+
+SET(ONION_USE_SSL false)
+SET(ONION_USE_PAM false)
+SET(LIBPATH /usr/arm-linux-gnueabi/lib)
+SET(LIBDIR /usr/arm-linux-gnueabi/lib)
+SET(INCLUDEDIR /usr/arm-linux-gnueabi/include/onion)
+
+FIND_PROGRAM(OTEMPLATE otemplate)
+FIND_PROGRAM(OPACK opack)

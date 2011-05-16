@@ -13,17 +13,6 @@ SET(LIBPATH /usr/lib /usr/local/lib)
 SET(LIBDIR lib)
 SET(INCLUDEDIR include/onion)
 
-if (${ARM} MATCHES "yes")
-	message(STATUS "Compiling for ARM")
-	SET(ONION_USE_SSL false)
-	SET(ONION_USE_PAM false)
-	SET(CMAKE_C_COMPILER /usr/bin/arm-linux-gnueabi-gcc)
-	SET(LIBPATH /usr/arm-linux-gnueabi/lib)
-	SET(LIBDIR /usr/arm-linux-gnueabi/lib)
-	SET(INCLUDEDIR /usr/arm-linux-gnueabi/include/onion)
-endif (${ARM} MATCHES "yes")
-
-
 if (${ONION_USE_SSL})
 	find_library(GNUTLS_LIB NAMES gnutls PATH ${LIBPATH})
 	find_library(GCRYPT_LIB NAMES gcrypt PATH ${LIBPATH})
