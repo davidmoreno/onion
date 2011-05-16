@@ -73,8 +73,10 @@ int main(int argc, char **argv){
 	o=onion_new(O_ONE_LOOP);
 	
 	onion_url *root=onion_root_url(o);
+	onion_url_add_static(root, "", "<a href=\"test1\">Test1</a><br><a href=\"test2\">Test2</a><br><a href=\"test3\">Test3</a>",HTTP_OK);
 	onion_url_add(root, "test1", test_page);
 	onion_url_add(root, "test2", test2_page);
+	onion_url_add(root, "test3", toextend_html_template);
 
 	signal(SIGINT, free_onion);
 	

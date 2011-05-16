@@ -162,9 +162,21 @@ int work(const char *infilename, const char *outfilename){
 
 	function_new(&status, tname);
 	
-	function_add_code(&status, "  %s(context);\n",  status.blocks_init->id);
+	function_add_code(&status, 
+"  int has_context=(context!=NULL);\n"
+"  if (!has_context)\n"
+"    context=onion_dict_new();\n"
+"  \n"
+"  %s(context);\n",  status.blocks_init->id);
 	
 	parse_template(&status);
+	
+	((function_data*)status.function_stack->tail->data)->flags=0;
+	
+	function_add_code(&status,
+"  if (!has_context)\n"
+"    onion_dict_free(context);\n"
+	);
 	
 	if (status.status){
 		ONION_ERROR("Parsing error");
