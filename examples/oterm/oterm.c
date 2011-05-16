@@ -34,6 +34,7 @@
 #endif 
 
 #include "oterm_handler.h"
+#include <onion/dict.h>
 
 
 void opack_index_html(onion_response *res);
@@ -53,6 +54,7 @@ void show_help(){
 								 "   -i|--ip   <server_ip>        -- Set the ip to attach to. Default ::\n"
 								 "   -c|--cert <certificate file> -- Set the SSL certificate file. Default: /etc/pki/tls/certs/pound.pem\n"
 								 "   -k|--key  <key file>         -- Set the SSL key file. Default: /etc/pki/tls/certs/pound.key\n"
+								 "   --no-pam                     -- Disable auth. Uses current user.\n"
 								 "   --no-ssl                     -- Do not uses SSL. WARNING! Very unsecure\n"
 								 "\n");
 }
@@ -63,6 +65,15 @@ void free_onion(){
 	exit(0);
 }
 
+int oterm_nopam(onion_handler *next, onion_request *req, onion_response *res){
+	onion_dict *session=onion_request_get_session_dict(req);
+	onion_dict_lock_write(session);
+	onion_dict_add(session, "username", getenv("USER"), 0);
+	onion_dict_unlock(session);
+	
+	return onion_handler_handle(next, req, res);
+}
+
 int main(int argc, char **argv){
 	char *port="8080";
 	char *serverip="::";
@@ -71,6 +82,7 @@ int main(int argc, char **argv){
 	int error;
 	int i;
 	int ssl=1;
+	int use_pam=1;
 	
 	for (i=1;i<argc;i++){
 		if (strcmp(argv[i],"--help")==0){
@@ -117,6 +129,10 @@ int main(int argc, char **argv){
 			ssl=0;
 			fprintf(stderr, "Disabling SSL!\n");
 		}
+		else if(strcmp(argv[i],"--no-pam")==0){
+			use_pam=0;
+			fprintf(stderr, "Disabling PAM!\n");
+		}
 	}
 	
 	onion_url *url=onion_url_new();
@@ -133,7 +149,12 @@ int main(int argc, char **argv){
 #endif
 	onion_url_add_handler(url, "^term/", oterm_handler_data());
 
-	onion_handler *oterm=onion_handler_auth_pam("Onion Terminal", "login", onion_url_to_handler(url));
+	onion_handler *oterm;
+	
+	if (use_pam)
+		oterm=onion_handler_auth_pam("Onion Terminal", "login", onion_url_to_handler(url));
+	else
+		oterm=onion_handler_new((void*)oterm_nopam, url, (void*)onion_handler_free);
 	
 	o=onion_new(O_THREADED);
 	onion_set_root_handler(o, oterm);

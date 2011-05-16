@@ -97,6 +97,8 @@ int main(int argc, char **argv){
 	
 	onion_url *url=onion_root_url(o);
 	
+	onion_set_hostname(o, "0.0.0.0"); // Force ipv4.
+	
 	onion_url_add(url, "mandel.png", (void*)mandelbrot);
 	onion_url_add(url, "", (void*)mandel_html_template);
 	
