@@ -102,12 +102,16 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 	int fd=open(filename,O_RDONLY);
 
 	if (fd<0)
-		return 0;
+		return OCS_NOT_PROCESSED;
 
 	struct stat st;
 	if (stat(filename, &st)!=0){
 		ONION_WARNING("File does not exist: %s",filename);
-		return 0;
+		return OCS_NOT_PROCESSED;
+	}
+	
+	if (S_ISDIR(st.st_mode)){
+		return OCS_NOT_PROCESSED;
 	}
 	
 	size_t size=st.st_size;
