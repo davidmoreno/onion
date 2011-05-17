@@ -1,12 +1,16 @@
-<html>
- <head>
-  <title>{% block title %}No title{% endblock %}</title>
- </head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}Extended{% endblock %}
+
 {% block body %}
-No body. If you see this, <span style="color: red;">ERROR</span>.
+<h1>This is an extended template</h1>
+
+{% block body_in %}
+More text.
 {% endblock %}
-<p>
-This should appear, as is outside block.
-</body>
-</html>
+
+If you see this, <span style="color: green;">OK</span>.
+<br>
+Random (only at test2): {{random}}
+
+{% endblock %}

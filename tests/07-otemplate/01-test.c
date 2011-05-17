@@ -27,7 +27,7 @@
 onion *o;
 
 int test_html_template(onion_dict *d, onion_request *req, onion_response *res);
-int toextend_html_template(onion_dict *d, onion_request *req, onion_response *res);
+int extended_html_template(onion_dict *d, onion_request *req, onion_response *res);
 
 void free_onion(){
 	ONION_INFO("Closing connections");
@@ -66,7 +66,7 @@ onion_connection_status test2_page(void *ignore, onion_request *req, onion_respo
 	onion_dict_add(subd,"0","World!", 0);
 	onion_dict_add(dict, "subd", subd, OD_DICT|OD_FREE_VALUE);
 	
-	return toextend_html_template(dict, req, res);
+	return extended_html_template(dict, req, res);
 }
 
 int main(int argc, char **argv){
@@ -76,7 +76,7 @@ int main(int argc, char **argv){
 	onion_url_add_static(root, "", "<a href=\"test1\">Test1</a><br><a href=\"test2\">Test2</a><br><a href=\"test3\">Test3</a>",HTTP_OK);
 	onion_url_add(root, "test1", test_page);
 	onion_url_add(root, "test2", test2_page);
-	onion_url_add(root, "test3", toextend_html_template);
+	onion_url_add(root, "test3", extended_html_template);
 
 	signal(SIGINT, free_onion);
 	

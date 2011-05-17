@@ -84,7 +84,6 @@ Current status
 Actually its in its infancy and only have limited support:
 
  * No filters
- * Only if, else, endif, for, endfor, include and trans are supported, but can be user extended
+ * Only if, else, endif, for, endfor, include, extends, block and trans are supported, but can be user extended
  * Only dicts and string types. 
  * For loops are over the values of the dicts.
- * No {% extends .... %} no {% block ... %}.

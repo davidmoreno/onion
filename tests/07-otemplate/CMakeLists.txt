@@ -23,12 +23,12 @@ add_custom_command(
    )
 
 add_custom_command(
-   OUTPUT toextend_html.c
-   COMMAND ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/toextend.html
-                 ${CMAKE_CURRENT_BINARY_DIR}/toextend_html.c
-   DEPENDS ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/toextend.html
+   OUTPUT base_html.c
+   COMMAND ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/base.html
+                 ${CMAKE_CURRENT_BINARY_DIR}/base_html.c
+   DEPENDS ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/base.html
    )
 
 
-add_executable(01-test 01-test.c test_html.c external_html.c extended_html.c toextend_html.c)
+add_executable(01-test 01-test.c test_html.c external_html.c extended_html.c base_html.c)
 target_link_libraries(01-test onion_static onion_handlers)
