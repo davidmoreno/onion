@@ -23,7 +23,7 @@
 extern "C"{
 #endif
 
-#include <onion/types.h>
+#include "types.h"
 
 /// Shortcut for fast responses, like errors.
 int onion_shortcut_response(const char *response, int code, onion_request *req, onion_response *res);

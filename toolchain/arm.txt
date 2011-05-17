@@ -26,6 +26,7 @@ SET(ONION_USE_SSL false)
 SET(ONION_USE_PAM false)
 SET(LIBPATH /usr/arm-linux-gnueabi/lib)
 SET(LIBDIR /usr/arm-linux-gnueabi/lib)
+SET(BINDIR /usr/arm-linux-gnueabi/bin)
 SET(INCLUDEDIR /usr/arm-linux-gnueabi/include/onion)
 
 SET(CROSS_COMPILING true)

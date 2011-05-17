@@ -19,7 +19,7 @@
 #ifndef __ONION_URL__
 #define __ONION_URL__
 
-#include <onion/types.h>
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C"{
