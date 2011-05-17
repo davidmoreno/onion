@@ -328,14 +328,43 @@ void *onion_response_get_socket(onion_response *response){
  */
 const char *onion_response_code_description(int code){
 	switch(code){
-		case 200:
+		case HTTP_OK:
 			return "OK";
-		case 404:
-			return "NOT FOUND";
-		case 500:
-			return "INTERNAL ERROR";
-		case 302:
+		case HTTP_CREATED:
+			return "CREATED";
+		case HTTP_PARTIAL_CONTENT:
+			return "PARTIAL CONTENT";
+			
+		case HTTP_MOVED:
+			return "MOVED";
+		case HTTP_REDIRECT:
 			return "REDIRECT";
+		case HTTP_SEE_OTHER:
+			return "SEE OTHER";
+		case HTTP_NOT_MODIFIED:
+			return "NOT MODIFIED";
+		case HTTP_TEMPORARY_REDIRECT:
+			return "TEMPORARY REDIRECT";
+
+		case HTTP_BAD_REQUEST:
+			return "BAD REQUEST";
+		case HTTP_UNAUTHORIZED:
+			return "UNAUTHORIZED";
+		case HTTP_FORBIDDEN:
+			return "FORBIDDEN";
+		case HTTP_NOT_FOUND:
+			return "NOT FOUND";
+		case HTTP_METHOD_NOT_ALLOWED:
+			return "METHOD NOT ALLOWED";
+
+		case HTTP_INTERNAL_ERROR:
+			return "INTERNAL ERROR";
+		case HTTP_NOT_IMPLEMENTED:
+			return "NOT IMPLEMENTED";
+		case HTTP_BAD_GATEWAY:
+			return "BAD GATEWAY";
+		case HTTP_SERVICE_UNAVALIABLE:
+			return "SERVICE UNAVALIABLE";
 	}
 	return "INTERNAL ERROR - CODE UNKNOWN";
 }
