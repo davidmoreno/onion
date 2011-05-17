@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include "log.h"
 #include "codecs.h"
 
 /// Decode table. Its the inverse of the code table. (cb64).
@@ -288,10 +289,12 @@ int onion_quote(const char *str, char *res, int maxlength){
 char *onion_c_quote_new(const char *str){
 	char *ret;
 	int l=3; // The quotes + \0
-	const char *p=str;
+	const unsigned char *p=(const unsigned char *)str;
 	while( *p != '\0'){ 
 		if (*p=='\n' || *p=='\r' || *p=='"' || *p=='\\' || *p=='\t')
 			l++;
+		else if(*p>127)
+			l+=4;
 		l++; p++;
 	}
 	ret=malloc(l);
@@ -301,7 +304,7 @@ char *onion_c_quote_new(const char *str){
 
 /// Performs the C quotation on the ret str. Max length is l.
 char *onion_c_quote(const char *str, char *ret, int l){
-	const char *p=str;
+	const unsigned char *p=(const unsigned char *)str;
 	char *r=ret;
 	*r++='"';
 	l-=3; // both " at start and end, and \0
@@ -331,6 +334,20 @@ char *onion_c_quote(const char *str, char *ret, int l){
 			r++; 
 			*r='t'; 
 		}
+		else if (*p>127){
+			int c=*p;
+			if (l<4){ // does not fit!
+				*r='\0';
+				return ret;
+			}
+			*r='\\';
+			r++;
+			*r='0'+((c>>6)&0x03);
+			r++;
+			*r='0'+((c>>3)&0x07);
+			r++;
+			*r='0'+(c&0x07);
+		}
 		else{
 			*r=*p;
 		}
@@ -343,5 +360,6 @@ char *onion_c_quote(const char *str, char *ret, int l){
 	}
 	*r++='"';
 	*r++='\0';
+	
 	return ret;
 }

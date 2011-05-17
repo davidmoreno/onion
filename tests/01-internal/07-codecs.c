@@ -144,6 +144,35 @@ void t05_codecs_base64_decode_trash(){
 	END_LOCAL();
 }
 
+void t06_codecs_c_unicode(){
+	INIT_LOCAL();
+	
+	const char *text="\302Hola!";
+	char *res=onion_c_quote_new(text);
+	
+	FAIL_IF_NOT_STRSTR(res,"\\302");
+	FAIL_IF_NOT_STRSTR(res,"\\302Hola!");
+	
+	free(res);
+	
+	text="€";
+	res=onion_c_quote_new(text);
+	
+	FAIL_IF_NOT_STRSTR(text,"€");
+	FAIL_IF_NOT_EQUAL_STR(res,"\"\\342\\202\\254\"");
+	
+	free(res);
+
+	text="\377";
+	res=onion_c_quote_new(text);
+	
+	FAIL_IF_NOT_EQUAL_STR(res,"\"\\377\"");
+	
+	free(res);
+
+	END_LOCAL();
+}
+
 
 int main(int argc, char **argv){
 	t01_codecs_base64_decode();
@@ -151,6 +180,7 @@ int main(int argc, char **argv){
 	t03_codecs_base64_encode_decode_10();
 	t04_codecs_base64_encode_decode();
 	t05_codecs_base64_decode_trash();
+	t06_codecs_c_unicode();
 	
 	END();
 }
