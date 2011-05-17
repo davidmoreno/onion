@@ -116,7 +116,10 @@ void tag_if(parser_status *st, list *l){
 	if (lc==2){
 		function_add_code(st, 
 "  {\n"
-"    const char *tmp=onion_dict_get(context, \"%s\");\n"
+"    const char *tmp;\n"
+		);
+		variable_solve(st, tag_value_arg(l, 1), "tmp", tag_type_arg(l,1));
+		function_add_code(st, 
 "    if (tmp && strcmp(tmp, \"false\")!=0)\n", tag_value_arg(l,1));
 	}
 	else if (lc==4){

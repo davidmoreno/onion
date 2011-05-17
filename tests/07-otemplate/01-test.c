@@ -64,6 +64,7 @@ onion_connection_status test2_page(void *ignore, onion_request *req, onion_respo
 	onion_dict *subd=onion_dict_new();
 	onion_dict_add(subd,"0","Hello", 0);
 	onion_dict_add(subd,"0","World!", 0);
+	onion_dict_add(dict, "empty", "", 0);
 	onion_dict_add(dict, "subd", subd, OD_DICT|OD_FREE_VALUE);
 	
 	return extended_html_template(dict, req, res);

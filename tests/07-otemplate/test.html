@@ -16,12 +16,43 @@
 <li>{% trans "Not found trans" %} {{ subd.0.1 }}.
 </ul>
 
+
 <h2>{% trans "Test if" %}</h2>
-{%if random_gt %}
-{% trans "random_gt is present" %}
+
+<p>
+{%if random %}
+<span style="color: green;">OK</span> {% trans "random is present" %}
 {% else%}
-{% trans "random_gt is not present" %}
+<span style="color: red;">ERROR</span> {% trans "random is not present" %}
 {%endif%}
+</p>
+<p>
+{% if subd %}
+<span style="color: green;">OK</span>
+{% else %}
+<span style="color: red;">ERROR</span>
+{% endif %}
+ access elements on if.</p>
+
+<p>
+{% if subd.0 %}
+<span style="color: green;">OK</span>
+{% else %}
+<span style="color: red;">ERROR</span>
+{% endif %}
+ access subelements on if. </p>
+
+<p>
+{% if empty %}
+<span style="color: red;">ERROR</span>
+{% else %}
+<span style="color: green;">OK</span>
+{% endif %}
+Empty element do not enter true if
+</p>
+
+
+
 
 <h2>{% trans "Test for" %}</h2>
 <ul>

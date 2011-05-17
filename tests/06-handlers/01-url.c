@@ -20,7 +20,7 @@
 
 #include <onion/onion.h>
 #include <onion/server.h>
-#include <onion/handlers/url.h>
+#include <onion/url.h>
 #include <onion/log.h>
 
 #include "buffer.h"
