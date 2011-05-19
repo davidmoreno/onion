@@ -53,6 +53,7 @@ void t01_handle_static_request(){
 	
 	onion_response *response=onion_response_new(request);
 	ok=onion_handler_handle(handler, request, response);
+	FAIL_IF_NOT_EQUAL(ok, OCS_PROCESSED);
 	onion_response_free(response);
 
 	const char *buffer=onion_block_data(block);

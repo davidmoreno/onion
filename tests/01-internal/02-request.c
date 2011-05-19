@@ -151,7 +151,7 @@ void t04_create_add_free_GET(){
 	for (i=0;i<10;i++){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
 		ok=onion_request_write(req,query,strlen(query));
-		
+		FAIL_IF_NOT_EQUAL(ok, strlen(query));
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
 		FAIL_IF_EQUAL(req->headers, NULL);
@@ -194,6 +194,7 @@ void t05_create_add_free_POST(){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
 		ok=onion_request_write(req,query,strlen(query));
 		
+		FAIL_IF_NOT_EQUAL(ok, strlen(query));
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
 		FAIL_IF_EQUAL(req->headers, NULL);
