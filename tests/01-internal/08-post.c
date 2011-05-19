@@ -31,6 +31,10 @@
 #include "../test.h"
 #include <fcntl.h>
 
+// Just a file that is always there, and should be big enought to be several packages
+#define BIG_FILE "/etc/services"
+#define BIG_FILE_BASE "services"
+
 typedef struct{
 	char *data;
 	size_t size;
@@ -64,6 +68,7 @@ void buffer_free(buffer *b){
 typedef struct{
 	const char *filename;
 	char *tmpfilename;
+	char *tmplink;
 	int size;
 	int test_ok;
 }expected_post;
@@ -74,7 +79,7 @@ onion_connection_status post_check(expected_post *post, onion_request *req){
 	post->test_ok=1;
 	ONION_DEBUG("Got filename %s, expected %s",filename,post->filename);
 	if (strcmp(filename, post->filename)!=0){
-		ONION_ERROR("File names do not match");
+		ONION_ERROR("File names do not match: %s %s", filename, post->filename);
 		post->test_ok=0;
 	}
 	
@@ -89,6 +94,12 @@ onion_connection_status post_check(expected_post *post, onion_request *req){
 		ONION_ERROR("Size do not match, expected %d, got %d",post->size,st.st_size);
 		post->test_ok=0;
 	}
+
+	char tmp[256];
+	snprintf(tmp,sizeof(tmp),"%s-",tmpfilename);
+	ONION_DEBUG("Linking to %s");
+	link(tmpfilename, tmp);
+	post->tmplink=strdup(tmp);
 
 	post->tmpfilename=strdup(tmpfilename);
 
@@ -231,13 +242,13 @@ void t03_post_carriage_return_new_lines_file(){
 void t04_post_largefile(){
 	INIT_LOCAL();
 	
-	int postfd=open("01-hash", O_RDONLY);
+	int postfd=open(BIG_FILE, O_RDONLY);
 	off_t filesize=lseek(postfd, 0, SEEK_END);
 	lseek(postfd, 0, SEEK_SET);
 	
 	buffer *b=buffer_new(1024);
 	expected_post post;
-	post.filename="01-hash";
+	post.filename=BIG_FILE_BASE;
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
 	post.size=filesize;
@@ -248,7 +259,7 @@ void t04_post_largefile(){
 	
 	onion_request *req=onion_request_new(server,b,"test");
 
-#define POST_HEADER "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length: %d\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"01-hash\"\n\n"
+#define POST_HEADER "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length: %d\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"" BIG_FILE_BASE "\"\n\n"
 	char tmp[1024];
 	ONION_DEBUG("Post size is about %d",filesize+73);
 	snprintf(tmp, sizeof(tmp), POST_HEADER, (int)filesize+73);
@@ -262,13 +273,16 @@ void t04_post_largefile(){
 	}
 	
 	onion_request_write(req,"\n--end--",8);
-	FAIL_IF_NOT_EQUAL(post.test_ok,1);
+	FAIL_IF_NOT_EQUAL_INT(post.test_ok,1);
 #undef POST_HEADER
 
 	post.test_ok=0; // Not ok as not called processor yet
 
-	int difffd=open(post.tmpfilename, O_RDONLY);
 	lseek(postfd, 0, SEEK_SET);
+
+	int difffd=open(post.tmpfilename, O_RDONLY);
+	FAIL_IF_NOT_EQUAL_INT(difffd,-1); // Orig file is removed at handler returns. But i have a copy
+	difffd=open(post.tmplink, O_RDONLY);
 	FAIL_IF_EQUAL_INT(difffd,-1);
 	ONION_DEBUG("tmp filename %s",post.tmpfilename);
 	int r1=1, r2=1;

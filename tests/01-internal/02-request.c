@@ -28,8 +28,13 @@
 
 onion_server *server;
 
+ssize_t empty_write(void *a, const char *b, size_t size){
+	return size;
+}
+
 void setup(){
 	server=onion_server_new();
+	onion_server_set_write(server, empty_write);
 }
 
 void teardown(){
@@ -120,7 +125,7 @@ void t03_create_add_free_full_flow(){
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
 
 	FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
-	FAIL_IF_NOT_EQUAL_STR(req->path,"/myurl /is/very/deeply/nested");
+	FAIL_IF_NOT_EQUAL_STR(req->path,"myurl /is/very/deeply/nested");
 
 	FAIL_IF_EQUAL(req->GET, NULL);
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->GET,"test"), "test");
@@ -139,7 +144,7 @@ void t04_create_add_free_GET(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(server, 0,NULL);
+	req=onion_request_new(server, 0, NULL);
 	FAIL_IF_EQUAL(req,NULL);
 	FAIL_IF_NOT_EQUAL(req->socket, 0);
 	
@@ -149,9 +154,9 @@ void t04_create_add_free_GET(){
 	
 	int i; // Straight write, with clean (keep alive like)
 	for (i=0;i<10;i++){
-		FAIL_IF_NOT_EQUAL(req->flags,0);
+		FAIL_IF_NOT_EQUAL_INT(req->flags,0);
 		ok=onion_request_write(req,query,strlen(query));
-		FAIL_IF_NOT_EQUAL(ok, strlen(query));
+		FAIL_IF_NOT_EQUAL_INT(ok, OCS_CLOSE_CONNECTION);
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
 		FAIL_IF_EQUAL(req->headers, NULL);
@@ -159,7 +164,7 @@ void t04_create_add_free_GET(){
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
 
 		FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
-		FAIL_IF_NOT_EQUAL_STR(req->path,"/myurl /is/very/deeply/nested");
+		FAIL_IF_NOT_EQUAL_STR(req->path,"myurl /is/very/deeply/nested");
 
 		FAIL_IF_EQUAL(req->GET,NULL);
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->GET,"test"), "test");
@@ -194,7 +199,7 @@ void t05_create_add_free_POST(){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
 		ok=onion_request_write(req,query,strlen(query));
 		
-		FAIL_IF_NOT_EQUAL(ok, strlen(query));
+		FAIL_IF_NOT_EQUAL(ok, OCS_CLOSE_CONNECTION);
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
 		FAIL_IF_EQUAL(req->headers, NULL);
@@ -202,7 +207,7 @@ void t05_create_add_free_POST(){
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
 
 		FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
-		FAIL_IF_NOT_EQUAL_STR(req->path,"/myurl /is/very/deeply/nested");
+		FAIL_IF_NOT_EQUAL_STR(req->path,"myurl /is/very/deeply/nested");
 
 		FAIL_IF_EQUAL(req->GET,NULL);
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->GET,"test"), "test");

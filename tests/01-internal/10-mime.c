@@ -25,7 +25,7 @@ void t01_test_mime(){
 	FAIL_IF_NOT_EQUAL_STR("text/plain", onion_mime_get("txt"));
 	FAIL_IF_NOT_EQUAL_STR("text/plain", onion_mime_get("fdsfds"));
 	FAIL_IF_NOT_EQUAL_STR("text/html", onion_mime_get("html"));
-	FAIL_IF_NOT_EQUAL_STR("text/x-csrc", onion_mime_get("c"));
+	FAIL_IF_NOT_EQUAL_STR("image/png", onion_mime_get("file.png"));
 	FAIL_IF_NOT_EQUAL_STR("application/javascript", onion_mime_get("js"));
 
 	

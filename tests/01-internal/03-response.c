@@ -82,7 +82,12 @@ void t02_full_cycle_http10(){
 	onion_request_free(request);
 	onion_server_free(server);
 	
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\nContent-Length: 30\r\nServer: libonion v0.1 - coralbits.com\r\n\r\n123456789012345678901234567890");
+	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.0 200 OK\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "Connection: Keep-Alive\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "Content-Length: 30\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "Server: libonion");
+	FAIL_IF_NOT_STRSTR(buffer, "coralbits");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\n123456789012345678901234567890");
 	
 	END_LOCAL();
 }
@@ -113,7 +118,14 @@ void t03_full_cycle_http11(){
 	onion_request_free(request);
 	onion_server_free(server);
 	
-	FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\r\nContent-Length: 30\r\nServer: libonion v0.1 - coralbits.com\r\n\r\n123456789012345678901234567890");
+	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 200 OK\r\n");
+	FAIL_IF_STRSTR(buffer, "Connection: Keep-Alive\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "Content-Length: 30\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "Server: libonion");
+	FAIL_IF_NOT_STRSTR(buffer, "coralbits");
+	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\n123456789012345678901234567890");
+
+	//FAIL_IF_NOT_EQUAL_STR(buffer, "HTTP/1.1 200 OK\r\nContent-Length: 30\r\nServer: libonion v0.1 - coralbits.com\r\n\r\n123456789012345678901234567890");
 	
 	END_LOCAL();
 }

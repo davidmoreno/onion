@@ -86,7 +86,7 @@ void t02_handle_generic_request(){
 	error=onion_url_add_handler(url, "^a.*$", onion_handler_static("any",200));
 	FAIL_IF(error);
 
-	error=onion_url_add_handler(url, "", onion_handler_static("Internal error",500));
+	error=onion_url_add_static(url, "^.*", "Internal error", 500);
 	FAIL_IF(error);
 
 	onion_server_set_root_handler(server, onion_url_to_handler(url));

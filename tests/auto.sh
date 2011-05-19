@@ -1,7 +1,7 @@
 cd 01-internal
 FAILED=""
 
-for i in $( find -maxdepth 1 -type f -executable ); do
+for i in $( find -maxdepth 1 -type f -executable | sort -n ); do
 	$i
 	if [ "$?" != "0" ]; then
 		FAILED="$FAILED $i"
