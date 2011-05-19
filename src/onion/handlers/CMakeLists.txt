@@ -10,8 +10,7 @@ else (PAM_ENABLED)
 	SET(PAMLIBS)
 endif (PAM_ENABLED)
 
-
-add_library(onion_handlers STATIC static.c exportlocal.c auth_pam.c opack.c path.c
+add_library(onion_handlers STATIC static.c exportlocal.c opack.c path.c
 																	${PAM} )
 
 target_link_libraries(onion_handlers ${PAMLIBS})

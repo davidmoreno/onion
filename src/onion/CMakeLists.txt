@@ -18,7 +18,11 @@ if (PTHREADS)
 endif(PTHREADS)
 
 add_subdirectory(handlers)
+
+# Only if png by the moment, maybe later other functionalities there.
+if (${PNG_LIB})
 add_subdirectory(extras)
+endif (${PNG_LIB})
 
 SET(INCLUDES_ONION onion.h dict.h request.h response.h codecs.h handler.h server.h log.h sessions.h types.h shortcuts.h url.h block.h)
 MESSAGE("Found include files ${INCLUDES_ONION}")
