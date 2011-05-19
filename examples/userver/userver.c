@@ -50,7 +50,7 @@ int main(int argc, char **argv){
 	}
 
 	
-	onion_handler *dir=onion_handler_export_local_new(argc==2 ? argv[1] : ".");
+	onion_handler *dir=onion_handler_export_local_new(dirname);
 	onion_handler_add(dir, onion_handler_static("<h1>404 - File not found.</h1>", 404) );
 	
 	o=onion_new(O_THREADED|O_DETACH_LISTEN);
