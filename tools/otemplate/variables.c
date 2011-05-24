@@ -78,32 +78,17 @@ void variable_solve(parser_status *st, const char *data, const char *tmpname, in
 		free(s);
 	}
 	else{
-		function_add_code(st,
-"    %s=NULL;\n"
-"    {\n"
-"      onion_dict *d=context;\n", tmpname);
+		function_add_code(st,"    %s=onion_dict_rget(context", tmpname);
 		list_item *it=parts->head;
-		while (it->next){
+		while (it){
 			lastblock=it->data;
 			char *s=onion_c_quote_new(onion_block_data(lastblock));
-			function_add_code(st,
-"      if (d)\n"
-"        d=onion_dict_get_dict(d, %s);\n", s);
+			function_add_code(st,", %s", s);
 			free(s);
 			it=it->next;
 		}
-		lastblock=it->data;
-		
-		char *s=onion_c_quote_new(onion_block_data(lastblock));
-		function_add_code(st, 
-"      if (d)\n"
-"        %s=onion_dict_get(d, %s);\n", tmpname, s);
-		free(s);
-		function_add_code(st, 
-"    }\n");
+		function_add_code(st,", NULL);\n");
 	}
 	list_free(parts);
-
-	
 }
 
