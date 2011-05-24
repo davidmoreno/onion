@@ -19,6 +19,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "log.h"
 #include "dict.h"
@@ -353,11 +354,11 @@ int onion_dict_remove(onion_dict *dict, const char *key){
 	return 1;
 }
 
-/// Gets a value
+/// Gets a value. For dicts returns NULL; use onion_dict_get_dict.
 const char *onion_dict_get(const onion_dict *dict, const char *key){
 	const onion_dict_node *r;
 	r=onion_dict_find_node(dict->root, key, NULL);
-	if (r)
+	if (r && !(r->data.flags&OD_DICT))
 		return r->data.value;
 	return NULL;
 }
@@ -527,3 +528,57 @@ block *onion_dict_to_json(onion_dict *dict){
 	return block;
 }
 
+/**
+ * @short Gets a dictionary string value, recursively
+ * 
+ * Loops inside given dictionaries to get the given value
+ * 
+ * @param dict The dictionary
+ * @param key The key list, one per arg, end with NULL
+ * @returns The const string if valid, or NULL
+ */
+const char *onion_dict_rget(const onion_dict *dict, const char *key, ...){
+	const onion_dict *d=dict;
+	const char *k=key;
+	const char *nextk;
+	va_list va;
+	va_start(va, key);
+	while (d){
+		nextk=va_arg(va, const char *);
+		if (!nextk){
+			va_end(va);
+			return onion_dict_get(d, k);
+		}
+		d=onion_dict_get_dict(d, k);
+		k=nextk;
+	}
+	va_end(va);
+	return NULL;
+}
+
+
+/**
+ * @short Gets a dictionary dict value, recursively
+ * 
+ * Loops inside given dictionaries to get the given value
+ * 
+ * @param dict The dictionary
+ * @param key The key list, one per arg, end with NULL
+ * @returns The const string if valid, or NULL
+ */
+onion_dict *onion_dict_rget_dict(const onion_dict *dict, const char *key, ...){
+	onion_dict *d=(onion_dict*)dict;
+	const char *k=key;
+	va_list va;
+	va_start(va, key);
+	while (d){
+		d=onion_dict_get_dict(d, k);
+		k=va_arg(va, const char *);
+		if (!k){
+			va_end(va);
+			return d;
+		}
+	}
+	va_end(va);
+	return NULL;
+}

@@ -563,10 +563,14 @@ void t12_dict_in_dict(){
 	onion_dict_add(A, "B", B, OD_DICT|OD_FREE_VALUE);
 	onion_dict_add(A, "C", C, OD_DICT|OD_FREE_VALUE);
 	onion_dict_add(A, "D", D, OD_DICT|OD_FREE_VALUE);
-	
-	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "B"), B);
-	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "C"), C);
-	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "D"), D);
+
+	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "B"), NULL);
+	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "C"), NULL);
+	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get(A, "D"), NULL);
+
+	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get_dict(A, "B"), B);
+	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get_dict(A, "C"), C);
+	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get_dict(A, "D"), D);
 	
 	{
 		onion_block *tmpA=onion_dict_to_json(A);
@@ -595,6 +599,49 @@ void t12_dict_in_dict(){
 	END_LOCAL();
 }
 
+void t13_dict_rget(){
+	INIT_LOCAL();
+	
+	onion_dict *A=onion_dict_new();
+	onion_dict *B=onion_dict_new();
+	onion_dict *C=onion_dict_new();
+	onion_dict *D=onion_dict_new();
+	
+	int i;
+	for (i=0;i<16;i++){
+		char tmp[9];
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(A, tmp, tmp, OD_DUP_ALL);
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(B, tmp, tmp, OD_DUP_ALL);
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(C, tmp, tmp, OD_DUP_ALL);
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(D, tmp, tmp, OD_DUP_ALL);
+	}
+
+	onion_dict_add(A, "B", B, OD_DICT|OD_FREE_VALUE);
+	onion_dict_add(A, "C", C, OD_DICT|OD_FREE_VALUE);
+	onion_dict_add(A, "D", D, OD_DICT|OD_FREE_VALUE);
+	
+	onion_dict_add(B, "C", C, OD_DICT);
+	
+	onion_dict_add(C, "a", "hello", 0);
+	
+	FAIL_IF_NOT_EQUAL(onion_dict_rget(A, "B", NULL), NULL);
+	FAIL_IF_NOT_EQUAL(onion_dict_rget(A, "C", NULL), NULL);
+	FAIL_IF_NOT_EQUAL(onion_dict_rget(A, "B", "C", NULL), NULL);
+
+	FAIL_IF_NOT_EQUAL(onion_dict_rget_dict(A, "B", NULL), B);
+	FAIL_IF_NOT_EQUAL(onion_dict_rget_dict(A, "C", NULL), C);
+	FAIL_IF_NOT_EQUAL(onion_dict_rget_dict(A, "B", "C", NULL), C);
+	
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_rget(A, "B", "C", "a", NULL), "hello");
+	FAIL_IF_NOT_EQUAL(onion_dict_rget_dict(A, "B", "C", "a", NULL), NULL);
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	t01_create_add_free();
 	t01_create_add_free_10();
@@ -609,6 +656,7 @@ int main(int argc, char **argv){
 	t10_tojson();
 	t11_hard_dup();
 	t12_dict_in_dict();
+	t13_dict_rget();
 	
 	END();
 }
