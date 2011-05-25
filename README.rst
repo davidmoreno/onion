@@ -83,3 +83,7 @@ system similar to django templates (http://docs.djangoproject.com/en/dev/topics/
 
 Check more information on how to use them at tools/otemplate/README.rst.
 
+I18N
+----
+
+There is I18N support. Check wiki for details or fileserver_otemplate example.

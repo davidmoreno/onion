@@ -1,0 +1,32 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: 0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2011-05-24 16:20+0100\n"
+"Last-Translator: David Moreno <dmoreno@coralbits.com>\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: fileserver_html.c:58
+msgid "Current directory: "
+msgstr "Obecny folder: "
+
+#: fileserver_html.c:91
+msgid "Filename"
+msgstr "Nazwa pliku"
+
+#: fileserver_html.c:93
+msgid "Size"
+msgstr "Rozmiar"
+
+#: fileserver_html.c:95
+msgid "Owner"
+msgstr "Właściciel"

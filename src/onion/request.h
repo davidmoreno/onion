@@ -120,6 +120,9 @@ void onion_request_set_no_keep_alive(onion_request *req);
 /// Returns if current request wants to keep alive
 int onion_request_keep_alive(onion_request *req);
 
+/// Gets the language code for the current language. C is returned if none recognized.
+const char *onion_request_get_language_code(onion_request *req);
+
 #ifdef __cplusplus
 }
 #endif

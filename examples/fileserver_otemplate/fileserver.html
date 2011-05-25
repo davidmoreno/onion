@@ -1,7 +1,8 @@
 {% load i18n %}
 <html>
 <head>
- <title>{% trans "Navigation of" %} {{dirname}}</title>
+ <meta content="text/html; charset=UTF-8" http-equiv="content-type"/> 
+ <title>{% trans "Current directory: " %} {{dirname}}</title>
 <style>
 body{ background: #fefefe; font-family: sans-serif; margin-left: 5%; margin-right: 5%; }
 table{ background: white; width: 100%; border: 1px solid #aaa; border-radius: 5px; -moz-border-radius: 5px; }
@@ -9,6 +10,7 @@ th{	background: #eee; } tbody tr:hover td{ background: yellow; } tr.dir td{ back
 table a{ display: block; } th{ cursor: pointer} h1,h2{ color: black; text-align: center; }
 a{ color: red; text-decoration: none; }
 #copyright{ text-align: center; font-size: 0.7em; }
+#lang{ size: 0.6em; color: #aaa; }
 </style>
 
 </style>
@@ -17,7 +19,7 @@ a{ color: red; text-decoration: none; }
 
 <h1>{{dirname}}</h1>
 
-{% if go_up %}<a href="..">Go up</a>{%endif%}
+{% if go_up %}<a href="..">{% trans "Go up" %}</a>{%endif%}
 
 <table>
 <thead>
@@ -30,7 +32,7 @@ a{ color: red; text-decoration: none; }
 </tbody>
 </table>
 
-<div id="copyright">(C) 2011 <a href="http://www.coralbits.com">Coralbits S.L</a></div>
+<div id="copyright">(C) 2011 <a href="http://www.coralbits.com">Coralbits S.L</a> {% if LANG %}<span id="lang">{{LANG}}{% endif %}</div>
 
 </body>
 </html>

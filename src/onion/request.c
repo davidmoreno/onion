@@ -293,4 +293,29 @@ void onion_request_session_free(onion_request *req){
 	}
 }
 
+/**
+ * @short Returns the language code of the current request
+ * 
+ * Returns the language code for the current request, from the header. 
+ * If none the returns "C". 
+ * 
+ * Language code is short code. No localization by the moment.
+ */
+const char *onion_request_get_language_code(onion_request *req){
+	const char *lang=onion_dict_get(req->headers, "Accept-Language");
+	if (lang){
+		char *l=strdup(lang);
+		char *p=l;
+		while (*p){ // search first part
+			if (*p=='-' || *p==';' || *p==','){
+				*p=0;
+				break;
+			}
+			p++;
+		}
+		//ONION_DEBUG("Language is %s", l);
+		return l;
+	}
+	return "C";
+}
 

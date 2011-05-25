@@ -26,6 +26,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <onion/shortcuts.h>
+#include <locale.h>
+#include <libintl.h>
 
 onion *o=NULL;
 
@@ -55,7 +57,6 @@ int fileserver_html_template(onion_dict *context, onion_request *req, onion_resp
 
 int main(int argc, char **argv){
 	//onion_log=onion_log_syslog;
-	
 	char *port="8080";
 	char *hostname="::";
 	const char *dirname=".";
@@ -77,6 +78,18 @@ int main(int argc, char **argv){
 	}
 	
 	onion_handler *root=onion_handler_new((onion_handler_handler)fileserver_page, (void *)dirname, NULL);
+	
+// This is the root directory where the translations are.
+#define W "."
+	setenv("LANGUAGE","locale",1); // Remove LANGUAGE env var, set it to the locale name,
+	setlocale(LC_ALL,""); 
+	bindtextdomain("locale", W); // This is necesary because of the fake name
+	bindtextdomain("es", W); // One per language supported.
+	bindtextdomain("zh", W);
+	bindtextdomain("fr", W);
+	bindtextdomain("pl", W);
+	textdomain("C"); // Default language
+  // All is configured now, now in hands of dgettext(LANG, txt);
 	
 	o=onion_new(O_THREADED);
 

@@ -1,0 +1,33 @@
+# Copyright (C) 2011
+# This file is distributed under the same license as the PACKAGE package.
+# David Moreno <dmoreno@coralbits.com>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 0\n"
+"Report-Msgid-Bugs-To: <dmoreno@coralbits.com>\n"
+"POT-Creation-Date: 2011-05-24 16:20+0100\n"
+"Last-Translator: David Moreno <dmoreno@coralbits.com>\n"
+"Language: cn\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: \n"
+"Language-Team: \n"
+
+#: fileserver_html.c:58
+msgid "Current directory: "
+msgstr "当前目录"
+
+#: fileserver_html.c:91
+msgid "Filename"
+msgstr "文件名"
+
+#: fileserver_html.c:93
+msgid "Size"
+msgstr "尺寸"
+
+#: fileserver_html.c:95
+msgid "Owner"
+msgstr "业主"
+
