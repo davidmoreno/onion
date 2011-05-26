@@ -319,7 +319,7 @@ void t07_replace(){
 	END_LOCAL();
 }
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_PTHREADS
 #define N_READERS 3
 
 char *t08_thread_read(onion_dict *d){
