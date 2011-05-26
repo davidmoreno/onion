@@ -1,0 +1,52 @@
+message(STATUS "Compiling for ARM")
+
+# this one is important
+SET(CMAKE_SYSTEM_NAME Linux)
+#this one not so much
+SET(CMAKE_SYSTEM_VERSION 1)
+
+SET(ARM yes)
+
+SET(CS /home/dmoreno/CodeSourcery/Sourcery_G++_Lite/)
+
+# specify the cross compiler
+SET(CMAKE_C_COMPILER   ${CS}/bin/arm-none-linux-gnueabi-gcc)
+SET(CMAKE_CXX_COMPILER ${CS}/bin/arm-none-linux-gnueabi-g++)
+
+# where is the target environment 
+SET(CMAKE_FIND_ROOT_PATH  ${CS})
+
+# search for programs in the build host directories
+SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+# for libraries and headers in the target directories
+SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+
+
+SET(ONION_USE_SSL false)
+SET(ONION_USE_PAM false)
+SET(LIBPATH ${CS}/lib)
+SET(LIBDIR ${CS}/lib)
+SET(BINDIR ${CS}/bin)
+SET(INCLUDEDIR ${CS}/include/onion)
+
+SET(CROSS_COMPILING true)
+
+MESSAGE(STATUS "search otemplate, opack")
+FIND_PROGRAM(OTEMPLATE otemplate)
+FIND_PROGRAM(OPACK opack)
+
+IF (OTEMPLATE)
+ message(STATUS "Otemplate at ${OTEMPLATE}")
+ELSE (OTEMPLATE)
+ message("Otemplate not found, some examples will not be compiled")
+ENDIF(OTEMPLATE)
+
+
+IF (OPACK)
+ message(STATUS "Opack at ${OPACK}")
+ELSE (OPACK)
+ message("Opack not found, some examples will not be compiled")
+ENDIF(OPACK)
+
