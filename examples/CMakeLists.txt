@@ -21,3 +21,5 @@ if (${PNG_LIB})
 	add_subdirectory(mandelbrot)
 endif (${PNG_LIB})
 endif(OTEMPLATE)
+
+add_subdirectory(cairo)

@@ -60,7 +60,7 @@ static void onion_png_flush(png_struct *p){
  * @short Writes an image as png to the response object
  * 
  * @param image flat buffer with all pixels
- * @param Bpp Bytes per pixel: 1 grayscale, 2 grayscale with alpha, 3 RGB, 4 RGB with alpha.
+ * @param Bpp Bytes per pixel: 1 grayscale, 2 grayscale with alpha, 3 RGB, 4 RGB with alpha. Negative if in BGR format (cairo)
  * @param width The width of the image
  * @param height The height of the image
  * @param res where to write the image, it sets the necessary structs
@@ -109,6 +109,11 @@ int onion_png_response(unsigned char *image, int Bpp, int width, int height, oni
 	* PNG_INTERLACE_ADAM7, and the compression_type and filter_type MUST
 	* currently be PNG_COMPRESSION_TYPE_BASE and PNG_FILTER_TYPE_BASE. REQUIRED
 	*/
+	if (Bpp<0){
+		png_set_bgr(png_ptr);
+		Bpp=-Bpp;
+	}
+
 	switch(Bpp){
 		case 1:
 			png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_GRAY,
@@ -130,6 +135,7 @@ int onion_png_response(unsigned char *image, int Bpp, int width, int height, oni
 			png_error(png_ptr, "Wrong bytes per pixel");
 			break;
 	}
+	
 	png_uint_32 k;
 	png_bytep row_pointers[height];
 

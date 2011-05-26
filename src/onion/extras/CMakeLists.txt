@@ -1,18 +1,19 @@
 
 include_directories (${CMAKE_SOURCE_DIR}/src/) 
 
-if (${PNG_LIB})
+
+if (${PNG_ENABLED})
 	set(PNG png.c)
-else (${PNG_LIB})
+else (${PNG_ENABLED})
 	set(PNG "")
-endif  (${PNG_LIB})
+endif  (${PNG_ENABLED})
 
 
 add_library(onion_extras STATIC ${PNG})
 
-if (${PNG_LIB})
+if (${PNG_ENABLED})
 target_link_libraries(onion_extras ${PNG_LIB})
-endif (${PNG_LIB})
+endif (${PNG_ENABLED})
 
 SET(INCLUDES_EXTRAS png.h)
 MESSAGE("Found include files ${INCLUDES_EXTRAS}")

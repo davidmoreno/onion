@@ -52,7 +52,11 @@ fi
 
 PROG=$1
 shift
-PIDFILE=$( tempfile )
+PIDFILE=$( tempfile 2>/dev/null )
+if [ ! "$PIDFILE" ]; then
+	PIDFILE="/tmp/crl-$$"
+fi
+
 
 
 killapp(){

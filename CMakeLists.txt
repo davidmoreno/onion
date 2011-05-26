@@ -58,10 +58,10 @@ endif (${ONION_USE_PAM})
 
 
 if (${ONION_USE_PNG})
-	find_library(PNG_LIB NAMES png z PATH ${LIBPATH})
+	find_library(PNG_LIB NAMES png PATH ${LIBPATH})
 	if (PNG_LIB)
 		set(PNG_ENABLED true)
-		set(PNG_LIB ${PNG_LIB} z)
+		set(PNG_LIB ${PNG_LIB})
 		message(STATUS "libpng found. png support is compiled in at extras.")
 	else (PNG_LIB)
 		message("libpng not found. No png support.")
