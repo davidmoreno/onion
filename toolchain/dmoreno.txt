@@ -14,7 +14,7 @@ SET(CMAKE_C_COMPILER   ${CS}/bin/arm-none-linux-gnueabi-gcc)
 SET(CMAKE_CXX_COMPILER ${CS}/bin/arm-none-linux-gnueabi-g++)
 
 # where is the target environment 
-SET(CMAKE_FIND_ROOT_PATH  ${CS})
+SET(CMAKE_FIND_ROOT_PATH  /home/dmoreno/CodeSourcery/Sourcery_G++_Lite/arm-none-linux-gnueabi/libc/usr/ )
 
 # search for programs in the build host directories
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
