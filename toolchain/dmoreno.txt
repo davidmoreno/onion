@@ -29,6 +29,7 @@ SET(ONION_USE_PAM false)
 SET(LIBPATH ${CS}/lib)
 SET(LIBDIR ${CS}/lib)
 SET(BINDIR ${CS}/bin)
+SET(INCLUDE_PATH ${CS}/include)
 SET(INCLUDEDIR ${CS}/include/onion)
 
 SET(CROSS_COMPILING true)
@@ -40,13 +41,13 @@ FIND_PROGRAM(OPACK opack)
 IF (OTEMPLATE)
  message(STATUS "Otemplate at ${OTEMPLATE}")
 ELSE (OTEMPLATE)
- message("Otemplate not found, some examples will not be compiled")
+ message(STATUS "Otemplate not found, some examples will not be compiled")
 ENDIF(OTEMPLATE)
 
 
 IF (OPACK)
  message(STATUS "Opack at ${OPACK}")
 ELSE (OPACK)
- message("Opack not found, some examples will not be compiled")
+ message(STATUS "Opack not found, some examples will not be compiled")
 ENDIF(OPACK)
 
