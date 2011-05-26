@@ -20,6 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <stdio.h>
 
 #include "log.h"
 #include "dict.h"

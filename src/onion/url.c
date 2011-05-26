@@ -16,10 +16,12 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+
 #include <string.h>
 #include <malloc.h>
 #include <unistd.h>
 #include <regex.h>
+#include <stdio.h>
 
 #include "log.h"
 #include "handler.h"
@@ -74,7 +76,8 @@ int onion_url_handler(onion_url_data **dd, onion_request *request, onion_respons
 			for (i=1;i<16;i++){
 				regmatch_t *rm=&match[i];
 				if (rm->rm_so!=-1){
-					char *tmp=strndup(&path[rm->rm_so], rm->rm_eo-rm->rm_so);
+					char *tmp=malloc(rm->rm_eo-rm->rm_so);
+					memcpy(tmp, &path[rm->rm_so], rm->rm_eo-rm->rm_so);
 					char tmpn[4];
 					snprintf(tmpn,sizeof(tmpn),"%d",i);
 					onion_dict_add(reqheader, tmpn, tmp, OD_DUP_KEY|OD_FREE_VALUE);

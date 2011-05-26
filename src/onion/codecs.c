@@ -20,6 +20,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdio.h>
 
 #include "log.h"
 #include "codecs.h"

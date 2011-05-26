@@ -17,6 +17,7 @@
 	*/
 
 #include <string.h>
+#include <sys/types.h>
 
 #include <onion/onion.h>
 #include <onion/server.h>

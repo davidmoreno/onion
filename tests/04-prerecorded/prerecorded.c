@@ -16,10 +16,13 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#define _GNU_SOURCE
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
 #include <malloc.h>
+#include <stdio.h>
 
 #include <onion/server.h>
 #include <onion/request.h>

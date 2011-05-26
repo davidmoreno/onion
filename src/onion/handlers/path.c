@@ -20,6 +20,7 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <regex.h>
+#include <stdio.h>
 
 #include <onion/handler.h>
 #include <onion/response.h>

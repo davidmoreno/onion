@@ -144,7 +144,6 @@
  * 
  */
 
-
 #include <malloc.h>
 #include <stdio.h>
 #include <sys/types.h> 
@@ -157,7 +156,6 @@
 #include <poll.h>
 #include <arpa/inet.h>
 #include <signal.h>
-
 
 #ifdef HAVE_GNUTLS
 #include <gcrypt.h>		/* for gcry_control */
@@ -181,6 +179,11 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include <netdb.h>
 #include <fcntl.h>
 #include <pwd.h>
+
+#ifndef O_CLOEXEC
+// #warning "Compiling without O_CLOEXEC. This may be a security problem as connections may leak into executed programs"
+#define O_CLOEXEC 0
+#endif
 
 #ifdef HAVE_GNUTLS
 static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);

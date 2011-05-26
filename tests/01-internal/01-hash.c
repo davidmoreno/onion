@@ -23,9 +23,12 @@
 #include <onion/log.h>
 
 #include "../test.h"
-#include <pthread.h>
 #include <unistd.h>
 #include <onion/block.h>
+
+#ifdef HAVE_PTHREADS
+#include <pthread.h>
+#endif
 
 
 void t01_create_add_free(){
@@ -316,6 +319,7 @@ void t07_replace(){
 	END_LOCAL();
 }
 
+#ifdef HAVE_PTHREAD
 #define N_READERS 3
 
 char *t08_thread_read(onion_dict *d){
@@ -447,6 +451,8 @@ void t09_thread_war(){
 	
 	END_LOCAL();
 }
+
+#endif
 
 void t10_tojson(){
 	INIT_LOCAL();
@@ -651,8 +657,10 @@ int main(int argc, char **argv){
 	t05_preorder();
 	t06_null_add();
 	t07_replace();
+#ifdef HAVE_PTHREADS
 	t08_threaded_lock();
 	t09_thread_war();
+#endif
 	t10_tojson();
 	t11_hard_dup();
 	t12_dict_in_dict();
