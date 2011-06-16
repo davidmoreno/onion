@@ -29,5 +29,9 @@ MESSAGE("Found include files ${INCLUDES_ONION}")
 
 install(FILES ${INCLUDES_ONION} DESTINATION ${INCLUDEDIR})
 install(TARGETS onion onion_static EXPORT onion DESTINATION ${LIBDIR})
+
+if (${ARM})
+elseif (${ARM})
 install(EXPORT onion DESTINATION share/cmake)
+endif (${ARM})
 

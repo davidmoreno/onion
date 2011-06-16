@@ -20,4 +20,7 @@ MESSAGE("Found include files ${INCLUDES_EXTRAS}")
 
 install(FILES ${INCLUDES_EXTRAS} DESTINATION ${INCLUDEDIR}/extras/)
 install(TARGETS onion_extras EXPORT onion_extras DESTINATION ${LIBDIR})
+if (${ARM})
+elseif (${ARM})
 install(EXPORT onion_extras DESTINATION share/cmake)
+endif (${ARM})

@@ -20,4 +20,8 @@ MESSAGE("Found include files ${INCLUDES_HANDLERS}")
 
 install(FILES ${INCLUDES_HANDLERS} DESTINATION ${INCLUDEDIR}/handlers/)
 install(TARGETS onion_handlers EXPORT onion_handlers DESTINATION ${LIBDIR})
+if (${ARM})
+elseif (${ARM})
 install(EXPORT onion_handlers DESTINATION share/cmake)
+endif (${ARM})
+

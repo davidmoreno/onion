@@ -83,7 +83,7 @@ void functions_write_main_code(parser_status *st){
 "\n"
 "int %s_template(onion_dict *context, onion_request *req, onion_response *res){\n"
 "\n"
-"  onion_dict_add(context, \"LANG\", onion_request_get_language_code(req), 0);\n"
+"  if (context) onion_dict_add(context, \"LANG\", onion_request_get_language_code(req), 0);\n"
 "\n"
 "  %s(context, res);\n"
 "\n"

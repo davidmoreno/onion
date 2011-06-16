@@ -179,6 +179,7 @@ void onion_request_guess_session_id(onion_request *req){
 	if (req->session_id) // already known.
 		return;
 	const char *v=onion_dict_get(req->headers, "Cookie");
+	ONION_DEBUG("Session ID, maybe from %s",v);
 	if (!v)
 		return;
 	v=strstr(v,"sessionid=");
@@ -189,6 +190,7 @@ void onion_request_guess_session_id(onion_request *req){
 	while (*p!='\0' && *p!=';') p++;
 	*p='\0';
 	req->session_id=r;
+	ONION_DEBUG("Session ID, from cookie, is %s",req->session_id);
 }
 
 /**
@@ -206,7 +208,6 @@ onion_dict *onion_request_get_session_dict(onion_request *req){
 			req->session_id=onion_sessions_create(req->server->sessions);
 		req->session=onion_sessions_get(req->server->sessions, req->session_id);
 	}
-	
 	return req->session;
 }
 
