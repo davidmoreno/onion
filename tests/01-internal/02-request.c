@@ -34,7 +34,7 @@ ssize_t empty_write(void *a, const char *b, size_t size){
 
 void setup(){
 	server=onion_server_new();
-	onion_server_set_write(server, empty_write);
+	onion_server_set_write(server, (void*)empty_write);
 }
 
 void teardown(){
