@@ -97,10 +97,14 @@ onion_connection_status post_check(expected_post *post, onion_request *req){
 
 	char tmp[256];
 	snprintf(tmp,sizeof(tmp),"%s-",tmpfilename);
-	ONION_DEBUG("Linking to %s");
+	ONION_DEBUG("Linking to %s", tmp);
 	link(tmpfilename, tmp);
+	if (post->tmplink)
+		free(post->tmplink);
 	post->tmplink=strdup(tmp);
 
+	if (post->tmpfilename)
+		free(post->tmpfilename);
 	post->tmpfilename=strdup(tmpfilename);
 
 	return OCS_INTERNAL_ERROR;
@@ -110,7 +114,7 @@ void t01_post_empty_file(){
 	INIT_LOCAL();
 	buffer *b=buffer_new(1024);
 	
-	expected_post post;
+	expected_post post={};
 	post.filename="file.dat";
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
@@ -142,6 +146,8 @@ void t01_post_empty_file(){
 		FAIL_IF_EQUAL(stat(post.tmpfilename,&st), 0); // Should not exist
 		free(post.tmpfilename);
 	}
+	if (post.tmplink)
+		free(post.tmplink);
 	
 	onion_server_free(server);
 	buffer_free(b);
@@ -154,7 +160,7 @@ void t02_post_new_lines_file(){
 	
 	buffer *b=buffer_new(1024);
 	
-	expected_post post;
+	expected_post post={};;
 	post.filename="file.dat";
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
@@ -186,6 +192,8 @@ void t02_post_new_lines_file(){
 		FAIL_IF_EQUAL(stat(post.tmpfilename,&st), 0); // Should not exist
 		free(post.tmpfilename);
 	}
+	if (post.tmplink)
+		free(post.tmplink);
 	
 	onion_server_free(server);
 	buffer_free(b);
@@ -199,7 +207,7 @@ void t03_post_carriage_return_new_lines_file(){
 	
 	buffer *b=buffer_new(1024);
 	
-	expected_post post;
+	expected_post post={};;
 	post.filename="file.dat";
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
@@ -232,6 +240,8 @@ void t03_post_carriage_return_new_lines_file(){
 		FAIL_IF_EQUAL(stat(post.tmpfilename,&st), 0); // Should not exist
 		free(post.tmpfilename);
 	}
+	if (post.tmplink)
+		free(post.tmplink);
 	
 	onion_server_free(server);
 	buffer_free(b);
@@ -247,7 +257,7 @@ void t04_post_largefile(){
 	lseek(postfd, 0, SEEK_SET);
 	
 	buffer *b=buffer_new(1024);
-	expected_post post;
+	expected_post post={};;
 	post.filename=BIG_FILE_BASE;
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
@@ -315,11 +325,14 @@ void t04_post_largefile(){
 	if (post.tmpfilename){
 		struct stat st;
 		FAIL_IF_EQUAL(stat(post.tmpfilename,&st), 0); // Should not exist
-		free(post.tmpfilename);
 	}
 	
 	onion_server_free(server);
 	buffer_free(b);
+	if (post.tmpfilename)
+		free(post.tmpfilename);
+	if (post.tmplink)
+		free(post.tmplink);
 	
 	END_LOCAL();
 }

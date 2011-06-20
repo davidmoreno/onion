@@ -27,3 +27,6 @@ target_link_libraries(09-block onion)
 
 add_executable(10-mime 10-mime.c)
 target_link_libraries(10-mime onion)
+
+add_executable(11-sessions 11-sessions.c)
+target_link_libraries(11-sessions onion)

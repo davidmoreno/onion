@@ -125,6 +125,7 @@ void t02_handle_generic_request(){
 	onion_request_free(request);
 
 	onion_server_free(server);
+	onion_block_free(block);
 
 	END_LOCAL();
 }
@@ -187,6 +188,7 @@ void t03_handle_path_request(){
 	onion_request_free(request);
 
 	onion_server_free(server);
+	onion_block_free(block);
 
 	END_LOCAL();
 }

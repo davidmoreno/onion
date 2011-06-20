@@ -645,6 +645,9 @@ void t13_dict_rget(){
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_rget(A, "B", "C", "a", NULL), "hello");
 	FAIL_IF_NOT_EQUAL(onion_dict_rget_dict(A, "B", "C", "a", NULL), NULL);
 	
+	// This should remove all the others, as they hang from it.
+	onion_dict_free(A);
+	
 	END_LOCAL();
 }
 

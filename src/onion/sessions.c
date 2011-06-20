@@ -114,7 +114,7 @@ onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId){
  * @short Removes a session from the storage
  */
 void onion_sessions_remove(onion_sessions *sessions, const char *sessionId){
-	onion_dict *data=(onion_dict*)onion_dict_get(sessions->sessions, sessionId);
+	onion_dict *data=onion_dict_get_dict(sessions->sessions, sessionId);
 	if (data){
 		onion_dict_free(data);
 		onion_dict_remove(sessions->sessions, sessionId);
