@@ -110,6 +110,7 @@ updateData = function(text){
 		else if (parserStatus==2){
 			str+=c
 			if ('0123456789;?'.indexOf(c)<0){
+				parserStatus=0
 				try{
 					setStatus(str)
 				}
@@ -117,18 +118,27 @@ updateData = function(text){
 					showMsg("Exception trying to set a status!");
 				}
 				clear()
-				parserStatus=0
 			}
 		}
 		else if (parserStatus==3){
 			if (c==';'){
+				parserStatus=0
 				setStatusType2(str)
+				clear()
+			}
+			else
+				str+=c
+		}
+		else if (parserStatus=='title'){
+			if (c=='\007'){
+				setTitle(str)
 				clear()
 				parserStatus=0
 			}
 			else
 				str+=c
 		}
+
 	}
 	addText(str,length)
 }

@@ -235,16 +235,19 @@ requestNewData = function(keyvalue){
 	}
 	if (!onpetitionOut){
 		onpetitionOut=true
-		$.get('out',updateDataTimeout,'plain')
+		$.get('out',updateRequestData,'plain')
 	}
 }
 
-/// Sets the result of data load, and set a new timeout for later. If there is data to send, do it now.
-updateDataTimeout = function(text){
+/// Sets the result of data load, and set a new petition for later.
+updateRequestData = function(text){
 	updateData(text)
 	
 	onpetitionOut=false
-	requestNewData()
+	if (text!="")
+		requestNewData()
+	else
+		showMsg("Program exited.");
 }
 
 /// Moves to the next line.
@@ -275,9 +278,14 @@ setStatus = function(st){
 
 /// Sets an status of type2: ]
 setStatusType2 = function(st){
-	if (ignoreType2.indexOf(st)) // Just ignore.. i dont know what are they
+	//showMsg('Set status <]'+st+'>')
+	if (st in specialFuncs2){
+		specialFuncs2[st]()
+	}
+	else if (ignoreType2.indexOf(st)) // Just ignore.. i dont know what are they
 		return
-	showMsg('unknown code type2 <]'+st+'>')
+	else
+		showMsg('unknown code type2 <]'+st+'>')
 }
 
 lowModeStatus = function(st){
@@ -727,15 +735,28 @@ showMsg = function(msg){
 /// Updates the geometry, and sends a message if necessary.
 updateGeometry = function(){
 	var t=$(document)
-	var r = parseInt(t.height()/charHeight)-3
+	var r = parseInt(t.height()/charHeight)-5
 	var c = parseInt(t.width()/charWidth)-3
 	if (r!=nrRows || c!=nrCols){
 		nrRows=r
 		nrCols=c
 		showMsg('New geometry is '+nrRows+' rows, '+nrCols+' columns.')
-		$.get('resize',{width:nrRows, height:nrCols})
+		$.post('resize',{width:nrRows, height:nrCols})
 	}
 }
+
+/// From here until \007 it is written title. Prepare parser.
+prepareForTitle = function(){
+	parserStatus='title'
+}
+
+/// Sets the title. 
+setTitle = function(title){
+	$.post('title',{title:title})
+	
+	document.title=title
+}
+
 
 /// Prepares basic status of the document: keydown are processed, and starts the updatedata.
 $(document).ready(function(){

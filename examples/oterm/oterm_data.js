@@ -84,6 +84,10 @@ specialFuncs={
 						'=':keyPadModeApplication
 }
 
+specialFuncs2={
+		'0':prepareForTitle,
+}
+
 
 lowModeFuncs={
 	'1':cursorKeyModeCursor,
@@ -117,6 +121,7 @@ keyCodesToValues={
 										8: '\177',
 										9:  '\t',
 										13: '\n',
+										27: '\033',
 										32:  ' ',
 		
 										35: '\033[4~',

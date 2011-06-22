@@ -63,6 +63,7 @@ extern unsigned int opack_oterm_parser_js_length;
 typedef struct process_t{
 	int fd;
 	unsigned int pid;
+	char *title;
 	struct process_t *next;
 }process;
 
@@ -80,6 +81,7 @@ oterm_t *oterm_data_new();
 static int oterm_status(oterm_t *o, onion_request *req, onion_response *res);
 
 static int oterm_resize(process *o, onion_request *req, onion_response *res);
+static int oterm_title(process *o, onion_request *req, onion_response *res);
 static int oterm_in(process *o, onion_request *req, onion_response *res);
 static int oterm_out(process *o, onion_request *req, onion_response *res);
 
@@ -88,12 +90,14 @@ process *oterm_get_process(oterm_t *o, const char *id){
 	pthread_mutex_lock( &o->head_mutex );
 	process *p=o->head;
 	int pid=atoi(id);
+	int i=1;
 	while(p){
-		if (p->pid==pid){
+		if (i==pid){
 			pthread_mutex_unlock( &o->head_mutex );
 			return p;
 		}
 		p=p->next;
+		i++;
 	}
 	pthread_mutex_unlock( &o->head_mutex );
 	return NULL;
@@ -151,6 +155,8 @@ int oterm_data(onion_handler *next_handler, onion_request *req, onion_response *
 		return oterm_in(term,req,res);
 	if (strcmp(function,"resize")==0)
 		return oterm_resize(term,req,res);
+	if (strcmp(function,"title")==0)
+		return oterm_title(term,req,res);
 	onion_request_advance_path(req, func_pos);
 	
 	return onion_handler_handle(next_handler, req, res);
@@ -213,6 +219,8 @@ process *oterm_new(oterm_t *o, const char *username){
 		perror("");
 		exit(1);
 	}
+	oterm->title=strdup("No title yet");
+	ONION_DEBUG("Default title is %s", oterm->title);
 	// I set myself at head
 	pthread_mutex_lock( &o->head_mutex );
 	oterm->next=o->head;
@@ -225,20 +233,24 @@ process *oterm_new(oterm_t *o, const char *username){
 
 /// Returns the status of all known terminals.
 int oterm_status(oterm_t *o, onion_request *req, onion_response *res){
-	onion_response_write0(res,"{");
-
+	onion_dict *status=onion_dict_new();
+	
 	if (o->head){
 		process *n=o->head;
-		while(n->next){
-			onion_response_printf(res, " \"%d\":{ \"pid\":\"%d\" }, ", n->pid, n->pid);
+		int i=1;
+		while(n){
+			char *id=malloc(6);
+			sprintf(id, "%d", i);
+			onion_dict *term=onion_dict_new();
+			onion_dict_add(term, "title", n->title, OD_DUP_VALUE);
+			
+			onion_dict_add(status, id, term, OD_DICT|OD_FREE_ALL);
 			n=n->next;
+			i++;
 		}
-		onion_response_printf(res, " \"%d\":{ \"pid\":\"%d\" } ", n->pid, n->pid);
 	}
 	
-	onion_response_write0(res,"}\n");
-	
-	return OCS_PROCESSED;
+	return onion_shortcut_response_json(status, req, res);
 }
 
 /// Input data to the process
@@ -258,21 +270,40 @@ int oterm_in(process *o, onion_request *req, onion_response *res){
 	return onion_shortcut_response("OK", HTTP_OK, req, res);
 }
 
-/// Resize the window. Do not work yet, and I dont know whats left. FIXME.
+/// Resize the window. 
 int oterm_resize(process *o, onion_request* req, onion_response *res){
 	//const char *data=onion_request_get_query(req,"resize");
 	//int ok=kill(o->pid, SIGWINCH);
 	
 	struct winsize winSize;
 	memset(&winSize, 0, sizeof(winSize));
-	winSize.ws_row = (unsigned short)atoi(onion_request_get_queryd(req,"width","80"));
-	winSize.ws_col = (unsigned short)atoi(onion_request_get_queryd(req,"height","25"));
+	const char *t=onion_request_get_post(req,"width");
+	winSize.ws_row = (unsigned short)atoi(t ? t : "80");
+	t=onion_request_get_post(req,"height");
+	winSize.ws_col = (unsigned short)atoi(t ? t : "25");
+	
 	int ok=ioctl(o->fd, TIOCSWINSZ, (char *)&winSize) == 0;
 
 	if (ok==0)
 		return onion_shortcut_response("OK",HTTP_OK, req, res);
 	else
 		return onion_shortcut_response("Error",HTTP_INTERNAL_ERROR, req, res);
+}
+
+/// Sets internally the window title, for reference.
+int oterm_title(process *o, onion_request* req, onion_response *res){
+	const char *t=onion_request_get_post(req, "title");
+	
+	if (!t)
+		return onion_shortcut_response("Error, must set title", HTTP_INTERNAL_ERROR, req, res);
+	
+	if (o->title)
+		free(o->title);
+	o->title=strdup(t);
+	
+	ONION_DEBUG("Set term %d title %s", o->pid, o->title);
+	
+	return onion_shortcut_response("OK", HTTP_OK, req, res);
 }
 
 /// Gets the output data

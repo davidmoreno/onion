@@ -44,6 +44,9 @@ keydown = function(event){
 		keyValue=keyCodesToValuesControl[String.fromCharCode(keyCode)]
 		//showMsg('Sent control '+String.fromCharCode(keyCode))
 	}
+	else{
+		showMsg('Unknown key code '+ keycode)
+	}
 	
 	if (keyValue!=''){
 		event.preventDefault()
