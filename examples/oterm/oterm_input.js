@@ -35,17 +35,14 @@ keypress = function(event){
 keydown = function(event){
 	var keyCode=event.keyCode
 	var keyValue=''
+	
 
 	if (keyCode in keyCodesToValues){
-		event.preventDefault()
 		keyValue=keyCodesToValues[keyCode]
 	}
 	else if (event.ctrlKey && keyCode){
 		keyValue=keyCodesToValuesControl[String.fromCharCode(keyCode)]
 		//showMsg('Sent control '+String.fromCharCode(keyCode))
-	}
-	else{
-		showMsg('Unknown key code '+ keycode)
 	}
 	
 	if (keyValue!=''){

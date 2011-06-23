@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#include <stdio.h>
 #include <malloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -284,7 +285,7 @@ int oterm_resize(process *o, onion_request* req, onion_response *res){
 	
 	int ok=ioctl(o->fd, TIOCSWINSZ, (char *)&winSize) == 0;
 
-	if (ok==0)
+	if (ok>=0)
 		return onion_shortcut_response("OK",HTTP_OK, req, res);
 	else
 		return onion_shortcut_response("Error",HTTP_INTERNAL_ERROR, req, res);

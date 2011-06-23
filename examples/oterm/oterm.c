@@ -26,8 +26,11 @@
 #include <onion/handler.h>
 
 #include <onion/handlers/static.h>
-#include <onion/handlers/auth_pam.h>
 #include <onion/handlers/opack.h>
+
+#ifdef HAVE_PAM
+#include <onion/handlers/auth_pam.h>
+#endif
 
 #ifdef __DEBUG__
 #include <onion/handlers/exportlocal.h>
@@ -150,10 +153,11 @@ int main(int argc, char **argv){
 	onion_url_add_handler(url, "^term/", oterm_handler_data());
 
 	onion_handler *oterm;
-	
+#ifdef HAVE_PAM
 	if (use_pam)
 		oterm=onion_handler_auth_pam("Onion Terminal", "login", onion_url_to_handler(url));
 	else
+#endif
 		oterm=onion_handler_new((void*)oterm_nopam, url, (void*)onion_handler_free);
 	
 	o=onion_new(O_THREADED);

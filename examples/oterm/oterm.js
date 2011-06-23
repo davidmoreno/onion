@@ -111,8 +111,10 @@ addText = function(text, length){
 	if (!text || text=='')
 		return
 
-	if (current_line.length==0) // I need to write somewhere
+	if (current_line.length==0){ // I need to write somewhere
+		gotoRow(posRow) // ensure it creates the row
 		setPosition(posRow, posColumn)
+	}
 
 	if (current_line.find('span').length==0) // I need to write somewhere
 		current_line.append($('<span>'))
@@ -421,6 +423,16 @@ clearScreen = function(t){
 			n.remove()
 			n=nn
 		}
+		var l=$('#term p:last')
+		if (l.length==0){
+			current_line=$('<p id="row_1" class="current_line">')
+			$('#term').html(current_line)
+			maxRow=1 // I already created one
+		}
+		else{
+			current_line=l
+			maxRow=$('#term p').length
+		}
 	}
 	else if (t=='1'){ // from cursor to start of screen
 		var sp=getCurrentColumnSpan()
@@ -485,8 +497,9 @@ setPosition = function(row,col){
 
 /// Goes to that row, ensuring it exists
 gotoRow = function(rn){
-	if (current_line.attr('id')=='row_'+rn)
+	if (current_line.attr('id')=='row_'+rn){
 		return
+	}
 	current_line.removeClass('current_line')
 	dataAddEasy=false
 	/*
