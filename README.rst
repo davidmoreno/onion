@@ -20,6 +20,17 @@ information on how to start and internal workings.
 
 API documentation is at http://coralbits.com/staticc/libonion/html/.
 
+Colaborate!
+-----------
+
+You can, and are encouraged, to branch at github, download and tweak onion to use it in your 
+projects.
+
+Please join the mailing list at https://groups.google.com/a/coralbits.com/group/onion-dev/topics,
+ask your questions and comment on your success using onion.
+
+There is also a blog to keep everybody informed about news on onion at http://blog.coralbits.com/.
+
 SSL Support
 -----------
 
