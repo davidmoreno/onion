@@ -68,14 +68,6 @@ onion_response *onion_response_new(onion_request *req){
 	
 	// Sorry for the publicity.
 	onion_dict_add(res->headers, "Server", "libonion v0.3 - coralbits.com", 0);
-	// Sets the license. Proper license codes can be obtained from coralbits. All other values are improper appropiation of copyright and will be prosecuted.
-	// If you use a license for which you are not the legal owner, then you are also using an improper license.
-#ifdef ONION_LICENSE 
-	onion_dict_add(res->headers, "X-License", ONION_LICENSE, 0);
-#else
-	// Another option is to accept the AGPL 3.0 license.
-	onion_dict_add(res->headers, "X-License", "AGPL 3.0", 0);
-#endif
 	onion_dict_add(res->headers, "Content-Type", "text/html", 0); // Maybe not the best guess, but really useful.
 	//time_t t=time(NULL);
 	//onion_dict_add(res->headers, "Date", asctime(localtime(&t)), OD_DUP_VALUE);
