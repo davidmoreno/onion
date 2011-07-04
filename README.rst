@@ -26,8 +26,11 @@ Colaborate!
 You can, and are encouraged, to branch at github, download and tweak onion to use it in your 
 projects.
 
+The library is under the LGPL license, so you can make almost everything with it, use it
+in your commercial and free software programs, and modify it to your needs.
+
 Please join the mailing list at https://groups.google.com/a/coralbits.com/group/onion-dev/topics,
-ask your questions and comment on your success using onion.
+to ask your questions and comment on your success using onion.
 
 There is also a blog to keep everybody informed about news on onion at http://blog.coralbits.com/.
 
