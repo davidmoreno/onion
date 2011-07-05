@@ -140,6 +140,7 @@ void onion_url_free_data(onion_url_data **d){
  * 
  * @code
  *  onion_url_add(url, "index.html", index); // Matches the exact filename. Not compiled.
+ *  onion_url_add(url, "^static/", onion_handler_export_local_new(".") ); // Export current directory at static
  *  onion_url_add(url, "^icons/(.*)", directory); // Compiles the regexp, and uses the .* as first argument.
  *  onion_url_add(url, "", redirect_to_index); // Matches an empty path. Not compiled.
  * @endcode
