@@ -16,8 +16,13 @@
 	License along with this library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
+#include <onion/log.h>
+
 #include <malloc.h>
 #include <string.h>
+#ifdef __DEBUG__
+#include <execinfo.h>
+#endif
 
 #include "handler.h"
 #include "response.h"
@@ -36,7 +41,13 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
 	onion_connection_status res;
 	while (handler){
 		if (handler->handler){
+#ifdef __DEBUG__
+			char **bs=backtrace_symbols((void * const *)&handler->handler, 1);
+			ONION_DEBUG0("Calling handler: %s",bs[0]);
+			free(bs);
+#endif
 			res=handler->handler(handler->priv_data, request, response);
+			ONION_DEBUG0("Result: %d",res);
 			if (res)
 				return res;
 		}

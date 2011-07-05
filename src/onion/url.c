@@ -69,6 +69,8 @@ int onion_url_handler(onion_url_data **dd, onion_request *request, onion_respons
 		ONION_DEBUG0("Check %s against %s", onion_request_get_path(request), next->orig);
 		if (next->flags&OUD_STRCMP){
 			if (strcmp(path, next->str)==0){
+				ONION_DEBUG0("Ok, simple match.");
+
 				onion_request_advance_path(request, strlen(next->str));
 				return onion_handler_handle(next->inside, request, response);
 			}
@@ -90,6 +92,8 @@ int onion_url_handler(onion_url_data **dd, onion_request *request, onion_respons
 					break;
 			}
 			onion_request_advance_path(request, match[0].rm_eo);
+			ONION_DEBUG0("Ok, regexp match.");
+
 			
 			return onion_handler_handle(next->inside, request, response);
 		}

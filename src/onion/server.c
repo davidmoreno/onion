@@ -175,12 +175,12 @@ static int onion_default_error(void *handler, onion_request *req, onion_response
 	int l;
 	int code;
 	switch(req->flags&0x0F000){
-		case OCS_INTERNAL_ERROR:
+		case OR_INTERNAL_ERROR:
 			msg=ERROR_500;
 			l=sizeof(ERROR_500)-1;
 			code=HTTP_INTERNAL_ERROR;
 			break;
-		case OCS_NOT_IMPLEMENTED:
+		case OR_NOT_IMPLEMENTED:
 			msg=ERROR_505;
 			l=sizeof(ERROR_505)-1;
 			code=HTTP_NOT_IMPLEMENTED;
@@ -192,6 +192,7 @@ static int onion_default_error(void *handler, onion_request *req, onion_response
 			break;
 	}
 	
+	ONION_DEBUG0("Internally managed error: %s, code %d. Flags says %X (%X||%X)", msg, code, req->flags&0x0F000, OR_INTERNAL_ERROR, OR_NOT_IMPLEMENTED);
 	
 	onion_response_set_code(res,code);
 	onion_response_set_length(res, l);
