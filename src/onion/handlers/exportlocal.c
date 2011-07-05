@@ -58,14 +58,14 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
 	else
 		snprintf(tmp,PATH_MAX, "%s/%s",d->localpath,onion_request_get_path(request));
 
-	//ONION_DEBUG("Get %s (base %s)",tmp, d->localpath);
+	ONION_DEBUG0("Get %s (base %s)",tmp, d->localpath);
 
 	// First check if it exists and so on. If it does not exist, no trying to escape message
 	struct stat reals;
 	int ok=stat(tmp,&reals);
 	if (ok<0) // Cant open for even stat
 	{
-		//ONION_DEBUG("Not found");
+		ONION_DEBUG0("Not found %s.", tmp);
 		return 0;
 	}
 		
@@ -83,7 +83,7 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
 		//ONION_DEBUG("FILE");
 		return onion_shortcut_response_file(realp, request, response);
 	}
-	//ONION_DEBUG("Dont know how to handle");
+	ONION_DEBUG0("Dont know how to handle");
 	return OCS_NOT_PROCESSED;
 }
 

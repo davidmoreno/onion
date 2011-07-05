@@ -70,10 +70,17 @@ enum onion_log_flags_e{
  * It can be affected also by the environment variable ONION_LOG, with one or several of:
  * 
  * - "nocolor"  -- then output will be without colors.
- * - "nodebug0" -- omits output of debug0
  * - "syslog"   -- Switchs the logging to syslog. 
  * 
+ * Also for DEBUG0 level, it must be explictly set with the environmental variable ONION_DEBUG0, set
+ * to the names of the files to allow DEBUG0 debug info. For example:
+ * 
+ *   export ONION_DEBUG0="onion.c url.c"
+ * 
  * It is thread safe.
+ * 
+ * When compiled in release mode (no __DEBUG__ defined), DEBUG and DEBUG0 are not compiled so they do
+ * not incurr in any performance penalty.
  */
 void onion_log_stderr(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
 #ifdef HAVE_PTHREADS
@@ -101,8 +108,11 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 		}
 	}
 	
+	filename=basename((char*)filename);
+	
 #ifdef __DEBUG__
-	if ((level==O_DEBUG0) && (onion_log_flags&OF_NODEBUG0)){
+	const char *debug0=getenv("ONION_DEBUG0");
+	if ( (level==O_DEBUG0) && (!debug0 || !strstr(debug0, filename)) ){
 		#ifdef HAVE_PTHREADS
 			pthread_mutex_unlock(&onion_log_mutex);
 		#endif
@@ -128,7 +138,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&t));
 	
 	fprintf(stderr, "[%s] [%s %s:%d] ", datetime, levelstr[level],  
-					basename((char*)filename), lineno); // I dont know why basename is char *. Please somebody tell me.
+					filename, lineno); // I dont know why basename is char *. Please somebody tell me.
 	
 	va_list ap;
 	va_start(ap, fmt);

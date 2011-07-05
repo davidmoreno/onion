@@ -46,6 +46,9 @@ struct onion_url_data_t{
 		regex_t regexp;
 		char *str;
 	};
+#ifdef __DEBUG__
+	char *orig;
+#endif
 	int flags;
 	onion_handler *inside;
 	struct onion_url_data_t *next;
@@ -63,7 +66,7 @@ int onion_url_handler(onion_url_data **dd, onion_request *request, onion_respons
 	
 	const char *path=onion_request_get_path(request);
 	while (next){
-		//ONION_DEBUG("Check %s against %s", onion_request_get_path(request), next->orig);
+		ONION_DEBUG0("Check %s against %s", onion_request_get_path(request), next->orig);
 		if (next->flags&OUD_STRCMP){
 			if (strcmp(path, next->str)==0){
 				onion_request_advance_path(request, strlen(next->str));
@@ -107,6 +110,9 @@ void onion_url_free_data(onion_url_data **d){
 		else
 			free(t->str);
 		next=t->next;
+#ifdef __DEBUG__
+		free(t->orig);
+#endif
 		free(t);
 	}
 	free(d);
@@ -205,6 +211,9 @@ int onion_url_add_handler(onion_url *url, const char *regexp, onion_handler *nex
 	}
 	data->next=NULL;
 	data->inside=next;
+#ifdef __DEBUG__
+	data->orig=strdup(regexp);
+#endif	
 	
 	return 0;
 }
