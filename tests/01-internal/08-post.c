@@ -98,7 +98,9 @@ onion_connection_status post_check(expected_post *post, onion_request *req){
 	char tmp[256];
 	snprintf(tmp,sizeof(tmp),"%s-",tmpfilename);
 	ONION_DEBUG("Linking to %s", tmp);
-	link(tmpfilename, tmp);
+	
+	FAIL_IF_NOT_EQUAL(link(tmpfilename, tmp),0);
+	
 	if (post->tmplink)
 		free(post->tmplink);
 	post->tmplink=strdup(tmp);

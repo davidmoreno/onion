@@ -61,7 +61,8 @@ void t01_handle_static_request(){
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 302 REDIRECT\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\nContent-Length: 9\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "libonion");
-	FAIL_IF_NOT_STRSTR(buffer, "License: AGPL");
+	FAIL_IF_STRSTR(buffer, "License: AGPL"); // License is now LGPL, no need to advertise
+	FAIL_IF_STRSTR(buffer, "License");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nNot ready");
 	
 	onion_request_free(request);
