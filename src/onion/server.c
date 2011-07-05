@@ -192,7 +192,7 @@ static int onion_default_error(void *handler, onion_request *req, onion_response
 			break;
 	}
 	
-	ONION_DEBUG0("Internally managed error: %s, code %d. Flags says %X (%X||%X)", msg, code, req->flags&0x0F000, OR_INTERNAL_ERROR, OR_NOT_IMPLEMENTED);
+	ONION_DEBUG0("Internally managed error: %s, code %d.", msg, code);
 	
 	onion_response_set_code(res,code);
 	onion_response_set_length(res, l);
