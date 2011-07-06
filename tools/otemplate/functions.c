@@ -44,16 +44,37 @@ void functions_write_declarations(parser_status *st){
 /// Writes the desired function to st->out
 static void function_write(parser_status *st, function_data *d){
 	if (d->code){
+		if (use_orig_line_numbers)
+			fprintf(st->out, "#line 0\n");
 		if (d->is_static)
 			fprintf(st->out, "static ");
 		fprintf(st->out, 
-"void %s(%s){\n"
-"\n", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res"
+"void %s(%s){\n", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res"
 					);
 		
-		fwrite(onion_block_data(d->code), 1, onion_block_size(d->code), st->out);
+		if (use_orig_line_numbers){
+			fprintf(st->out, "#line 0\n");
 		
-		fprintf(st->out,"\n}\n\n");
+			// Write code, but change \n\n to \n
+			const char *data=onion_block_data(d->code);
+			int ldata=onion_block_size(d->code);
+			int i=0, li=0;
+			char lc=0;
+			for (i=0;i<ldata;i++){
+				if (data[i]=='\n' && lc=='\n'){ // Two in a row
+					fwrite(&data[li], 1, i-li-1, st->out);
+					li=i;
+				}
+				lc=data[i];
+			}
+			fwrite(&data[li], 1, i-li, st->out);
+			fprintf(st->out, "#line 0\n");
+		}
+		else{
+			fwrite(onion_block_data(d->code), 1, onion_block_size(d->code), st->out);
+		}
+
+		fprintf(st->out,"}\n");
 	}
 }
 
@@ -172,22 +193,38 @@ void function_add_code(parser_status *st, const char *fmt, ...){
 		return;
 	
 	char tmp[4096];
-	if (use_orig_line_numbers){
-		int p=onion_block_size(st->current_code);
-		if (p && onion_block_data(st->current_code)[p-1]!='\n')
-			onion_block_add_char(st->current_code, '\n');
-		snprintf(tmp,sizeof(tmp),"#line %d\n", st->line);
-		onion_block_add_str(st->current_code, tmp);
-	}
-	
 	
 	va_list ap;
 	va_start(ap, fmt);
 	vsnprintf(tmp, sizeof(tmp), fmt, ap);
 	va_end(ap);
-	
-	//ONION_DEBUG("Add to level %d text %s",list_count(st->function_stack), tmp);
-	onion_block_add_str(st->current_code, tmp);
+
+	if (use_orig_line_numbers){
+		char line[32];
+		int p=onion_block_size(st->current_code);
+		if (p && onion_block_data(st->current_code)[p-1]!='\n')
+			onion_block_add_char(st->current_code, '\n');
+		snprintf(line,sizeof(line),"#line %d\n", st->line);
+		// I have to do it for every \n too. This is going to be slow.
+		const char *orig=tmp;
+		int lorig=strlen(orig);
+		int i=0, li=0;
+		for (i=0;i<lorig;i++){
+			if (orig[i]=='\n'){
+				onion_block_add_str(st->current_code, line);
+				onion_block_add_data(st->current_code, &orig[li], i-li+1);
+				li=i;
+			}
+		}
+		if (i-1!=li){
+			onion_block_add_str(st->current_code, line);
+			onion_block_add_str(st->current_code, &orig[li]);
+		}
+	}
+	else{
+		//ONION_DEBUG("Add to level %d text %s",list_count(st->function_stack), tmp);
+		onion_block_add_str(st->current_code, tmp);
+	}
 }
 
 /**

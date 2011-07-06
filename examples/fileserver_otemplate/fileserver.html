@@ -27,7 +27,11 @@ a{ color: red; text-decoration: none; }
 </thead>
 <tbody>
 {% for file in files %}
- <tr><td><a href="{{file.name}}{% if file.type == "dir" %}/{% endif %}">{{file.name}}</a></td><td>{{file.size}}</td><td>{{file.owner}}</td></tr>
+ <tr>
+  <td><a href="{{file.name}}{% if file.type == "dir" %}/{% endif %}">{{file.name}}</a></td>
+  <td>{{file.size}}</td>
+  <td>{{file.owner}}</td>
+ </tr>
 {% endfor %}
 </tbody>
 </table>
