@@ -50,4 +50,7 @@ function_data *function_pop(struct parser_status_t *st);
 void function_add_code(struct parser_status_t *st, const char *fmt, ...);
 void function_add_code_f(struct function_data_t *f, const char *fmt, ...);
 
+/// Whether to add #line directives so debugging of otemplates is easier.
+extern int use_orig_line_numbers;
+
 #endif

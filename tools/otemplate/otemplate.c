@@ -59,6 +59,10 @@ int main(int argc, char **argv){
 			ONION_DEBUG("Added templatedir %s", tmp);
 			list_add(plugin_search_path, strdupa(tmp)); // dupa is ok, as im at main.
 		}
+		else if ((strcmp(argv[i], "--no-orig-lines")==0) || (strcmp(argv[i], "-n")==0)){
+			use_orig_line_numbers=0;
+			ONION_DEBUG("Disable original line numbers");
+		}
 		else{
 			if (infilename){
 				if (outfilename){
@@ -116,6 +120,8 @@ void help(const char *msg){
 "\n"
 "  --help                      Shows this help\n"
 "  --templatetagsdir|-t <dirname>  Adds that templatedir to known templatedirs. May be called several times.\n"
+"  --no-orig-lines|-n          Do not set the original lines on the generated .c file. With this off the \n"
+"                              error reporting refers to the C file, not the template.\n"
 "  <infilename>                Input filename or '-' to use stdin.\n"
 "  <infilename>                Output filename or '-' to use stdin.\n"
 "\n"
@@ -206,6 +212,9 @@ int work(const char *infilename, const char *outfilename){
 "}dict_res;\n"
 "\n"
 "\n");
+	if (use_orig_line_numbers)
+		fprintf(status.out, "#line 0 \"%s\"\n", infilename);
+
 	
 	functions_write_declarations(&status);
 

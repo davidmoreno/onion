@@ -27,6 +27,8 @@
 #include "list.h"
 #include "parser.h"
 
+int use_orig_line_numbers=1;
+
 /// Writes to st->out the declarations of the functions for this template
 void functions_write_declarations(parser_status *st){
 	list_item *it=st->functions->head;
@@ -170,6 +172,14 @@ void function_add_code(parser_status *st, const char *fmt, ...){
 		return;
 	
 	char tmp[4096];
+	if (use_orig_line_numbers){
+		int p=onion_block_size(st->current_code);
+		if (p && onion_block_data(st->current_code)[p-1]!='\n')
+			onion_block_add_char(st->current_code, '\n');
+		snprintf(tmp,sizeof(tmp),"#line %d\n", st->line);
+		onion_block_add_str(st->current_code, tmp);
+	}
+	
 	
 	va_list ap;
 	va_start(ap, fmt);
@@ -177,10 +187,12 @@ void function_add_code(parser_status *st, const char *fmt, ...){
 	va_end(ap);
 	
 	//ONION_DEBUG("Add to level %d text %s",list_count(st->function_stack), tmp);
-	
 	onion_block_add_str(st->current_code, tmp);
 }
 
+/**
+ * @short Adds some code to a given function.
+ */
 void function_add_code_f(struct function_data_t *f, const char *fmt, ...){
 	char tmp[4096];
 	
