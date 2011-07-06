@@ -31,6 +31,7 @@
 #include <onion/handlers/path.h>
 
 #include "../test.h"
+#include <onion/url.h>
 
 ssize_t mstrncat(char *a, const char *b, size_t l){
 	strncat(a,b,l);
@@ -222,6 +223,97 @@ void t05_server_with_pipes(){
 	END_LOCAL();
 }
 
+onion_connection_status error_500(void *_, onion_request *req, onion_response *res){
+	return OCS_INTERNAL_ERROR;
+}
+
+void t06_server_with_error_500(){
+	INIT_LOCAL();
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)mstrncat);
+	onion_url *urls=onion_url_new();
+	onion_server_set_root_handler(server, onion_url_to_handler(urls));
+	onion_url_add(urls, "", error_500);
+	
+	onion_request *req=onion_request_new(server, buffer, NULL);
+#define S "GET / HTTP/1.1"
+	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
+#undef S
+	FAIL_IF_NOT_EQUAL_STR(buffer,"");
+	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	
+	FAIL_IF_EQUAL_STR(buffer,"");
+	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 500 INTERNAL ERROR\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "libonion");
+
+	onion_request_free(req);
+	onion_server_free(server);
+
+	END_LOCAL();
+}
+
+onion_connection_status error_501(void *_, onion_request *req, onion_response *res){
+	return OCS_NOT_IMPLEMENTED;
+}
+
+void t07_server_with_error_501(){
+	INIT_LOCAL();
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)mstrncat);
+	onion_url *urls=onion_url_new();
+	onion_server_set_root_handler(server, onion_url_to_handler(urls));
+	onion_url_add(urls, "", error_501);
+	
+	onion_request *req=onion_request_new(server, buffer, NULL);
+#define S "GET / HTTP/1.1"
+	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
+#undef S
+	FAIL_IF_NOT_EQUAL_STR(buffer,"");
+	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	
+	FAIL_IF_EQUAL_STR(buffer,"");
+	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 501 NOT IMPLEMENTED");
+	FAIL_IF_NOT_STRSTR(buffer, "libonion");
+
+	onion_request_free(req);
+	onion_server_free(server);
+
+	END_LOCAL();
+}
+
+void t08_server_with_error_404(){
+	INIT_LOCAL();
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	
+	onion_server *server=onion_server_new();
+	onion_server_set_write(server, (onion_write)mstrncat);
+	
+	onion_request *req=onion_request_new(server, buffer, NULL);
+#define S "GET / HTTP/1.1"
+	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
+#undef S
+	FAIL_IF_NOT_EQUAL_STR(buffer,"");
+	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	
+	FAIL_IF_EQUAL_STR(buffer,"");
+	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 404 NOT FOUND\r\n");
+	FAIL_IF_NOT_STRSTR(buffer, "libonion");
+
+	onion_request_free(req);
+	onion_server_free(server);
+
+	END_LOCAL();
+}
 
 int main(int argc, char **argv){
 	t00_server_empty();
@@ -230,6 +322,9 @@ int main(int argc, char **argv){
 	t03_server_no_overflow();
 	t04_server_overflow();
 	t05_server_with_pipes();
+	t06_server_with_error_500();
+	t07_server_with_error_501();
+	t08_server_with_error_404();
 	
 	END();
 }

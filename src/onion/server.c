@@ -145,7 +145,7 @@ onion_connection_status onion_server_handle_request(onion_server *server, onion_
 		if (hs==OCS_INTERNAL_ERROR)
 			req->flags|=OR_INTERNAL_ERROR;
 		if (hs==OCS_NOT_IMPLEMENTED)
-			req->flags|=OR_INTERNAL_ERROR;
+			req->flags|=OR_NOT_IMPLEMENTED;
 		if (hs==OCS_NOT_PROCESSED)
 			req->flags|=OR_NOT_FOUND;
 		
