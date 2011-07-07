@@ -63,8 +63,12 @@ void show_help(){
 }
 
 void free_onion(){
-	fprintf(stderr,"\nClosing connections.\n");
-	onion_free(o);
+	static int already_closing=0;
+	if (!already_closing){
+		fprintf(stderr,"\nClosing connections.\n");
+		onion_free(o);
+		already_closing=1;
+	}
 	exit(0);
 }
 

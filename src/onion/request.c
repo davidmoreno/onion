@@ -204,9 +204,12 @@ void onion_request_guess_session_id(onion_request *req){
 onion_dict *onion_request_get_session_dict(onion_request *req){
 	if (!req->session){
 		onion_request_guess_session_id(req);
-		if (!req->session_id)
+		if (req->session_id)
+			req->session=onion_sessions_get(req->server->sessions, req->session_id);
+		if (!req->session){ // Maybe old session is not to be used anymore
 			req->session_id=onion_sessions_create(req->server->sessions);
-		req->session=onion_sessions_get(req->server->sessions, req->session_id);
+			req->session=onion_sessions_get(req->server->sessions, req->session_id);
+		}
 	}
 	return req->session;
 }

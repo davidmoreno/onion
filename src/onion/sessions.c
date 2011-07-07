@@ -98,14 +98,19 @@ char *onion_sessions_create(onion_sessions *sessions){
  * This is this way to prevent a thread removing the dict, whilst others are using it. to really remove the
  * dict, call onion_sessions_remove, which will remove the reference here, which is the only
  * one which should stay across thread lifetimes.
+ * 
+ * The sessionId is the session as asked by the client. If it does not exist it returns NULL, and 
+ * onion_sessions_create has to be used. It used to reuse the sessionId if it doe snot exist, but that 
+ * looks like an insecure pattern.
+ * 
+ * @returns The session for that id, or NULL if none.
  */
 onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId){
-	ONION_DEBUG("Accessing session '%s'",sessionId);
+	ONION_DEBUG0("Accessing session '%s'",sessionId);
 	onion_dict *sess=onion_dict_get_dict(sessions->sessions, sessionId);
 	if (!sess){
-		ONION_DEBUG("Unknown session '%s'. Creating it.", sessionId);
-		sess=onion_dict_new();
-		onion_dict_add(sessions->sessions, sessionId, sess, OD_DUP_KEY|OD_DICT);
+		ONION_DEBUG0("Unknown session '%s'.", sessionId);
+		return NULL;
 	}
 	return onion_dict_dup(sess);
 }
