@@ -77,7 +77,7 @@ typedef struct{
 }oterm_t;
 
 
-process *oterm_new(oterm_t *d, const char *username);
+process *oterm_new(oterm_t *d, const char *username, char impersonate);
 oterm_t *oterm_data_new();
 static int oterm_status(oterm_t *o, onion_request *req, onion_response *res);
 
@@ -119,7 +119,7 @@ int oterm_data(onion_handler *next_handler, onion_request *req, onion_response *
 	const char *path=onion_request_get_path(req);
 	
 	if (strcmp(path,"new")==0){
-		oterm_new(o, onion_request_get_session(req, "username"));
+		oterm_new(o, onion_request_get_session(req, "username"), onion_request_get_session(req, "nopam") ? 0 : 1 );
 		return onion_shortcut_response("ok", 200, req, res);
 	}
 	if (strcmp(path,"status")==0)
@@ -171,7 +171,7 @@ const char *onion_extraenvs[]={ "TERM=xterm" };
 #define ONION_EXTRAENV_COUNT (sizeof(onion_extraenvs)/sizeof(onion_extraenvs[0]))
 
 /// Creates a new oterm
-process *oterm_new(oterm_t *o, const char *username){
+process *oterm_new(oterm_t *o, const char *username, char impersonate){
 	process *oterm=malloc(sizeof(process));
 
 	ONION_DEBUG("Created new terminal");
@@ -198,23 +198,24 @@ process *oterm_new(oterm_t *o, const char *username){
 		envs[j]=NULL;
 
 		// Change personality to that user
-		struct passwd *pw;
-		pw=getpwnam(username);
-		int error;
-		if (!pw){
-			ONION_ERROR("Cant find user to drop priviledges: %s", username);
-			exit(1);
-		}
-		else{
-			error=setgid(pw->pw_gid);
-			error|=setuid(pw->pw_uid);
-		}
-		if (error){
-			ONION_ERROR("Cant set the uid/gid for user %s", username);
-			exit(1);
+		if (impersonate){
+			struct passwd *pw;
+			pw=getpwnam(username);
+			int error;
+			if (!pw){
+				ONION_ERROR("Cant find user to drop priviledges: %s", username);
+				exit(1);
+			}
+			else{
+				error=setgid(pw->pw_gid);
+				error|=setuid(pw->pw_uid);
+			}
+			if (error){
+				ONION_ERROR("Cant set the uid/gid for user %s", username);
+				exit(1);
+			}
 		}
 
-		
 		int ok=execle("/bin/bash","bash",NULL,envs);
 		fprintf(stderr,"%s:%d Could not exec shell: %d\n",__FILE__,__LINE__,ok);
 		perror("");
