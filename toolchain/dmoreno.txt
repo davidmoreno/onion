@@ -7,14 +7,14 @@ SET(CMAKE_SYSTEM_VERSION 1)
 
 SET(ARM yes)
 
-SET(CS /home/dmoreno/CodeSourcery/Sourcery_G++_Lite/)
+SET(CS /home/dmoreno/CodeSourcery/Sourcery_G++_Lite/arm-none-linux-gnueabi/)
 
 # specify the cross compiler
-SET(CMAKE_C_COMPILER   ${CS}/bin/arm-none-linux-gnueabi-gcc)
-SET(CMAKE_CXX_COMPILER ${CS}/bin/arm-none-linux-gnueabi-g++)
+SET(CMAKE_C_COMPILER   ${CS}/../bin/arm-none-linux-gnueabi-gcc)
+SET(CMAKE_CXX_COMPILER ${CS}/../bin/arm-none-linux-gnueabi-g++)
 
 # where is the target environment 
-SET(CMAKE_FIND_ROOT_PATH  ${CS}/arm-none-linux-gnueabi/libc/usr/ )
+SET(CMAKE_FIND_ROOT_PATH  ${CS}/libc/usr/ )
 
 # search for programs in the build host directories
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)

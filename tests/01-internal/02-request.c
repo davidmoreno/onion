@@ -111,7 +111,7 @@ void t03_create_add_free_full_flow(){
 	FAIL_IF_EQUAL(req,NULL);
 	FAIL_IF_NOT_EQUAL(req->socket, 0);
 	
-	ok=FILL(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n");
+	ok=FILL(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10&empty&empty2 HTTP/1.0\n");
 	FAIL_IF_NOT(ok);
 	ok=FILL(req,"Host: 127.0.0.1\r\n");
 	FAIL_IF_NOT(ok);
@@ -131,7 +131,9 @@ void t03_create_add_free_full_flow(){
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->GET,"test"), "test");
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->GET,"query2"), "query 2");
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->GET,"more_query"), " more query 10");
-	
+	FAIL_IF_EQUAL(onion_request_get_query(req, "empty"), NULL);
+	FAIL_IF_EQUAL(onion_request_get_query(req, "empty2"), NULL);
+	FAIL_IF_NOT_EQUAL(onion_request_get_query(req, "empty3"), NULL);
 	
 	onion_request_free(req);
 	

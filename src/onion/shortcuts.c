@@ -188,6 +188,8 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
  * It converts to json the passed dict and returns it. The dict is freed before returning.
  */
 int onion_shortcut_response_json(onion_dict *d, onion_request *req, onion_response *res){
+	onion_response_set_header(res, "Content-Type", "application/json");
+	
 	onion_block *bl=onion_dict_to_json(d);
 	onion_dict_free(d);
 	char tmp[16];

@@ -396,7 +396,7 @@ static onion_connection_status parse_POST_multipart_data(onion_request *req, oni
 					d--;
 				
 				*d='\0';
-				ONION_DEBUG("Adding POST data '%s'",multipart->name);
+				ONION_DEBUG0("Adding POST data '%s'",multipart->name);
 				onion_dict_add(req->POST, multipart->name, multipart->data, 0);
 				multipart->data=multipart->data+token->pos+1;
 				token->pos=0;
@@ -522,7 +522,7 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *r
 				req->FILES=onion_dict_new();
 			onion_dict_add(req->POST,multipart->name,multipart->filename, 0);
 			onion_dict_add(req->FILES,multipart->name, filename, OD_DUP_VALUE);
-			ONION_DEBUG("Created temporal file %s",filename);
+			ONION_DEBUG0("Created temporal file %s",filename);
 			
 			req->parser=parse_POST_multipart_file;
 			return parse_POST_multipart_file(req, data);
@@ -599,7 +599,7 @@ static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buf
 
 	char *p=token->str; // skips leading spaces
 	while (isspace(*p)) p++;
-	//ONION_DEBUG0("Adding header %s : %s",token->extra,p);
+	ONION_DEBUG0("Adding header %s : %s",token->extra,p);
 	onion_dict_add(req->headers,token->extra,p, OD_DUP_VALUE|OD_FREE_KEY);
 	token->extra=NULL;
 	
@@ -778,7 +778,7 @@ static int onion_request_parse_query(onion_request *req){
  * The data is overwriten as necessary. It is NOT dupped, so if you free this char *p, please free the tree too.
  */
 static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
-	//ONION_DEBUG0("Query to dict %s",p);
+	ONION_DEBUG0("Query to dict %s",p);
 	char *key=NULL, *value=NULL;
 	int state=0;  // 0 key, 1 value
 	key=p;
@@ -789,13 +789,21 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 				value=p+1;
 				state=1;
 			}
+			else if (*p=='&'){
+				*p='\0';
+				onion_unquote_inplace(key);
+				ONION_DEBUG0("Adding key %s",key);
+				onion_dict_add(dict, key, "", 0);
+				key=p+1;
+				state=0;
+			}
 		}
 		else{
 			if (*p=='&'){
 				*p='\0';
 				onion_unquote_inplace(key);
 				onion_unquote_inplace(value);
-				//ONION_DEBUG0("Adding key %s=%-16s",key,value);
+				ONION_DEBUG0("Adding key %s=%-16s",key,value);
 				onion_dict_add(dict, key, value, 0);
 				key=p+1;
 				state=0;
@@ -803,10 +811,17 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 		}
 		p++;
 	}
-	if (state!=0){
+	if (state==0){
+		if (key[0]!='\0'){
+			onion_unquote_inplace(key);
+			ONION_DEBUG0("Adding key %s",key);
+			onion_dict_add(dict, key, "", 0);
+		}
+	}
+	else{
 		onion_unquote_inplace(key);
 		onion_unquote_inplace(value);
-		//ONION_DEBUG0("Adding key %s=%-16s",key,value);
+		ONION_DEBUG0("Adding key %s=%-16s",key,value);
 		onion_dict_add(dict, key, value, 0);
 	}
 }
