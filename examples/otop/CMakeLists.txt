@@ -9,4 +9,4 @@ add_custom_command(
 add_executable(otop otop.c otop_data.c)
 target_link_libraries(otop onion_handlers onion  )
 
-install(TARGETS otop DESTINATION bin)
+install(TARGETS otop DESTINATION ${BINDIR})

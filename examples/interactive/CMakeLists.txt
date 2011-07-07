@@ -5,6 +5,6 @@ add_executable(interactive interactive.c)
 target_link_libraries(interactive onion_static)
 
 if ( ${ARM} MATCHES "yes" )
-install(TARGETS interactive DESTINATION bin)
+install(TARGETS interactive DESTINATION ${BINDIR})
 endif ( ${ARM} MATCHES "yes" )
 

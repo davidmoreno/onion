@@ -3,4 +3,4 @@ include_directories (${CMAKE_SOURCE_DIR}/src/)
 add_executable(cairo_example cairo.c)
 target_link_libraries(cairo_example onion onion_extras cairo m)
 
-install(TARGETS cairo_example DESTINATION bin)
+install(TARGETS cairo_example DESTINATION ${BINDIR})
