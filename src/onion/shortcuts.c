@@ -116,7 +116,22 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 	
 	size_t size=st.st_size;
 	size_t length=size;
-
+	unsigned int time=st.st_mtime;
+	
+	char etag[32];
+	snprintf(etag,sizeof(etag),"%04X%04X",size,time);
+	
+	ONION_DEBUG0("Etag %s", etag);
+	const char *prev_etag=onion_request_get_header(request, "If-None-Match");
+	if (prev_etag && (strcmp(prev_etag, etag)==0)){
+		ONION_DEBUG0("Not modified");
+		onion_response_set_code(res, HTTP_NOT_MODIFIED);
+		onion_response_write_headers(res);
+		return OCS_PROCESSED;
+	}
+	
+	onion_response_set_header(res, "Etag", etag);
+	
 	const char *range=onion_request_get_header(request, "Range");
 	if (range && strncmp(range,"bytes=",6)==0){
 		//ONION_DEBUG("Need just a range: %s",range);

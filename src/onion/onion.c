@@ -575,8 +575,10 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 		r=read(clientfd, buffer, sizeof(buffer));
 #endif
 		if (r<=0){ // error reading.
-			if (errno!=0)
-				ONION_ERROR("Error reading data");
+			if (errno==ECONNRESET)
+				ONION_DEBUG("Connection reset by peer."); // Ok, this is more or less normal.
+			else if (errno!=0)
+				ONION_ERROR("Error reading data: %s (%d)", strerror(errno), errno);
 			break;
 		}
 		connection_status=onion_server_write_to_request(o->server, req, buffer, r);
