@@ -69,7 +69,6 @@ int main(int argc, char **argv){
 	sleep(1);
 	ONION_DEBUG("Ok, now ask");
 	
-	
 	t01_get();
 	
 	kill(pid, SIGKILL);

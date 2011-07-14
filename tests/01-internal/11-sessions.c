@@ -28,10 +28,13 @@ void t01_test_session(){
 	
 	// create a session
 	onion_dict *ses=onion_sessions_get(sessions, "s01");
-	FAIL_IF_EQUAL(ses, NULL);
+	FAIL_IF_NOT_EQUAL(ses, NULL); // It does not auto create the sessions, to avoid problems
+	char *s01=onion_sessions_create(sessions);
+	ses=onion_sessions_get(sessions, s01);
+	FAIL_IF_EQUAL(ses, NULL); // It does not auto create the sessions, to avoid problems
 
 	// get another pointer to the same session
-	onion_dict *ses2=onion_sessions_get(sessions, "s01");
+	onion_dict *ses2=onion_sessions_get(sessions, s01);
 	FAIL_IF_NOT_EQUAL(ses, ses2);
 	
 	//Check it is really the same
@@ -41,20 +44,21 @@ void t01_test_session(){
 	
 	// When removed, it should refcount--
 	onion_dict_free(ses2);
-	ses2=onion_sessions_get(sessions, "s01");
+	ses2=onion_sessions_get(sessions, s01);
 	FAIL_IF_NOT_EQUAL(ses, ses2);
 
 	// also all removal, should stay at the sessions
 	onion_dict_free(ses);
 	onion_dict_free(ses2);
-	ses2=onion_sessions_get(sessions, "s01");
+	ses2=onion_sessions_get(sessions, s01);
 	FAIL_IF_NOT_EQUAL_STR("bar", onion_dict_get(ses2, "foo"));
 	onion_dict_free(ses2);
 	
 	// Create a second session
-	ses2=onion_sessions_get(sessions, "s02");
+	char *s02=onion_sessions_create(sessions);
+	ses2=onion_sessions_get(sessions, s02);
 	onion_dict_add(ses2, "hello", "world", 0);
-	ses=onion_sessions_get(sessions, "s01");
+	ses=onion_sessions_get(sessions, s01);
 	
 	FAIL_IF_EQUAL_STR(onion_dict_get(ses, "hello"), onion_dict_get(ses2, "hello"));
 	FAIL_IF_EQUAL_STR(onion_dict_get(ses, "foo"), onion_dict_get(ses2, "foo"));
@@ -63,13 +67,22 @@ void t01_test_session(){
 	onion_dict_free(ses2);
 
 	// And finally really remove it
-	onion_sessions_remove(sessions, "s01");
-	ses2=onion_sessions_get(sessions, "s01"); // this created a new one
+	onion_sessions_remove(sessions, s01);
+	ses2=onion_sessions_get(sessions, s01); 
+	FAIL_IF_NOT_EQUAL(ses2, NULL);
+	
+	// this created a new one
+	free(s01);
+	s01=onion_sessions_create(sessions);
+	ses2=onion_sessions_get(sessions, s01); 
 	FAIL_IF_EQUAL_STR("bar", onion_dict_get(ses2, "foo"));
 	onion_dict_free(ses2);
 	
 	// This should remove the sessions, and still hanging s02
 	onion_sessions_free(sessions);
+	
+	free(s01);
+	free(s02);
 	
 	END_LOCAL();
 }
