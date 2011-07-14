@@ -82,6 +82,15 @@ if (${ONION_USE_PNG})
   endif (PNG_LIB)
 endif (${ONION_USE_PNG})
 
+find_library(CURL_LIB NAMES curl PATH ${LIBPATH})
+if(CURL_LIB)
+	message(STATUS "curl found. Some extra test are compiled.")
+	set(CURL true)
+else(CURL_LIB)
+	message("curl not found. Some examples wil not be built.")
+endif(CURL_LIB)
+
+
 # defines
 if (GNUTLS_ENABLED)
 	add_definitions(-DHAVE_GNUTLS)

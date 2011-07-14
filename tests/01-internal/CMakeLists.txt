@@ -31,5 +31,7 @@ target_link_libraries(10-mime onion)
 add_executable(11-sessions 11-sessions.c)
 target_link_libraries(11-sessions onion)
 
+IF (CURL)
 add_executable(12-cloexec 12-cloexec.c)
 target_link_libraries(12-cloexec onion curl)
+ENDIF (CURL)
