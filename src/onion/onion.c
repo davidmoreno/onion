@@ -144,6 +144,9 @@
  * 
  */
 
+// To have accept4
+#define _GNU_SOURCE
+
 #include <malloc.h>
 #include <stdio.h>
 #include <sys/types.h> 
@@ -180,9 +183,9 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include <fcntl.h>
 #include <pwd.h>
 
-#ifndef O_CLOEXEC
-// #warning "Compiling without O_CLOEXEC. This may be a security problem as connections may leak into executed programs"
-#define O_CLOEXEC 0
+#ifndef FD_CLOEXEC
+#warning "Compiling without FD_CLOEXEC. This may be a security problem as connections may leak into executed programs"
+#define FD_CLOEXEC 0
 #endif
 
 #ifdef HAVE_GNUTLS
@@ -341,14 +344,10 @@ int onion_listen(onion *o){
 	
 	int optval=1;
 	for(rp=result;rp!=NULL;rp=rp->ai_next){
-		sockfd=socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		sockfd=socket(rp->ai_family, rp->ai_socktype | SOCK_CLOEXEC, rp->ai_protocol);
 		if (sockfd<0) // not valid
 			continue;
 		if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) < 0){
-			ONION_ERROR("Could not set socket options: %s",strerror(errno));
-		}
-		int flags=fcntl(sockfd, F_GETFD, 0);
-		if (fcntl(sockfd,F_SETFD, flags | O_CLOEXEC) < 0){ // This is inherited by sockets returned by listen.
 			ONION_ERROR("Could not set socket options: %s",strerror(errno));
 		}
 		if (bind(sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
@@ -394,7 +393,8 @@ int onion_listen(onion *o){
 		int clientfd;
 		if (o->flags&O_ONE_LOOP){
 			while(1){
-				clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+				clientfd=accept4(sockfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
+				
 				getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
 										NULL, 0, NI_NUMERICHOST);
 				onion_process_request(o, clientfd, address);

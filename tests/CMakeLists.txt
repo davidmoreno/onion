@@ -19,3 +19,5 @@ endif (OTEMPLATE)
 ADD_CUSTOM_TARGET(auto.sh ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/auto.sh
 	COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/auto.sh  ${CMAKE_CURRENT_BINARY_DIR}/auto.sh
 	)
+
+add_subdirectory(08-cloexec)
