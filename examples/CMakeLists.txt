@@ -39,3 +39,5 @@ else (${CAIRO_ENABLED})
 	message(WARNING "Some examples are disabled as you dont have cairo: cairo")
 endif (${CAIRO_ENABLED})
 
+
+add_subdirectory(webdav)

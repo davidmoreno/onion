@@ -108,9 +108,7 @@ onion_connection_status onion_response_free(onion_response *res){
 		
 		// FIXME! This is no proper logging at all. Maybe use a handler.
 		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->client_info,
-							(res->request->flags&OR_GET) ? "GET" : 
-							(res->request->flags&OR_HEAD) ? "HEAD" : 
-							(res->request->flags&OR_POST) ? "POST" : "UNKNOWN_METHOD",
+							 onion_request_methods[res->request->flags&OR_METHODS],
 						res->request->fullpath, res->code, res->sent_bytes,
 						(r==OCS_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
 	}
@@ -123,6 +121,7 @@ onion_connection_status onion_response_free(onion_response *res){
 
 /// Adds a header to the response object
 void onion_response_set_header(onion_response *res, const char *key, const char *value){
+	ONION_DEBUG0("Adding header %s = %s", key, value);
 	onion_dict_add(res->headers, key, value, OD_DUP_ALL|OD_REPLACE); // DUP_ALL not so nice on memory side...
 }
 
@@ -198,7 +197,7 @@ int onion_response_write_headers(onion_response *res){
 	
 	res->sent_bytes=0; // the header size is not counted here.
 	
-	if (res->request->flags&OR_HEAD){
+	if ((res->request->flags&OR_METHODS)==OR_HEAD){
 		res->flags|=OR_SKIP_CONTENT;
 		return OR_SKIP_CONTENT;
 	}

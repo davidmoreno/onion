@@ -73,10 +73,11 @@ void onion_block_min_maxsize(onion_block *b, int minsize){
  * 
  * It will be finished with a \0 (if not already, to ensure is printable.
  */
-const char *onion_block_data(onion_block *b){
+const char *onion_block_data(const onion_block *b){
+	// It can really modify the size, as it ensures a \0 at the end, but its ok
 	if (b->size==b->maxsize){
-		onion_block_add_char(b, 0);
-		b->size--;
+		onion_block_add_char((onion_block*)b, 0);
+		((onion_block*)b)->size--;
 	}
 	else // Its within limits
 		 b->data[b->size]='\0';
@@ -86,7 +87,7 @@ const char *onion_block_data(onion_block *b){
 /**
  * @short Returns current block size
  */
-off_t onion_block_size(onion_block *b){
+off_t onion_block_size(const onion_block *b){
 	return b->size;
 }
 

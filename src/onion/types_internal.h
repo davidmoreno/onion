@@ -96,6 +96,7 @@ struct onion_request_t{
 	onion_dict *POST;     /// Dictionary with POST values
 	onion_dict *FILES;    /// Dictionary with files. They are automatically saved at /tmp/ and removed at request free. mapped string is full path.
 	onion_dict *session;  /// Pointer to related session
+	onion_block *data;    /// Some extra data, normally PROPFIND.
 	char *session_id;     /// Session id of the request, if any.
 	char *client_info;    /// A string that describes the client, normally the IP.
 };

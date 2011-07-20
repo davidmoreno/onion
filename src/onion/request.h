@@ -28,20 +28,26 @@ extern "C"{
 #endif
 
 /**
- * @short Methods in which data can be asked.
+ * @short Flags about the petition, including method, error status, http version.
  */
 enum onion_request_flags_e{
-	OR_GET=1,
-	OR_POST=2,
-	OR_HEAD=4,
+  /// First 4 bytes are the method. Then as flags.
+  OR_METHODS=0x0F,
+	OR_GET=0,
+	OR_POST=1,
+	OR_HEAD=2,
+	OR_OPTIONS=3,
+	OR_PROPFIND=4,
 	
+	/// Some flags at 0x0F0
 	OR_HTTP11=0x10,
 	OR_POST_MULTIPART=0x20,
 	OR_POST_URLENCODED=0x40,
 	
-	// Server flags are at 0x0F00.
+	/// Server flags are at 0x0F00.
 	OR_NO_KEEP_ALIVE=0x0100,
 	
+	/// Errors at 0x0F000.
 	OR_INTERNAL_ERROR=0x01000,
 	OR_NOT_IMPLEMENTED=0x02000,
 	OR_NOT_FOUND=0x03000,
@@ -49,6 +55,8 @@ enum onion_request_flags_e{
 
 typedef enum onion_request_flags_e onion_request_flags;
 
+/// List of known methods. NULL empty space, position is the method as listed at the flags. @see onion_request_flags
+extern const char *onion_request_methods[16];
 
 /// Creates a request
 onion_request *onion_request_new(onion_server *server, void *socket, const char *client_info);
@@ -122,6 +130,10 @@ int onion_request_keep_alive(onion_request *req);
 
 /// Gets the language code for the current language. C is returned if none recognized.
 const char *onion_request_get_language_code(onion_request *req);
+
+/// Returns PROPFIND data
+const onion_block *onion_request_get_data(onion_request *req);
+
 
 #ifdef __cplusplus
 }

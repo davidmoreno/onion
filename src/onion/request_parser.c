@@ -33,6 +33,7 @@
 #include "types_internal.h"
 #include "codecs.h"
 #include "log.h"
+#include "block.h"
 
 /// Known token types. This is merged with onion_connection_status as return value at token readers.
 typedef enum{
@@ -62,7 +63,7 @@ typedef struct onion_buffer_s{
 }onion_buffer;
 
 /**
- * @short This struct is mapped at token->extra. The token, data_start and data are maped to token->extra area too.
+ * @short This struct is mapped at token->extra. The token, _start and data are maped to token->extra area too.
  * 
  * This is a bit juggling with pointers, but needed to keep the deallocation simple, and the token object minimal in most cases.
  * 
@@ -85,6 +86,7 @@ static onion_connection_status onion_request_process(onion_request *req);
 static void onion_request_parse_query_to_dict(onion_dict *dict, char *p);
 static int onion_request_parse_query(onion_request *req);
 static onion_connection_status prepare_POST(onion_request *req);
+static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req);
 
 /// Reads a string until a non-string char. Returns an onion_token
 int token_read_STRING(onion_token *token, onion_buffer *data){
@@ -278,6 +280,27 @@ int token_read_NEW_LINE(onion_token *token, onion_buffer *data){
 
 static onion_connection_status parse_POST_multipart_next(onion_request *req, onion_buffer *data);
 
+
+/**
+ * Reads from the data to fulfill content-length data.
+ */
+static onion_connection_status parse_CONTENT_LENGTH(onion_request *req, onion_buffer *data){
+	onion_token *token=req->parser_data;
+	int length=data->size-data->pos;
+	int exit=0;
+	
+	if (length>=token->extra_size-token->pos){
+		exit=1;
+		length=token->extra_size-token->pos;
+	}
+	
+	onion_block_add_data(req->data, &data->data[data->pos], length);
+	
+	if (exit)
+		return onion_request_process(req);
+	
+	return OCS_NEED_MORE_DATA;
+}
 
 /**
  * Hard parser as I must set into the file as I read, until i found the boundary token (or start), try to parse, and if fail, 
@@ -616,10 +639,12 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 		return res;
 
 	if ( res == NEW_LINE ){
-		if (!(req->flags&OR_POST))
-			return onion_request_process(req);
+		if ((req->flags&OR_METHODS)==OR_POST)
+			return prepare_POST(req);
+		if (onion_request_get_header(req, "Content-Length")) // Soem length, not POST, get data.
+			return prepare_CONTENT_LENGTH(req);
 		
-		return prepare_POST(req);
+		return onion_request_process(req);
 	}
 	
 	token->extra=strdup(token->str);
@@ -688,15 +713,17 @@ static onion_connection_status parse_headers_GET(onion_request *req, onion_buffe
 	if (res<=1000)
 		return res;
 	
-	if (strcmp(token->str,"GET")==0)
-		req->flags|=OR_GET;
-	else if (strcmp(token->str,"HEAD")==0)
-		req->flags|=OR_HEAD;
-	else if (strcmp(token->str,"POST")==0)
-		req->flags|=OR_POST;
-	else{
-		ONION_ERROR("Unknown method '%s'",token->str);
-		return OCS_NOT_IMPLEMENTED;
+	int i;
+	for (i=0;i<16;i++){
+		if (!onion_request_methods[i]){
+			ONION_ERROR("Unknown method '%s' (%d known methods)",token->str, i);
+			return OCS_NOT_IMPLEMENTED;
+		}
+		if (strcmp(onion_request_methods[i], token->str)==0){
+			ONION_DEBUG0("Method is %s", token->str);
+			req->flags=(req->flags&~0x0F)+i;
+			break;
+		}
 	}
 	req->parser=parse_headers_URL;
 	
@@ -895,6 +922,28 @@ static onion_connection_status prepare_POST(onion_request *req){
 	
 	req->parser=parse_POST_multipart_start;
 	
+	return OCS_NEED_MORE_DATA;
+}
+
+/**
+ * @short Prepares the POST
+ */
+static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req){
+	onion_token *token=req->parser_data;
+	const char *content_size=onion_dict_get(req->headers, "Content-Length");
+	if (!content_size){
+		ONION_ERROR("I need the Content-Length header to get data");
+		return OCS_INTERNAL_ERROR;
+	}
+	size_t cl=atol(content_size);
+
+	req->data=onion_block_new();
+	
+	token->extra=NULL;
+	token->extra_size=cl;
+	token->pos=0;
+
+	req->parser=parse_CONTENT_LENGTH;
 	return OCS_NEED_MORE_DATA;
 }
 

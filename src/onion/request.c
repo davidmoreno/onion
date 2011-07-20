@@ -30,8 +30,22 @@
 #include "types_internal.h"
 #include "log.h"
 #include "sessions.h"
+#include <onion/block.h>
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
+
+/**
+ * These are the methods allowed to ask data to the server (or push or whatever). Only 16.
+ * 
+ * NULL means this space is vacant.
+ * 
+ * They are in order of probability, with GET the most common.
+ */
+const char *onion_request_methods[16]={ 
+	"GET", "POST", "HEAD", "OPTIONS", 
+	"PROPFIND", NULL, NULL, NULL, 
+	NULL, NULL, NULL, NULL, 
+	NULL, NULL, NULL, NULL };
 
 /**
  *  @short Creates a request object
@@ -91,6 +105,8 @@ void onion_request_free(onion_request *req){
 		free(req->session_id);
 	if (req->session)
 		onion_dict_free(req->session); // Not really remove, just dereference
+	if (req->data)
+		onion_block_free(req->data);
 	
 	free(req);
 }
@@ -323,3 +339,9 @@ const char *onion_request_get_language_code(onion_request *req){
 	return "C";
 }
 
+/**
+ * @short Some extra data, normally when the petition is propfind
+ */
+const onion_block *onion_request_get_data(onion_request *req){
+	return req->data;
+}
