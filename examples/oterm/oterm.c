@@ -144,7 +144,7 @@ int main(int argc, char **argv){
 				exit(1);
 			}
 			command=argv[++i];
-			fprintf(stderr, "New terminal execute the command %s\n",keyfile);
+			fprintf(stderr, "New terminal execute the command %s\n",command);
 		}
 		else if(strcmp(argv[i],"--no-ssl")==0){
 			ssl=0;

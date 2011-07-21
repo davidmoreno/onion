@@ -184,9 +184,9 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include <pwd.h>
 #include <grp.h>
 
-#ifndef FD_CLOEXEC
-#warning "Compiling without FD_CLOEXEC. This may be a security problem as connections may leak into executed programs"
-#define FD_CLOEXEC 0
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC 0
+#define accept4(a,b,c,d) accept(a,b,c);
 #endif
 
 #ifdef HAVE_GNUTLS
@@ -236,6 +236,9 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
  */
 onion *onion_new(int flags){
 	ONION_DEBUG0("Some internal sizes: onion size: %d, request size %d, response size %d",sizeof(onion),sizeof(onion_request),sizeof(onion_response));
+	if (SOCK_CLOEXEC==0){
+		ONION_WARNING("There is no support for SOCK_CLOEXEC compiled in libonion. This may be a SECURITY PROBLEM as connections may leak into executed programs.");
+	}
 	
 	onion *o=malloc(sizeof(onion));
 	o->flags=flags&0x0FF;
