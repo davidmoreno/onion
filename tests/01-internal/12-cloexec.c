@@ -45,12 +45,12 @@ void t01_get(){
 		
 		CURLcode res=curl_easy_perform(curl);
 		FAIL_IF_NOT_EQUAL((int)res,0);
-		int http_code;
+		long int http_code;
 		res=curl_easy_getinfo(curl, CURLINFO_HTTP_CODE, &http_code);
 		FAIL_IF_NOT_EQUAL((int)res,0);
 		curl_easy_cleanup(curl);
 
-		FAIL_IF_NOT_EQUAL_INT(http_code, HTTP_OK);
+		FAIL_IF_NOT_EQUAL_INT((int)http_code, HTTP_OK);
 	}
 	END_LOCAL();
 }
