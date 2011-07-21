@@ -88,6 +88,7 @@ int oterm_nopam(onion_handler *next, onion_request *req, onion_response *res){
 int main(int argc, char **argv){
 	char *port="8080";
 	char *serverip="::";
+	const char *command="/bin/bash";
 	const char *certificatefile="/etc/pki/tls/certs/pound.pem";
 	const char *keyfile="/etc/pki/tls/certs/pound.key";
 	int error;
@@ -136,6 +137,15 @@ int main(int argc, char **argv){
 			keyfile=argv[++i];
 			fprintf(stderr, "Using certificate key %s\n",keyfile);
 		}
+		else if(strcmp(argv[i],"-x")==0 || strcmp(argv[i],"--exec")==0){
+			if (i+1>argc){
+				fprintf(stderr, "Need the command to execute.\n");
+				show_help();
+				exit(1);
+			}
+			command=argv[++i];
+			fprintf(stderr, "New terminal execute the command %s\n",keyfile);
+		}
 		else if(strcmp(argv[i],"--no-ssl")==0){
 			ssl=0;
 			fprintf(stderr, "Disabling SSL!\n");
@@ -160,7 +170,7 @@ int main(int argc, char **argv){
 	onion_url_add_handler(url, "^coralbits.png$", onion_handler_opack("",opack_coralbits_png, opack_coralbits_png_length));
 	onion_url_add_handler(url, "^jquery-1.4.3.min.js$", onion_handler_opack("",opack_jquery_1_4_3_min_js, opack_jquery_1_4_3_min_js_length));
 #endif
-	onion_url_add_handler(url, "^term/", oterm_handler("/bin/bash"));
+	onion_url_add_handler(url, "^term/", oterm_handler(command));
 
 	onion_handler *oterm;
 #ifdef HAVE_PAM
