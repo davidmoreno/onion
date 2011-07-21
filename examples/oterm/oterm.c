@@ -61,6 +61,7 @@ void show_help(){
 								 "   -k|--key  <key file>         -- Set the SSL key file. Default: /etc/pki/tls/certs/pound.key\n"
 								 "   --no-pam                     -- Disable auth. Uses current user.\n"
 								 "   --no-ssl                     -- Do not uses SSL. WARNING! Very unsecure\n"
+								 "   -x|--exec <command>          -- On new terminals it executes this command instead of bash\n"
 								 "\n");
 }
 
@@ -159,7 +160,7 @@ int main(int argc, char **argv){
 	onion_url_add_handler(url, "^coralbits.png$", onion_handler_opack("",opack_coralbits_png, opack_coralbits_png_length));
 	onion_url_add_handler(url, "^jquery-1.4.3.min.js$", onion_handler_opack("",opack_jquery_1_4_3_min_js, opack_jquery_1_4_3_min_js_length));
 #endif
-	onion_url_add_handler(url, "^term/", oterm_handler_data());
+	onion_url_add_handler(url, "^term/", oterm_handler("/bin/bash"));
 
 	onion_handler *oterm;
 #ifdef HAVE_PAM
