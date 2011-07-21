@@ -234,6 +234,8 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
 				exit(1);
 			}
 		}
+		for (i=3;i<256;i++) // Force close file descriptors. Dirty but it works.
+			close(i);
 
 		int ok=execle(data->exec_command, command_name, NULL, envs);
 		fprintf(stderr,"%s:%d Could not exec shell: %d\n",__FILE__,__LINE__,ok);
