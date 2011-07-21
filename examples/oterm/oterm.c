@@ -42,8 +42,10 @@
 
 void opack_index_html(onion_response *res);
 void opack_jquery_1_4_3_min_js(onion_response *res);
+void opack_coralbits_png(onion_response *res);
 extern unsigned int opack_index_html_length;
 extern unsigned int opack_jquery_1_4_3_min_js_length;
+extern unsigned int opack_coralbits_png_length;
 
 
 onion *o=NULL;
@@ -149,10 +151,12 @@ int main(int argc, char **argv){
 		onion_url_add_handler(url, ".*", onion_handler_export_local_new("."));
 	else{
 		onion_url_add_handler(url, "^$", onion_handler_opack("",opack_index_html, opack_index_html_length));
+		onion_url_add_handler(url, "^coralbits.png$", onion_handler_opack("",opack_coralbits_png, opack_coralbits_png_length));
 		onion_url_add_handler(url, "^jquery-1.4.3.min.js$", onion_handler_opack("",opack_jquery_1_4_3_min_js, opack_jquery_1_4_3_min_js_length));
 	}
 #else
 	onion_url_add_handler(url, "^$", onion_handler_opack("",opack_index_html, opack_index_html_length));
+	onion_url_add_handler(url, "^coralbits.png$", onion_handler_opack("",opack_coralbits_png, opack_coralbits_png_length));
 	onion_url_add_handler(url, "^jquery-1.4.3.min.js$", onion_handler_opack("",opack_jquery_1_4_3_min_js, opack_jquery_1_4_3_min_js_length));
 #endif
 	onion_url_add_handler(url, "^term/", oterm_handler_data());

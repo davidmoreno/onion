@@ -221,12 +221,18 @@ process *oterm_new(oterm_t *o, const char *username, char impersonate){
 		perror("");
 		exit(1);
 	}
-	oterm->title=strdup("No title yet");
+	oterm->title=strdup("Terminal ready.");
 	ONION_DEBUG("Default title is %s", oterm->title);
-	// I set myself at head
+	oterm->next=NULL;
+	// I set myself at end
 	pthread_mutex_lock( &o->head_mutex );
-	oterm->next=o->head;
-	o->head=oterm;
+	if (!o->head)
+		o->head=oterm;
+	else{
+		process *next=o->head;
+		while (next->next) next=next->next;
+		next->next=oterm;
+	}
 	pthread_mutex_unlock( &o->head_mutex );
 	
 	return oterm;
@@ -237,6 +243,7 @@ process *oterm_new(oterm_t *o, const char *username, char impersonate){
 int oterm_status(oterm_t *o, onion_request *req, onion_response *res){
 	onion_dict *status=onion_dict_new();
 	
+	pthread_mutex_lock( &o->head_mutex );
 	if (o->head){
 		process *n=o->head;
 		int i=1;
@@ -251,6 +258,7 @@ int oterm_status(oterm_t *o, onion_request *req, onion_response *res){
 			i++;
 		}
 	}
+	pthread_mutex_unlock( &o->head_mutex );
 	
 	return onion_shortcut_response_json(status, req, res);
 }

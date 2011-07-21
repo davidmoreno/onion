@@ -7,28 +7,85 @@ body{
 	font-family: sans-serif;
 	background: white;
 	color: black;
-	margin: 2em;
+	margin: 0;
+	padding: 0;
+	height: 100%;
 }
 
 a{
 	color: red;
 	text-decoration: none;
 }
+.float{
+	border: 1px solid #aaa;
+	border-radius: 5px;
+	padding: 1em;
+	float: right;
+	width: 400px;
+}
+h1{
+	font-size: 45pt;
+}
+#description{
+	padding: 1em 1em 0em 1em;
+}
+#sessions{
+	padding: 0em 1em 4em 1em;
+}
+#container{
+	min-height: 100%;
+	position: relative;
+}
+header{
+	padding: 1em;
+}
+footer{
+	position: absolute;
+	bottom: 0;
+	width: 99%;
+	height: 3em;
+	padding-left: 0.5em;
+	text-align: center;
+}
+footer hr{
+	width: 50%;
+}
+footer h4{
+	margin: 0;
+}
   </style>
  </head>
 <body>
+<div id="container">
+<header>
+<div class="float">
+<a href="http://www.coralbits.com"><img src="coralbits.png"></a>
 
-<h1>Onion Term</h1>
-
+<p>
+Onion term <b>is free software!</b> 
+<p>
 Onion term is a test application for the <a href="http://www.coralbits.com/libonion/">onion http library</a>.
 
+
+<p>
+It is licensed under <a href="http://www.gnu.org/licenses/agpl.html">AGPL</a> (oterm) and 
+<a href="http://www.gnu.org/licenses/lgpl.html">LGPL</a> (libonion).
+You can find the source code at <a href="https://github.com/davidmoreno/onion/wiki">Github</a>.
+
+
+</div>
+<h1><a href="http://www.coralbits.com/oterm/">Onion Term</a></h1>
+
+</header>
+
+<div id="sessions">
 <h2 id="sessions_title">Loading session information...</h2>
 
 <ul id="current_sessions">
 </ul>
 
 <h3><a href="javascript:newTerm()">Create a new remote session</a></h3>
-
+</div>
 
 <script>
 newTerm = function(){
@@ -72,5 +129,10 @@ $(document).ready(function(){
 })
 </script>
 
+<footer>
+<hr>
+<h4>&copy; <a href="http://www.coralbits.com">Coralbits</a> S.L. 2011</h4>
+</footer>
+</div>
 </body>
 </html>

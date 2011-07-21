@@ -42,6 +42,10 @@ struct onion_handler_auth_pam_data_t{
 typedef struct onion_handler_auth_pam_data_t onion_handler_auth_pam_data;
 
 int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request *request, onion_response *res){
+	/// Use session to know if already logged in, so do not mess with PAM so often.
+	if (onion_request_get_session(request, "pam_logged_in"))
+		return onion_handler_handle(d->inside, request, res);
+	
 	const char *o=onion_request_get_header(request, "Authorization");
 	char *auth=NULL;
 	char *username=NULL;
@@ -68,6 +72,7 @@ int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request
 			onion_dict *session=onion_request_get_session_dict(request);
 			onion_dict_lock_write(session);
 			onion_dict_add(session, "username", username, OD_REPLACE|OD_DUP_VALUE);
+			onion_dict_add(session, "pam_logged_in", username, OD_REPLACE|OD_DUP_VALUE);
 			onion_dict_unlock(session);
 			
 			free(auth);
