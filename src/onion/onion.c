@@ -182,6 +182,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include <netdb.h>
 #include <fcntl.h>
 #include <pwd.h>
+#include <grp.h>
 
 #ifndef FD_CLOEXEC
 #warning "Compiling without FD_CLOEXEC. This may be a security problem as connections may leak into executed programs"
@@ -374,7 +375,8 @@ int onion_listen(onion *o){
 			return errno;
 		}
 		else{
-			error=setgid(pw->pw_gid);
+			error=initgroups(o->username, pw->pw_gid);
+			error|=setgid(pw->pw_gid);
 			error|=setuid(pw->pw_uid);
 		}
 		if (error){
