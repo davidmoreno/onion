@@ -116,6 +116,7 @@ sessionStatus = function(data){
 /// Requests the list of sessions
 updateSessionStatus = function(){
 	$.get('term/status', sessionStatus,'json')
+	setTimeout(updateSessionStatus, 5000) // each 5 seconds
 }
 
 $(document).ready(function(){
@@ -125,7 +126,7 @@ $(document).ready(function(){
 	})
 
 	updateSessionStatus()
-	setTimeout(updateSessionStatus, 30000)
+	setTimeout(updateSessionStatus, 5000) // each 5 seconds
 })
 </script>
 

@@ -186,7 +186,14 @@ const char *onion_extraenvs[]={ "TERM=xterm" };
 process *oterm_new(oterm_data *data, oterm_session *session, const char *username, char impersonate){
 	process *oterm=malloc(sizeof(process));
 
-	ONION_DEBUG("Creating new terminal, exec %s", data->exec_command);
+	const char *command_name;
+	int i;
+	for (i=strlen(data->exec_command);i>=0;i--)
+		if (data->exec_command[i]=='/')
+			break;
+	command_name=&data->exec_command[i+1];
+
+	ONION_DEBUG("Creating new terminal, exec %s (%s)", data->exec_command, command_name);
 	
 	oterm->pid=forkpty(&oterm->fd, NULL, NULL, NULL);
 	if ( oterm->pid== 0 ){ // on child
@@ -228,12 +235,7 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
 			}
 		}
 
-		const char *tmp;
-		for (i=strlen(data->exec_command);i>=0;i--)
-			if (data->exec_command[i]=='/')
-				break;
-		tmp=&data->exec_command[i+1];
-		int ok=execle(data->exec_command,tmp,NULL,envs);
+		int ok=execle(data->exec_command, command_name, NULL, envs);
 		fprintf(stderr,"%s:%d Could not exec shell: %d\n",__FILE__,__LINE__,ok);
 		perror("");
 		exit(1);
@@ -255,6 +257,17 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
 	return oterm;
 }
 
+/// Checks if the process is running and if it stopped, set name
+static void oterm_check_running(process *n){
+	if (n->pid==-1)
+		return; // Already dead
+	int changed=waitpid(n->pid, NULL, WNOHANG);
+	if (changed){
+		free(n->title);
+		n->title=strdup("- Finished -");
+		n->pid=-1;
+	}
+}
 
 /// Returns the status of all known terminals.
 int oterm_status(oterm_session *session, onion_request *req, onion_response *res){
@@ -265,12 +278,14 @@ int oterm_status(oterm_session *session, onion_request *req, onion_response *res
 		process *n=session->head;
 		int i=1;
 		while(n){
+			oterm_check_running(n);
+			
 			char *id=malloc(6);
 			sprintf(id, "%d", i);
 			onion_dict *term=onion_dict_new();
 			onion_dict_add(term, "title", n->title, OD_DUP_VALUE);
-			
 			onion_dict_add(status, id, term, OD_DICT|OD_FREE_ALL);
+			// Just a check, here is ok, no hanging childs
 			n=n->next;
 			i++;
 		}
@@ -282,6 +297,8 @@ int oterm_status(oterm_session *session, onion_request *req, onion_response *res
 
 /// Input data to the process
 int oterm_in(process *p, onion_request *req, onion_response *res){
+	oterm_check_running(p);
+
 	const char *data;
 	data=onion_request_get_post(req,"type");
 	ssize_t w;
@@ -355,6 +372,9 @@ int oterm_out(process *o, onion_request *req, onion_response *res){
 	onion_response_write_headers(res);
 	if (n)
 		onion_response_write(res,buffer,n);
+
+	oterm_check_running(o);
+
 	return OCS_PROCESSED;
 }
 
