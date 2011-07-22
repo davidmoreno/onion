@@ -34,6 +34,9 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
+/**
+ * @short Flags of props as queried
+ */
 enum onion_webdav_props_e{
 	WD_RESOURCE_TYPE=(1<<0),
 	WD_CONTENT_LENGTH=(1<<1),
@@ -51,6 +54,9 @@ onion_connection_status onion_webdav_get(const char *path, onion_request *req, o
 onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_propfind(const char *path, onion_request *req, onion_response *res);
 
+/**
+ * @short Main webdav handler, just redirects to the proper handler depending on headers and method
+ */
 onion_connection_status onion_webdav_handler(const char *path, onion_request *req, onion_response *res){
 	onion_response_set_header(res, "Dav", "1,2");
 	//onion_response_set_header(res, "Dav", "<http://apache.org/dav/propset/fs/1>");
@@ -79,15 +85,24 @@ onion_connection_status onion_webdav_handler(const char *path, onion_request *re
 	return HTTP_OK;
 }
 
+/**
+ * @short Simple get on webdav is just a simple get on a default path.
+ * 
+ * TODO Check permissions using some callback mechanism.
+ */
 onion_connection_status onion_webdav_get(const char *path, onion_request *req, onion_response *res){
 	char tmp[512];
 	snprintf(tmp, sizeof(tmp), "%s/%s", path, onion_request_get_path(req));
 	return onion_shortcut_response_file(tmp, req, res);
 }
 
-
+/**
+ * @short Returns known options.
+ * 
+ * Just known options, no more. I think many clients ignore this. (without PUT, gnome's file manager was trying).
+ */
 onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res){
-	onion_response_set_header(res, "Allow", "OPTIONS,GET,HEAD,POST,DELETE,TRACE,PROPFIND,PROPPATCH,COPY,MOVE,LOCK,UNLOCK");
+	onion_response_set_header(res, "Allow", "OPTIONS,GET,HEAD,PUT,PROPFIND,PROPPATCH");
 	onion_response_set_header(res, "Content-Type", "httpd/unix-directory");
 	
 	onion_response_set_length(res, 0);
@@ -268,6 +283,16 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
 	return 0;
 }
 
+/**
+ * @short Prepares the response for propfinds
+ * 
+ * @param realpath Shared folder
+ * @param urlpath URL of the requested propfind
+ * @param depth Depth of query, 0 or 1.
+ * @param props Properties of the query
+ * 
+ * @returns An onion_block with the XML data.
+ */
 onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpath, int depth, 
 																				 int props){
 	onion_block *data=onion_block_new();
@@ -316,6 +341,11 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
 	return data;
 }
 
+/**
+ * @short Handles a propfind
+ * 
+ * @param path the shared path.
+ */
 onion_connection_status onion_webdav_propfind(const char *path, onion_request* req, onion_response* res){
 	ONION_DEBUG0("PROPFIND");
 	int depth;
@@ -353,7 +383,9 @@ onion_connection_status onion_webdav_propfind(const char *path, onion_request* r
 	return OCS_PROCESSED;
 }
 
-
+/**
+ * @short Frees the webdav data
+ */
 void onion_webdav_free(char *d){
 	free(d);
 	
@@ -361,6 +393,15 @@ void onion_webdav_free(char *d){
 	xmlMemoryDump();
 }
 
+/**
+ * @short Creates a webdav handler
+ * 
+ * The webdav implementation has no security at all, that should be given by higher levels, and using 
+ * customizing functions, like onion_webdav_set_permission_checker. (TODO).
+ * 
+ * @param path Path to share
+ * @returns The onion handler.
+ */
 onion_handler *onion_webdav(const char *path){
 	xmlInitParser();
 	LIBXML_TEST_VERSION
