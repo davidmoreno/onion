@@ -54,6 +54,7 @@ typedef enum onion_webdav_props_e onion_webdav_props;
 
 onion_connection_status onion_webdav_get(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_put(const char *path, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_delete(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_propfind(const char *path, onion_request *req, onion_response *res);
 
@@ -75,6 +76,7 @@ onion_connection_status onion_webdav_handler(const char *path, onion_request *re
 
 	switch (onion_request_get_flags(req)&OR_METHODS){
 		case OR_GET:
+		case OR_HEAD:
 			return onion_webdav_get(path, req, res);
 		case OR_OPTIONS:
 			return onion_webdav_options(path, req, res);
@@ -82,6 +84,8 @@ onion_connection_status onion_webdav_handler(const char *path, onion_request *re
 			return onion_webdav_propfind(path, req, res);
 		case OR_PUT:
 			return onion_webdav_put(path, req, res);
+		case OR_DELETE:
+			return onion_webdav_delete(path, req, res);
 	}
 	
 	
@@ -100,6 +104,24 @@ onion_connection_status onion_webdav_get(const char *path, onion_request *req, o
 	snprintf(tmp, sizeof(tmp), "%s/%s", path, onion_request_get_path(req));
 	ONION_DEBUG("Webdav gets %s", tmp);
 	return onion_shortcut_response_file(tmp, req, res);
+}
+
+/**
+ * @short Deletes a resource
+ * 
+ * TODO Check permissions using some callback mechanism.
+ */
+onion_connection_status onion_webdav_delete(const char *path, onion_request *req, onion_response *res){
+	char tmp[512];
+	snprintf(tmp, sizeof(tmp), "%s/%s", path, onion_request_get_path(req));
+	ONION_DEBUG("Webdav delete %s", tmp);
+	int error=unlink(tmp);
+	if (error==0)
+		return onion_shortcut_response("Deleted", HTTP_OK, req, res);
+	else{
+		ONION_ERROR("Could not remove WebDAV resource");
+		return onion_shortcut_response("Could not delete resource", HTTP_INTERNAL_ERROR, req, res);
+	}
 }
 
 /**
@@ -162,7 +184,7 @@ onion_connection_status onion_webdav_put(const char *path, onion_request *req, o
  * Just known options, no more. I think many clients ignore this. (without PUT, gnome's file manager was trying).
  */
 onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res){
-	onion_response_set_header(res, "Allow", "OPTIONS,GET,HEAD,PUT,PROPFIND,PROPPATCH");
+	onion_response_set_header(res, "Allow", "OPTIONS,GET,HEAD,PUT,PROPFIND");
 	onion_response_set_header(res, "Content-Type", "httpd/unix-directory");
 	
 	onion_response_set_length(res, 0);
@@ -368,10 +390,11 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
 		ONION_ERROR("testXmlwriterMemory: Error creating the xml writer");
 		return data;
 	}
+	int error;
 	xmlTextWriterStartDocument(writer, NULL, "utf-8", NULL);
 	xmlTextWriterStartElement(writer, BAD_CAST "D:multistatus");
 		xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:D" ,BAD_CAST "DAV:");
-			onion_webdav_write_props(writer, realpath, urlpath, NULL, props);
+			error=onion_webdav_write_props(writer, realpath, urlpath, NULL, props);
 			if (depth>0){
 				ONION_DEBUG("Get also all files");
 				DIR *dir=opendir(realpath);
@@ -397,7 +420,10 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
 	onion_block_add_str(data, (const char*)buf->content);
 	xmlBufferFree(buf);
 
-	
+	if (error){
+		onion_block_free(data);
+		return NULL;
+	}
 	return data;
 }
 
@@ -430,6 +456,9 @@ onion_connection_status onion_webdav_propfind(const char *path, onion_request* r
 	
 	onion_block *block=onion_webdav_write_propfind(tmp, onion_request_get_path(req), depth, props);
 	
+	if (!block) // No block, resource does not exist
+		return onion_shortcut_response("Not found", HTTP_NOT_FOUND, req, res);
+		
 	ONION_DEBUG0("Printing block %s", onion_block_data(block));
 	
 	onion_response_set_header(res, "Content-Type", "text/xml; charset=\"utf-8\"");

@@ -43,7 +43,7 @@ void onion_request_parser_data_free(void *token); // At request_parser.c
  */
 const char *onion_request_methods[16]={ 
 	"GET", "POST", "HEAD", "OPTIONS", 
-	"PROPFIND", "PUT", NULL, NULL, 
+	"PROPFIND", "PUT", "DELETE", NULL, 
 	NULL, NULL, NULL, NULL, 
 	NULL, NULL, NULL, NULL };
 
