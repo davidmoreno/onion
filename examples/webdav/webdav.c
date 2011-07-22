@@ -17,6 +17,7 @@
 	*/
 
 #include <assert.h>
+#include <errno.h>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
@@ -33,6 +34,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 /**
  * @short Flags of props as queried
@@ -51,6 +53,7 @@ typedef enum onion_webdav_props_e onion_webdav_props;
 
 
 onion_connection_status onion_webdav_get(const char *path, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_put(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_propfind(const char *path, onion_request *req, onion_response *res);
 
@@ -77,6 +80,8 @@ onion_connection_status onion_webdav_handler(const char *path, onion_request *re
 			return onion_webdav_options(path, req, res);
 		case OR_PROPFIND:
 			return onion_webdav_propfind(path, req, res);
+		case OR_PUT:
+			return onion_webdav_put(path, req, res);
 	}
 	
 	
@@ -93,7 +98,62 @@ onion_connection_status onion_webdav_handler(const char *path, onion_request *re
 onion_connection_status onion_webdav_get(const char *path, onion_request *req, onion_response *res){
 	char tmp[512];
 	snprintf(tmp, sizeof(tmp), "%s/%s", path, onion_request_get_path(req));
+	ONION_DEBUG("Webdav gets %s", tmp);
 	return onion_shortcut_response_file(tmp, req, res);
+}
+
+/**
+ * @short Simple put on webdav is just move a file from tmp to the final destination (or copy if could not move).
+ * 
+ * TODO Check permissions using some callback mechanism.
+ */
+onion_connection_status onion_webdav_put(const char *path, onion_request *req, onion_response *res){
+	char dest[512];
+	snprintf(dest, sizeof(dest), "%s/%s", path, onion_request_get_path(req));
+	ONION_DEBUG("Webdav puts %s", dest);
+	
+	const char *tmpfile=onion_block_data(onion_request_get_data(req));
+	int ok=rename(tmpfile, dest);
+	
+	if (ok!=0 && errno==EXDEV){ // Ok, old way, open both, copy
+		ONION_DEBUG0("Slow cp, as tmp is in another FS");
+		ok=0;
+		int fd_dest=open(dest, O_WRONLY|O_CREAT, 0666);
+		if (fd_dest<0){
+			ok=1;
+			ONION_ERROR("Could not open destination for writing (%s)", strerror(errno));
+		}
+		int fd_orig=open(tmpfile, O_RDONLY);
+		if (fd_dest<0){
+			ok=1;
+			ONION_ERROR("Could not open orig for reading (%s)", strerror(errno));
+		}
+		if (ok==0){
+			char tmp[4096];
+			int r;
+			while ( (r=read(fd_orig, tmp, sizeof(tmp))) > 0 ){
+				r=write(fd_dest, tmp, r);
+				if (r<0){
+					ONION_ERROR("Error writing to destination file (%s)", strerror(errno));
+					ok=1;
+					break;
+				}
+			}
+		}
+		if (fd_orig>=0)
+			close(fd_orig); // onion itself will remove it.
+		if (fd_dest>=0)
+			close(fd_dest);
+	}
+	
+	if (ok==0){
+		ONION_DEBUG("Created %s succesfully", dest);
+		return onion_shortcut_response("201 Created", 201, req, res);
+	}
+	else{
+		ONION_ERROR("Could not rename %s to %s (%s)", tmpfile, dest, strerror(errno));
+		return onion_shortcut_response("Could not create resource", HTTP_FORBIDDEN, req, res);
+	}
 }
 
 /**
@@ -396,8 +456,11 @@ void onion_webdav_free(char *d){
 /**
  * @short Creates a webdav handler
  * 
- * The webdav implementation has no security at all, that should be given by higher levels, and using 
- * customizing functions, like onion_webdav_set_permission_checker. (TODO).
+ * The webdav implementation has no security at all.
+ *
+ * Authentication that should be given by higher levels (pam_handler), and access 
+ * control to specific files using customizing functions, like 
+ * onion_webdav_set_permission_checker. (TODO).
  * 
  * @param path Path to share
  * @returns The onion handler.

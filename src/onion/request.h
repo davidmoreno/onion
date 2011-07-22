@@ -38,6 +38,7 @@ enum onion_request_flags_e{
 	OR_HEAD=2,
 	OR_OPTIONS=3,
 	OR_PROPFIND=4,
+	OR_PUT=5,
 	
 	/// Some flags at 0x0F0
 	OR_HTTP11=0x10,

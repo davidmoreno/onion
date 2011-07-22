@@ -87,6 +87,7 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p);
 static int onion_request_parse_query(onion_request *req);
 static onion_connection_status prepare_POST(onion_request *req);
 static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req);
+static onion_connection_status prepare_PUT(onion_request *req);
 
 /// Reads a string until a non-string char. Returns an onion_token
 int token_read_STRING(onion_token *token, onion_buffer *data){
@@ -282,7 +283,7 @@ static onion_connection_status parse_POST_multipart_next(onion_request *req, oni
 
 
 /**
- * Reads from the data to fulfill content-length data.
+ * @short Reads from the data to fulfill content-length data.
  */
 static onion_connection_status parse_CONTENT_LENGTH(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
@@ -295,12 +296,54 @@ static onion_connection_status parse_CONTENT_LENGTH(onion_request *req, onion_bu
 	}
 	
 	onion_block_add_data(req->data, &data->data[data->pos], length);
+	data->pos+=length;
 	
 	if (exit)
 		return onion_request_process(req);
 	
 	return OCS_NEED_MORE_DATA;
 }
+
+/**
+ * @short Reads from the data to fulfill content-length data.
+ * 
+ * All data is writen a temporal file, which will be removed later.
+ */
+static onion_connection_status parse_PUT(onion_request *req, onion_buffer *data){
+	onion_token *token=req->parser_data;
+	int length=data->size-data->pos;
+	int exit=0;
+	
+	if (length>=token->extra_size-token->pos){
+		exit=1;
+		length=token->extra_size-token->pos;
+	}
+
+	//ONION_DEBUG0("Writing %d. %d / %d bytes", length, token->pos+length, token->extra_size);
+
+	int *fd=(int*)token->extra;
+	write(*fd, &data->data[data->pos], length);
+	data->pos+=length;
+	token->pos+=length;
+	
+	if (exit){
+		close (*fd);
+		free(fd);
+		token->extra=NULL;
+		if (!req->FILES){
+			req->FILES=onion_dict_new();
+		}
+		const char *filename=onion_block_data(req->data);
+		ONION_DEBUG0("Done with PUT. Created %s (%d bytes)", filename, token->pos);
+		
+		onion_dict_add(req->FILES,"filename", filename, 0);
+		
+		return onion_request_process(req);
+	}
+	
+	return OCS_NEED_MORE_DATA;
+}
+
 
 /**
  * Hard parser as I must set into the file as I read, until i found the boundary token (or start), try to parse, and if fail, 
@@ -541,6 +584,8 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *r
 		if (multipart->filename){
 			char filename[]="/tmp/onion-XXXXXX";
 			multipart->fd=mkstemp(filename);
+			if (multipart->fd<0)
+				ONION_ERROR("Could not create temporal file at %s.", filename);
 			if (!req->FILES)
 				req->FILES=onion_dict_new();
 			onion_dict_add(req->POST,multipart->name,multipart->filename, 0);
@@ -641,6 +686,8 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 	if ( res == NEW_LINE ){
 		if ((req->flags&OR_METHODS)==OR_POST)
 			return prepare_POST(req);
+		if ((req->flags&OR_METHODS)==OR_PUT)
+			return prepare_PUT(req);
 		if (onion_request_get_header(req, "Content-Length")) // Soem length, not POST, get data.
 			return prepare_CONTENT_LENGTH(req);
 		
@@ -927,7 +974,7 @@ static onion_connection_status prepare_POST(onion_request *req){
 }
 
 /**
- * @short Prepares the POST
+ * @short Prepares the CONTENT LENGTH
  */
 static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req){
 	onion_token *token=req->parser_data;
@@ -945,6 +992,41 @@ static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req){
 	token->pos=0;
 
 	req->parser=parse_CONTENT_LENGTH;
+	return OCS_NEED_MORE_DATA;
+}
+
+/**
+ * @short Prepares the PUT
+ * 
+ * It saves the data to a temporal file, which name is stored at data.
+ */
+static onion_connection_status prepare_PUT(onion_request *req){
+	onion_token *token=req->parser_data;
+	const char *content_size=onion_dict_get(req->headers, "Content-Length");
+	if (!content_size){
+		ONION_ERROR("I need the Content-Length header to get data");
+		return OCS_INTERNAL_ERROR;
+	}
+	size_t cl=atol(content_size);
+
+	req->data=onion_block_new();
+	
+	char filename[]="/tmp/onion-XXXXXX";
+	int fd=mkstemp(filename);
+	if (fd<0)
+		ONION_ERROR("Could not create temporal file at %s.", filename);
+	int *pfd=malloc(sizeof(fd));
+	*pfd=fd;
+	
+	token->extra=(char*)pfd;
+	token->extra_size=cl;
+	token->pos=0;
+	
+	onion_block_add_str(req->data, filename);
+	ONION_DEBUG0("Creating PUT file %s (%d bytes long)", filename, token->extra_size);
+	
+	
+	req->parser=parse_PUT;
 	return OCS_NEED_MORE_DATA;
 }
 
