@@ -700,6 +700,7 @@ static onion_connection_status parse_headers_URL(onion_request *req, onion_buffe
 	req->path=req->fullpath=strdup(token->str);
 	req->path++; // Skip the leading /
 	onion_request_parse_query(req);
+	ONION_DEBUG0("URL path is %s", req->fullpath);
 	
 	req->parser=parse_headers_VERSION;
 	

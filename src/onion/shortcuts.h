@@ -23,7 +23,11 @@
 extern "C"{
 #endif
 
+#include <time.h>
+
 #include "types.h"
+
+struct stat;
 
 /// Shortcut for fast responses, like errors.
 int onion_shortcut_response(const char *response, int code, onion_request *req, onion_response *res);
@@ -39,6 +43,17 @@ int onion_shortcut_response_file(const char *filename, onion_request *req, onion
 
 /// Shortcut for response json data. Dict is freed before return.
 int onion_shortcut_response_json(onion_dict *d, onion_request *req, onion_response *res);
+
+/// Shortcut to return the date in "RFC 822 / section 5, 4 digit years" date format. 
+void onion_shortcut_date_string(time_t t, char *dest);
+/// Shortcut to return the date in ISO format
+void onion_shortcut_date_string_iso(time_t t, char *dest);
+
+/// Shortcut to return the date in time_t from a user given date TODO
+//time_t onion_shortcut_date_time_t(const char *t);
+
+/// Shortcut to unify the creation of etags.
+void onion_shortcut_etag(struct stat *, char etag[32]);
 
 #ifdef __cplusplus
 }

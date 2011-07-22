@@ -22,6 +22,8 @@
 int main(int argc, char **argv){
 	onion *o=onion_new(O_THREADED);
 	
+	onion_set_hostname(o,"0.0.0.0");
+	
 	onion_url *urls=onion_root_url(o);
 	onion_url_add_handler(urls, "^", onion_webdav("."));
 	

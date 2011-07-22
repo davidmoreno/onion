@@ -27,6 +27,7 @@
 #include <onion/log.h>
 #include <onion/response.h>
 #include <onion/block.h>
+#include <onion/shortcuts.h>
 
 #include "webdav.h"
 #include <string.h>
@@ -34,15 +35,19 @@
 #include <sys/stat.h>
 
 enum onion_webdav_props_e{
-	WD_RESOURCE_TYPE=1,
-	WD_CONTENT_LENGTH=2,
-	WD_LAST_MODIFIED=4,
-	WD_CREATION_DATE=8,
+	WD_RESOURCE_TYPE=(1<<0),
+	WD_CONTENT_LENGTH=(1<<1),
+	WD_LAST_MODIFIED=(1<<2),
+	WD_CREATION_DATE=(1<<3),
+	WD_ETAG=(1<<4),
+	WD_CONTENT_TYPE=(1<<5),
+	WD_DISPLAY_NAME=(1<<5),
 };
 
 typedef enum onion_webdav_props_e onion_webdav_props;
 
 
+onion_connection_status onion_webdav_get(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_propfind(const char *path, onion_request *req, onion_response *res);
 
@@ -60,6 +65,8 @@ onion_connection_status onion_webdav_handler(const char *path, onion_request *re
 	
 
 	switch (onion_request_get_flags(req)&OR_METHODS){
+		case OR_GET:
+			return onion_webdav_get(path, req, res);
 		case OR_OPTIONS:
 			return onion_webdav_options(path, req, res);
 		case OR_PROPFIND:
@@ -72,6 +79,13 @@ onion_connection_status onion_webdav_handler(const char *path, onion_request *re
 	return HTTP_OK;
 }
 
+onion_connection_status onion_webdav_get(const char *path, onion_request *req, onion_response *res){
+	char tmp[512];
+	snprintf(tmp, sizeof(tmp), "%s/%s", path, onion_request_get_path(req));
+	return onion_shortcut_response_file(tmp, req, res);
+}
+
+
 onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res){
 	onion_response_set_header(res, "Allow", "OPTIONS,GET,HEAD,POST,DELETE,TRACE,PROPFIND,PROPPATCH,COPY,MOVE,LOCK,UNLOCK");
 	onion_response_set_header(res, "Content-Type", "httpd/unix-directory");
@@ -83,7 +97,14 @@ onion_connection_status onion_webdav_options(const char *path, onion_request *re
 	return OCS_PROCESSED;
 }
 
+/**
+ * @short Returns the set of props for this query
+ * 
+ * The block contains the propfind xml, and it returns the mask of props to show.
+ * 
+ */
 static int onion_webdav_parse_propfind(const onion_block *block){
+	// For parsing the data
 	xmlDocPtr doc;
 	doc = xmlParseMemory((char*)onion_block_data(block), onion_block_size(block));
 	
@@ -102,7 +123,9 @@ static int onion_webdav_parse_propfind(const onion_block *block){
 				if (strcmp((const char*)propfind->name,"prop")==0){
 					xmlNode *prop = propfind->children;
 					while (prop){
-						if (strcmp((const char*)prop->name, "resourcetype")==0)
+						if (strcmp((const char*)prop->name, "text")==0) // ignore
+							;
+						else if (strcmp((const char*)prop->name, "resourcetype")==0)
 							props|=WD_RESOURCE_TYPE;
 						else if (strcmp((const char*)prop->name, "getcontentlength")==0)
 							props|=WD_CONTENT_LENGTH;
@@ -110,7 +133,15 @@ static int onion_webdav_parse_propfind(const onion_block *block){
 							props|=WD_LAST_MODIFIED;
 						else if (strcmp((const char*)prop->name, "creationdate")==0)
 							props|=WD_CREATION_DATE;
+						else if (strcmp((const char*)prop->name, "getetag")==0)
+							props|=WD_ETAG;
+						else if (strcmp((const char*)prop->name, "getcontenttype")==0)
+							props|=WD_CONTENT_TYPE;
+						else if (strcmp((const char*)prop->name, "displayname")==0)
+							props|=WD_DISPLAY_NAME;
 						else{
+							char tmp[256];
+							snprintf(tmp,sizeof(tmp),"g0:%s", prop->name);
 							ONION_DEBUG("Unknown requested property with tag %s", prop->name);
 						}
 						
@@ -124,6 +155,7 @@ static int onion_webdav_parse_propfind(const onion_block *block){
 		root=root->next;
 	}
 	xmlFreeDoc(doc); 
+	
 	return props;
 }
 
@@ -132,6 +164,7 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
 														 const char *realpath, const char *urlpath, const char *filename, 
 														 int props){
 	ONION_DEBUG("Info for path '%s', urlpath '%s', file '%s'", realpath, urlpath, filename);
+	// Stat the thing itself
 	char tmp[512];
 	snprintf(tmp, sizeof(tmp), "%s/%s", realpath, filename);
 	struct stat st;
@@ -139,53 +172,88 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
 		ONION_ERROR("Error making stat for %s", tmp);
 		return 1;
 	}
-	snprintf(tmp, sizeof(tmp), "%s/%s", urlpath, filename);
+	if (urlpath[0]==0)
+		snprintf(tmp, sizeof(tmp), "/%s", filename);
+	else
+		snprintf(tmp, sizeof(tmp), "/%s/%s", urlpath, filename);
 	
 	xmlTextWriterStartElement(writer, BAD_CAST "D:response");
 	xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:lp1" ,BAD_CAST "DAV:");
-		xmlTextWriterWriteElement(writer, BAD_CAST "D:href", BAD_CAST  tmp); // FIXME, url path.
-			xmlTextWriterStartElement(writer, BAD_CAST "D:propstat");
-				xmlTextWriterStartElement(writer, BAD_CAST "D:prop");
-					if (props&WD_RESOURCE_TYPE){
-						xmlTextWriterStartElement(writer, BAD_CAST "lp1:resourcetype");
-							if (S_ISDIR(st.st_mode)){ // no marker for other resources
-								xmlTextWriterStartElement(writer, BAD_CAST "D:collection");
-								xmlTextWriterEndElement(writer);
-							}
-						xmlTextWriterEndElement(writer);
-					}
-					// FIXME, real dates
-					if (props&WD_LAST_MODIFIED)
-						xmlTextWriterWriteElement(writer, BAD_CAST "lp1:getlastmodified", BAD_CAST "Mon, 18 Jul 2011 09:36:18 GMT"); 
-					// FIXME, real dates
-					if (props&WD_CREATION_DATE)
-						xmlTextWriterWriteElement(writer, BAD_CAST "lp1:creationdate", BAD_CAST "2011-07-18T09:36:18Z");
-					if (props&WD_CONTENT_LENGTH){
-						if (!S_ISDIR(st.st_mode)){ // no marker for other resources
-							snprintf(tmp, sizeof(tmp), "%d", (int)st.st_size);
-							xmlTextWriterWriteElement(writer, BAD_CAST "lp1:getcontentlength", BAD_CAST tmp);
+	xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:g0" ,BAD_CAST "DAV:");
+		xmlTextWriterWriteElement(writer, BAD_CAST "D:href", BAD_CAST  tmp); 
+		
+		/// OK
+		xmlTextWriterStartElement(writer, BAD_CAST "D:propstat");
+			xmlTextWriterStartElement(writer, BAD_CAST "D:prop");
+				if (props&WD_RESOURCE_TYPE){
+					xmlTextWriterStartElement(writer, BAD_CAST "lp1:resourcetype");
+						if (S_ISDIR(st.st_mode)){ // no marker for other resources
+							xmlTextWriterStartElement(writer, BAD_CAST "D:collection");
+							xmlTextWriterEndElement(writer);
 						}
-					}
-				xmlTextWriterEndElement(writer);
-				xmlTextWriterWriteElement(writer, BAD_CAST "D:status", BAD_CAST  "HTTP/1.1 200 OK"); 
+					xmlTextWriterEndElement(writer);
+				}
+				if (props&WD_LAST_MODIFIED){
+					char time[32];
+					onion_shortcut_date_string(st.st_mtime, time);
+					xmlTextWriterWriteElement(writer, BAD_CAST "lp1:getlastmodified", BAD_CAST time); 
+				}
+				if (props&WD_CREATION_DATE){
+					char time[32];
+					onion_shortcut_date_string_iso(st.st_mtime, time);
+					xmlTextWriterWriteElement(writer, BAD_CAST "lp1:creationdate", BAD_CAST time );
+				}
+				if (props&WD_CONTENT_LENGTH && !S_ISDIR(st.st_mode)){
+					snprintf(tmp, sizeof(tmp), "%d", (int)st.st_size);
+					xmlTextWriterWriteElement(writer, BAD_CAST "lp1:getcontentlength", BAD_CAST tmp);
+				}
+				if (props&WD_CONTENT_TYPE && S_ISDIR(st.st_mode)){
+					xmlTextWriterWriteElement(writer, BAD_CAST "lp1:getcontenttype", BAD_CAST "httpd/unix-directory");
+				}
+				if (props&WD_ETAG){
+					char etag[32];
+					onion_shortcut_etag(&st, etag);
+					xmlTextWriterWriteElement(writer, BAD_CAST "lp1:getetag", BAD_CAST etag);
+				}
 			xmlTextWriterEndElement(writer);
+			xmlTextWriterWriteElement(writer, BAD_CAST "D:status", BAD_CAST  "HTTP/1.1 200 OK"); 
+		xmlTextWriterEndElement(writer); // /propstat
+
+		/// NOT FOUND
+		xmlTextWriterStartElement(writer, BAD_CAST "D:propstat");
+			xmlTextWriterStartElement(writer, BAD_CAST "D:prop");
+				if (props&WD_CONTENT_LENGTH && S_ISDIR(st.st_mode)){
+					snprintf(tmp, sizeof(tmp), "%d", (int)st.st_size);
+					xmlTextWriterWriteElement(writer, BAD_CAST "g0:getcontentlength", BAD_CAST "");
+				}
+				if (props&WD_CONTENT_TYPE && !S_ISDIR(st.st_mode)){
+					xmlTextWriterWriteElement(writer, BAD_CAST "g0:getcontenttype", BAD_CAST "");
+				}
+				if (props&WD_DISPLAY_NAME){
+					xmlTextWriterWriteElement(writer, BAD_CAST "g0:displayname", BAD_CAST "");
+				}
+			xmlTextWriterEndElement(writer);
+			xmlTextWriterWriteElement(writer, BAD_CAST "D:status", BAD_CAST  "HTTP/1.1 404 Not Found"); 
+		xmlTextWriterEndElement(writer); // /propstat
+		
 	xmlTextWriterEndElement(writer);
 
 	return 0;
 }
 
-onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpath, int depth, int props){
+onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpath, int depth, 
+																				 int props){
 	onion_block *data=onion_block_new();
 	xmlTextWriterPtr writer;
 	xmlBufferPtr buf;
 	buf = xmlBufferCreate();
 	if (buf == NULL) {
-		printf("testXmlwriterMemory: Error creating the xml buffer\n");
+		ONION_ERROR("testXmlwriterMemory: Error creating the xml buffer");
 		return data;
 	}
 	writer = xmlNewTextWriterMemory(buf, 0);
 	if (writer == NULL) {
-		printf("testXmlwriterMemory: Error creating the xml writer\n");
+		ONION_ERROR("testXmlwriterMemory: Error creating the xml writer");
 		return data;
 	}
 	xmlTextWriterStartDocument(writer, NULL, "utf-8", NULL);
@@ -240,10 +308,15 @@ onion_connection_status onion_webdav_propfind(const char *path, onion_request* r
 	int props=onion_webdav_parse_propfind(onion_request_get_data(req));
 	ONION_DEBUG("Asking for props %08X, depth %d", props, depth);
 	
-	onion_block *block=onion_webdav_write_propfind(path, onion_request_get_path(req), depth, props);
+	char tmp[512];
+	snprintf(tmp, sizeof(tmp), "%s/%s", path, onion_request_get_path(req));
+	
+	onion_block *block=onion_webdav_write_propfind(tmp, onion_request_get_path(req), depth, props);
 	
 	ONION_DEBUG0("Printing block %s", onion_block_data(block));
 	
+	onion_response_set_header(res, "Content-Type", "text/xml; charset=\"utf-8\"");
+	onion_response_set_length(res, onion_block_size(block));
 	onion_response_set_code(res, 207);
 	
 	onion_response_write(res, onion_block_data(block), onion_block_size(block));

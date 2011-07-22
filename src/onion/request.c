@@ -117,6 +117,11 @@ const char *onion_request_get_path(onion_request *req){
 	return req->path;
 }
 
+/// Returns a pointer to the string with the full path. Its a const and should not be trusted for long time.
+const char *onion_request_get_fullpath(onion_request *req){
+	return req->fullpath;
+}
+
 /// Gets the current flags, as in onion_request_flags_e
 onion_request_flags onion_request_get_flags(onion_request *req){
 	return req->flags;

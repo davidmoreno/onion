@@ -73,6 +73,9 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
 /// Gets the current path
 const char *onion_request_get_path(onion_request *req);
 
+/// Gets the full path of the request
+const char *onion_request_get_fullpath(onion_request *req);
+
 /// Gets the current flags, as in onion_request_flags_e
 onion_request_flags onion_request_get_flags(onion_request *req);
 

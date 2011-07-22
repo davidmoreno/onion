@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "onion.h"
 #include "log.h"
@@ -114,13 +115,11 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 		return OCS_NOT_PROCESSED;
 	}
 	
-	size_t size=st.st_size;
-	size_t length=size;
-	unsigned int time=st.st_mtime;
+	size_t length=st.st_size;
 	
 	char etag[32];
-	snprintf(etag,sizeof(etag),"%04X%04X",size,time);
-	
+	onion_shortcut_etag(&st, etag);
+		
 	ONION_DEBUG0("Etag %s", etag);
 	const char *prev_etag=onion_request_get_header(request, "If-None-Match");
 	if (prev_etag && (strcmp(prev_etag, etag)==0)){
@@ -214,3 +213,38 @@ int onion_shortcut_response_json(onion_dict *d, onion_request *req, onion_respon
 	return ret;
 }
 
+/**
+ * @short Transforms a time_t to a RFC 822 date string
+ * 
+ * This date format is the standard in HTTP protocol as RFC 2616, section 3.3.1
+ * 
+ * The dest pointer must be at least 32 bytes long as thats the maximum size of the date.
+ */
+void onion_shortcut_date_string(time_t t, char *dest){
+	struct tm ts;
+	gmtime_r(&t, &ts);
+	strftime(dest, t, "%a, %d %b %Y %T %Z", &ts);
+}
+
+
+/**
+ * @short Transforms a time_t to a ISO date string
+ * 
+ * The dest pointer must be at least 21 bytes long as thats the maximum size of the date.
+ */
+void onion_shortcut_date_string_iso(time_t t, char *dest){
+	struct tm ts;
+	gmtime_r(&t, &ts);
+	strftime(dest, t, "%FT%TZ", &ts);
+}
+
+/**
+ * @short Unifies the creation of etags.
+ * 
+ * Just now its a very simple one, based on the size and date.
+ */
+void onion_shortcut_etag(struct stat *st, char etag[32]){
+	size_t size=st->st_size;
+	unsigned int time=st->st_mtime;
+	snprintf(etag,sizeof(etag),"%04X%04X",size,time);
+}
