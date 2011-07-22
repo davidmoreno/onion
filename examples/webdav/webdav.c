@@ -160,22 +160,49 @@ static int onion_webdav_parse_propfind(const onion_block *block){
 }
 
 
+/**
+ * @short Write the properties of a path.
+ * 
+ * Given a path, and optionally a file at that path, writes the XML of its properties.
+ * 
+ * If no file given, data is for that path, else it is for the path+filename.
+ * 
+ * @param writer XML writer to write the data to
+ * @param realpath The real path on the file server, used to check permissions and read data TODO
+ * @param urlpath The base URL of the element, needed in the response. Composed with filename if filename!=NULL.
+ * @param filename NULL if that element itself, else the subelement (file in path).
+ * @param props Bitmask of the properties the user asked for.
+ * 
+ * @return 0 is ok, 1 if could not stat file.
+ */
 int onion_webdav_write_props(xmlTextWriterPtr writer, 
 														 const char *realpath, const char *urlpath, const char *filename, 
 														 int props){
 	ONION_DEBUG("Info for path '%s', urlpath '%s', file '%s'", realpath, urlpath, filename);
 	// Stat the thing itself
 	char tmp[512];
-	snprintf(tmp, sizeof(tmp), "%s/%s", realpath, filename);
+	if (filename)
+		snprintf(tmp, sizeof(tmp), "%s/%s", realpath, filename);
+	else
+		strncpy(tmp, realpath, sizeof(tmp));
 	struct stat st;
 	if (stat(tmp, &st)<0){
 		ONION_ERROR("Error making stat for %s", tmp);
 		return 1;
 	}
-	if (urlpath[0]==0)
-		snprintf(tmp, sizeof(tmp), "/%s", filename);
-	else
-		snprintf(tmp, sizeof(tmp), "/%s/%s", urlpath, filename);
+
+	if (filename){
+		if (urlpath[0]==0)
+			snprintf(tmp, sizeof(tmp), "/%s", filename);
+		else
+			snprintf(tmp, sizeof(tmp), "/%s/%s", urlpath, filename);
+	}
+	else{
+		if (urlpath[0]==0)
+			snprintf(tmp, sizeof(tmp), "/");
+		else
+			snprintf(tmp, sizeof(tmp), "/%s", urlpath);
+	}
 	
 	xmlTextWriterStartElement(writer, BAD_CAST "D:response");
 	xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:lp1" ,BAD_CAST "DAV:");
@@ -237,7 +264,7 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
 		xmlTextWriterEndElement(writer); // /propstat
 		
 	xmlTextWriterEndElement(writer);
-
+	
 	return 0;
 }
 
@@ -259,7 +286,7 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
 	xmlTextWriterStartDocument(writer, NULL, "utf-8", NULL);
 	xmlTextWriterStartElement(writer, BAD_CAST "D:multistatus");
 		xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:D" ,BAD_CAST "DAV:");
-			onion_webdav_write_props(writer, realpath, urlpath, "", props);
+			onion_webdav_write_props(writer, realpath, urlpath, NULL, props);
 			if (depth>0){
 				ONION_DEBUG("Get also all files");
 				DIR *dir=opendir(realpath);
