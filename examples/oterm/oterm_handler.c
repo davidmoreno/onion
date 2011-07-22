@@ -43,6 +43,8 @@
 #include <pwd.h>
 #include <onion/dict.h>
 
+#include "oterm_handler.h"
+
 /// Time to wait for output, or just return.
 #define TIMEOUT 60000
 
@@ -74,20 +76,31 @@ typedef struct process_t{
 typedef struct{
 	pthread_mutex_t head_mutex;
 	process *head;
-}oterm_t;
+}oterm_session;
 
+/**
+ * @short Data for the onion terminal handler itself
+ */
+struct oterm_data_t{
+	char *exec_command;
+	onion_handler *next;
+	onion_dict *sessions; // Each user (session['username']) has a session.
+};
 
-process *oterm_new(oterm_t *d, const char *username, char impersonate);
-oterm_t *oterm_data_new();
-static int oterm_status(oterm_t *o, onion_request *req, onion_response *res);
+typedef struct oterm_data_t oterm_data;
+
+process *oterm_new(oterm_data *d, oterm_session *s, const char *username, char impersonate);
+oterm_session *oterm_session_new();
+static int oterm_status(oterm_session *o, onion_request *req, onion_response *res);
 
 static int oterm_resize(process *o, onion_request *req, onion_response *res);
 static int oterm_title(process *o, onion_request *req, onion_response *res);
 static int oterm_in(process *o, onion_request *req, onion_response *res);
 static int oterm_out(process *o, onion_request *req, onion_response *res);
 
+
 /// Returns the term from the list of known terms. FIXME, make this structure a tree or something faster than linear search.
-process *oterm_get_process(oterm_t *o, const char *id){
+process *oterm_get_process(oterm_session *o, const char *id){
 	pthread_mutex_lock( &o->head_mutex );
 	process *p=o->head;
 	int pid=atoi(id);
@@ -105,21 +118,20 @@ process *oterm_get_process(oterm_t *o, const char *id){
 }
 
 /// Plexes the request depending on arguments.
-int oterm_data(onion_handler *next_handler, onion_request *req, onion_response *res){
-	oterm_t *o=(oterm_t*)onion_request_get_session(req,"oterm_data");
+int oterm_get_data(oterm_data *data, onion_request *req, onion_response *res){
+	oterm_session *o=(oterm_session*)onion_dict_get(data->sessions, onion_request_get_session(req,"username"));
 	if (!o){
-		o=oterm_data_new();
-		onion_dict *session=onion_request_get_session_dict(req);
-		onion_dict_lock_write(session);
-		onion_dict_add(session,"oterm_data",o, 0);
-		onion_dict_unlock(session);
+		o=oterm_session_new();
+		onion_dict_lock_write(data->sessions);
+		onion_dict_add(data->sessions,onion_request_get_session(req,"username"),o, 0);
+		onion_dict_unlock(data->sessions);
 	}
 	
 	
 	const char *path=onion_request_get_path(req);
 	
 	if (strcmp(path,"new")==0){
-		oterm_new(o, onion_request_get_session(req, "username"), onion_request_get_session(req, "nopam") ? 0 : 1 );
+		oterm_new(data, o, onion_request_get_session(req, "username"), onion_request_get_session(req, "nopam") ? 0 : 1 );
 		return onion_shortcut_response("ok", 200, req, res);
 	}
 	if (strcmp(path,"status")==0)
@@ -160,7 +172,7 @@ int oterm_data(onion_handler *next_handler, onion_request *req, onion_response *
 		return oterm_title(term,req,res);
 	onion_request_advance_path(req, func_pos);
 	
-	return onion_handler_handle(next_handler, req, res);
+	return onion_handler_handle(data->next, req, res);
 }
 
 /// Variables that will be passed to the new environment.
@@ -171,10 +183,17 @@ const char *onion_extraenvs[]={ "TERM=xterm" };
 #define ONION_EXTRAENV_COUNT (sizeof(onion_extraenvs)/sizeof(onion_extraenvs[0]))
 
 /// Creates a new oterm
-process *oterm_new(oterm_t *o, const char *username, char impersonate){
+process *oterm_new(oterm_data *data, oterm_session *session, const char *username, char impersonate){
 	process *oterm=malloc(sizeof(process));
 
-	ONION_DEBUG("Created new terminal");
+	const char *command_name;
+	int i;
+	for (i=strlen(data->exec_command);i>=0;i--)
+		if (data->exec_command[i]=='/')
+			break;
+	command_name=&data->exec_command[i+1];
+
+	ONION_DEBUG("Creating new terminal, exec %s (%s)", data->exec_command, command_name);
 	
 	oterm->pid=forkpty(&oterm->fd, NULL, NULL, NULL);
 	if ( oterm->pid== 0 ){ // on child
@@ -215,55 +234,80 @@ process *oterm_new(oterm_t *o, const char *username, char impersonate){
 				exit(1);
 			}
 		}
+		for (i=3;i<256;i++) // Force close file descriptors. Dirty but it works.
+			close(i);
 
-		int ok=execle("/bin/bash","bash",NULL,envs);
+		int ok=execle(data->exec_command, command_name, NULL, envs);
 		fprintf(stderr,"%s:%d Could not exec shell: %d\n",__FILE__,__LINE__,ok);
 		perror("");
 		exit(1);
 	}
-	oterm->title=strdup("No title yet");
+	oterm->title=strdup("Terminal ready.");
 	ONION_DEBUG("Default title is %s", oterm->title);
-	// I set myself at head
-	pthread_mutex_lock( &o->head_mutex );
-	oterm->next=o->head;
-	o->head=oterm;
-	pthread_mutex_unlock( &o->head_mutex );
+	oterm->next=NULL;
+	// I set myself at end
+	pthread_mutex_lock( &session->head_mutex );
+	if (!session->head)
+		session->head=oterm;
+	else{
+		process *next=session->head;
+		while (next->next) next=next->next;
+		next->next=oterm;
+	}
+	pthread_mutex_unlock( &session->head_mutex );
 	
 	return oterm;
 }
 
+/// Checks if the process is running and if it stopped, set name
+static void oterm_check_running(process *n){
+	if (n->pid==-1)
+		return; // Already dead
+	int changed=waitpid(n->pid, NULL, WNOHANG);
+	if (changed){
+		free(n->title);
+		n->title=strdup("- Finished -");
+		n->pid=-1;
+	}
+}
 
 /// Returns the status of all known terminals.
-int oterm_status(oterm_t *o, onion_request *req, onion_response *res){
+int oterm_status(oterm_session *session, onion_request *req, onion_response *res){
 	onion_dict *status=onion_dict_new();
 	
-	if (o->head){
-		process *n=o->head;
+	pthread_mutex_lock( &session->head_mutex );
+	if (session){
+		process *n=session->head;
 		int i=1;
 		while(n){
+			oterm_check_running(n);
+			
 			char *id=malloc(6);
 			sprintf(id, "%d", i);
 			onion_dict *term=onion_dict_new();
 			onion_dict_add(term, "title", n->title, OD_DUP_VALUE);
-			
 			onion_dict_add(status, id, term, OD_DICT|OD_FREE_ALL);
+			// Just a check, here is ok, no hanging childs
 			n=n->next;
 			i++;
 		}
 	}
+	pthread_mutex_unlock( &session->head_mutex );
 	
 	return onion_shortcut_response_json(status, req, res);
 }
 
 /// Input data to the process
-int oterm_in(process *o, onion_request *req, onion_response *res){
+int oterm_in(process *p, onion_request *req, onion_response *res){
+	oterm_check_running(p);
+
 	const char *data;
 	data=onion_request_get_post(req,"type");
 	ssize_t w;
 	if (data){
 		//fprintf(stderr,"%s:%d write %ld bytes\n",__FILE__,__LINE__,strlen(data));
 		size_t r=strlen(data);
-		w=write(o->fd, data, r);
+		w=write(p->fd, data, r);
 		if (w!=r){
 			ONION_WARNING("Error writing data to process. Not all data written. (%d).",w);
 			return onion_shortcut_response("Error", HTTP_INTERNAL_ERROR, req, res);
@@ -273,7 +317,7 @@ int oterm_in(process *o, onion_request *req, onion_response *res){
 }
 
 /// Resize the window. 
-int oterm_resize(process *o, onion_request* req, onion_response *res){
+int oterm_resize(process *p, onion_request* req, onion_response *res){
 	//const char *data=onion_request_get_query(req,"resize");
 	//int ok=kill(o->pid, SIGWINCH);
 	
@@ -284,7 +328,7 @@ int oterm_resize(process *o, onion_request* req, onion_response *res){
 	t=onion_request_get_post(req,"height");
 	winSize.ws_col = (unsigned short)atoi(t ? t : "25");
 	
-	int ok=ioctl(o->fd, TIOCSWINSZ, (char *)&winSize) == 0;
+	int ok=ioctl(p->fd, TIOCSWINSZ, (char *)&winSize) == 0;
 
 	if (ok>=0)
 		return onion_shortcut_response("OK",HTTP_OK, req, res);
@@ -293,17 +337,17 @@ int oterm_resize(process *o, onion_request* req, onion_response *res){
 }
 
 /// Sets internally the window title, for reference.
-int oterm_title(process *o, onion_request* req, onion_response *res){
+int oterm_title(process *p, onion_request* req, onion_response *res){
 	const char *t=onion_request_get_post(req, "title");
 	
 	if (!t)
 		return onion_shortcut_response("Error, must set title", HTTP_INTERNAL_ERROR, req, res);
 	
-	if (o->title)
-		free(o->title);
-	o->title=strdup(t);
+	if (p->title)
+		free(p->title);
+	p->title=strdup(t);
 	
-	ONION_DEBUG("Set term %d title %s", o->pid, o->title);
+	ONION_DEBUG("Set term %d title %s", p->pid, p->title);
 	
 	return onion_shortcut_response("OK", HTTP_OK, req, res);
 }
@@ -330,11 +374,14 @@ int oterm_out(process *o, onion_request *req, onion_response *res){
 	onion_response_write_headers(res);
 	if (n)
 		onion_response_write(res,buffer,n);
+
+	oterm_check_running(o);
+
 	return OCS_PROCESSED;
 }
 
 /// Terminates all processes, and frees the memory.
-void oterm_oterm_free(oterm_t *o){
+void oterm_session_free(oterm_session *o){
 	process *p=o->head;
 	process *t;
 	while (p){
@@ -348,8 +395,9 @@ void oterm_oterm_free(oterm_t *o){
 	free(o);
 }
 
-oterm_t *oterm_data_new(){
-	oterm_t *oterm=malloc(sizeof(oterm_t));
+/// Creates a new session, one per user at oterm_data->sessions.
+oterm_session *oterm_session_new(){
+	oterm_session *oterm=malloc(sizeof(oterm_session));
 	
 	pthread_mutex_init(&oterm->head_mutex, NULL);
 	oterm->head=NULL;
@@ -357,23 +405,37 @@ oterm_t *oterm_data_new(){
 	return oterm;
 }
 
+/// Frees memory used by the handler
+void oterm_free(oterm_data *data){
+	// TODO Clean properly all processes
+	onion_dict_free(data->sessions);
+	free(data->exec_command);
+	onion_handler_free(data->next);
+	free(data);
+}
+
 /// Prepares the oterm handler
-onion_handler *oterm_handler_data(){
-	onion_handler *data;
+onion_handler *oterm_handler(const char *exec_command){
+	onion_handler *next_handler;
 #ifdef __DEBUG__
 	if (getenv("OTERM_DEBUG"))
-		data=onion_handler_export_local_new(".");
+		next_handler=onion_handler_export_local_new(".");
 	else{
 #endif
-	data=onion_handler_opack("/",opack_oterm_html, opack_oterm_html_length);
-	onion_handler_add(data, onion_handler_opack("/oterm.js", opack_oterm_js, opack_oterm_js_length));
-	onion_handler_add(data, onion_handler_opack("/oterm_input.js", opack_oterm_input_js, opack_oterm_input_js_length));
-	onion_handler_add(data, onion_handler_opack("/oterm_parser.js", opack_oterm_parser_js, opack_oterm_parser_js_length));
-	onion_handler_add(data, onion_handler_opack("/oterm_data.js", opack_oterm_data_js, opack_oterm_data_js_length));
+	next_handler=onion_handler_opack("/",opack_oterm_html, opack_oterm_html_length);
+	onion_handler_add(next_handler, onion_handler_opack("/oterm.js", opack_oterm_js, opack_oterm_js_length));
+	onion_handler_add(next_handler, onion_handler_opack("/oterm_input.js", opack_oterm_input_js, opack_oterm_input_js_length));
+	onion_handler_add(next_handler, onion_handler_opack("/oterm_parser.js", opack_oterm_parser_js, opack_oterm_parser_js_length));
+	onion_handler_add(next_handler, onion_handler_opack("/oterm_data.js", opack_oterm_data_js, opack_oterm_data_js_length));
 #ifdef __DEBUG__
 	}
 #endif
 	
-	return onion_handler_new((void*)oterm_data, data, (void*)onion_handler_free);
+	oterm_data *data=malloc(sizeof(oterm_data));
+	data->sessions=onion_dict_new();
+	data->next=next_handler;
+	data->exec_command=strdup(exec_command);
+	
+	return onion_handler_new((void*)oterm_get_data, data, (void*)oterm_free);
 }
 
