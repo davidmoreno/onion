@@ -40,4 +40,7 @@ else (${CAIRO_ENABLED})
 endif (${CAIRO_ENABLED})
 
 
-add_subdirectory(webdav)
+if (${XML2_ENABLED})
+	add_subdirectory(webdav)
+endif (${XML2_ENABLED})
+

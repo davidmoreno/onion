@@ -7,6 +7,7 @@ SET(ONION_USE_SSL true)
 SET(ONION_USE_PAM true)
 SET(ONION_USE_PTHREADS true)
 SET(ONION_USE_PNG true)
+SET(ONION_USE_XML2 true)
 SET(ONION_VERSION 0.4.0)
 ########
 
@@ -50,6 +51,15 @@ if (${ONION_USE_PTHREADS})
 	endif(PTHREADS_LIB)
 endif(${ONION_USE_PTHREADS})
 
+if (${ONION_USE_XML2})
+	find_library(XML2_LIB NAMES xml2 PATH ${LIBPATH})
+	if(XML2_LIB)
+		message(STATUS "libxml2 found. WebDAV support is compiled in.")
+		set(XML2_ENABLED true)
+	else(XML2_LIB)
+		message("libxml2 not found. WebDAV is not supported.")
+	endif(XML2_LIB)
+endif(${ONION_USE_XML2})
 
 if (${ONION_USE_PAM})
 	find_library(PAM_LIB NAMES pam pam_misc PATH ${LIBPATH})
@@ -60,7 +70,6 @@ if (${ONION_USE_PAM})
 		message("pam not found. No PAM support.")
   endif (PAM_LIB)
 endif (${ONION_USE_PAM})
-
 
 if (${ONION_USE_PNG})
 	find_library(PNG_LIB NAMES png PATH ${LIBPATH})

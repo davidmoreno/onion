@@ -134,6 +134,7 @@ onion_connection_status onion_webdav_delete(const char *path, onion_request *req
  */
 onion_connection_status onion_webdav_move(const char *path, onion_request *req, onion_response *res){
 	const char *dest=onion_request_get_header(req,"Destination");
+	const char *dest_orig=dest;
 	// Skip the http... part. Just 3 /.
 	int i;
 	for (i=0;i<3;i+=(*dest++=='/'))
@@ -163,8 +164,7 @@ onion_connection_status onion_webdav_move(const char *path, onion_request *req, 
 	char fdest[512];
 	snprintf(fdest, sizeof(fdest), "%s/%s", path, dest);
 
-	ONION_DEBUG("Webdav move %s to %s", orig, fdest);
-
+	ONION_INFO("Move %s to %s (webdav)", fullpath, dest_orig);
 	
 	int ok=onion_shortcut_rename(orig, fdest);
 
