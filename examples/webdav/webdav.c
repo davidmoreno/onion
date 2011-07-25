@@ -20,9 +20,6 @@
 #include <errno.h>
 
 #include <libxml/xmlmemory.h>
-#include <libxml/parser.h>
-#include <libxml/xpath.h>
-#include <libxml/encoding.h>
 #include <libxml/xmlwriter.h>
 
 #include <onion/log.h>
