@@ -265,6 +265,10 @@ void onion_request_clean(onion_request* req){
 		onion_dict_free(req->FILES);
 		req->FILES=NULL;
 	}
+	if (req->data){
+		onion_block_free(req->data);
+		req->data=NULL;
+	}
 }
 
 /**
