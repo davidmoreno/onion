@@ -984,6 +984,11 @@ static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req){
 		return OCS_INTERNAL_ERROR;
 	}
 	size_t cl=atol(content_size);
+	
+	if (cl>req->server->max_post_size){
+		ONION_ERROR("Trying to set more data at server than allowed");
+		return OCS_INTERNAL_ERROR;
+	}
 
 	req->data=onion_block_new();
 	
@@ -1009,6 +1014,11 @@ static onion_connection_status prepare_PUT(onion_request *req){
 	}
 	size_t cl=atol(content_size);
 
+	if (cl>req->server->max_file_size){
+		ONION_ERROR("Trying to PUT a file bigger than allowed size");
+		return OCS_INTERNAL_ERROR;
+	}
+	
 	req->data=onion_block_new();
 	
 	char filename[]="/tmp/onion-XXXXXX";
