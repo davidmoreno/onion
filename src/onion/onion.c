@@ -303,7 +303,7 @@ void onion_free(onion *onion){
 }
 
 /// Basic direct to socket write method.
-static int write_to_socket(int *fd, const char *data, unsigned int len){
+int onion_write_to_socket(int *fd, const char *data, unsigned int len){
 	return write(*fd, data, len);
 }
 
@@ -558,12 +558,12 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 		req=onion_request_new(o->server, session, client_info);
 	}
 	else{
-		onion_server_set_write(o->server, (onion_write)write_to_socket);
+		onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
 		req=onion_request_new(o->server, &clientfd, client_info);
 	}
 #else
 	req=onion_request_new(o->server, &clientfd, client_info);
-	onion_server_set_write(o->server, (onion_write)write_to_socket);
+	onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
 #endif
 	if (!(o->flags&O_THREADED))
 		onion_request_set_no_keep_alive(req);

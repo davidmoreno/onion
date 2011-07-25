@@ -220,6 +220,8 @@ int onion_response_write_headers(onion_response *res){
  * These chunks are when the response is finished, or when the internal buffer is full. This
  * helps performance, and eases the programming on the user side.
  * 
+ * If length is 0, forces the write of pending data.
+ * 
  * @returns The bytes written, normally just length. On error returns OCS_CLOSE_CONNECTION.
  */
 ssize_t onion_response_write(onion_response *res, const char *data, size_t length){
@@ -230,7 +232,10 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
 		ONION_DEBUG("Skipping content as we are in HEAD mode");
 		return OCS_CLOSE_CONNECTION;
 	}
-	
+	if (length==0){
+		onion_response_write_buffer(res);
+		return 0;
+	}
 	res->sent_bytes+=length;
 	res->sent_bytes_total+=length;
 

@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU Lesser General Public
 	License along with this library; if not see <http://www.gnu.org/licenses/>.
 	*/
+#define USE_SENDFILE
 
 #include <string.h>
 #include <stdarg.h>
@@ -25,6 +26,9 @@
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>
+#ifdef USE_SENDFILE
+#include <sys/sendfile.h>
+#endif
 
 #include "onion.h"
 #include "log.h"
@@ -32,6 +36,9 @@
 #include "dict.h"
 #include "block.h"
 #include "mime.h"
+#include "types_internal.h"
+
+int onion_write_to_socket(int *fd, const char *data, unsigned int len);
 
 /**
  * @short Shortcut for fast responses, like errors.
@@ -168,28 +175,46 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 	}
 	
 	if (length){
-		int r=0,w;
-		size_t tr=0;
-		char tmp[4046];
-		if (length>sizeof(tmp)){
-			size_t max=length-sizeof(tmp);
-			while( tr<max ){
-				r=read(fd,tmp,sizeof(tmp));
-				tr+=r;
-				if (r<0)
-					break;
+#ifdef USE_SENDFILE
+		if (request->server->write==(void*)onion_write_to_socket){ // Lets have a house party! I can use sendfile!
+			onion_response_write(res,NULL,0);
+			ONION_DEBUG("Using sendfile");
+			int r=sendfile(*((int*)request->socket), fd, NULL, length);
+			ONION_DEBUG("Wrote %d, should be %d", r, length);
+			if (r!=length || r<0){
+				ONION_ERROR("Could not send all file (%s)", strerror(errno));
+				close(fd);
+				return OCS_INTERNAL_ERROR;
+			}
+			res->sent_bytes+=length;
+			res->sent_bytes_total+=length;
+		}
+		else
+#endif
+		{ // Ok, no I cant, do it as always.
+			int r=0,w;
+			size_t tr=0;
+			char tmp[4046];
+			if (length>sizeof(tmp)){
+				size_t max=length-sizeof(tmp);
+				while( tr<max ){
+					r=read(fd,tmp,sizeof(tmp));
+					tr+=r;
+					if (r<0)
+						break;
+					w=onion_response_write(res, tmp, r);
+					if (w!=r){
+						ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
+						break;
+					}
+				}
+			}
+			if (sizeof(tmp) >= (length-tr)){
+				r=read(fd, tmp, length-tr);
 				w=onion_response_write(res, tmp, r);
 				if (w!=r){
 					ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
-					break;
 				}
-			}
-		}
-		if (sizeof(tmp) >= (length-tr)){
-			r=read(fd, tmp, length-tr);
-			w=onion_response_write(res, tmp, r);
-			if (w!=r){
-				ONION_ERROR("Wrote less than read: write %d, read %d. Quite probably closed connection.",w,r);
 			}
 		}
 	}
