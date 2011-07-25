@@ -531,7 +531,9 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
 	
 	file=realpath(filename, NULL);
 	if (!file){ // Maybe it reffers to a non existent file, so we need the parent permissions
-		file=realpath(dirname((char*)filename), NULL);
+		char *fname=alloca(strlen(filename)+1);
+		strcpy(fname, filename);
+		file=realpath(dirname(fname), NULL);
 	}
 	if (!base || !file){
 		ret=1;
