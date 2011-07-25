@@ -54,6 +54,9 @@ void onion_shortcut_date_string_iso(time_t t, char *dest);
 
 /// Shortcut to unify the creation of etags.
 void onion_shortcut_etag(struct stat *, char etag[32]);
+/// Moves a file to another location
+int onion_shortcut_rename(const char *orig, const char *dest);
+
 
 #ifdef __cplusplus
 }

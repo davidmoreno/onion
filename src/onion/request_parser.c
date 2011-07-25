@@ -325,19 +325,16 @@ static onion_connection_status parse_PUT(onion_request *req, onion_buffer *data)
 	write(*fd, &data->data[data->pos], length);
 	data->pos+=length;
 	token->pos+=length;
+
+#if __DEBUG__
+	const char *filename=onion_block_data(req->data);
+	ONION_DEBUG0("Done with PUT. Created %s (%d bytes)", filename, token->pos);
+#endif
 	
 	if (exit){
 		close (*fd);
 		free(fd);
 		token->extra=NULL;
-		if (!req->FILES){
-			req->FILES=onion_dict_new();
-		}
-		const char *filename=onion_block_data(req->data);
-		ONION_DEBUG0("Done with PUT. Created %s (%d bytes)", filename, token->pos);
-		
-		onion_dict_add(req->FILES,"filename", filename, 0);
-		
 		return onion_request_process(req);
 	}
 	
@@ -688,8 +685,11 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 			return prepare_POST(req);
 		if ((req->flags&OR_METHODS)==OR_PUT)
 			return prepare_PUT(req);
-		if (onion_request_get_header(req, "Content-Length")) // Soem length, not POST, get data.
-			return prepare_CONTENT_LENGTH(req);
+		if (onion_request_get_header(req, "Content-Length")){ // Soem length, not POST, get data.
+			int n=atoi(onion_request_get_header(req, "Content-Length"));
+			if (n>0)
+				return prepare_CONTENT_LENGTH(req);
+		}
 		
 		return onion_request_process(req);
 	}
@@ -1015,16 +1015,31 @@ static onion_connection_status prepare_PUT(onion_request *req){
 	int fd=mkstemp(filename);
 	if (fd<0)
 		ONION_ERROR("Could not create temporal file at %s.", filename);
+	
+	onion_block_add_str(req->data, filename);
+	ONION_DEBUG0("Creating PUT file %s (%d bytes long)", filename, token->extra_size);
+	
+	if (!req->FILES){
+		req->FILES=onion_dict_new();
+	}
+	{
+	const char *filename=onion_block_data(req->data);
+	onion_dict_add(req->FILES,"filename", filename, 0);
+	}
+
+	
+	if (cl==0){
+		ONION_DEBUG0("Created 0 length file");
+		close(fd);
+		return onion_request_process(req);
+	}
+	
 	int *pfd=malloc(sizeof(fd));
 	*pfd=fd;
 	
 	token->extra=(char*)pfd;
 	token->extra_size=cl;
 	token->pos=0;
-	
-	onion_block_add_str(req->data, filename);
-	ONION_DEBUG0("Creating PUT file %s (%d bytes long)", filename, token->extra_size);
-	
 	
 	req->parser=parse_PUT;
 	return OCS_NEED_MORE_DATA;

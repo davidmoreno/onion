@@ -54,6 +54,7 @@ typedef enum onion_webdav_props_e onion_webdav_props;
 
 onion_connection_status onion_webdav_get(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_put(const char *path, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_move(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_delete(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_propfind(const char *path, onion_request *req, onion_response *res);
@@ -86,9 +87,11 @@ onion_connection_status onion_webdav_handler(const char *path, onion_request *re
 			return onion_webdav_put(path, req, res);
 		case OR_DELETE:
 			return onion_webdav_delete(path, req, res);
+		case OR_MOVE:
+			return onion_webdav_move(path, req, res);
 	}
 	
-	
+	onion_response_set_code(res, HTTP_NOT_IMPLEMENTED);
 	onion_response_write0(res, "<h1>Work in progress...</h1>\n");
 	
 	return HTTP_OK;
@@ -125,6 +128,57 @@ onion_connection_status onion_webdav_delete(const char *path, onion_request *req
 }
 
 /**
+ * @short Moves a resource
+ * 
+ * TODO Check permissions using some callback mechanism.
+ */
+onion_connection_status onion_webdav_move(const char *path, onion_request *req, onion_response *res){
+	const char *dest=onion_request_get_header(req,"Destination");
+	// Skip the http... part. Just 3 /.
+	int i;
+	for (i=0;i<3;i+=(*dest++=='/'))
+		if (*dest==0)
+			return OCS_INTERNAL_ERROR;
+	dest--;
+	
+	const char *fullpath=onion_request_get_fullpath(req);
+	const char *partialpath=onion_request_get_path(req);
+	// Not the fixed URL part for this handler.
+	int fpl=strlen(fullpath); // Full path length
+	int ppl=strlen(onion_request_get_path(req)); // Partial, the fullpath[fpl-ppl] is the end point of the handler path
+	if (strncmp(fullpath, dest, fpl-ppl)!=0){
+		char tmp[512];
+		int l=fpl-ppl < sizeof(tmp)-1 ? fpl-ppl : sizeof(tmp)-1;
+		strncpy(tmp, fullpath, l);
+		tmp[l]=0;
+		ONION_WARNING("Move to out of this webdav share! (%s is out of %s)", dest, tmp);
+		return onion_shortcut_response("Moving out of shared share", HTTP_FORBIDDEN, req, res);
+	}
+	dest=&dest[fpl-ppl];
+
+
+	char orig[512];
+	snprintf(orig, sizeof(orig), "%s/%s", path, partialpath);
+
+	char fdest[512];
+	snprintf(fdest, sizeof(fdest), "%s/%s", path, dest);
+
+	ONION_DEBUG("Webdav move %s to %s", orig, fdest);
+
+	
+	int ok=onion_shortcut_rename(orig, fdest);
+
+	if (ok==0){
+		ONION_DEBUG("Created %s succesfully", fdest);
+		return onion_shortcut_response("201 Created", 201, req, res);
+	}
+	else{
+		ONION_ERROR("Could not rename %s to %s (%s)", orig, fdest, strerror(errno));
+		return onion_shortcut_response("Could not create resource", HTTP_FORBIDDEN, req, res);
+	}
+}
+
+/**
  * @short Simple put on webdav is just move a file from tmp to the final destination (or copy if could not move).
  * 
  * TODO Check permissions using some callback mechanism.
@@ -135,38 +189,8 @@ onion_connection_status onion_webdav_put(const char *path, onion_request *req, o
 	ONION_DEBUG("Webdav puts %s", dest);
 	
 	const char *tmpfile=onion_block_data(onion_request_get_data(req));
-	int ok=rename(tmpfile, dest);
 	
-	if (ok!=0 && errno==EXDEV){ // Ok, old way, open both, copy
-		ONION_DEBUG0("Slow cp, as tmp is in another FS");
-		ok=0;
-		int fd_dest=open(dest, O_WRONLY|O_CREAT, 0666);
-		if (fd_dest<0){
-			ok=1;
-			ONION_ERROR("Could not open destination for writing (%s)", strerror(errno));
-		}
-		int fd_orig=open(tmpfile, O_RDONLY);
-		if (fd_dest<0){
-			ok=1;
-			ONION_ERROR("Could not open orig for reading (%s)", strerror(errno));
-		}
-		if (ok==0){
-			char tmp[4096];
-			int r;
-			while ( (r=read(fd_orig, tmp, sizeof(tmp))) > 0 ){
-				r=write(fd_dest, tmp, r);
-				if (r<0){
-					ONION_ERROR("Error writing to destination file (%s)", strerror(errno));
-					ok=1;
-					break;
-				}
-			}
-		}
-		if (fd_orig>=0)
-			close(fd_orig); // onion itself will remove it.
-		if (fd_dest>=0)
-			close(fd_dest);
-	}
+	int ok=onion_shortcut_rename(tmpfile, dest);
 	
 	if (ok==0){
 		ONION_DEBUG("Created %s succesfully", dest);

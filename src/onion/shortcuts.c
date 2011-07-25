@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <errno.h>
 
 #include "onion.h"
 #include "log.h"
@@ -247,4 +248,47 @@ void onion_shortcut_etag(struct stat *st, char etag[32]){
 	size_t size=st->st_size;
 	unsigned int time=st->st_mtime;
 	snprintf(etag,sizeof(etag),"%04X%04X",size,time);
+}
+
+/**
+ * @short Moves a file to another location
+ * 
+ * It takes care if it can be a simple rename or must copy and remove old.
+ */
+int onion_shortcut_rename(const char *orig, const char *dest){
+	int ok=rename(orig, dest);
+	
+	if (ok!=0 && errno==EXDEV){ // Ok, old way, open both, copy
+		ONION_DEBUG0("Slow cp, as tmp is in another FS");
+		ok=0;
+		int fd_dest=open(dest, O_WRONLY|O_CREAT, 0666);
+		if (fd_dest<0){
+			ok=1;
+			ONION_ERROR("Could not open destination for writing (%s)", strerror(errno));
+		}
+		int fd_orig=open(orig, O_RDONLY);
+		if (fd_dest<0){
+			ok=1;
+			ONION_ERROR("Could not open orig for reading (%s)", strerror(errno));
+		}
+		if (ok==0){
+			char tmp[4096];
+			int r;
+			while ( (r=read(fd_orig, tmp, sizeof(tmp))) > 0 ){
+				r=write(fd_dest, tmp, r);
+				if (r<0){
+					ONION_ERROR("Error writing to destination file (%s)", strerror(errno));
+					ok=1;
+					break;
+				}
+			}
+		}
+		if (fd_orig>=0){
+			close(fd_orig);
+			unlink(orig);
+		}
+		if (fd_dest>=0)
+			close(fd_dest);
+	}
+	return ok;
 }
