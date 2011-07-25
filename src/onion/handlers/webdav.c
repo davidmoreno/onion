@@ -32,6 +32,15 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <malloc.h>
+#include <libgen.h>
+
+struct onion_webdav_t{
+	char *path;
+	onion_webdav_permissions_check check_permissions;
+};
+
+typedef struct onion_webdav_t onion_webdav;
 
 /**
  * @short Flags of props as queried
@@ -49,43 +58,51 @@ enum onion_webdav_props_e{
 typedef enum onion_webdav_props_e onion_webdav_props;
 
 
-onion_connection_status onion_webdav_get(const char *path, onion_request *req, onion_response *res);
-onion_connection_status onion_webdav_put(const char *path, onion_request *req, onion_response *res);
-onion_connection_status onion_webdav_move(const char *path, onion_request *req, onion_response *res);
-onion_connection_status onion_webdav_delete(const char *path, onion_request *req, onion_response *res);
-onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res);
-onion_connection_status onion_webdav_propfind(const char *path, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_get(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_put(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_move(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_delete(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_options(const char *filename, onion_webdav *wdpath, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
 
 /**
  * @short Main webdav handler, just redirects to the proper handler depending on headers and method
  */
-onion_connection_status onion_webdav_handler(const char *path, onion_request *req, onion_response *res){
+onion_connection_status onion_webdav_handler(onion_webdav *wd, onion_request *req, onion_response *res){
 	onion_response_set_header(res, "Dav", "1,2");
-	//onion_response_set_header(res, "Dav", "<http://apache.org/dav/propset/fs/1>");
 	onion_response_set_header(res, "MS-Author-Via", "DAV");
 	
 #ifdef __DEBUG__
 	const onion_block *data=onion_request_get_data(req);
 	if (data){
-		ONION_DEBUG0("Have data! %s", onion_block_data(data));
+		ONION_DEBUG0("Have data!\n %s", onion_block_data(data));
 	}
 #endif
-	
 
+	
+	char filename[512];
+	snprintf(filename, sizeof(filename), "%s/%s", wd->path, onion_request_get_path(req));
+	
+	ONION_DEBUG("Check %s and %s", wd->path, filename);
+	if (wd->check_permissions(wd->path, filename, req)!=0){
+		return onion_shortcut_response("Forbidden", HTTP_FORBIDDEN, req, res);
+	}
+
+	
 	switch (onion_request_get_flags(req)&OR_METHODS){
 		case OR_GET:
 		case OR_HEAD:
-			return onion_webdav_get(path, req, res);
+			return onion_webdav_get(filename, wd, req, res);
 		case OR_OPTIONS:
-			return onion_webdav_options(path, req, res);
+			return onion_webdav_options(filename, wd, req, res);
 		case OR_PROPFIND:
-			return onion_webdav_propfind(path, req, res);
+			return onion_webdav_propfind(filename, wd, req, res);
 		case OR_PUT:
-			return onion_webdav_put(path, req, res);
+			return onion_webdav_put(filename, wd, req, res);
 		case OR_DELETE:
-			return onion_webdav_delete(path, req, res);
+			return onion_webdav_delete(filename, wd, req, res);
 		case OR_MOVE:
-			return onion_webdav_move(path, req, res);
+			return onion_webdav_move(filename, wd, req, res);
 	}
 	
 	onion_response_set_code(res, HTTP_NOT_IMPLEMENTED);
@@ -96,26 +113,18 @@ onion_connection_status onion_webdav_handler(const char *path, onion_request *re
 
 /**
  * @short Simple get on webdav is just a simple get on a default path.
- * 
- * TODO Check permissions using some callback mechanism.
  */
-onion_connection_status onion_webdav_get(const char *path, onion_request *req, onion_response *res){
-	char tmp[512];
-	snprintf(tmp, sizeof(tmp), "%s/%s", path, onion_request_get_path(req));
-	ONION_DEBUG("Webdav gets %s", tmp);
-	return onion_shortcut_response_file(tmp, req, res);
+onion_connection_status onion_webdav_get(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
+	ONION_DEBUG("Webdav gets %s", filename);
+	return onion_shortcut_response_file(filename, req, res);
 }
 
 /**
  * @short Deletes a resource
- * 
- * TODO Check permissions using some callback mechanism.
  */
-onion_connection_status onion_webdav_delete(const char *path, onion_request *req, onion_response *res){
-	char tmp[512];
-	snprintf(tmp, sizeof(tmp), "%s/%s", path, onion_request_get_path(req));
-	ONION_DEBUG("Webdav delete %s", tmp);
-	int error=unlink(tmp);
+onion_connection_status onion_webdav_delete(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
+	ONION_DEBUG("Webdav delete %s", filename);
+	int error=unlink(filename);
 	if (error==0)
 		return onion_shortcut_response("Deleted", HTTP_OK, req, res);
 	else{
@@ -126,10 +135,8 @@ onion_connection_status onion_webdav_delete(const char *path, onion_request *req
 
 /**
  * @short Moves a resource
- * 
- * TODO Check permissions using some callback mechanism.
  */
-onion_connection_status onion_webdav_move(const char *path, onion_request *req, onion_response *res){
+onion_connection_status onion_webdav_move(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
 	const char *dest=onion_request_get_header(req,"Destination");
 	const char *dest_orig=dest;
 	// Skip the http... part. Just 3 /.
@@ -156,10 +163,13 @@ onion_connection_status onion_webdav_move(const char *path, onion_request *req, 
 
 
 	char orig[512];
-	snprintf(orig, sizeof(orig), "%s/%s", path, partialpath);
+	snprintf(orig, sizeof(orig), "%s/%s", wd->path, partialpath);
+	
+	if (wd->check_permissions(wd->path, orig, req)!=0){
+		return onion_shortcut_response("Forbidden", HTTP_FORBIDDEN, req, res);
+	}
 
-	char fdest[512];
-	snprintf(fdest, sizeof(fdest), "%s/%s", path, dest);
+	const char *fdest=filename;
 
 	ONION_INFO("Move %s to %s (webdav)", fullpath, dest_orig);
 	
@@ -178,23 +188,20 @@ onion_connection_status onion_webdav_move(const char *path, onion_request *req, 
 /**
  * @short Simple put on webdav is just move a file from tmp to the final destination (or copy if could not move).
  * 
- * TODO Check permissions using some callback mechanism.
  */
-onion_connection_status onion_webdav_put(const char *path, onion_request *req, onion_response *res){
-	char dest[512];
-	snprintf(dest, sizeof(dest), "%s/%s", path, onion_request_get_path(req));
-	ONION_DEBUG("Webdav puts %s", dest);
+onion_connection_status onion_webdav_put(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
+	ONION_DEBUG("Webdav puts %s", filename);
 	
 	const char *tmpfile=onion_block_data(onion_request_get_data(req));
 	
-	int ok=onion_shortcut_rename(tmpfile, dest);
+	int ok=onion_shortcut_rename(tmpfile, filename);
 	
 	if (ok==0){
-		ONION_DEBUG("Created %s succesfully", dest);
+		ONION_DEBUG("Created %s succesfully", filename);
 		return onion_shortcut_response("201 Created", 201, req, res);
 	}
 	else{
-		ONION_ERROR("Could not rename %s to %s (%s)", tmpfile, dest, strerror(errno));
+		ONION_ERROR("Could not rename %s to %s (%s)", tmpfile, filename, strerror(errno));
 		return onion_shortcut_response("Could not create resource", HTTP_FORBIDDEN, req, res);
 	}
 }
@@ -204,7 +211,7 @@ onion_connection_status onion_webdav_put(const char *path, onion_request *req, o
  * 
  * Just known options, no more. I think many clients ignore this. (without PUT, gnome's file manager was trying).
  */
-onion_connection_status onion_webdav_options(const char *path, onion_request *req, onion_response *res){
+onion_connection_status onion_webdav_options(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
 	onion_response_set_header(res, "Allow", "OPTIONS,GET,HEAD,PUT,PROPFIND");
 	onion_response_set_header(res, "Content-Type", "httpd/unix-directory");
 	
@@ -453,7 +460,7 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
  * 
  * @param path the shared path.
  */
-onion_connection_status onion_webdav_propfind(const char *path, onion_request* req, onion_response* res){
+onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav *wd, onion_request* req, onion_response* res){
 	ONION_DEBUG0("PROPFIND");
 	int depth;
 	{
@@ -472,10 +479,7 @@ onion_connection_status onion_webdav_propfind(const char *path, onion_request* r
 	int props=onion_webdav_parse_propfind(onion_request_get_data(req));
 	ONION_DEBUG("Asking for props %08X, depth %d", props, depth);
 	
-	char tmp[512];
-	snprintf(tmp, sizeof(tmp), "%s/%s", path, onion_request_get_path(req));
-	
-	onion_block *block=onion_webdav_write_propfind(tmp, onion_request_get_path(req), depth, props);
+	onion_block *block=onion_webdav_write_propfind(filename, onion_request_get_path(req), depth, props);
 	
 	if (!block) // No block, resource does not exist
 		return onion_shortcut_response("Not found", HTTP_NOT_FOUND, req, res);
@@ -496,29 +500,88 @@ onion_connection_status onion_webdav_propfind(const char *path, onion_request* r
 /**
  * @short Frees the webdav data
  */
-void onion_webdav_free(char *d){
-	free(d);
+void onion_webdav_free(onion_webdav *wd){
+	free(wd->path);
+	free(wd);
 	
 	xmlCleanupParser();
 	xmlMemoryDump();
 }
 
 /**
+ * @short Default permission checker
+ * 
+ * It checks the given path complies with the exported area.
+ */ 
+int onion_webdav_default_check_permissions(const char *exported_path, const char *filename, onion_request *req){
+	if (strstr(filename,"/../")){
+		ONION_ERROR("Trying to escape! %s is trying to escape from %s", filename, exported_path);
+		return 1;
+	}
+	
+	ONION_DEBUG0("Checking permissions for path %s, file %s", exported_path, filename);
+	char *base, *file;
+	int ret=0;
+	
+	base=realpath(exported_path, NULL);
+	if (!base){
+		ONION_ERROR("Base directory does not exist.");
+		return 1;
+	}
+	
+	file=realpath(filename, NULL);
+	if (!file){ // Maybe it reffers to a non existent file, so we need the parent permissions
+		file=realpath(dirname((char*)filename), NULL);
+	}
+	if (!base || !file){
+		ret=1;
+		ONION_ERROR("Could not resolve real path for %s or %s", exported_path, filename);
+	}
+	if ((ret==0) && strncmp(base, file, sizeof(base))!=0){
+		ret=1;
+		ONION_ERROR("Base %s is not for file %s", base, file);
+	}
+	
+	if (base)
+		free(base); 
+	if (file)
+		free(file);
+	ONION_DEBUG0("Permission %s", ret==0 ? "granted" : "denied");
+	return ret;
+}
+
+/**
  * @short Creates a webdav handler
  * 
- * The webdav implementation has no security at all.
- *
- * Authentication that should be given by higher levels (pam_handler), and access 
- * control to specific files using customizing functions, like 
- * onion_webdav_set_permission_checker. (TODO).
+ * The check_permissions parameter, if set, sets a custom security permission checker.
+ * 
+ * If not set, the default permissions apply, that will try to do not access files out of the restricted area.
+ * 
+ * This permission checker gets the exported path, the path to the file that wants to be exported/checked/moved.., 
+ * and the request as it arrived to the handler.
+ * 
+ * The exported path and file path might be relative, if onion_handler_webdav was initialized so.
+ * 
+ * On move it will check for both the original and final files, on other methods, it will check just the file, and
+ * the semantics is that the user is allowed to do that method.
+ * 
+ * It should return 0 on success, any other if error/not allowed.
  * 
  * @param path Path to share
  * @returns The onion handler.
  */
-onion_handler *onion_webdav(const char *path){
+onion_handler *onion_handler_webdav(const char *path, onion_webdav_permissions_check perm){
 	xmlInitParser();
 	LIBXML_TEST_VERSION
 
-	onion_handler *ret=onion_handler_new((void*)onion_webdav_handler, strdup(path), (void*)onion_webdav_free);
+	onion_webdav *wd=malloc(sizeof(onion_webdav));
+	wd->path=strdup(path);
+	
+	if (perm)
+		wd->check_permissions=perm;
+	else
+		wd->check_permissions=onion_webdav_default_check_permissions;
+
+	onion_handler *ret=onion_handler_new((void*)onion_webdav_handler, wd, (void*)onion_webdav_free);
 	return ret;
 }

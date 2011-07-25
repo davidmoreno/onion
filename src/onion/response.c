@@ -67,7 +67,7 @@ onion_response *onion_response_new(onion_request *req){
 	}
 	
 	// Sorry for the publicity.
-	onion_dict_add(res->headers, "Server", "libonion v0.3 - coralbits.com", 0);
+	onion_dict_add(res->headers, "Server", "libonion v0.5 - coralbits.com", 0);
 	onion_dict_add(res->headers, "Content-Type", "text/html", 0); // Maybe not the best guess, but really useful.
 	//time_t t=time(NULL);
 	//onion_dict_add(res->headers, "Date", asctime(localtime(&t)), OD_DUP_VALUE);

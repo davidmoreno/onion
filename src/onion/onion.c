@@ -572,6 +572,7 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 	pfd.events=POLLIN;
 	pfd.fd=clientfd;
 	while ((poll(&pfd,1, o->timeout))>0){
+		errno=0;
 #if HAVE_GNUTLS
 		r = (o->flags&O_SSL_ENABLED)
 							? gnutls_record_recv (session, buffer, sizeof(buffer))

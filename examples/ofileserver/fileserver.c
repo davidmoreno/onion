@@ -93,7 +93,7 @@ int main(int argc, char **argv){
 	onion_handler *root=onion_handler_new((onion_handler_handler)fileserver_page, (void *)dirname, NULL);
 #ifdef HAVE_WEBDAV
 	if (withwebdav)
-		onion_handler_add(root, onion_webdav(dirname)); // fallback.
+		onion_handler_add(root, onion_handler_webdav(dirname, NULL)); // fallback.
 	else
 #endif
 		onion_handler_add(root, onion_handler_export_local_new(dirname));
