@@ -53,12 +53,13 @@ endif(${ONION_USE_PTHREADS})
 
 if (${ONION_USE_XML2})
 	find_library(XML2_LIB NAMES xml2 PATH ${LIBPATH})
-	if(XML2_LIB)
+	find_path(XML2_HEADERS NAMES libxml/xmlwriter.h HINTS ${INCLUDE_PATH} PATH_SUFFIXES libxml2)
+	if(XML2_HEADERS)
 		message(STATUS "libxml2 found. WebDAV support is compiled in.")
 		set(XML2_ENABLED true)
-	else(XML2_LIB)
-		message("libxml2 not found. WebDAV is not supported.")
-	endif(XML2_LIB)
+	else(XML2_HEADERS)
+		message("libxml2 not found. WebDAV is not supported. ${XML2_HEADERS} ${XML2_LIB}")
+	endif(XML2_HEADERS)
 endif(${ONION_USE_XML2})
 
 if (${ONION_USE_PAM})
@@ -110,6 +111,9 @@ endif(PTHREADS)
 if (PAM_ENABLED)
 	add_definitions(-DHAVE_PAM)
 endif(PAM_ENABLED)
+if (XML2_ENABLED)
+	add_definitions(-DHAVE_WEBDAV)
+endif(XML2_ENABLED)
 
 
 ##

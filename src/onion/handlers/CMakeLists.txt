@@ -10,12 +10,25 @@ else (PAM_ENABLED)
 	SET(PAMLIBS)
 endif (PAM_ENABLED)
 
-add_library(onion_handlers STATIC static.c exportlocal.c opack.c path.c
-																	${PAM} )
+if (${XML2_ENABLED})
+	MESSAGE(INFO "Compiling WebDAV support") 
+	SET(WEBDAV webdav.c)
+	SET(XMLLIBS ${XML2_LIB})
+	include_directories(${XML2_HEADERS})
+endif (${XML2_ENABLED})
 
-target_link_libraries(onion_handlers ${PAMLIBS})
 
-SET(INCLUDES_HANDLERS static.h exportlocal.h auth_pam.h opack.h path.h)
+add_library(onion_handlers SHARED static.c exportlocal.c opack.c path.c
+																	${PAM} ${WEBDAV})
+target_link_libraries(onion_handlers ${PAMLIBS} ${XMLLIBS} onion)
+
+add_library(onion_handlers_static STATIC static.c exportlocal.c opack.c path.c
+																	${PAM} ${WEBDAV})
+target_link_libraries(onion_handlers_static ${PAMLIBS} ${XMLLIBS})
+
+
+
+SET(INCLUDES_HANDLERS static.h exportlocal.h auth_pam.h opack.h path.h webdav.h)
 MESSAGE("Found include files ${INCLUDES_HANDLERS}")
 
 install(FILES ${INCLUDES_HANDLERS} DESTINATION ${INCLUDEDIR}/handlers/)

@@ -38,8 +38,8 @@ add_custom_target(
    )
 
 
-add_executable(fileserver_otemplate fileserver.c fileserver_html.c)
-target_link_libraries(fileserver_otemplate onion)
+add_executable(ofileserver fileserver.c fileserver_html.c)
+target_link_libraries(ofileserver onion_handlers_static onion_static )
 
-install(TARGETS fileserver_otemplate DESTINATION ${BINDIR})
+install(TARGETS ofileserver DESTINATION ${BINDIR})
 

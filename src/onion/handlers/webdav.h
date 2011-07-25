@@ -21,6 +21,7 @@
 #define __WEBDAV_H__
 #include <onion/handler.h>
 
+/// Exports the given path through webdav. Just minimal security by default.
 onion_handler *onion_webdav(const char *path);
 
 

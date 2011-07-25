@@ -28,6 +28,8 @@
 #include <onion/shortcuts.h>
 #include <locale.h>
 #include <libintl.h>
+#include <onion/handlers/webdav.h>
+#include <onion/handlers/exportlocal.h>
 
 onion *o=NULL;
 
@@ -47,6 +49,9 @@ int show_help(){
 				"   -l ADDRESS     Listen to that address. It can be a IPv4 or IPv6 IP, or a local host name. Default: 0.0.0.0\n"
 				"  --help\n"
 				"   -h             Shows this help\n"
+#ifdef HAVE_WEBDAV
+				"  --no-webdav     Disables webdav support\n"
+#endif
 				"\n"
 				"\n");
 	return 0;
@@ -60,6 +65,7 @@ int main(int argc, char **argv){
 	char *port="8080";
 	char *hostname="::";
 	const char *dirname=".";
+	int withwebdav=1;
 	int i;
 	for (i=1;i<argc;i++){
 		if ((strcmp(argv[i],"--port")==0) || (strcmp(argv[i],"-p")==0)){
@@ -73,12 +79,25 @@ int main(int argc, char **argv){
 		else if (strcmp(argv[i],"--help")==0 || strcmp(argv[i],"-h")==0){
 			return show_help();
 		}
-		else
+#ifdef HAVE_WEBDAV
+		else if (strcmp(argv[i],"--no-webdav")==0){
+			ONION_INFO("WebDAV support disabled");
+		}
+#endif
+		else{
 			dirname=argv[i];
+			ONION_INFO("Exporting directory %s", dirname);
+		}
 	}
 	
 	onion_handler *root=onion_handler_new((onion_handler_handler)fileserver_page, (void *)dirname, NULL);
-	
+#ifdef HAVE_WEBDAV
+	if (withwebdav)
+		onion_handler_add(root, onion_webdav(dirname)); // fallback.
+	else
+#endif
+		onion_handler_add(root, onion_handler_export_local_new(dirname));
+		
 // This is the root directory where the translations are.
 #define W "."
 	setenv("LANGUAGE","locale",1); // Remove LANGUAGE env var, set it to the locale name,
@@ -108,55 +127,60 @@ int main(int argc, char **argv){
 	return 0;
 }
 
-
+/**
+ * @short Serves a directory listing.
+ * 
+ * It checks if the given request is a directory listing and processes it, or fallbacks to the
+ * next handler.
+ */
 int fileserver_page(const char *basepath, onion_request *req, onion_response *res){
-	onion_dict *d=onion_dict_new();
-	
-	const char *path=onion_request_get_path(req);
-	onion_dict_add(d, "dirname", path, 0);
-	
-	char dirname[256];
-	snprintf(dirname, sizeof(dirname), "%s/%s", basepath, onion_request_get_path(req));
-	char *realp=realpath(dirname, NULL);
-	if (!realp)
-		return OCS_INTERNAL_ERROR;
-	
-	if (path[0]!='\0' && path[1]!='\0')
-		onion_dict_add(d, "go_up", "true", 0);
-	
-	onion_dict *files=onion_dict_new();
-	onion_dict_add(d, "files", files, OD_DICT);
-	DIR *dir=opendir(realp);
-	if (dir){
-		struct dirent *de;
-		while ( (de=readdir(dir)) ){
-			onion_dict *file=onion_dict_new();
-			onion_dict_add(files, de->d_name, file, OD_DUP_KEY|OD_DICT);
+	if ((onion_request_get_flags(req)&OR_METHODS) == OR_GET){ // only get.
+		const char *path=onion_request_get_path(req); // Try to get the real path, and check if its a dir
+		
+		char dirname[256];
+		snprintf(dirname, sizeof(dirname), "%s/%s", basepath, onion_request_get_path(req));
+		char *realp=realpath(dirname, NULL);
+		if (!realp)
+			return OCS_INTERNAL_ERROR;
+		
+		DIR *dir=opendir(realp);
+		if (dir){ // its a dir, fill the dictionary.
+			onion_dict *d=onion_dict_new();
+			onion_dict_add(d, "dirname", path, 0);
+			if (path[0]!='\0' && path[1]!='\0')
+				onion_dict_add(d, "go_up", "true", 0);
+			onion_dict *files=onion_dict_new();
+			onion_dict_add(d, "files", files, OD_DICT);
 			
-			onion_dict_add(file, "name", de->d_name, OD_DUP_VALUE);
+			struct dirent *de;
+			while ( (de=readdir(dir)) ){ // Fill one files.[filename] per file.
+				onion_dict *file=onion_dict_new();
+				onion_dict_add(files, de->d_name, file, OD_DUP_KEY|OD_DICT);
+				
+				onion_dict_add(file, "name", de->d_name, OD_DUP_VALUE);
 
-			char tmp[256];
-			snprintf(tmp, sizeof(tmp), "%s/%s", realp, de->d_name);
-			struct stat st;
-			stat(tmp, &st);
-		
-			snprintf(tmp, sizeof(tmp), "%d", (int)st.st_size);
-			onion_dict_add(file, "size", tmp, OD_DUP_VALUE);
+				char tmp[256];
+				snprintf(tmp, sizeof(tmp), "%s/%s", realp, de->d_name);
+				struct stat st;
+				stat(tmp, &st);
 			
-			snprintf(tmp, sizeof(tmp), "%d", st.st_uid);
-			onion_dict_add(file, "owner", tmp, OD_DUP_VALUE);
+				snprintf(tmp, sizeof(tmp), "%d", (int)st.st_size);
+				onion_dict_add(file, "size", tmp, OD_DUP_VALUE);
+				
+				snprintf(tmp, sizeof(tmp), "%d", st.st_uid);
+				onion_dict_add(file, "owner", tmp, OD_DUP_VALUE);
+				
+				if (S_ISDIR(st.st_mode))
+					onion_dict_add(file, "type", "dir", 0);
+				else
+					onion_dict_add(file, "type", "file", 0);
+			}
+			closedir(dir);
+			free(realp);
 			
-			if (S_ISDIR(st.st_mode))
-				onion_dict_add(file, "type", "dir", 0);
-			else
-				onion_dict_add(file, "type", "file", 0);
+			return fileserver_html_template(d, req, res);
 		}
-		closedir(dir);
 		free(realp);
-		
-		return fileserver_html_template(d, req, res);
 	}
-	else{ // Might be a file
-		return onion_shortcut_response_file(realp, req, res);
-	}
+	return OCS_NOT_PROCESSED;
 }

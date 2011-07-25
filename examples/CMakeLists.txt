@@ -23,7 +23,7 @@ add_subdirectory(hello)
 
 
 if (OTEMPLATE)
-	add_subdirectory(fileserver_otemplate)
+	add_subdirectory(ofileserver)
 	if (${PNG_ENABLED})
 		add_subdirectory(mandelbrot)
 	else (${PNG_ENABLED})
@@ -40,7 +40,4 @@ else (${CAIRO_ENABLED})
 endif (${CAIRO_ENABLED})
 
 
-if (${XML2_ENABLED})
-	add_subdirectory(webdav)
-endif (${XML2_ENABLED})
 
