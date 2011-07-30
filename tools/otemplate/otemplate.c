@@ -219,7 +219,7 @@ int work(const char *infilename, const char *outfilename){
 	functions_write_main_code(&status);
 
 	if (use_orig_line_numbers)
-		fprintf(status.out, "#line 0 \"%s\"\n", infilename);
+		fprintf(status.out, "#line 1 \"%s\"\n", infilename);
 
 	functions_write_code(&status);
 

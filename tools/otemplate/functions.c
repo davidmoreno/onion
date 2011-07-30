@@ -45,7 +45,7 @@ void functions_write_declarations(parser_status *st){
 static void function_write(parser_status *st, function_data *d){
 	if (d->code){
 		if (use_orig_line_numbers)
-			fprintf(st->out, "#line 0\n");
+			fprintf(st->out, "#line 1\n");
 		if (d->is_static)
 			fprintf(st->out, "static ");
 		fprintf(st->out, 
@@ -53,7 +53,7 @@ static void function_write(parser_status *st, function_data *d){
 					);
 		
 		if (use_orig_line_numbers){
-			fprintf(st->out, "#line 0\n");
+			fprintf(st->out, "#line 1\n");
 		
 			// Write code, but change \n\n to \n
 			const char *data=onion_block_data(d->code);
@@ -68,7 +68,7 @@ static void function_write(parser_status *st, function_data *d){
 				lc=data[i];
 			}
 			fwrite(&data[li], 1, i-li, st->out);
-			fprintf(st->out, "#line 0\n");
+			fprintf(st->out, "#line 1\n");
 		}
 		else{
 			fwrite(onion_block_data(d->code), 1, onion_block_size(d->code), st->out);
