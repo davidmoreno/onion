@@ -41,6 +41,7 @@ enum onion_request_flags_e{
 	OR_PUT=5,
 	OR_DELETE=6,
 	OR_MOVE=7,
+	OR_MKCOL=8,
 	
 	/// Some flags at 0x0F0
 	OR_HTTP11=0x10,

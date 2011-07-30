@@ -60,6 +60,7 @@ typedef enum onion_webdav_props_e onion_webdav_props;
 
 onion_connection_status onion_webdav_get(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_put(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_mkcol(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_move(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_delete(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_options(const char *filename, onion_webdav *wdpath, onion_request *req, onion_response *res);
@@ -103,6 +104,8 @@ onion_connection_status onion_webdav_handler(onion_webdav *wd, onion_request *re
 			return onion_webdav_delete(filename, wd, req, res);
 		case OR_MOVE:
 			return onion_webdav_move(filename, wd, req, res);
+		case OR_MKCOL:
+			return onion_webdav_mkcol(filename, wd, req, res);
 	}
 	
 	onion_response_set_code(res, HTTP_NOT_IMPLEMENTED);
@@ -124,7 +127,7 @@ onion_connection_status onion_webdav_get(const char *filename, onion_webdav *wd,
  */
 onion_connection_status onion_webdav_delete(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
 	ONION_DEBUG("Webdav delete %s", filename);
-	int error=unlink(filename);
+	int error=remove(filename);
 	if (error==0)
 		return onion_shortcut_response("Deleted", HTTP_OK, req, res);
 	else{
@@ -184,6 +187,19 @@ onion_connection_status onion_webdav_move(const char *filename, onion_webdav *wd
 		return onion_shortcut_response("Could not create resource", HTTP_FORBIDDEN, req, res);
 	}
 }
+
+/**
+ * @short Creates a collection / directory.
+ * 
+ * Spec says it must create only if the parent exists.
+ */
+onion_connection_status onion_webdav_mkcol(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
+	if (mkdir(filename,0777)!=0){
+		return onion_shortcut_response("403 Forbidden", HTTP_FORBIDDEN, req, res);
+	}
+	return onion_shortcut_response("201 Created", 201, req, res);
+}
+
 
 /**
  * @short Simple put on webdav is just move a file from tmp to the final destination (or copy if could not move).
