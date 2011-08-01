@@ -132,6 +132,7 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 	const char *prev_etag=onion_request_get_header(request, "If-None-Match");
 	if (prev_etag && (strcmp(prev_etag, etag)==0)){
 		ONION_DEBUG0("Not modified");
+		onion_response_set_length(res, 0);
 		onion_response_set_code(res, HTTP_NOT_MODIFIED);
 		onion_response_write_headers(res);
 		return OCS_PROCESSED;
@@ -272,7 +273,8 @@ void onion_shortcut_date_string_iso(time_t t, char *dest){
 void onion_shortcut_etag(struct stat *st, char etag[32]){
 	size_t size=st->st_size;
 	unsigned int time=st->st_mtime;
-	snprintf(etag,sizeof(etag),"%04X%04X",size,time);
+	snprintf(etag,32,"%04X-%04X",size,time);
+	ONION_DEBUG0("Etag is %s", etag);
 }
 
 /**

@@ -578,6 +578,7 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 							? gnutls_record_recv (session, buffer, sizeof(buffer))
 							: read(clientfd, buffer, sizeof(buffer));
 #else
+		errno=0;
 		r=read(clientfd, buffer, sizeof(buffer));
 #endif
 		if (r<=0){ // error reading.

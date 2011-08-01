@@ -201,16 +201,28 @@ void onion_request_guess_session_id(onion_request *req){
 		return;
 	const char *v=onion_dict_get(req->headers, "Cookie");
 	ONION_DEBUG("Session ID, maybe from %s",v);
-	if (!v)
-		return;
-	v=strstr(v,"sessionid=");
-	if (!v)
-		return;
-	char *r=strdup(v+10); // Maybe allocated more memory. FIXME. Not much anyway.
-	char *p=r;
-	while (*p!='\0' && *p!=';') p++;
-	*p='\0';
+	char *r=NULL;
+	onion_dict *session;
+	
+	do{ // Check all possible sessions
+		if (r)
+			free(r);
+		if (!v)
+			return;
+		v=strstr(v,"sessionid=");
+		if (!v) // exit point, no session found.
+			return;
+		v+=10;
+		r=strdup(v); // Maybe allocated more memory, not much anyway.
+		char *p=r;
+		while (*p!='\0' && *p!=';') p++;
+		*p='\0';
+		ONION_DEBUG0("Checking if %s exists in sessions", r);
+		session=onion_sessions_get(req->server->sessions, r);
+	}while(!session);
+	
 	req->session_id=r;
+	req->session=session;
 	ONION_DEBUG("Session ID, from cookie, is %s",req->session_id);
 }
 
@@ -225,8 +237,6 @@ void onion_request_guess_session_id(onion_request *req){
 onion_dict *onion_request_get_session_dict(onion_request *req){
 	if (!req->session){
 		onion_request_guess_session_id(req);
-		if (req->session_id)
-			req->session=onion_sessions_get(req->server->sessions, req->session_id);
 		if (!req->session){ // Maybe old session is not to be used anymore
 			req->session_id=onion_sessions_create(req->server->sessions);
 			req->session=onion_sessions_get(req->server->sessions, req->session_id);

@@ -263,7 +263,7 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
 
 /// Writes all buffered output waiting for sending.
 static int onion_response_write_buffer(onion_response *res){
-	if (res->buffer_pos==0)
+	if (res->flags&OR_SKIP_CONTENT || res->buffer_pos==0)
 		return 0;
 	void *fd=res->request->socket;
 	onion_write write=res->write;

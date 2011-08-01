@@ -33,8 +33,9 @@ MESSAGE("Found include files ${INCLUDES_HANDLERS}")
 
 install(FILES ${INCLUDES_HANDLERS} DESTINATION ${INCLUDEDIR}/handlers/)
 install(TARGETS onion_handlers EXPORT onion_handlers DESTINATION ${LIBDIR})
+install(TARGETS onion_handlers_static EXPORT onion_handlers_static DESTINATION ${LIBDIR})
 if (${ARM})
 elseif (${ARM})
-install(EXPORT onion_handlers DESTINATION share/cmake)
+install(EXPORT onion_handlers_static DESTINATION share/cmake)
 endif (${ARM})
 
