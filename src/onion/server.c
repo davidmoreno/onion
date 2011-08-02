@@ -32,6 +32,7 @@ static int onion_default_error(void *handler, onion_request *req, onion_response
 
 /**
  * @short Initializes the server data.
+ * @memberof onion_server_t
  * 
  * This data is independant of communication channel, and its the data that should be alsays available, even shared between the channels.
  * 
@@ -55,6 +56,7 @@ onion_server *onion_server_new(void){
 
 /**
  * @short Cleans all data used by this server
+ * @memberof onion_server_t
  */
 void onion_server_free(onion_server *server){
 	if (server->root_handler)
@@ -68,6 +70,7 @@ void onion_server_free(onion_server *server){
 
 /**
  * @short Sets the writer function. 
+ * @memberof onion_server_t
  * 
  * It has the signature ssize_t (*onion_write)(void *handler, const char *data, unsigned int length). the handler is passed to the request.
  */
@@ -77,6 +80,7 @@ void onion_server_set_write(onion_server *server, onion_write write){
 
 /**
  * @short Sets the root handler that handles all the requests.
+ * @memberof onion_server_t
  */
 void onion_server_set_root_handler(onion_server *server, onion_handler *handler){
 	server->root_handler=handler;
@@ -84,6 +88,7 @@ void onion_server_set_root_handler(onion_server *server, onion_handler *handler)
 
 /**
  * @short Sets the error handler that will be called to return data to users on errors.
+ * @memberof onion_server_t
  * 
  * On the called handler, the request objet will have at flags the reason of 
  * the error: OR_NOT_FOUND, OR_NOT_IMPLEMENTED or OR_INTERNAL_ERROR
@@ -96,6 +101,7 @@ void onion_server_set_internal_error_handler(onion_server *server, onion_handler
 
 /**
  * @short Sets the maximum post size
+ * @memberof onion_server_t
  * 
  * The post data can be large, but it should not be allowed to be infinite. This is the maximum allowed size.
  * This size is not net size, as it may come encoded and that takes extra space (for example base64 encodings
@@ -107,6 +113,7 @@ void onion_server_set_max_post_size(onion_server *server, size_t max_post_size){
 
 /**
  * @short  Sets the maximum file size
+ * @memberof onion_server_t
  * 
  * Sets the maximum allowed file size in total, adding the size of all sent files.
  * 
@@ -122,6 +129,7 @@ void onion_server_set_max_file_size(onion_server *server, size_t max_file_size){
 
 /**
  * @short  Performs the processing of the request.
+ * @memberof onion_server_t
  * 
  * Returns the OCS_KEEP_ALIVE or OCS_CLOSE_CONNECTION value. If on keep alive the struct is already reinitialized.
  * 
@@ -167,6 +175,7 @@ onion_connection_status onion_server_handle_request(onion_server *server, onion_
 
 /**
  * @short Default error printer. 
+ * @memberof onion_server_t
  * 
  * Ugly errors, that can be reimplemented setting a handler with onion_server_set_internal_error_handler.
  */
@@ -204,6 +213,7 @@ static int onion_default_error(void *handler, onion_request *req, onion_response
 
 /**
  * @short Tells the server to write something on that request.
+ * @memberof onion_server_t
  * 
  * It takes care of moments when it has to process the request, and maybe there was an error, so
  * it calls the error handlers.

@@ -27,6 +27,7 @@
 
 /**
  * @short Generates a unique id.
+ * @memberof onion_sessions_t
  * 
  * This unique id is also dificult to guess, so that blind guessing will not work.
  * 
@@ -49,6 +50,7 @@ char *onion_sessions_generate_id(){
 
 /**
  * @short Creates a sessions data object, which keeps all sessions in memory.
+ * @memberof onion_sessions_t
  * 
  * TODO: Make it also to allow persistent storage: for example if sqlite is available.
  */
@@ -68,6 +70,7 @@ static void onion_sessions_free_helper(void *data, const char *key, onion_dict *
 
 /**
  * @short Frees the memory used by sessions
+ * @memberof onion_sessions_t
  */
 void onion_sessions_free(onion_sessions* sessions){
 	onion_dict_preorder(sessions->sessions, (void*)onion_sessions_free_helper, NULL);
@@ -78,6 +81,7 @@ void onion_sessions_free(onion_sessions* sessions){
 
 /**
  * @short Creates a new session and returns the sessionId.
+ * @memberof onion_sessions_t
  * 
  * @returns the name. Must be freed by user.
  */
@@ -91,6 +95,7 @@ char *onion_sessions_create(onion_sessions *sessions){
 
 /**
  * @short Returns a session dictionary
+ * @memberof onion_sessions_t
  * 
  * It returns a dupped (ref counter ++) version of the dict. All modifications are straight here, but user
  * (normally onion_request) must dereference it.. as it really do.
@@ -117,6 +122,7 @@ onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId){
 
 /**
  * @short Removes a session from the storage
+ * @memberof onion_sessions_t
  */
 void onion_sessions_remove(onion_sessions *sessions, const char *sessionId){
 	onion_dict *data=onion_dict_get_dict(sessions->sessions, sessionId);

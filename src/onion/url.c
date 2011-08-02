@@ -40,6 +40,7 @@ typedef enum onion_url_data_flags_e onion_url_data_flags;
 
 /**
  * @short Internal onion_url data for each known url
+ * @private
  */
 struct onion_url_data_t{
 	union{
@@ -124,6 +125,7 @@ void onion_url_free_data(onion_url_data **d){
 
 /**
  * @short Creates the URL handler to map regex urls to handlers
+ * @memberof onion_url_t
  *
  * The onion_url object can be used to add urls as needed using onion_url_add_*.
  * 
@@ -175,7 +177,10 @@ onion_url *onion_url_new(){
 	return (onion_url*)ret;
 }
 
-/// Frees the url.
+/**
+ * @short Frees the url.
+ * @memberof onion_url_t
+ */
 void onion_url_free(onion_url* url){
 	onion_handler_free((onion_handler*)url);
 }
@@ -184,6 +189,7 @@ void onion_url_free(onion_url* url){
 
 /**
  * @short Adds a new handler with the given regexp.
+ * @memberof onion_url_t
  * 
  * Adds the given handler.
  * 
@@ -225,6 +231,7 @@ int onion_url_add_handler(onion_url *url, const char *regexp, onion_handler *nex
 
 /**
  * @short Helper to simple add basic handlers
+ * @memberof onion_url_t
  * 
  * @returns 0 if everything ok. Else there is a regexp error.
  */
@@ -234,6 +241,7 @@ int onion_url_add(onion_url *url, const char *regexp, void *handler){
 
 /**
  * @short Helper to simple add a basic handler with data
+ * @memberof onion_url_t
  * 
  * @returns 0 if everything ok. Else there is a regexp error.
  */
@@ -243,6 +251,7 @@ int onion_url_add_with_data(onion_url *url, const char *regexp, void *handler, v
 
 /**
  * @short Adds a regex url, with another url as handler.
+ * @memberof onion_url_t
  * 
  * @returns 0 if everything ok. Else there is a regexp error.
  */
@@ -250,7 +259,10 @@ int onion_url_add_url(onion_url *url, const char *regexp, onion_url *handler){
 	return onion_url_add_handler(url, regexp, (onion_handler*) handler);
 }
 
-/// Simple data needed for static data write
+/**
+ * @short Simple data needed for static data write
+ * @private
+ */
 struct onion_url_static_data{
 	char *text;
 	int code;
@@ -272,6 +284,7 @@ static void onion_url_static_free(struct onion_url_static_data *data){
 
 /**
  * @short Adds a simple handler, it has static data and a default return code
+ * @memberof onion_url_t
  */
 int onion_url_add_static(onion_url *url, const char *regexp, const char *text, int http_code){
 	struct onion_url_static_data *d=malloc(sizeof(struct onion_url_static_data));
@@ -282,6 +295,7 @@ int onion_url_add_static(onion_url *url, const char *regexp, const char *text, i
 
 /**
  * @short Returns the related handler for this url object.
+ * @memberof onion_url_t
  */
 onion_handler *onion_url_to_handler(onion_url *url){
 	return ((onion_handler*)url);

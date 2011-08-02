@@ -34,6 +34,7 @@ static int onion_response_write_buffer(onion_response *res);
 
 /**
  * @short Generates a new response object
+ * @memberof onion_response_t
  * 
  * This response is generated from a request, and gets from there the writer and writer data.
  * 
@@ -77,6 +78,7 @@ onion_response *onion_response_new(onion_request *req){
 
 /**
  * @short Frees the memory consumed by this object
+ * @memberof onion_response_t
  * 
  * This function returns the close status: OR_KEEP_ALIVE or OR_CLOSE_CONNECTION as needed.
  * 
@@ -119,13 +121,19 @@ onion_connection_status onion_response_free(onion_response *res){
 	return r;
 }
 
-/// Adds a header to the response object
+/**
+ * @short Adds a header to the response object
+ * @memberof onion_response_t
+ */
 void onion_response_set_header(onion_response *res, const char *key, const char *value){
 	ONION_DEBUG0("Adding header %s = %s", key, value);
 	onion_dict_add(res->headers, key, value, OD_DUP_ALL|OD_REPLACE); // DUP_ALL not so nice on memory side...
 }
 
-/// Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
+/**
+ * @short Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
+ * @memberof onion_response_t
+ */
 void onion_response_set_length(onion_response *res, size_t len){
 	char tmp[16];
 	sprintf(tmp,"%lu",(unsigned long)len);
@@ -134,12 +142,18 @@ void onion_response_set_length(onion_response *res, size_t len){
 	res->flags|=OR_LENGTH_SET;
 }
 
-/// Sets the return code
+/**
+ * @short Sets the return code
+ * @memberof onion_response_t
+ */
 void onion_response_set_code(onion_response *res, int  code){
 	res->code=code;
 }
 
-/// Helper that is called on each header, and writes the header
+/**
+ * @short Helper that is called on each header, and writes the header
+ * @memberof onion_response_t
+ */
 static void write_header(onion_response *res, const char *key, const char *value, int flags){
 	//ONION_DEBUG0("Response header: %s: %s",key, value);
 
@@ -155,6 +169,7 @@ static void write_header(onion_response *res, const char *key, const char *value
 
 /**
  * @short Writes all the header to the given response
+ * @memberof onion_response_t
  * 
  * It writes the headers and depending on the method, return OR_SKIP_CONTENT. this is set when in head mode. Handlers 
  * should react to this return by not trying to write more, but if they try this object will just skip those writtings.
@@ -211,6 +226,7 @@ int onion_response_write_headers(onion_response *res){
 
 /**
  * @short Write some response data.
+ * @memberof onion_response_t
  * 
  * This is the main write data function. If the headers have not been sent yet, they are now.
  * 
@@ -301,7 +317,10 @@ ssize_t onion_response_write0(onion_response *res, const char *data){
 	return onion_response_write(res, data, strlen(data));
 }
 
-/// Writes some data to the response. Using sprintf format strings. Max final string size: 1024
+/**
+ * @short Writes some data to the response. Using sprintf format strings. Max final string size: 1024
+ * @memberof onion_response_t
+ */
 ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
 	char temp[1024];
 	va_list ap;
@@ -314,13 +333,17 @@ ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
 
 
 /**
- * Returns the writer method that can be used to write to the socket.
+ * @short Returns the writer method that can be used to write to the socket.
+ * @memberof onion_response_t
  */
 onion_write onion_response_get_writer(onion_response *response){
 	return response->write;
 }
 
-/// Returns the socket object.
+/**
+ * @short Returns the socket object.
+ * @memberof onion_response_t
+ */
 void *onion_response_get_socket(onion_response *response){
 	return response->socket;
 }
@@ -328,6 +351,7 @@ void *onion_response_get_socket(onion_response *response){
 
 /**
  * @short Returns a const char * string with the code description.
+ * @memberof onion_response_t
  */
 const char *onion_response_code_description(int code){
 	switch(code){
@@ -374,6 +398,7 @@ const char *onion_response_code_description(int code){
 
 /**
  * @short Sets the writer to use on this response
+ * @memberof onion_response_t
  * 
  * Normally this is automatically get from the origin request object. Anyway 
  * it exists the option to overwrite it, for example to have a gzip layer.

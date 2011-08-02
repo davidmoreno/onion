@@ -28,6 +28,7 @@
 #include "codecs.h"
 #include "block.h"
 
+/// @private
 typedef struct onion_dict_node_data_t{
 	const char *key;
 	const void *value;
@@ -36,6 +37,7 @@ typedef struct onion_dict_node_data_t{
 
 /**
  * @short Node for the tree.
+ * @memberof onion_dict_t
  * 
  * Its implemented as a AA Tree (http://en.wikipedia.org/wiki/AA_tree)
  */
@@ -51,6 +53,7 @@ static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key
 static onion_dict_node *onion_dict_node_new(const char *key, const void *value, int flags);
 
 /**
+ * @memberof onion_dict_t
  * Initializes the basic tree with all the structure in place, but empty.
  */
 onion_dict *onion_dict_new(){
@@ -66,6 +69,7 @@ onion_dict *onion_dict_new(){
 
 /**
  * @short Creates a duplicate of the dict
+ * @memberof onion_dict_t
  * 
  * Its actually the same, but with refcount increased, so future frees will free the dict
  * only on latest one.
@@ -94,6 +98,7 @@ void onion_dict_hard_dup_helper(onion_dict *dict, const char *key, const void *v
 
 /**
  * @short Creates a full duplicate of the dict
+ * @memberof onion_dict_t
  * 
  * Its actually the same, but with refcount increased, so future frees will free the dict
  * only on latest one.
@@ -119,7 +124,10 @@ static void onion_dict_node_free(onion_dict_node *node){
 	free(node);
 }
 
-/// Removes the full dict struct from mem.
+/**
+ * @short Removes the full dict struct from mem.
+ * @memberof onion_dict_t
+ */
 void onion_dict_free(onion_dict *dict){
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&dict->refmutex);
@@ -143,6 +151,7 @@ void onion_dict_free(onion_dict *dict){
 	
 /**
  * @short Searchs for a given key, and returns that node and its parent (if parent!=NULL) 
+ * @memberof onion_dict_t
  *
  * If not found, returns the parent where it should be. Nice for adding too.
  */
@@ -272,6 +281,7 @@ static onion_dict_node  *onion_dict_node_add(onion_dict_node *node, onion_dict_n
 
 
 /**
+ * @memberof onion_dict_t
  * Adds a value in the tree.
  */
 void onion_dict_add(onion_dict *dict, const char *key, const void *value, int flags){
@@ -346,6 +356,7 @@ static onion_dict_node *onion_dict_node_remove(onion_dict_node *node, const char
 
 
 /**
+ * @memberof onion_dict_t
  * Removes the given key. 
  *
  * Returns if it removed any node.
@@ -355,7 +366,10 @@ int onion_dict_remove(onion_dict *dict, const char *key){
 	return 1;
 }
 
-/// Gets a value. For dicts returns NULL; use onion_dict_get_dict.
+/**
+ * @short Gets a value. For dicts returns NULL; use onion_dict_get_dict.
+ * @memberof onion_dict_t
+ */
 const char *onion_dict_get(const onion_dict *dict, const char *key){
 	const onion_dict_node *r;
 	r=onion_dict_find_node(dict->root, key, NULL);
@@ -364,7 +378,10 @@ const char *onion_dict_get(const onion_dict *dict, const char *key){
 	return NULL;
 }
 
-/// Gets a value, only if its a dict
+/**
+ * @short Gets a value, only if its a dict
+ * @memberof onion_dict_t
+ */
 onion_dict *onion_dict_get_dict(const onion_dict *dict, const char *key){
 	const onion_dict_node *r;
 	r=onion_dict_find_node(dict->root, key, NULL);
@@ -388,7 +405,8 @@ static void onion_dict_node_print_dot(const onion_dict_node *node){
 }
 
 /**
- * Prints a graph on the form:
+* @memberof onion_dict_t
+  * Prints a graph on the form:
  *
  * key1 -> key0;
  * key1 -> key2;
@@ -401,7 +419,7 @@ void onion_dict_print_dot(const onion_dict *dict){
 		onion_dict_node_print_dot(dict->root);
 }
 
-void onion_dict_node_preorder(const onion_dict_node *node, void *func, void *data){
+static void onion_dict_node_preorder(const onion_dict_node *node, void *func, void *data){
 	void (*f)(void *data, const char *key, const void *value, int flags);
 	f=func;
 	if (node->left)
@@ -415,7 +433,8 @@ void onion_dict_node_preorder(const onion_dict_node *node, void *func, void *dat
 
 /**
  * @short Executes a function on each element, in preorder by key.
- * 
+*  @memberof onion_dict_t
+  * 
  * The function is of prototype void func(void *data, const char *key, const void *value, int flags);
  */
 void onion_dict_preorder(const onion_dict *dict, void *func, void *data){
@@ -435,6 +454,7 @@ static int onion_dict_node_count(const onion_dict_node *node){
 
 /**
  * @short Counts elements
+ * @memberof onion_dict_t
  */
 int onion_dict_count(const onion_dict *dict){
 	if (dict && dict->root)
@@ -442,21 +462,30 @@ int onion_dict_count(const onion_dict *dict){
 	return 0;
 }
 
-/// Do a read lock. Several can lock for reading, but only can be writing.
+/**
+ * Do a read lock. Several can lock for reading, but only can be writing.
+ * @memberof onion_dict_t
+ */
 void onion_dict_lock_read(const onion_dict *dict){
 #ifdef HAVE_PTHREADS
 	pthread_rwlock_rdlock((pthread_rwlock_t*)&dict->lock);
 #endif
 }
 
-/// Do a read lock. Several can lock for reading, but only can be writing.
+/**
+ * @short Do a read lock. Several can lock for reading, but only can be writing.
+ * @memberof onion_dict_t
+ */
 void onion_dict_lock_write(onion_dict *dict){
 #ifdef HAVE_PTHREADS
 	pthread_rwlock_wrlock(&dict->lock);
 #endif
 }
 
-/// Free latest lock be it read or write.
+/**
+ * @short Free latest lock be it read or write.
+ * @memberof onion_dict_t
+ */
 void onion_dict_unlock(onion_dict *dict){
 #ifdef HAVE_PTHREADS
 	pthread_rwlock_unlock(&dict->lock);
@@ -502,6 +531,7 @@ static void onion_dict_json_preorder(onion_block *block, const char *key, const 
 
 /**
  * @short Converts a dict to a json string
+ * @memberof onion_dict_t
  * 
  * Given a dictionary and a buffer (with size), it writes a json dictionary to it.
  * 
@@ -531,6 +561,7 @@ block *onion_dict_to_json(onion_dict *dict){
 
 /**
  * @short Gets a dictionary string value, recursively
+ * @memberof onion_dict_t
  * 
  * Loops inside given dictionaries to get the given value
  * 
@@ -560,6 +591,7 @@ const char *onion_dict_rget(const onion_dict *dict, const char *key, ...){
 
 /**
  * @short Gets a dictionary dict value, recursively
+ * @memberof onion_dict_t
  * 
  * Loops inside given dictionaries to get the given value
  * 

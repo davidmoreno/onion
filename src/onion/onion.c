@@ -206,7 +206,7 @@ struct onion_request_thread_data_t{
 
 typedef struct onion_request_thread_data_t onion_request_thread_data;
 
-void *onion_request_thread(void*);
+static void *onion_request_thread(void*);
 #endif
 
 /// Internal processor of just one request.
@@ -214,6 +214,7 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
+ * @memberof onion_t
  * 
  * Creates an onion structure that can be used to set the server, port, SSL and similar parameters. It works over 
  * the onion structure, which is the main structure to control the listening of new connections throught TCP/IP.
@@ -265,7 +266,10 @@ onion *onion_new(int flags){
 }
 
 
-/// Removes the allocated data
+/**
+ * @short Removes the allocated data
+ * @memberof onion_t
+ */
 void onion_free(onion *onion){
 #ifdef HAVE_PTHREADS
 	if (onion->flags&O_THREADS_ENABLED){
@@ -302,13 +306,17 @@ void onion_free(onion *onion){
 	free(onion);
 }
 
-/// Basic direct to socket write method.
+/**
+ * @short Basic direct to socket write method.
+ * @memberof onion_t
+ */
 int onion_write_to_socket(int *fd, const char *data, unsigned int len){
 	return write(*fd, data, len);
 }
 
 /**
  * @short Performs the listening with the given mode
+ * @memberof onion_t
  *
  * This is the main loop for the onion server.
  *
@@ -453,18 +461,25 @@ int onion_listen(onion *o){
 	return 0;
 }
 
-/// Sets the root handler
+/**
+ * @short Sets the root handler
+ * @memberof onion_t
+ */
 void onion_set_root_handler(onion *onion, onion_handler *handler){
 	onion_server_set_root_handler(onion->server, handler);
 }
 
-/// Sets the internal error handler
+/**
+ * @short  Sets the internal error handler
+ * @memberof onion_t
+ */
 void onion_set_internal_error_handler(onion* server, onion_handler* handler){
 	onion_server_set_internal_error_handler(server->server, handler);
 }
 
 /**
  * @short Sets the port to listen to.
+ * @memberof onion_t
  * 
  * Default listen port is 8080.
  * 
@@ -479,6 +494,7 @@ void onion_set_port(onion *server, const char *port){
 
 /**
  * @short Sets the hostname to listen to
+ * @memberof onion_t
  * 
  * Default listen hostname is NULL, which means all.
  * 
@@ -496,6 +512,7 @@ void onion_set_hostname(onion *server, const char *hostname){
 
 /**
  * @short Sets the timeout, in milliseconds
+ * @memberof onion_t
  * 
  * The default timeout is 5000 milliseconds.
  * 
@@ -507,6 +524,7 @@ void onion_set_timeout(onion *onion, int timeout){
 
 /**
  * @short Sets the maximum number of threads to use for requests. default 16.
+ * @memberof onion_t
  * 
  * Can only be tweaked before listen. 
  * 
@@ -523,6 +541,7 @@ void onion_set_max_threads(onion *onion, int max_threads){
 
 /**
  * @short Internal processor of just one request.
+ * @memberof onion_t
  *
  * It can be used on one processing, on threaded, on one_loop...
  * 
@@ -607,7 +626,10 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 	}
 }
 
-/// Returns the current flags. @see onion_mode_e
+/**
+ * @short Returns the current flags. @see onion_mode_e
+ * @memberof onion_t
+ */
 int onion_flags(onion *onion){
 	return onion->flags;
 }
@@ -662,6 +684,7 @@ static void onion_enable_tls(onion *o){
 
 /**
  * @short Set a certificate for use in the connection
+ * @memberof onion_t
  *
  * There are several certificate types available, described at onion_ssl_certificate_type_e.
  * 
@@ -730,7 +753,7 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 
 #ifdef HAVE_PTHREADS
 /// Interfaces between the pthread_create and the process request. Actually just calls it with the proper parameters.
-void *onion_request_thread(void *d){
+static void *onion_request_thread(void *d){
 	onion_request_thread_data *td=(onion_request_thread_data*)d;
 	onion *o=td->o;
 	
@@ -748,6 +771,7 @@ void *onion_request_thread(void *d){
 
 /**
  * @short User to which drop priviledges when listening
+ * @memberof onion_t
  * 
  * Drops the priviledges of current program as soon as it starts listening.
  * 
@@ -762,6 +786,7 @@ void onion_url_free_data(void *);
 
 /**
  * @short If no root handler is set, creates an url handler and returns it.
+ * @memberof onion_t
  * 
  * It can also check if the current root handler is a url handler, and if it is, returns it. Else returns NULL.
  */

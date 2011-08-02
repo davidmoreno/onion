@@ -28,7 +28,7 @@
 
 /**
  * @short Creates a new block
- * 
+ * @memberof onion_block_t
  */
 onion_block *onion_block_new(){
 	onion_block *ret=malloc(sizeof(block));
@@ -40,6 +40,7 @@ onion_block *onion_block_new(){
 
 /**
  * @short Removes the current block
+ * @memberof onion_block_t
  */
 void onion_block_free(onion_block *bl){
 	free(bl->data);
@@ -48,6 +49,7 @@ void onion_block_free(onion_block *bl){
 
 /**
  * @short Discards all data on this block, and set the size to 0
+ * @memberof onion_block_t
  * 
  * This is usefull to reuse existing blocks
  */
@@ -57,6 +59,7 @@ void onion_block_clear(onion_block *b){
 
 /**
  * @short Ensures the block has at least this reserved memory space.
+ * @memberof onion_block_t
  * 
  * This is usefull for some speedups, and prevent sucessive mallocs 
  * if you know beforehand the size.
@@ -70,6 +73,7 @@ void onion_block_min_maxsize(onion_block *b, int minsize){
 
 /**
  * @short Returns the current data. 
+ * @memberof onion_block_t
  * 
  * It will be finished with a \0 (if not already, to ensure is printable.
  */
@@ -86,6 +90,7 @@ const char *onion_block_data(const onion_block *b){
 
 /**
  * @short Returns current block size
+ * @memberof onion_block_t
  */
 off_t onion_block_size(const onion_block *b){
 	return b->size;
@@ -93,6 +98,7 @@ off_t onion_block_size(const onion_block *b){
 
 /**
  * @short Reduces the size of the block.
+ * @memberof onion_block_t
  */
 void onion_block_rewind(onion_block *b, off_t n){
 	if (b->size<n)
@@ -104,6 +110,7 @@ void onion_block_rewind(onion_block *b, off_t n){
 
 /**
  * @short Adds a character to the block
+ * @memberof onion_block_t
  */
 int onion_block_add_char(onion_block *bl, char c){
 	if (bl->size>=bl->maxsize){ // Grows ^2, until 1024, and then on 1024 chunks.
@@ -119,6 +126,7 @@ int onion_block_add_char(onion_block *bl, char c){
 
 /**
  * @short Adds a string to the block
+ * @memberof onion_block_t
  */
 int onion_block_add_str(onion_block *b, const char *str){
 	int l=strlen(str)+1;
@@ -129,6 +137,7 @@ int onion_block_add_str(onion_block *b, const char *str){
 
 /**
  * @short Adds raw data to the block
+ * @memberof onion_block_t
  */
 int onion_block_add_data(onion_block *bl, const char *data, size_t l){
 	// I have to perform manual realloc as if I append same block, realloc may free the data, so I do it manually.
@@ -152,6 +161,7 @@ int onion_block_add_data(onion_block *bl, const char *data, size_t l){
 
 /**
  * @short Appends both blocks on the first.
+ * @memberof onion_block_t
  */
 int onion_block_add_block(onion_block *b, onion_block *toadd){
 	return onion_block_add_data(b, toadd->data, toadd->size);

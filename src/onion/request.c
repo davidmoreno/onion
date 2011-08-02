@@ -35,6 +35,7 @@
 void onion_request_parser_data_free(void *token); // At request_parser.c
 
 /**
+ * @memberof onion_request_t
  * These are the methods allowed to ask data to the server (or push or whatever). Only 16.
  * 
  * NULL means this space is vacant.
@@ -49,6 +50,7 @@ const char *onion_request_methods[16]={
 
 /**
  *  @short Creates a request object
+ * @memberof onion_request_t
  * 
  * @param server onion_server that will be used for writing and some other data
  * @param socket Socket as needed by onion_server write method.
@@ -72,13 +74,17 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 
 /**
  * @short Helper to remove temporal files from req->files
+ * @memberof onion_request_t
  */
 static void unlink_files(void *p, const char *key, const char *value, int flags){
 	ONION_DEBUG0("Unlinking temporal file %s",value);
 	unlink(value);
 }
 
-/// Deletes a request and all its data
+/**
+ * @short Deletes a request and all its data
+ * @memberof onion_request_t
+ */
 void onion_request_free(onion_request *req){
 	onion_dict_free(req->headers);
 	
@@ -112,39 +118,60 @@ void onion_request_free(onion_request *req){
 }
 
 
-/// Returns a pointer to the string with the current path. Its a const and should not be trusted for long time.
+/**
+ * @short Returns a pointer to the string with the current path. Its a const and should not be trusted for long time.
+ * @memberof onion_request_t
+ */
 const char *onion_request_get_path(onion_request *req){
 	return req->path;
 }
 
-/// Returns a pointer to the string with the full path. Its a const and should not be trusted for long time.
+/**
+ * @short Returns a pointer to the string with the full path. Its a const and should not be trusted for long time.
+ * @memberof onion_request_t
+ */
 const char *onion_request_get_fullpath(onion_request *req){
 	return req->fullpath;
 }
 
-/// Gets the current flags, as in onion_request_flags_e
+/** 
+ * @short Gets the current flags, as in onion_request_flags_e
+ * @memberof onion_request_t
+ */
 onion_request_flags onion_request_get_flags(onion_request *req){
 	return req->flags;
 }
 
-/// Moves the pointer inside fullpath to this new position, relative to current path.
+/**
+ * @short  Moves the pointer inside fullpath to this new position, relative to current path.
+ * @memberof onion_request_t
+ */
 void onion_request_advance_path(onion_request *req, int addtopos){
 	req->path=&req->path[addtopos];
 }
 
-/// Gets a header data
+/**
+ * @short Gets a header data
+ * @memberof onion_request_t
+ */
 const char *onion_request_get_header(onion_request *req, const char *header){
 	return onion_dict_get(req->headers, header);
 }
 
-/// Gets a query data
+/**
+ * @short Gets a query data
+ * @memberof onion_request_t
+ */
 const char *onion_request_get_query(onion_request *req, const char *query){
 	if (req->GET)
 		return onion_dict_get(req->GET, query);
 	return NULL;
 }
 
-/// Gets a query data, but has a default value if the key is not there.
+/**
+ * @short Gets a query data, but has a default value if the key is not there.
+ * @memberof onion_request_t
+ */
 const char *onion_request_get_queryd(onion_request *req, const char *key, const char *def){
 	const char *ret;
 	ret=onion_request_get_query(req,key);
@@ -153,48 +180,70 @@ const char *onion_request_get_queryd(onion_request *req, const char *key, const 
 	return def;
 }
 
-/// Gets a post data
+/**
+ * @short Gets a post data
+ * @memberof onion_request_t
+ */
 const char *onion_request_get_post(onion_request *req, const char *query){
 	if (req->POST)
 		return onion_dict_get(req->POST, query);
 	return NULL;
 }
 
-/// Gets file data
+/**
+ * @short Gets file data
+ * @memberof onion_request_t
+ */
 const char *onion_request_get_file(onion_request *req, const char *query){
 	if (req->FILES)
 		return onion_dict_get(req->FILES, query);
 	return NULL;
 }
 
-/// Gets session data
+/**
+ * @short Gets session data
+ * @memberof onion_request_t
+ */
 const char *onion_request_get_session(onion_request *req, const char *key){
 	onion_dict *d=onion_request_get_session_dict(req);
 	return onion_dict_get(d, key);
 }
 
-/// Gets the header header data dict
+/**
+ * @short Gets the header header data dict
+ * @memberof onion_request_t
+ */
 const onion_dict *onion_request_get_header_dict(onion_request *req){
 	return req->headers;
 }
 
-/// Gets request query dict
+/**
+ * @short Gets request query dict
+ * @memberof onion_request_t
+ */
 const onion_dict *onion_request_get_query_dict(onion_request *req){
 	return req->GET;
 }
 
-/// Gets post data dict
+/**
+ * @short Gets post data dict
+ * @memberof onion_request_t
+ */
 const onion_dict *onion_request_get_post_dict(onion_request *req){
 	return req->POST;
 }
 
-/// Gets files data dict
+/**
+ * @short Gets files data dict
+ * @memberof onion_request_t
+ */
 const onion_dict *onion_request_get_file_dict(onion_request *req){
 	return req->FILES;
 }
 
 /**
  * @short Gets the sessionid cookie, if any, and sets it to req->session_id.
+ * @memberof onion_request_t
  */
 void onion_request_guess_session_id(onion_request *req){
 	if (req->session_id) // already known.
@@ -228,6 +277,7 @@ void onion_request_guess_session_id(onion_request *req){
 
 /**
  * @short Returns the session dict.
+ * @memberof onion_request_t
  * 
  * If it does not exists it creates it. If there is a cookie with a proper name it is used, 
  * even for creation.
@@ -248,6 +298,7 @@ onion_dict *onion_request_get_session_dict(onion_request *req){
 
 /**
  * @short Cleans a request object to reuse it.
+ * @memberof onion_request_t
  */
 void onion_request_clean(onion_request* req){
 	onion_dict_free(req->headers);
@@ -283,6 +334,7 @@ void onion_request_clean(onion_request* req){
 
 /**
  * @short Forces the request to process only one request, not doing the keep alive.
+ * @memberof onion_request_t
  * 
  * This is useful on non threaded modes, as the keep alive blocks the loop.
  */
@@ -293,6 +345,7 @@ void onion_request_set_no_keep_alive(onion_request *req){
 
 /**
  * @short Returns if current request wants to keep alive.
+ * @memberof onion_request_t
  * 
  * It is a complex set of circumstances: HTTP/1.1 and no connection: close, or HTTP/1.0 and connection: keep-alive
  * and no explicit set that no keep alive.
@@ -316,6 +369,7 @@ int onion_request_keep_alive(onion_request *req){
 
 /** 
  * @short Frees the session dictionary.
+ * @memberof onion_request_t
  * 
  * If data is under onion_dict scope (just dicts into dicts and strings), all data is freed.
  * If the user has set some custom data, THAT MEMORY IS LEAKED.
@@ -334,6 +388,7 @@ void onion_request_session_free(onion_request *req){
 
 /**
  * @short Returns the language code of the current request
+ * @memberof onion_request_t
  * 
  * Returns the language code for the current request, from the header. 
  * If none the returns "C". 
@@ -360,6 +415,7 @@ const char *onion_request_get_language_code(onion_request *req){
 
 /**
  * @short Some extra data, normally when the petition is propfind
+ * @memberof onion_request_t
  */
 const onion_block *onion_request_get_data(onion_request *req){
 	return req->data;

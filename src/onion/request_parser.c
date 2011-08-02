@@ -35,7 +35,10 @@
 #include "log.h"
 #include "block.h"
 
-/// Known token types. This is merged with onion_connection_status as return value at token readers.
+/**
+ * @short Known token types. This is merged with onion_connection_status as return value at token readers.
+ * @private
+ */
 typedef enum{
 	STRING=1001, // I start on 1000, to prevent collission with error codes
 	KEY=1002,
@@ -48,6 +51,7 @@ typedef enum{
 	STRING_NEW_LINE=1009,
 }onion_token_token;
 
+/// @private
 typedef struct onion_token_s{
 	char str[256];
 	off_t pos;
@@ -56,6 +60,7 @@ typedef struct onion_token_s{
 	size_t extra_size;
 }onion_token;
 
+/// @private
 typedef struct onion_buffer_s{
 	const char *data;
 	size_t size;
