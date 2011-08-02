@@ -90,7 +90,7 @@ onion_connection_status onion_response_free(onion_response *res){
 	if (res->flags&OR_CHUNKED){ // Set the chunked data end.
 		void *fd=res->socket;
 		onion_write write=res->write;
-		write(fd, "0\r\n\r\n",7);
+		write(fd, "0\r\n\r\n",5);
 	}
 	
 	int r=OCS_CLOSE_CONNECTION;
