@@ -131,6 +131,10 @@ int oterm_get_data(oterm_data *data, onion_request *req, onion_response *res){
 	const char *path=onion_request_get_path(req);
 	
 	if (strcmp(path,"new")==0){
+		if (onion_request_get_post(req, "command")){
+			free(data->exec_command);
+			data->exec_command=strdup(onion_request_get_post(req, "command"));
+		}
 		oterm_new(data, o, onion_request_get_session(req, "username"), onion_request_get_session(req, "nopam") ? 0 : 1 );
 		return onion_shortcut_response("ok", 200, req, res);
 	}
@@ -242,7 +246,7 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
 		perror("");
 		exit(1);
 	}
-	oterm->title=strdup("Terminal ready.");
+	oterm->title=strdup(data->exec_command);
 	ONION_DEBUG("Default title is %s", oterm->title);
 	oterm->next=NULL;
 	// I set myself at end

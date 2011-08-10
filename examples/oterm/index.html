@@ -84,19 +84,15 @@ You can find the source code at <a href="https://github.com/davidmoreno/onion/wi
 <ul id="current_sessions">
 </ul>
 
+Command <input type="text" name="command" value="/bin/bash"><br>
 <h3><a href="javascript:newTerm()">Create a new remote session</a></h3>
+
+
 </div>
 
 <script>
 newTerm = function(){
-	$.get('term/new', function(data){
-/*
-		var a=$('<a>').target(data.id).href('term?id='+data.id)
-		$(document).append(a)
-		a.click()
-		a.delete()
-*/
-		//sessionStatus(data)
+	$.post('term/new', {command:$('[name=command]').val() }, function(data){
 		updateSessionStatus()
 	})
 }

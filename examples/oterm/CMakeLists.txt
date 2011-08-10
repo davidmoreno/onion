@@ -19,6 +19,6 @@ add_custom_command(
 
 add_executable(oterm oterm.c oterm_handler.c oterm_data.c)
 # util is for pty support.. who choose so generic name?
-target_link_libraries(oterm onion_handlers onion_static util)
+target_link_libraries(oterm onion_handlers_static onion_static util)
 
 install(TARGETS oterm DESTINATION ${BINDIR})
