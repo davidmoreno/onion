@@ -38,8 +38,8 @@
 #include "mime.h"
 #include "types_internal.h"
 
-#ifndef SOCK_CLOEXEC
-#define SOCK_CLOEXEC 0
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
 #endif
 
 int onion_write_to_socket(int *fd, const char *data, unsigned int len);
@@ -117,7 +117,7 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 	if (fd<0)
 		return OCS_NOT_PROCESSED;
 
-	if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+	if(O_CLOEXEC == 0) { // Good compiler know how to cut this out
 		int flags=fcntl(fd, F_GETFD);
 		if (flags==-1){
 			ONION_ERROR("Retrieving flags from file descriptor");
