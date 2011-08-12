@@ -38,6 +38,10 @@
 #include "mime.h"
 #include "types_internal.h"
 
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC 0
+#endif
+
 int onion_write_to_socket(int *fd, const char *data, unsigned int len);
 
 /**
@@ -108,18 +112,31 @@ int onion_shortcut_redirect(const char *newurl, onion_request *req, onion_respon
  * It does no security checks, so caller must be security aware.
  */
 int onion_shortcut_response_file(const char *filename, onion_request *request, onion_response *res){
-	int fd=open(filename,O_RDONLY);
-
+	int fd=open(filename,O_RDONLY|O_CLOEXEC);
+	
 	if (fd<0)
 		return OCS_NOT_PROCESSED;
 
+	if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+		int flags=fcntl(fd, F_GETFD);
+		if (flags==-1){
+			ONION_ERROR("Retrieving flags from file descriptor");
+		}
+		flags|=FD_CLOEXEC;
+		if (fcntl(fd, F_SETFD, flags)==-1){
+			ONION_ERROR("Setting O_CLOEXEC to file descriptor");
+		}
+	}
+	
 	struct stat st;
 	if (stat(filename, &st)!=0){
 		ONION_WARNING("File does not exist: %s",filename);
+		close(fd);
 		return OCS_NOT_PROCESSED;
 	}
 	
 	if (S_ISDIR(st.st_mode)){
+		close(fd);
 		return OCS_NOT_PROCESSED;
 	}
 	
@@ -135,6 +152,7 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 		onion_response_set_length(res, 0);
 		onion_response_set_code(res, HTTP_NOT_MODIFIED);
 		onion_response_write_headers(res);
+		close(fd);
 		return OCS_PROCESSED;
 	}
 	

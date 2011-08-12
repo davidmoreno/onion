@@ -237,7 +237,7 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
  */
 onion *onion_new(int flags){
 	ONION_DEBUG0("Some internal sizes: onion size: %d, request size %d, response size %d",sizeof(onion),sizeof(onion_request),sizeof(onion_response));
-	if (SOCK_CLOEXEC==0){
+	if(SOCK_CLOEXEC == 0){
 		ONION_WARNING("There is no support for SOCK_CLOEXEC compiled in libonion. This may be a SECURITY PROBLEM as connections may leak into executed programs.");
 	}
 	
@@ -357,6 +357,16 @@ int onion_listen(onion *o){
 	int optval=1;
 	for(rp=result;rp!=NULL;rp=rp->ai_next){
 		sockfd=socket(rp->ai_family, rp->ai_socktype | SOCK_CLOEXEC, rp->ai_protocol);
+		if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+			int flags=fcntl(sockfd, F_GETFD);
+			if (flags==-1){
+				ONION_ERROR("Retrieving flags from listen socket");
+			}
+			flags|=FD_CLOEXEC;
+			if (fcntl(sockfd, F_SETFD, flags)==-1){
+				ONION_ERROR("Setting O_CLOEXEC to listen socket");
+			}
+		}
 		if (sockfd<0) // not valid
 			continue;
 		if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) < 0){
@@ -407,6 +417,16 @@ int onion_listen(onion *o){
 		if (o->flags&O_ONE_LOOP){
 			while(1){
 				clientfd=accept4(sockfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
+				if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+					int flags=fcntl(clientfd, F_GETFD);
+					if (flags==-1){
+						ONION_ERROR("Retrieving flags from connection");
+					}
+					flags|=FD_CLOEXEC;
+					if (fcntl(clientfd, F_SETFD, flags)==-1){
+						ONION_ERROR("Setting O_CLOEXEC to connection");
+					}
+				}
 				
 				getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
 										NULL, 0, NI_NUMERICHOST);
