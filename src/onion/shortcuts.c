@@ -291,7 +291,7 @@ void onion_shortcut_date_string_iso(time_t t, char *dest){
 void onion_shortcut_etag(struct stat *st, char etag[32]){
 	size_t size=st->st_size;
 	unsigned int time=st->st_mtime;
-	snprintf(etag,32,"%04X-%04X",size,time);
+	snprintf(etag,32,"%04X-%04X",(int32_t)size,(int32_t)time);
 	ONION_DEBUG0("Etag is %s", etag);
 }
 

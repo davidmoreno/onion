@@ -30,7 +30,7 @@
 #include "types_internal.h"
 #include "log.h"
 #include "sessions.h"
-#include <onion/block.h>
+#include "block.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 

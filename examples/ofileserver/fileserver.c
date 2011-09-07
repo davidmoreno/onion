@@ -65,7 +65,9 @@ int main(int argc, char **argv){
 	char *port="8080";
 	char *hostname="::";
 	const char *dirname=".";
+#ifdef HAVE_WEBDAV
 	int withwebdav=1;
+#endif
 	int i;
 	for (i=1;i<argc;i++){
 		if ((strcmp(argv[i],"--port")==0) || (strcmp(argv[i],"-p")==0)){
@@ -82,6 +84,7 @@ int main(int argc, char **argv){
 #ifdef HAVE_WEBDAV
 		else if (strcmp(argv[i],"--no-webdav")==0){
 			ONION_INFO("WebDAV support disabled");
+			withwebdav=0;
 		}
 #endif
 		else{
