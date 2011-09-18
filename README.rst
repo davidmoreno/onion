@@ -101,3 +101,22 @@ I18N
 ----
 
 There is I18N support. Check wiki for details or fileserver_otemplate example.
+
+Systemd
+-------
+
+Systemd is integrated. If want to use it, just pass the flag O_SYSTEMD to the onion_new().
+
+Oterm has example socket and service files for oterm support.
+
+Binary compatibility breaks
+---------------------------
+
+We try hard to keep binary compatibility, but sometimes its hard. Here is a list of ABI breaks:
+
+>0.4.0 
+''''''
+
+* Onion object private flags have moved. If on your code you rely on them, must recompile. If 
+  dont rely on them, everything should keep working.
+

@@ -180,7 +180,7 @@ int main(int argc, char **argv){
 #endif
 		oterm=onion_handler_new((void*)oterm_nopam, url, (void*)onion_handler_free);
 	
-	o=onion_new(O_THREADED);
+	o=onion_new(O_THREADED|O_SYSTEMD);
 	onion_set_root_handler(o, oterm);
 
 	if (!(onion_flags(o)&O_SSL_AVAILABLE)){

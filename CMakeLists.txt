@@ -8,6 +8,7 @@ SET(ONION_USE_PAM true)
 SET(ONION_USE_PTHREADS true)
 SET(ONION_USE_PNG true)
 SET(ONION_USE_XML2 true)
+SET(ONION_USE_SYSTEMD true)
 SET(ONION_VERSION 0.4.0)
 ########
 
@@ -100,6 +101,16 @@ else(CURL_LIB)
 	message("curl not found. Some examples wil not be built.")
 endif(CURL_LIB)
 
+if (${ONION_USE_SYSTEMD})
+	find_library(RT_LIB NAMES rt PATH ${LIBPATH})
+	if (RT_LIB)
+		set(SYSTEMD_ENABLED true)
+		message(STATUS "librt found. Systemd support compiled in.")
+	else(RT_LIB)
+		message("librt not found. Systemd support is not compiled in.")
+	endif(RT_LIB)
+endif(${ONION_USE_SYSTEMD})
+
 
 # defines
 if (GNUTLS_ENABLED)
@@ -114,7 +125,9 @@ endif(PAM_ENABLED)
 if (XML2_ENABLED)
 	add_definitions(-DHAVE_WEBDAV)
 endif(XML2_ENABLED)
-
+if (SYSTEMD_ENABLED)
+	add_definitions(-DHAVE_SYSTEMD)
+endif (SYSTEMD_ENABLED)
 
 ##
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")

@@ -121,14 +121,17 @@ enum onion_mode_e{
 	O_ONE_LOOP=3,					///< Perform one petition at a time; lineal processing
 	O_THREADED=4,					///< Threaded processing, process many petitions at a time. Needs pthread support.
 	O_DETACH_LISTEN=8,		///< When calling onion_listen, it returns inmediatly and do the listening on another thread. Only if threading is available.
+	O_SYSTEMD=0x010,			///< Allow to start as systemd service. It try to start as if from systemd, but if not, start normally, so its "transparent".
 	
-	O_SSL_AVAILABLE=0x10, ///< This is set by the library when creating the onion object, if SSL support is available.
-	O_SSL_ENABLED=0x20,   ///< This is set by the library when setting the certificates, if SSL is available.
+	/// @{  @name From here on, they are internal. User may check them, but not set.
+	O_SSL_AVAILABLE=0x0100, ///< This is set by the library when creating the onion object, if SSL support is available.
+	O_SSL_ENABLED=0x0200,   ///< This is set by the library when setting the certificates, if SSL is available.
 
-	O_THREADS_AVALIABLE=0x40, ///< Threads are available on this onion build
-	O_THREADS_ENABLED=0x80,   ///< Threads are enabled on this onion object. It difers from O_THREADED as this is set by the library, so it states a real status, not a desired one.
+	O_THREADS_AVALIABLE=0x0400, ///< Threads are available on this onion build
+	O_THREADS_ENABLED=0x0800,   ///< Threads are enabled on this onion object. It difers from O_THREADED as this is set by the library, so it states a real status, not a desired one.
 	
-	O_DETACHED=0x0100,		///< Currently listening on another thread.
+	O_DETACHED=0x01000,		///< Currently listening on another thread.
+	/// @}
 };
 
 typedef enum onion_mode_e onion_mode;

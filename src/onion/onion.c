@@ -184,6 +184,10 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include <pwd.h>
 #include <grp.h>
 
+#ifdef HAVE_SYSTEMD
+#include "sd-daemon.h"
+#endif
+
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC 0
 #define accept4(a,b,c,d) accept(a,b,c);
@@ -336,56 +340,74 @@ int onion_listen(onion *o){
 	}
 #endif
 	
-	int sockfd;
-	struct addrinfo hints;
-	struct addrinfo *result, *rp;
+	int sockfd=0;
+#ifdef HAVE_SYSTEMD
+	if (o->flags&O_SYSTEMD){
+		int n=sd_listen_fds(0);
+		ONION_DEBUG("Checking if have systemd sockets: %d",n);
+		if (n>0){ // If 0, normal startup. Else use the first LISTEN_FDS.
+			ONION_DEBUG("Using systemd sockets");
+			if (n>1){
+				ONION_WARNING("Get more than one systemd socket descriptor. Using only the first.");
+			}
+			sockfd=SD_LISTEN_FDS_START+0;
+		}
+	}
+#endif
 	struct sockaddr_storage cli_addr;
-	
-	memset(&hints,0, sizeof(struct addrinfo));
-	hints.ai_canonname=NULL;
-	hints.ai_addr=NULL;
-	hints.ai_next=NULL;
-	hints.ai_socktype=SOCK_STREAM;
-	hints.ai_family=AF_UNSPEC;
-	hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
-	
-	if (getaddrinfo(o->hostname, o->port, &hints, &result) !=0 ){
-		ONION_ERROR("Error getting local address and port: %s", strerror(errno));
-		return errno;
-	}
-	
-	int optval=1;
-	for(rp=result;rp!=NULL;rp=rp->ai_next){
-		sockfd=socket(rp->ai_family, rp->ai_socktype | SOCK_CLOEXEC, rp->ai_protocol);
-		if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
-			int flags=fcntl(sockfd, F_GETFD);
-			if (flags==-1){
-				ONION_ERROR("Retrieving flags from listen socket");
-			}
-			flags|=FD_CLOEXEC;
-			if (fcntl(sockfd, F_SETFD, flags)==-1){
-				ONION_ERROR("Setting O_CLOEXEC to listen socket");
-			}
+	char address[64];
+	if (sockfd==0){
+		struct addrinfo hints;
+		struct addrinfo *result, *rp;
+		
+		memset(&hints,0, sizeof(struct addrinfo));
+		hints.ai_canonname=NULL;
+		hints.ai_addr=NULL;
+		hints.ai_next=NULL;
+		hints.ai_socktype=SOCK_STREAM;
+		hints.ai_family=AF_UNSPEC;
+		hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
+		
+		if (getaddrinfo(o->hostname, o->port, &hints, &result) !=0 ){
+			ONION_ERROR("Error getting local address and port: %s", strerror(errno));
+			return errno;
 		}
-		if (sockfd<0) // not valid
-			continue;
-		if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) < 0){
-			ONION_ERROR("Could not set socket options: %s",strerror(errno));
+		
+		int optval=1;
+		for(rp=result;rp!=NULL;rp=rp->ai_next){
+			sockfd=socket(rp->ai_family, rp->ai_socktype | SOCK_CLOEXEC, rp->ai_protocol);
+			if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+				int flags=fcntl(sockfd, F_GETFD);
+				if (flags==-1){
+					ONION_ERROR("Retrieving flags from listen socket");
+				}
+				flags|=FD_CLOEXEC;
+				if (fcntl(sockfd, F_SETFD, flags)==-1){
+					ONION_ERROR("Setting O_CLOEXEC to listen socket");
+				}
+			}
+			if (sockfd<0) // not valid
+				continue;
+			if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) < 0){
+				ONION_ERROR("Could not set socket options: %s",strerror(errno));
+			}
+			if (bind(sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
+				break; // Success
+			close(sockfd);
 		}
-		if (bind(sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
-			break; // Success
-		close(sockfd);
-	}
-	if (rp==NULL){
-		ONION_ERROR("Could not find any suitable address to bind to.");
-		return errno;
+		if (rp==NULL){
+			ONION_ERROR("Could not find any suitable address to bind to.");
+			return errno;
+		}
+		freeaddrinfo(result);
+
+		getnameinfo(rp->ai_addr, rp->ai_addrlen, address, 32,
+								&address[32], 32, NI_NUMERICHOST | NI_NUMERICSERV);
+		ONION_DEBUG("Listening to %s:%s",address,&address[32]);
+		
+		listen(sockfd,5); // queue of only 5.
 	}
 
-	char address[64];
-	getnameinfo(rp->ai_addr, rp->ai_addrlen, address, 32,
-							&address[32], 32, NI_NUMERICHOST | NI_NUMERICSERV);
-	ONION_DEBUG("Listening to %s:%s",address,&address[32]);
-	
 	// Drops priviledges as it has binded.
 	if (o->username){
 		struct passwd *pw;
@@ -405,12 +427,8 @@ int onion_listen(onion *o){
 			return errno;
 		}
 	}
-	
-	listen(sockfd,5); // queue of only 5.
-	
-	freeaddrinfo(result);
-	
-  socklen_t clilen = sizeof(cli_addr);
+
+	socklen_t clilen = sizeof(cli_addr);
 
 	if (o->flags&O_ONE){
 		int clientfd;

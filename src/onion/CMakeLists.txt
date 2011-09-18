@@ -1,10 +1,10 @@
 # the lib itself. Two versions, static and shared.
 
 add_library(onion SHARED codecs.c dict.c onion.c request.c request_parser.c response.c handler.c 
-												server.c log.c sessions.c shortcuts.c block.c mime.c url.c)
+												server.c log.c sessions.c shortcuts.c block.c mime.c url.c sd-daemon.c)
 
 add_library(onion_static STATIC codecs.c dict.c onion.c request.c request_parser.c response.c handler.c 
-												server.c log.c sessions.c shortcuts.c block.c mime.c url.c)
+												server.c log.c sessions.c shortcuts.c block.c mime.c url.c sd-daemon.c)
 
 
 # library dependencies
@@ -16,6 +16,10 @@ if (PTHREADS)
 	target_link_libraries(onion pthread)
 	target_link_libraries(onion_static pthread)
 endif(PTHREADS)
+if (SYSTEMD_ENABLED)
+	target_link_libraries(onion ${RT_LIB})
+	target_link_libraries(onion_static ${RT_LIB})
+endif(SYSTEMD_ENABLED)
 
 add_subdirectory(handlers)
 
