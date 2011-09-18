@@ -1,0 +1,8 @@
+[Unit]
+Description=Onion web terminal emulator.
+
+[Socket]
+ListenStream=8080
+
+[Install]
+WantedBy=oterm.target
