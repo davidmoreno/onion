@@ -87,7 +87,6 @@ typedef struct onion_multipart_buffer_s{
 	int fd; 				/// If file, the file descriptor.
 }onion_multipart_buffer;
 
-static onion_connection_status onion_request_process(onion_request *req);
 static void onion_request_parse_query_to_dict(onion_dict *dict, char *p);
 static int onion_request_parse_query(onion_request *req);
 static onion_connection_status prepare_POST(onion_request *req);
@@ -904,16 +903,6 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 		ONION_DEBUG0("Adding key %s=%-16s",key,value);
 		onion_dict_add(dict, key, value, 0);
 	}
-}
-
-/**
- * @short Processes one request, calling the handler.
- * 
- * Just calls the onion_server handler. May return an error code from onion_connection_status
- */
-static onion_connection_status onion_request_process(onion_request *req){
-	//ONION_DEBUG0("Process request",req->path);
-	return onion_server_handle_request(req->server, req);
 }
 
 /**

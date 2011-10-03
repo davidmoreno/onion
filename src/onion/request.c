@@ -420,3 +420,16 @@ const char *onion_request_get_language_code(onion_request *req){
 const onion_block *onion_request_get_data(onion_request *req){
 	return req->data;
 }
+
+/**
+ * @short Launches one handler for the given request
+ * 
+ * Once the request is ready, launch it.
+ * 
+ * @returns The connection status: if it should be closed, error codes...
+ */
+onion_connection_status onion_request_process(onion_request *req){
+	//ONION_DEBUG0("Process request",req->path);
+	return onion_server_handle_request(req->server, req);
+}
+

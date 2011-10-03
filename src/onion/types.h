@@ -101,6 +101,14 @@ typedef struct onion_sessions_t onion_sessions;
 struct onion_block_t;
 typedef struct onion_block_t onion_block;
 
+/**
+ * @struct onion_poller_t
+ * @short Manages the polling on a set of file descriptors
+ */
+struct onion_poller_t;
+typedef struct onion_poller_t onion_poller;
+
+
 /// Signature of request handlers.
 typedef int (*onion_handler_handler)(void *privdata, onion_request *req, onion_response *res);
 /// Signature of free function of private data of request handlers
