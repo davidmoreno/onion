@@ -69,6 +69,7 @@ struct onion_t{
 	sem_t thread_count;
 	pthread_mutex_t mutex;		/// Mutexes data on this struct.
 #endif
+	onion_poller *poller;
 };
 
 
@@ -99,6 +100,8 @@ struct onion_request_t{
 	onion_block *data;    /// Some extra data, normally PROPFIND.
 	char *session_id;     /// Session id of the request, if any.
 	char *client_info;    /// A string that describes the client, normally the IP.
+	
+	int fd; 							/// Helper that stores the original fd
 };
 
 struct onion_response_t{

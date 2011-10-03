@@ -39,9 +39,12 @@ typedef struct onion_poller_el_t onion_poller_el;
 /// @private
 struct onion_poller_el_t{
 	int fd;
-	void (*f)(void*);
+	int (*f)(void*);
 	void *data;
-	
+
+	void (*shutdown)(void*);
+	void *shutdown_data;
+
 	struct onion_poller_el_t *next;
 };
 
@@ -78,10 +81,11 @@ void onion_poller_free(onion_poller *p){
  * When new data is available (read/write/event) the given function
  * is called with that data.
  */
-int onion_poller_add(onion_poller *poller, int fd, void (*f)(void*), void *data){
-	ONION_DEBUG0("Adding fd %d/%d for polling", fd, poller->n);
+int onion_poller_add(onion_poller *poller, int fd, int (*f)(void*), void *data){
+	ONION_DEBUG0("Adding fd %d/nr %d for polling", fd, poller->n);
 
 	struct epoll_event ev;
+	memset(&ev, 0, sizeof(ev));
 	ev.events=EPOLLIN | EPOLLOUT | EPOLLRDHUP;
 	ev.data.fd=fd;
 	if (epoll_ctl(poller->fd, EPOLL_CTL_ADD, fd, &ev) < 0){
@@ -93,6 +97,8 @@ int onion_poller_add(onion_poller *poller, int fd, void (*f)(void*), void *data)
 	nel->f=f;
 	nel->data=data;
 	nel->next=NULL;
+	nel->shutdown=NULL;
+	nel->shutdown_data=NULL;
 
 	if (poller->head){
 		onion_poller_el *next=poller->head;
@@ -108,6 +114,21 @@ int onion_poller_add(onion_poller *poller, int fd, void (*f)(void*), void *data)
 	return 0;
 }
 
+int onion_poller_set_shutdown(onion_poller *poller, int fd, void (*f)(void*), void *data){
+	onion_poller_el *next=poller->head;
+	while(next){
+		if (next->fd==fd){
+			ONION_DEBUG0("Added shutdown callback for fd %d", fd);
+			next->shutdown=f;
+			next->shutdown_data=data;
+			return 0;
+		}
+		next=next->next;
+	}
+	ONION_ERROR("Could not find fd %d", fd);
+	return 1;
+}
+
 /**
  * @short Removes a file descriptor, and all related callbacks from the listening queue
  * @memberof onion_poller_t
@@ -118,6 +139,8 @@ int onion_poller_remove(onion_poller *poller, int fd){
 	if (el && el->fd==fd){
 		ONION_DEBUG0("Removed from head");
 		poller->head=el->next;
+		if (el->shutdown)
+			el->shutdown(el->shutdown_data);
 		free(el);
 		poller->n--;
 		return 0;
@@ -127,6 +150,8 @@ int onion_poller_remove(onion_poller *poller, int fd){
 			ONION_DEBUG0("Removed from tail");
 				onion_poller_el *t=el->next;
 			el->next=t->next;
+			if (t->shutdown)
+				t->shutdown(t->shutdown_data);
 			free(t);
 			poller->n--;
 			return 0;
@@ -164,7 +189,9 @@ void onion_poller_poll(onion_poller *p){
 			}
 			// Call the callback
 			ONION_DEBUG0("Calling callback for fd %d", el->fd);
-			el->f(el->data);
+			int n=el->f(el->data);
+			if (n<0)
+				onion_poller_remove(p, el->fd);
 			ONION_DEBUG0("--");
 		}
 	}

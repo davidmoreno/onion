@@ -11,7 +11,7 @@ int hello(void *p, onion_request *req, onion_response *res){
 }
 
 int main(int argc, char **argv){
-	onion *o=onion_new(O_THREADED);
+	onion *o=onion_new(O_POLLER);
 	onion_url *urls=onion_root_url(o);
 	
 	onion_url_add_static(urls, "static", "Hello static world", HTTP_OK);

@@ -179,6 +179,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include "server.h"
 #include "types_internal.h"
 #include "log.h"
+#include "poller.h"
 #include <netdb.h>
 #include <fcntl.h>
 #include <pwd.h>
@@ -215,6 +216,9 @@ static void *onion_request_thread(void*);
 
 /// Internal processor of just one request.
 static void onion_process_request(onion *o, int clientfd, const char *client_info);
+
+/// Accepts a request.
+static int onion_accept_request(onion *o);
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
@@ -315,7 +319,7 @@ void onion_free(onion *onion){
  * @memberof onion_t
  */
 int onion_write_to_socket(int *fd, const char *data, unsigned int len){
-	return write(*fd, data, len);
+	return write((int)fd, data, len);
 }
 
 /**
@@ -399,15 +403,15 @@ int onion_listen(onion *o){
 			ONION_ERROR("Could not find any suitable address to bind to.");
 			return errno;
 		}
-		freeaddrinfo(result);
 
 		getnameinfo(rp->ai_addr, rp->ai_addrlen, address, 32,
 								&address[32], 32, NI_NUMERICHOST | NI_NUMERICSERV);
 		ONION_DEBUG("Listening to %s:%s",address,&address[32]);
+		freeaddrinfo(result);
 		
 		listen(sockfd,5); // queue of only 5.
 	}
-
+	o->listenfd=sockfd;
 	// Drops priviledges as it has binded.
 	if (o->username){
 		struct passwd *pw;
@@ -430,36 +434,26 @@ int onion_listen(onion *o){
 
 	socklen_t clilen = sizeof(cli_addr);
 
-	if (o->flags&O_ONE){
-		int clientfd;
+	if (o->flags&O_POLLER){
+		ONION_WARNING("Poller mode is experimental.");
+		o->poller=onion_poller_new(128);
+		onion_poller_add(o->poller, sockfd, (void*) onion_accept_request, o);
+		onion_poller_poll(o->poller);
+	}
+	else if (o->flags&O_ONE){
 		if (o->flags&O_ONE_LOOP){
 			while(1){
-				clientfd=accept4(sockfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
-				if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
-					int flags=fcntl(clientfd, F_GETFD);
-					if (flags==-1){
-						ONION_ERROR("Retrieving flags from connection");
-					}
-					flags|=FD_CLOEXEC;
-					if (fcntl(clientfd, F_SETFD, flags)==-1){
-						ONION_ERROR("Setting O_CLOEXEC to connection");
-					}
-				}
-				
-				getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
-										NULL, 0, NI_NUMERICHOST);
-				onion_process_request(o, clientfd, address);
+				onion_accept_request(o);
 			}
 		}
 		else{
-			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-			getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
-										NULL, 0, NI_NUMERICHOST);
-			onion_process_request(o, clientfd, address);
+			onion_accept_request(o);
 		}
 	}
 #ifdef HAVE_PTHREADS
 	else if (o->flags&O_THREADS_ENABLED){
+		struct sockaddr_storage cli_addr;
+		char address[64];
 		int clientfd;
 		pthread_attr_t attr;
 		pthread_attr_init(&attr);
@@ -576,6 +570,129 @@ void onion_set_max_threads(onion *onion, int max_threads){
 #endif
 }
 
+static onion_request *onion_connection_start(onion *o, int clientfd, const char *client_info);
+static onion_connection_status onion_connection_read(onion_request *req);
+static void onion_connection_shutdown(onion_request *req);
+
+/**
+ * @short Internal accept of just one request. 
+ * 
+ * It might be called straight from listen, or from the epoller.
+ */
+static int onion_accept_request(onion *o){
+	struct sockaddr_storage cli_addr;
+	socklen_t clilen = sizeof(cli_addr);
+	char address[64];
+
+	int clientfd=accept4(o->listenfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
+	if (clientfd<0){
+		ONION_ERROR("Error accepting connection.");
+		return -1;
+	}
+	if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+		int flags=fcntl(clientfd, F_GETFD);
+		if (flags==-1){
+			ONION_ERROR("Retrieving flags from connection");
+		}
+		flags|=FD_CLOEXEC;
+		if (fcntl(clientfd, F_SETFD, flags)==-1){
+			ONION_ERROR("Setting O_CLOEXEC to connection");
+		}
+	}
+	
+	getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
+							NULL, 0, NI_NUMERICHOST);
+	
+	if (o->flags&O_POLLER){
+		onion_request *req=onion_connection_start(o, clientfd, address);
+		onion_poller_add(o->poller, clientfd, (void*)onion_connection_read, req);
+		onion_poller_set_shutdown(o->poller, clientfd, (void*)onion_connection_shutdown, req);
+		//onion_poller_set_timeout(o->poller, clientfd, o->timeout);
+	}
+	else{
+		onion_process_request(o, clientfd, address);
+	}
+	return 0;
+}
+
+/// Initializes the connection, create request, sets up the SSL...
+static onion_request *onion_connection_start(onion *o, int clientfd, const char *client_info){
+	ONION_DEBUG("Processing request");
+	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
+#ifdef HAVE_GNUTLS
+	gnutls_session_t session=NULL;
+	if (o->flags&O_SSL_ENABLED){
+		session=onion_prepare_gnutls_session(o, clientfd);
+		if (session==NULL)
+			return;
+	}
+#endif
+	signal(SIGPIPE, SIG_IGN); // FIXME. remove the thread better. Now it will try to write and fail on it.
+
+	onion_request *req;
+#ifdef HAVE_GNUTLS
+	if (o->flags&O_SSL_ENABLED){
+		onion_server_set_write(o->server, (onion_write)gnutls_record_send); // Im lucky, has the same signature.
+		req=onion_request_new(o->server, session, client_info);
+		req->socket=session;
+	}
+	else{
+		onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
+		req=onion_request_new(o->server, &clientfd, client_info);
+		req->socket=(void*)clientfd;
+	}
+#else
+	req=onion_request_new(o->server, &clientfd, client_info);
+	onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
+	req->socket=(void*)clientfd;
+#endif
+	req->fd=clientfd;
+	if (!(o->flags&O_THREADED) || !(o->flags&O_POLLER))
+		onion_request_set_no_keep_alive(req);
+	
+	return req;
+}
+
+/// Reads a packet of data, and passes it to the request parser
+static onion_connection_status onion_connection_read(onion_request *req){
+	int r;
+	char buffer[1500];
+	errno=0;
+#if HAVE_GNUTLS
+	r = (o->flags&O_SSL_ENABLED)
+						? gnutls_record_recv (req->socket, buffer, sizeof(buffer))
+						: read((int)req->socket, buffer, sizeof(buffer));
+#else
+	errno=0;
+	r=read((int)req->socket, buffer, sizeof(buffer));
+#endif
+	if (r<=0){ // error reading.
+		if (errno==ECONNRESET)
+			ONION_DEBUG("Connection reset by peer."); // Ok, this is more or less normal.
+		else if (errno!=0)
+			ONION_ERROR("Error reading data: %s (%d)", strerror(errno), errno);
+		return OCS_INTERNAL_ERROR;
+	}
+	return onion_server_write_to_request(req->server, req, buffer, r);
+}
+
+/// Closes a connection
+static void onion_connection_shutdown(onion_request *req){
+#ifdef HAVE_GNUTLS
+	if (o->flags&O_SSL_ENABLED){
+		gnutls_bye (req->session, GNUTLS_SHUT_WR);
+		gnutls_deinit (req->session);
+		/// FIXME! missing proper shutdown of real socket.
+	}
+#endif
+	// Make it send the FIN packet.
+	shutdown(req->fd, SHUT_RDWR);
+	
+	if (0!=close(req->fd)){
+		perror("Error closing connection");
+	}
+	onion_request_free(req);
+}
 
 /**
  * @short Internal processor of just one request.
@@ -593,75 +710,16 @@ void onion_set_max_threads(onion *onion, int max_threads){
  * @param clientfd is the POSIX file descriptor of the connection.
  */
 static void onion_process_request(onion *o, int clientfd, const char *client_info){
-	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
-#ifdef HAVE_GNUTLS
-	gnutls_session_t session=NULL;
-	if (o->flags&O_SSL_ENABLED){
-		session=onion_prepare_gnutls_session(o, clientfd);
-		if (session==NULL)
-			return;
-	}
-#endif
-	signal(SIGPIPE, SIG_IGN); // FIXME. remove the thread better. Now it will try to write and fail on it.
-
-
-	int r;
-	onion_connection_status connection_status;
-	char buffer[1024];
-	onion_request *req;
-#ifdef HAVE_GNUTLS
-	if (o->flags&O_SSL_ENABLED){
-		onion_server_set_write(o->server, (onion_write)gnutls_record_send); // Im lucky, has the same signature.
-		req=onion_request_new(o->server, session, client_info);
-	}
-	else{
-		onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
-		req=onion_request_new(o->server, &clientfd, client_info);
-	}
-#else
-	req=onion_request_new(o->server, &clientfd, client_info);
-	onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
-#endif
-	if (!(o->flags&O_THREADED))
-		onion_request_set_no_keep_alive(req);
-	
+	ONION_DEBUG("Processing request");
+	onion_request *req=onion_connection_start(o, clientfd, client_info);
+	onion_connection_status cs=OCS_KEEP_ALIVE;
 	struct pollfd pfd;
 	pfd.events=POLLIN;
 	pfd.fd=clientfd;
-	while ((poll(&pfd,1, o->timeout))>0){
-		errno=0;
-#if HAVE_GNUTLS
-		r = (o->flags&O_SSL_ENABLED)
-							? gnutls_record_recv (session, buffer, sizeof(buffer))
-							: read(clientfd, buffer, sizeof(buffer));
-#else
-		errno=0;
-		r=read(clientfd, buffer, sizeof(buffer));
-#endif
-		if (r<=0){ // error reading.
-			if (errno==ECONNRESET)
-				ONION_DEBUG("Connection reset by peer."); // Ok, this is more or less normal.
-			else if (errno!=0)
-				ONION_ERROR("Error reading data: %s (%d)", strerror(errno), errno);
-			break;
-		}
-		connection_status=onion_server_write_to_request(o->server, req, buffer, r);
-		if (connection_status<0)
-			break;
+	while ((cs>=0) && (poll(&pfd,1, o->timeout)>0)){
+		cs=onion_connection_read(req);
 	}
-	onion_request_free(req);
-#ifdef HAVE_GNUTLS
-	if (o->flags&O_SSL_ENABLED){
-		gnutls_bye (session, GNUTLS_SHUT_WR);
-		gnutls_deinit (session);
-	}
-#endif
-	// Make it send the FIN packet.
-	shutdown(clientfd, SHUT_RDWR);
-	
-	if (0!=close(clientfd)){
-		perror("Error closing connection");
-	}
+	onion_connection_shutdown(req);
 }
 
 /**

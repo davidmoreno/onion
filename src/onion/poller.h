@@ -19,9 +19,12 @@
 #ifndef __ONION_POLLER_H__
 #define __ONION_POLLER_H__
 
+#include "types.h"
+
 onion_poller *onion_poller_new(int aprox_n);
 void onion_poller_free(onion_poller *);
-int onion_poller_add(onion_poller *poller, int fd, void (*f)(void*), void *data);
+int onion_poller_add(onion_poller *poller, int fd, int (*f)(void*), void *data);
+int onion_poller_set_shutdown(onion_poller *poller, int fd, void (*f)(void*), void *data);
 int onion_poller_remove(onion_poller *poller, int fd);
 
 void onion_poller_poll(onion_poller *);

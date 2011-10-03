@@ -130,6 +130,7 @@ enum onion_mode_e{
 	O_THREADED=4,					///< Threaded processing, process many petitions at a time. Needs pthread support.
 	O_DETACH_LISTEN=8,		///< When calling onion_listen, it returns inmediatly and do the listening on another thread. Only if threading is available.
 	O_SYSTEMD=0x010,			///< Allow to start as systemd service. It try to start as if from systemd, but if not, start normally, so its "transparent".
+	O_POLLER=0x020,				///< Use poller. May be mixed with O_THREADED.
 	
 	/// @{  @name From here on, they are internal. User may check them, but not set.
 	O_SSL_AVAILABLE=0x0100, ///< This is set by the library when creating the onion object, if SSL support is available.
