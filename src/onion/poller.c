@@ -24,6 +24,7 @@
 #include "log.h"
 #include "types.h"
 #include "poller.h"
+#include <unistd.h>
 
 struct onion_poller_t{
 	int fd;
@@ -71,7 +72,18 @@ onion_poller *onion_poller_new(int n){
 
 /// @memberof onion_poller_t
 void onion_poller_free(onion_poller *p){
-	ONION_WARNING("No onion_poller_free yet!");
+	ONION_DEBUG0("Free onion poller");
+	p->stop=1;
+	close(p->fd);
+	onion_poller_el *next=p->head;
+	while (next){
+		onion_poller_el *tnext=next->next;
+		//next->shutdown(next->shutdown_data);
+		free(next);
+		next=tnext;
+	}
+	free(p);
+	ONION_DEBUG0("Done");
 }
 
 /**
@@ -178,6 +190,8 @@ void onion_poller_poll(onion_poller *p){
 
 	while (!p->stop){
 		int nfds = epoll_wait(p->fd, event, MAX_EVENTS, -1);
+		if (nfds<0) // This is normally closed p->fd
+			return;
 		int i;
 		for (i=0;i<nfds;i++){
 			onion_poller_el *el=p->head;

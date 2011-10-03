@@ -269,6 +269,7 @@ onion *onion_new(int flags){
 		pthread_mutex_init(&o->mutex, NULL);
 	}
 #endif
+	o->poller=NULL;
 	
 	return o;
 }
@@ -293,6 +294,10 @@ void onion_free(onion *onion){
 		}
 	}
 #endif
+	close(onion->listenfd);
+
+	if (onion->poller)
+		onion_poller_free(onion->poller);
 	
 	if (onion->username)
 		free(onion->username);
