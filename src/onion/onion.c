@@ -601,7 +601,7 @@ static int onion_accept_request(onion *o){
 		}
 		flags|=FD_CLOEXEC;
 		if (fcntl(clientfd, F_SETFD, flags)==-1){
-			ONION_ERROR("Setting O_CLOEXEC to connection");
+			ONION_ERROR("Setting FD_CLOEXEC to connection");
 		}
 	}
 	
@@ -612,7 +612,7 @@ static int onion_accept_request(onion *o){
 		onion_request *req=onion_connection_start(o, clientfd, address);
 		onion_poller_add(o->poller, clientfd, (void*)onion_connection_read, req);
 		onion_poller_set_shutdown(o->poller, clientfd, (void*)onion_connection_shutdown, req);
-		//onion_poller_set_timeout(o->poller, clientfd, o->timeout);
+		onion_poller_set_timeout(o->poller, clientfd, o->timeout);
 	}
 	else{
 		onion_process_request(o, clientfd, address);
@@ -674,6 +674,9 @@ static onion_connection_status onion_connection_read(onion_request *req){
 	if (r<=0){ // error reading.
 		if (errno==ECONNRESET)
 			ONION_DEBUG("Connection reset by peer."); // Ok, this is more or less normal.
+		else if (errno==EAGAIN){
+			return OCS_NEED_MORE_DATA;
+		}
 		else if (errno!=0)
 			ONION_ERROR("Error reading data: %s (%d)", strerror(errno), errno);
 		return OCS_INTERNAL_ERROR;

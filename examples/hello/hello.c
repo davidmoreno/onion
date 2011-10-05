@@ -24,6 +24,7 @@ int main(int argc, char **argv){
 	signal(SIGTERM,shutdown);
 	
 	o=onion_new(O_POLLER);
+	onion_set_timeout(o, 5000);
 	onion_url *urls=onion_root_url(o);
 	
 	onion_url_add_static(urls, "static", "Hello static world", HTTP_OK);
