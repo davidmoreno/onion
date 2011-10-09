@@ -105,7 +105,7 @@ void onion_handler_export_local_header_default(onion_response *res, const char *
 
 void onion_handler_export_local_footer_default(onion_response *res, const char *dirname){
 	onion_response_write0(res,"<h2>Onion directory list. (C) 2010 <a href=\"http://www.coralbits.com\">CoralBits</a>. "
-														"Under <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPL 3.0.</a> License.</h2>\n");
+														"Under <a href=\"http://www.gnu.org/licenses/lgpl-3.0.html\">LGPL 3.0.</a> License.</h2>\n");
 }
 
 /**

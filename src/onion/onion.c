@@ -20,7 +20,6 @@
 /**
  * @mainpage libonion - HTTP server library
  * @author David Moreno Montero - Coralbits S.L. - http://www.coralbits.com
- * @warning Under AGPL 3.0 License - http://www.gnu.org/licenses/agpl.html
  * 
  * @section Introduction
  *  
