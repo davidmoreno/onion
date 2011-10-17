@@ -327,7 +327,11 @@ static onion_connection_status parse_PUT(onion_request *req, onion_buffer *data)
 	//ONION_DEBUG0("Writing %d. %d / %d bytes", length, token->pos+length, token->extra_size);
 
 	int *fd=(int*)token->extra;
-	write(*fd, &data->data[data->pos], length);
+	ssize_t w=write(*fd, &data->data[data->pos], length);
+	if (w<0){
+		ONION_ERROR("Could not write all data to temporal file.");
+		return OCS_INTERNAL_ERROR;
+	}
 	data->pos+=length;
 	token->pos+=length;
 
