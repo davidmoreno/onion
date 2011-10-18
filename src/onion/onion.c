@@ -327,6 +327,12 @@ int onion_write_to_socket(int *fd, const char *data, unsigned int len){
 	return write((long int)fd, data, len);
 }
 
+/// Simple adaptor to call from pool threads the poller.
+static void *onion_poller_adaptor(void *o){
+	onion_poller_poll(((onion*)o)->poller);
+	return NULL;
+}
+
 /**
  * @short Performs the listening with the given mode
  * @memberof onion_t
@@ -440,10 +446,28 @@ int onion_listen(onion *o){
 	socklen_t clilen = sizeof(cli_addr);
 
 	if (o->flags&O_POLL){
-		ONION_WARNING("Poller mode is experimental.");
 		o->poller=onion_poller_new(128);
 		onion_poller_add(o->poller, sockfd, (void*) onion_accept_request, o);
-		onion_poller_poll(o->poller);
+		// O_POLL && O_THREADED == O_POOL. Create several threads to poll.
+#ifdef HAVE_PTHREADS
+		if (o->flags&O_THREADED){
+			ONION_WARNING("Pool mode is experimental. %d threads.", o->max_threads);
+			pthread_t *thread=(pthread_t*)malloc(sizeof(pthread_t)*(o->max_threads-1));
+			int i;
+			for(i=0;i<o->max_threads-1;i++){
+				pthread_create(&thread[i], NULL, onion_poller_adaptor, o);
+			}
+			onion_poller_poll(o->poller);
+			for(i=0;i<o->max_threads-1;i++){
+				pthread_join(thread[i], NULL);
+			}
+		}
+		else
+#endif
+		{
+			ONION_WARNING("Poller mode is experimental.");
+			onion_poller_poll(o->poller);
+		}
 	}
 	else if (o->flags&O_ONE){
 		if (o->flags&O_ONE_LOOP){

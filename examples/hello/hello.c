@@ -23,8 +23,8 @@ int main(int argc, char **argv){
 	signal(SIGINT,shutdown);
 	signal(SIGTERM,shutdown);
 	
+	onion *o=onion_new(O_POOL);
 	onion_set_timeout(o, 5000);
-	onion *o=onion_new(O_THREADED|O_POLL);
 	onion_url *urls=onion_root_url(o);
 	
 	onion_url_add_static(urls, "static", "Hello static world", HTTP_OK);
