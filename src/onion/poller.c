@@ -98,16 +98,8 @@ void onion_poller_free(onion_poller *p){
  * is called with that data.
  */
 int onion_poller_add(onion_poller *poller, int fd, int (*f)(void*), void *data){
-	ONION_DEBUG0("Adding fd %d/nr %d for polling", fd, poller->n);
+	ONION_DEBUG0("Adding fd %d for polling (%d)", fd, poller->n);
 
-	struct epoll_event ev;
-	memset(&ev, 0, sizeof(ev));
-	ev.events=EPOLLIN; // | EPOLLOUT | EPOLLRDHUP;
-	ev.data.fd=fd;
-	if (epoll_ctl(poller->fd, EPOLL_CTL_ADD, fd, &ev) < 0){
-		ONION_ERROR("Error add descriptor to listen to. %s", strerror(errno));
-		return 1;
-	}
 	onion_poller_el *nel=malloc(sizeof(onion_poller_el));
 	nel->fd=fd;
 	nel->f=f;
@@ -128,6 +120,14 @@ int onion_poller_add(onion_poller *poller, int fd, int (*f)(void*), void *data){
 		poller->head=nel;
 
 	poller->n++;
+	
+	struct epoll_event ev;
+	ev.events=EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLONESHOT;
+	ev.data.fd=fd;
+	if (epoll_ctl(poller->fd, EPOLL_CTL_ADD, fd, &ev) < 0){
+		ONION_ERROR("Error add descriptor to listen to. %s", strerror(errno));
+		return 1;
+	}
 
 	return 0;
 }
@@ -191,7 +191,7 @@ int onion_poller_set_timeout(onion_poller *poller, int fd, int timeout){
  * @memberof onion_poller_t
  */
 int onion_poller_remove(onion_poller *poller, int fd){
-	ONION_DEBUG0("Trying to remove fd %d/%d", fd, poller->n);
+	ONION_DEBUG0("Trying to remove fd %d (%d)", fd, poller->n);
 	onion_poller_el *el=poller->head;
 	if (el && el->fd==fd){
 		ONION_DEBUG0("Removed from head");
@@ -297,7 +297,7 @@ void onion_poller_poll(onion_poller *p){
 			while (el && el->fd!=event[i].data.fd)
 				el=el->next;
 			if (!el){
-				ONION_WARNING("Event on an unlistened file descriptor!");
+				ONION_WARNING("Event on an unlistened file descriptor %d!", event[i].data.fd);
 				continue;
 			}
 			el->delta_timeout=el->timeout;
@@ -306,7 +306,10 @@ void onion_poller_poll(onion_poller *p){
 			int n=el->f(el->data);
 			if (n<0)
 				onion_poller_remove(p, el->fd);
-			//ONION_DEBUG0("--");
+			ONION_DEBUG0("Resetting poller");
+	
+			event[i].events=EPOLLIN | EPOLLONESHOT;
+			epoll_ctl(p->fd, event[i].data.fd, EPOLL_CTL_ADD, &event[i]);
 		}
 	}
 	p->stop=0;

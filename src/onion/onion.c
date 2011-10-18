@@ -324,7 +324,7 @@ void onion_free(onion *onion){
  * @memberof onion_t
  */
 int onion_write_to_socket(int *fd, const char *data, unsigned int len){
-	return write((int)fd, data, len);
+	return write((long int)fd, data, len);
 }
 
 /**
@@ -439,7 +439,7 @@ int onion_listen(onion *o){
 
 	socklen_t clilen = sizeof(cli_addr);
 
-	if (o->flags&O_POLLER){
+	if (o->flags&O_POLL){
 		ONION_WARNING("Poller mode is experimental.");
 		o->poller=onion_poller_new(128);
 		onion_poller_add(o->poller, sockfd, (void*) onion_accept_request, o);
@@ -608,7 +608,7 @@ static int onion_accept_request(onion *o){
 	getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
 							NULL, 0, NI_NUMERICHOST);
 	
-	if (o->flags&O_POLLER){
+	if (o->flags&O_POLL){
 		onion_request *req=onion_connection_start(o, clientfd, address);
 		onion_poller_add(o->poller, clientfd, (void*)onion_connection_read, req);
 		onion_poller_set_shutdown(o->poller, clientfd, (void*)onion_connection_shutdown, req);
@@ -649,10 +649,10 @@ static onion_request *onion_connection_start(onion *o, int clientfd, const char 
 #else
 	req=onion_request_new(o->server, &clientfd, client_info);
 	onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
-	req->socket=(void*)clientfd;
+	req->socket=(void*)(long int)clientfd;
 #endif
 	req->fd=clientfd;
-	if (!(o->flags&O_THREADED) || !(o->flags&O_POLLER))
+	if (!(o->flags&O_THREADED) || !(o->flags&O_POLL))
 		onion_request_set_no_keep_alive(req);
 	
 	return req;
@@ -669,7 +669,7 @@ static onion_connection_status onion_connection_read(onion_request *req){
 						: read((int)req->socket, buffer, sizeof(buffer));
 #else
 	errno=0;
-	r=read((int)req->socket, buffer, sizeof(buffer));
+	r=read((long int)req->socket, buffer, sizeof(buffer));
 #endif
 	if (r<=0){ // error reading.
 		if (errno==ECONNRESET)

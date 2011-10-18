@@ -94,7 +94,9 @@ int main(int argc, char **argv){
 	int error;
 	int i;
 	int ssl=1;
+#ifdef HAVE_PAM
 	int use_pam=1;
+#endif
 	
 	for (i=1;i<argc;i++){
 		if (strcmp(argv[i],"--help")==0){
@@ -150,10 +152,12 @@ int main(int argc, char **argv){
 			ssl=0;
 			fprintf(stderr, "Disabling SSL!\n");
 		}
+#ifdef HAVE_PAM
 		else if(strcmp(argv[i],"--no-pam")==0){
 			use_pam=0;
 			fprintf(stderr, "Disabling PAM!\n");
 		}
+#endif
 	}
 	
 	onion_url *url=onion_url_new();

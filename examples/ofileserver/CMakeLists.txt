@@ -1,4 +1,5 @@
 include_directories (${CMAKE_SOURCE_DIR}/src/) 
+find_program(HAVE_MSGFMT msgfmt)
 
 add_custom_command(
    OUTPUT fileserver_html.c
@@ -7,7 +8,7 @@ add_custom_command(
    DEPENDS ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/fileserver.html
    )
 
-
+if(HAVE_MSGFMT)
 add_custom_target(
    fo_zh ALL
    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
@@ -36,6 +37,7 @@ add_custom_target(
                  -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/pl.mo
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/pl.po
    )
+endif(HAVE_MSGFMT)
 
 
 add_executable(ofileserver fileserver.c fileserver_html.c)
