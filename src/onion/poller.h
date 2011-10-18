@@ -27,6 +27,7 @@ int onion_poller_add(onion_poller *poller, int fd, int (*f)(void*), void *data);
 int onion_poller_set_shutdown(onion_poller *poller, int fd, void (*f)(void*), void *data);
 int onion_poller_set_timeout(onion_poller *poller, int fd, int timeout);
 int onion_poller_remove(onion_poller *poller, int fd);
+int onion_poller_go(onion_poller *poller, int fd);
 
 void onion_poller_poll(onion_poller *);
 

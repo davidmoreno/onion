@@ -446,8 +446,13 @@ int onion_listen(onion *o){
 	socklen_t clilen = sizeof(cli_addr);
 
 	if (o->flags&O_POLL){
-		o->poller=onion_poller_new(128);
+#ifdef HAVE_PTHREADS
+		o->poller=onion_poller_new(o->max_threads+1);
+#else
+		o->poller=onion_poller_new(8);
+#endif
 		onion_poller_add(o->poller, sockfd, (void*) onion_accept_request, o);
+		onion_poller_go(o->poller, sockfd);
 		// O_POLL && O_THREADED == O_POOL. Create several threads to poll.
 #ifdef HAVE_PTHREADS
 		if (o->flags&O_THREADED){
@@ -637,6 +642,7 @@ static int onion_accept_request(onion *o){
 		onion_poller_add(o->poller, clientfd, (void*)onion_connection_read, req);
 		onion_poller_set_shutdown(o->poller, clientfd, (void*)onion_connection_shutdown, req);
 		onion_poller_set_timeout(o->poller, clientfd, o->timeout);
+		onion_poller_go(o->poller, clientfd);
 	}
 	else{
 		onion_process_request(o, clientfd, address);
