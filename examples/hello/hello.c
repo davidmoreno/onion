@@ -1,5 +1,7 @@
 /** Licensed under AGPL 3.0. (C) 2010 David Moreno Montero. http://coralbits.com */
 #include <onion/onion.h>
+#include <onion/log.h>
+#include <signal.h>
 
 int hello(void *p, onion_request *req, onion_response *res){
 	//onion_response_set_length(res, 11);
@@ -10,8 +12,20 @@ int hello(void *p, onion_request *req, onion_response *res){
 	return OCS_PROCESSED;
 }
 
+onion *o=NULL;
+
+static void shutdown(int _){
+	if (o) 
+		onion_listen_stop(o);
+}
+
 int main(int argc, char **argv){
-	onion *o=onion_new(O_THREADED);
+	signal(SIGINT,shutdown);
+	signal(SIGTERM,shutdown);
+	
+	o=onion_new(O_POOL);
+	onion_set_timeout(o, 5000);
+	onion_set_hostname(o,"0.0.0.0");
 	onion_url *urls=onion_root_url(o);
 	
 	onion_url_add_static(urls, "static", "Hello static world", HTTP_OK);

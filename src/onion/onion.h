@@ -36,6 +36,9 @@ onion *onion_new(int flags);
 /// Performs the listening with the given mode
 int onion_listen(onion *server);
 
+/// Stops the listening
+void onion_listen_stop(onion *server);
+
 /// Removes the allocated data
 void onion_free(onion *onion);
 

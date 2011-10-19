@@ -130,7 +130,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 		fprintf(stderr,"%s",levelcolor[level]);
 
 #ifdef HAVE_PTHREADS
-	fprintf(stderr, "[%04X] ",(int)syscall(SYS_gettid));
+	fprintf(stderr, "[%06d] ",(int)syscall(SYS_gettid));
 #endif
 	char datetime[32];
 	time_t t;

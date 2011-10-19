@@ -101,6 +101,22 @@ typedef struct onion_sessions_t onion_sessions;
 struct onion_block_t;
 typedef struct onion_block_t onion_block;
 
+/**
+ * @struct onion_poller_t
+ * @short Manages the polling on a set of file descriptors
+ */
+struct onion_poller_t;
+typedef struct onion_poller_t onion_poller;
+
+/**
+ * @struct onion_poller_slot_t
+ * @short Data about a poller element: timeout, function to call shutdown function
+ * @memberof onion_poller_t
+ */
+struct onion_poller_slot_t;
+typedef struct onion_poller_slot_t onion_poller_slot;
+
+
 /// Signature of request handlers.
 typedef int (*onion_handler_handler)(void *privdata, onion_request *req, onion_response *res);
 /// Signature of free function of private data of request handlers
@@ -122,7 +138,19 @@ enum onion_mode_e{
 	O_THREADED=4,					///< Threaded processing, process many petitions at a time. Needs pthread support.
 	O_DETACH_LISTEN=8,		///< When calling onion_listen, it returns inmediatly and do the listening on another thread. Only if threading is available.
 	O_SYSTEMD=0x010,			///< Allow to start as systemd service. It try to start as if from systemd, but if not, start normally, so its "transparent".
-	
+/**
+ * @short Use polling for request read, then as other flags say
+ * 
+ * O_POLL must be used with other method, O_ONE_LOOP or O_THREAD, and it will poll for requests until the
+ * request is ready. On that moment it will or just launch the request, which should not block, or
+ * a new thread for this request.
+ * 
+ * If on O_ONE_LOOP mode the request themselves can hook to the onion_poller object, and be called 
+ * when ready. (TODO).
+ * 
+ */
+	O_POLL=0x020, ///< Use epoll for request read, then as other flags say.
+  O_POOL=0x024, ///< Create some threads, and make them listen for ready file descriptors.
 	/// @{  @name From here on, they are internal. User may check them, but not set.
 	O_SSL_AVAILABLE=0x0100, ///< This is set by the library when creating the onion object, if SSL support is available.
 	O_SSL_ENABLED=0x0200,   ///< This is set by the library when setting the certificates, if SSL is available.
