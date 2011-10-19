@@ -52,7 +52,8 @@ enum onion_webdav_props_e{
 	WD_CREATION_DATE=(1<<3),
 	WD_ETAG=(1<<4),
 	WD_CONTENT_TYPE=(1<<5),
-	WD_DISPLAY_NAME=(1<<5),
+	WD_DISPLAY_NAME=(1<<6),
+	WD_EXECUTABLE=(1<<7),
 };
 
 typedef enum onion_webdav_props_e onion_webdav_props;
@@ -280,6 +281,8 @@ static int onion_webdav_parse_propfind(const onion_block *block){
 							props|=WD_CONTENT_TYPE;
 						else if (strcmp((const char*)prop->name, "displayname")==0)
 							props|=WD_DISPLAY_NAME;
+						else if (strcmp((const char*)prop->name, "executable")==0)
+							props|=WD_EXECUTABLE;
 						else{
 							char tmp[256];
 							snprintf(tmp,sizeof(tmp),"g0:%s", prop->name);
@@ -328,7 +331,7 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
 		strncpy(tmp, realpath, sizeof(tmp));
 	struct stat st;
 	if (stat(tmp, &st)<0){
-		ONION_ERROR("Error making stat for %s", tmp);
+		ONION_ERROR("Error on %s: %s", tmp, strerror(errno));
 		return 1;
 	}
 
@@ -341,13 +344,18 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
 	else{
 		if (urlpath[0]==0)
 			snprintf(tmp, sizeof(tmp), "/");
-		else
+		else{
 			snprintf(tmp, sizeof(tmp), "/%s", urlpath);
+		}
 	}
+	if (S_ISDIR(st.st_mode))
+		strncat(tmp,"/", sizeof(tmp));
 	
 	xmlTextWriterStartElement(writer, BAD_CAST "D:response");
 	xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:lp1" ,BAD_CAST "DAV:");
 	xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:g0" ,BAD_CAST "DAV:");
+	xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:a" ,BAD_CAST "http://apache.org/dav/props/");
+	
 		xmlTextWriterWriteElement(writer, BAD_CAST "D:href", BAD_CAST  tmp); 
 		
 		/// OK
@@ -383,6 +391,13 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
 					onion_shortcut_etag(&st, etag);
 					xmlTextWriterWriteElement(writer, BAD_CAST "lp1:getetag", BAD_CAST etag);
 				}
+				if (props&WD_EXECUTABLE && !S_ISDIR(st.st_mode)){
+					if (st.st_mode&0111)
+						xmlTextWriterWriteElement(writer, BAD_CAST "a:executable", BAD_CAST "true");
+					else
+						xmlTextWriterWriteElement(writer, BAD_CAST "a:executable", BAD_CAST "false");
+				}
+
 			xmlTextWriterEndElement(writer);
 			xmlTextWriterWriteElement(writer, BAD_CAST "D:status", BAD_CAST  "HTTP/1.1 200 OK"); 
 		xmlTextWriterEndElement(writer); // /propstat
@@ -504,7 +519,7 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	
 	onion_response_set_header(res, "Content-Type", "text/xml; charset=\"utf-8\"");
 	onion_response_set_length(res, onion_block_size(block));
-	onion_response_set_code(res, 207);
+	onion_response_set_code(res, HTTP_MULTI_STATUS);
 	
 	onion_response_write(res, onion_block_data(block), onion_block_size(block));
 	
@@ -555,9 +570,9 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
 		ret=1;
 		ONION_ERROR("Could not resolve real path for %s or %s", exported_path, filename);
 	}
-	if ((ret==0) && strncmp(base, file, sizeof(base))!=0){
+	if ((ret==0) && strncmp(base, file, strlen(base))!=0){
 		ret=1;
-		ONION_ERROR("Base %s is not for file %s", base, file);
+		ONION_ERROR("Base %s is not for file %s (%p)", base, file, strncmp(base, file, sizeof(base)));
 	}
 	
 	if (base)

@@ -37,6 +37,7 @@ enum onion_response_codes_e{
 	HTTP_OK=200,
 	HTTP_CREATED=201,
 	HTTP_PARTIAL_CONTENT=206,
+	HTTP_MULTI_STATUS=207,
 	
 	// Redirects
 	HTTP_MOVED=301,

@@ -213,6 +213,7 @@ int onion_response_write_headers(onion_response *res){
 	res->sent_bytes=0; // the header size is not counted here.
 	
 	if ((res->request->flags&OR_METHODS)==OR_HEAD){
+		onion_response_write_buffer(res);
 		res->flags|=OR_SKIP_CONTENT;
 		return OR_SKIP_CONTENT;
 	}
@@ -361,6 +362,8 @@ const char *onion_response_code_description(int code){
 			return "CREATED";
 		case HTTP_PARTIAL_CONTENT:
 			return "PARTIAL CONTENT";
+		case HTTP_MULTI_STATUS:
+			return "MULTI STATUS";
 			
 		case HTTP_MOVED:
 			return "MOVED";
@@ -393,7 +396,7 @@ const char *onion_response_code_description(int code){
 		case HTTP_SERVICE_UNAVALIABLE:
 			return "SERVICE UNAVALIABLE";
 	}
-	return "INTERNAL ERROR - CODE UNKNOWN";
+	return "CODE UNKNOWN";
 }
 
 /**

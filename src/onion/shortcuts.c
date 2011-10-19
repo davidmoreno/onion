@@ -142,7 +142,7 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 	
 	size_t length=st.st_size;
 	
-	char etag[32];
+	char etag[64];
 	onion_shortcut_etag(&st, etag);
 		
 	ONION_DEBUG0("Etag %s", etag);
@@ -156,10 +156,14 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 		return OCS_PROCESSED;
 	}
 	
+	const char *range=onion_request_get_header(request, "Range");
+	if (range){
+		strncat(etag,range,sizeof(etag)-1);
+	}
 	onion_response_set_header(res, "Etag", etag);
 	
-	const char *range=onion_request_get_header(request, "Range");
 	if (range && strncmp(range,"bytes=",6)==0){
+		onion_response_set_code(res, HTTP_PARTIAL_CONTENT);
 		//ONION_DEBUG("Need just a range: %s",range);
 		char tmp[1024];
 		strncpy(tmp, range+6, 1024);
@@ -177,9 +181,10 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 			else
 				ends=length;
 			starts=atol(start);
-			length=ends-starts;
+			length=ends-starts+1;
 			lseek(fd, starts, SEEK_SET);
-			snprintf(tmp,sizeof(tmp),"%d-%d/%d",(unsigned int)starts, (unsigned int)ends-1, (unsigned int)length);
+			snprintf(tmp,sizeof(tmp),"bytes %d-%d/%d",(unsigned int)starts, (unsigned int)ends, (unsigned int)st.st_size);
+			//onion_response_set_header(res, "Accept-Ranges","bytes");
 			onion_response_set_header(res, "Content-Range",tmp);
 		}
 	}
@@ -198,8 +203,8 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 		if (request->server->write==(void*)onion_write_to_socket){ // Lets have a house party! I can use sendfile!
 			onion_response_write(res,NULL,0);
 			ONION_DEBUG("Using sendfile");
-			int r=sendfile(*((int*)request->socket), fd, NULL, length);
-			ONION_DEBUG("Wrote %d, should be %d", r, length);
+			int r=sendfile((long int)request->socket, fd, NULL, length);
+			ONION_DEBUG("Wrote %d, should be %d (%s)", r, length, r==length ? "ok" : "nok");
 			if (r!=length || r<0){
 				ONION_ERROR("Could not send all file (%s)", strerror(errno));
 				close(fd);
