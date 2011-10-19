@@ -15,15 +15,16 @@ int hello(void *p, onion_request *req, onion_response *res){
 onion *o=NULL;
 
 static void shutdown(int _){
-	if (o) onion_free(o);
-	exit(0);
+	ONION_DEBUG("Proper close of hello.");
+	if (o) 
+		onion_listen_stop(o);
 }
 
 int main(int argc, char **argv){
 	signal(SIGINT,shutdown);
 	signal(SIGTERM,shutdown);
 	
-	onion *o=onion_new(O_POOL);
+	o=onion_new(O_POOL);
 	onion_set_timeout(o, 5000);
 	onion_url *urls=onion_root_url(o);
 	
@@ -32,6 +33,7 @@ int main(int argc, char **argv){
 	onion_url_add(urls, "^(.*)$", hello);
 	
 	onion_listen(o);
+	ONION_DEBUG("Ok, not listening anymore");
 	onion_free(o);
 	return 0;
 }

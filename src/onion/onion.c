@@ -280,6 +280,7 @@ onion *onion_new(int flags){
  * @memberof onion_t
  */
 void onion_free(onion *onion){
+	ONION_DEBUG("Onion free");
 #ifdef HAVE_PTHREADS
 	if (onion->flags&O_THREADS_ENABLED){
 		int ntries=5;
@@ -451,8 +452,8 @@ int onion_listen(onion *o){
 #else
 		o->poller=onion_poller_new(8);
 #endif
-		onion_poller_add(o->poller, sockfd, (void*) onion_accept_request, o);
-		onion_poller_go(o->poller, sockfd);
+		onion_poller_add(o->poller, o->listenfd, (void*) onion_accept_request, o);
+		onion_poller_go(o->poller, o->listenfd);
 		// O_POLL && O_THREADED == O_POOL. Create several threads to poll.
 #ifdef HAVE_PTHREADS
 		if (o->flags&O_THREADED){
@@ -493,7 +494,7 @@ int onion_listen(onion *o){
 		pthread_attr_init(&attr);
 		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
 		while(1){
-			clientfd=accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+			clientfd=accept(o->listenfd, (struct sockaddr *) &cli_addr, &clilen);
 			
 			int flags=fcntl(clientfd, F_GETFD, 0);
 			if (fcntl(clientfd, F_SETFD, flags | O_CLOEXEC) < 0){ // This is inherited by sockets returned by listen.
@@ -523,9 +524,28 @@ int onion_listen(onion *o){
 		pthread_attr_destroy(&attr);
 	}
 #endif
-	close(sockfd);
+	close(o->listenfd);
 	return 0;
 }
+
+/**
+ * @short Advises the listener to stop.
+ * 
+ * The listener is advised to stop listening. After this call no listening is still open, and listen could be
+ * called again, or the onion server freed.
+ * 
+ * If there is any pending connection, it can finish if onion not freed before.
+ */
+void onion_listen_stop(onion* server){
+	ONION_DEBUG("Stop listening");
+	int fd=server->listenfd;
+	server->listenfd=-1;
+	if (server->poller)
+		onion_poller_remove(server->poller, fd);
+	if (fd>0)
+		close(fd);
+}
+
 
 /**
  * @short Sets the root handler
