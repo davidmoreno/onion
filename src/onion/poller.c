@@ -196,7 +196,7 @@ int onion_poller_go(onion_poller *poller, int fd){
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 	ev.events=EPOLLIN | EPOLLHUP | EPOLLONESHOT;
-	ev.data.fd=fd;
+	ev.data.ptr=el;
 	if (epoll_ctl(poller->fd, EPOLL_CTL_ADD, fd, &ev) < 0){
 		ONION_ERROR("Error add descriptor to listen to. %s", strerror(errno));
 		return 1;
@@ -308,6 +308,7 @@ int onion_poller_remove(onion_poller *poller, int fd){
  * 
  * On edge cases could get a wrong timeout, but always old or new, so its ok.
  */
+/*
 static int onion_poller_get_next_timeout(onion_poller *p){
 	onion_poller_el *next;
 	int timeout=60*60000; // Ok, minimum wakeup , once per hour.
@@ -327,7 +328,7 @@ static int onion_poller_get_next_timeout(onion_poller *p){
 	//ONION_DEBUG("Next wakeup in %d ms, at least", timeout);
 	return timeout;
 }
-
+*/
 // Max of events per loop. If not al consumed for next, so no prob.  right number uses less memory, and makes less calls.
 #define MAX_EVENTS 10
 
@@ -341,14 +342,17 @@ void onion_poller_poll(onion_poller *p){
 	struct epoll_event event[MAX_EVENTS];
 	ONION_DEBUG0("Start poll of fds");
 
-	int timeout=0;
+	int timeout=-1;
+	/*
 	int elapsed=0;
 	struct timeval ts, te;
 	gettimeofday(&ts, NULL);
+	*/
 	while (!p->stop){
-		timeout=onion_poller_get_next_timeout(p);
+		//timeout=onion_poller_get_next_timeout(p);
 		
 		int nfds = epoll_wait(p->fd, event, MAX_EVENTS, timeout);
+		/* /// FIXME, no timeout!
 		gettimeofday(&te, NULL);
 		elapsed=((te.tv_sec-ts.tv_sec)*1000.0) + ((te.tv_usec-ts.tv_usec)/1000.0);
 		ONION_DEBUG("Real time waiting was %d ms (compared to %d of timeout). %d wakeups.", elapsed, timeout, nfds);
@@ -373,6 +377,7 @@ void onion_poller_poll(onion_poller *p){
 			}
 		}
 		pthread_mutex_unlock(poller->mutex);
+		*/
 		/*
 		if (nfds<0){ // This is normally closed p->fd
 			ONION_DEBUG0("Fnishing the epoll as finished: %s", strerror(errno));
@@ -381,22 +386,18 @@ void onion_poller_poll(onion_poller *p){
 		*/
 		int i;
 		for (i=0;i<nfds;i++){
-			onion_poller_el *el=onion_poller_find_fd_and_lock(p, event[i].data.fd);
-			if (!el){
-				ONION_DEBUG("Event on an unlistened file descriptor %d!", event[i].data.fd);
-				continue;
-			}
+			onion_poller_el *el=(onion_poller_el*)event[i].data.ptr;
+			pthread_mutex_lock(el->mutex);
 			el->delta_timeout=el->timeout;
 			// Call the callback
 			//ONION_DEBUG("Calling callback for fd %d (%X %X)", el->fd, event[i].events);
 			int n=el->f(el->data);
 			if (n<0){
 				pthread_mutex_unlock(el->mutex);
-				onion_poller_remove(p, event[i].data.fd);
+				onion_poller_remove(p, el->fd);
 			}
 			else{
 				ONION_DEBUG0("Resetting poller %d", el->fd);
-		
 				event[i].events=EPOLLIN | EPOLLHUP | EPOLLONESHOT;
 				int e=epoll_ctl(p->fd, EPOLL_CTL_MOD, el->fd, &event[i]);
 				if (e<0){
