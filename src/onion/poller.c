@@ -67,7 +67,16 @@ struct onion_poller_slot_t{
 	onion_poller_slot *next;
 };
 
-
+/**
+ * @short Creates a new slot for the poller, for input data to be ready.
+ * @memberof onion_poller_slot_t
+ * 
+ * @param fd File descriptor to watch
+ * @param f Function to call when data is ready. If function returns <0, the slot will be removed.
+ * @param data Data to pass to the function.
+ * 
+ * @returns A new poller slot, ready to be added (onion_poller_add) or modified (onion_poller_slot_set_shutdown, onion_poller_slot_set_timeout).
+ */
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
 	onion_poller_slot *el=(onion_poller_slot*)malloc(sizeof(onion_poller_slot));
 	memset(el,0,sizeof(*el));
@@ -80,17 +89,39 @@ onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
 	return el;
 }
 
+/**
+ * @short Free the data for the given slot, calling shutdown if any.
+ * @memberof onion_poller_slot_t
+ */
 void onion_poller_slot_free(onion_poller_slot *el){
 	if (el->shutdown)
 		el->shutdown(el->shutdown_data);
 	free(el);
 }
 
+/**
+ * @short Sets a function to be called when the slot is removed, for example because the file is closed.
+ * @memberof onion_poller_slot_t
+ * 
+ * @param el slot
+ * @param sd Function to call
+ * @param data Parameter for the function
+ */
 void onion_poller_slot_set_shutdown(onion_poller_slot *el, void (*sd)(void*), void *data){
 	el->shutdown=sd;
 	el->shutdown_data=data;
 }
 
+/**
+ * @short Sets the timeout for the slot
+ * 
+ * The timeout is passed in ms, but due to current implementation it is rounded to seconds. The interface stays, and hopefully
+ * in the future the behaviour will change.
+ * @memberof onion_poller_slot_t
+ * 
+ * @param el Slot to modify
+ * @param timeout Time in milliseconds that this file can be waiting.
+ */
 void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout){
 	el->timeout=timeout/1000; // I dont have that resolution.
 	el->timeout_limit=time(NULL)+el->timeout;
@@ -102,6 +133,8 @@ void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout){
  * @memberof onion_poller_t
  *
  * This poller is implemented through epoll, but other implementations are possible 
+ * 
+ * Just now it only have EPOLLIN | EPOLLHUP slots, so wait for write ready not available.
  */
 onion_poller *onion_poller_new(int n){
 	onion_poller *p=malloc(sizeof(onion_poller));

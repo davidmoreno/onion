@@ -21,19 +21,28 @@
 
 #include "types.h"
 
-
+/// Create a new slot for the poller
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data);
+/// Cleans a poller slot. Do not call if already on the poller (onion_poller_add). Use onion_poller_remove instead.
 void onion_poller_slot_free(onion_poller_slot *el);
+/// Sets the shutdown function for this poller slot
 void onion_poller_slot_set_shutdown(onion_poller_slot *el, void (*shutdown)(void*), void *data);
+/// Sets the timeout for this slot. Current implementation takes ms, but then it rounds to seconds.
 void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout);
 
+/// Create a new poller
 onion_poller *onion_poller_new(int aprox_n);
+/// Frees the poller. It first stops it.
 void onion_poller_free(onion_poller *);
 
+/// Adds a slot to the poller
 int onion_poller_add(onion_poller *poller, onion_poller_slot *el);
+/// Removes a fd from the poller
 int onion_poller_remove(onion_poller *poller, int fd);
 
+/// Do the polling. If on several threads, this is done in every thread.
 void onion_poller_poll(onion_poller *);
+/// Stops the polling. This only marks the flag, and should be cancelled with pthread_cancel.
 void onion_poller_stop(onion_poller *);
 
 #endif

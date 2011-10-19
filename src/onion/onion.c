@@ -328,12 +328,14 @@ int onion_write_to_socket(int *fd, const char *data, unsigned int len){
 	return write((long int)fd, data, len);
 }
 
+#ifdef HAVE_PTHREADS
 /// Simple adaptor to call from pool threads the poller.
-static void *onion_poller_adaptor(void *o){
+static __attribute__((unused)) void *onion_poller_adaptor(void *o){
 	onion_poller_poll(((onion*)o)->poller);
 	ONION_DEBUG("Stopped poll");
 	return NULL;
 }
+#endif
 
 /**
  * @short Performs the listening with the given mode
@@ -371,7 +373,6 @@ int onion_listen(onion *o){
 		}
 	}
 #endif
-	struct sockaddr_storage cli_addr;
 	char address[64];
 	if (sockfd==0){
 		struct addrinfo hints;
@@ -445,8 +446,6 @@ int onion_listen(onion *o){
 		}
 	}
 
-	socklen_t clilen = sizeof(cli_addr);
-
 	if (o->flags&O_POLL){
 #ifdef HAVE_PTHREADS
 		o->poller=onion_poller_new(o->max_threads+1);
@@ -496,6 +495,9 @@ int onion_listen(onion *o){
 		pthread_attr_t attr;
 		pthread_attr_init(&attr);
 		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
+		
+		socklen_t clilen = sizeof(cli_addr);
+
 		while(1){
 			clientfd=accept(o->listenfd, (struct sockaddr *) &cli_addr, &clilen);
 			
