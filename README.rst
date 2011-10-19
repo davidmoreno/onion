@@ -55,7 +55,7 @@ want to support SSL for whatever reasons, for example speed.
 Threads support
 ---------------
 
-Currently there is basic threads support. It can be set the server to be created as 
+Currently there are two threads modes. It can be set the server to be created as 
 threaded (O_THREADED), and it will create a new thread per connection. There is no
 data protection as on the listen phase there should not be any change to onion structures.
 
@@ -71,6 +71,10 @@ application and another thread that listens and processes petitions. Its set wit
 O_DETACH_LISTEN flag. This is very useful when adding an extra web server to your application
 as it can be added without changes to the flow of your application, but you will need to
 thread protect your data if you access to it from the web server.
+
+Finally there is a pool mode. User can set a default number of threads (onion_set_max_threads), 
+and using epoll the data is given to the threads. This is the highest performant method, with
+up to 30k petitions served on a Intel(R) Core(TM)2 Duo CPU T6500  @2.10GHz.
 
 
 ARM Support
