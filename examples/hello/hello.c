@@ -35,5 +35,6 @@ int main(int argc, char **argv){
 	onion_listen(o);
 	ONION_DEBUG("Ok, not listening anymore");
 	onion_free(o);
+	ONION_DEBUG("Finished OK");
 	return 0;
 }

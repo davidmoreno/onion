@@ -331,6 +331,7 @@ int onion_write_to_socket(int *fd, const char *data, unsigned int len){
 /// Simple adaptor to call from pool threads the poller.
 static void *onion_poller_adaptor(void *o){
 	onion_poller_poll(((onion*)o)->poller);
+	ONION_DEBUG("Stopped poll");
 	return NULL;
 }
 
@@ -463,9 +464,12 @@ int onion_listen(onion *o){
 				pthread_create(&thread[i], NULL, onion_poller_adaptor, o);
 			}
 			onion_poller_poll(o->poller);
+			ONION_DEBUG("Stopped poll");
 			for(i=0;i<o->max_threads-1;i++){
+				pthread_cancel(thread[i]);
 				pthread_join(thread[i], NULL);
 			}
+			free(thread);
 		}
 		else
 #endif
@@ -539,7 +543,7 @@ void onion_listen_stop(onion* server){
 	ONION_DEBUG("Stop listening");
 	int fd=server->listenfd;
 	server->listenfd=-1;
-	if (server->poller){
+	if (server->poller && fd>0){
 		onion_poller_remove(server->poller, fd);
 	}
 	if (fd>0)
@@ -723,6 +727,7 @@ static onion_connection_status onion_connection_read(onion_request *req){
 	r=read((long int)req->socket, buffer, sizeof(buffer));
 #endif
 	if (r<=0){ // error reading.
+		ONION_DEBUG("Read %d bytes, errno %d %s", r, errno, strerror(errno));
 		if (errno==ECONNRESET)
 			ONION_DEBUG("Connection reset by peer."); // Ok, this is more or less normal.
 		else if (errno==EAGAIN){

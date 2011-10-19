@@ -131,14 +131,6 @@ void onion_poller_free(onion_poller *p){
 	p->stop=1;
 	close(p->fd); 
 	// Wait until all pollers exit.
-#ifdef HAVE_PTHREADS
-	int n=10;
-	while (p->npollers>0 && n>0){
-		ONION_DEBUG("Waiting for %d epollers (%d)", p->npollers, n);
-		usleep(100000);
-		n--;
-	}
-#endif
 	
 	if (pthread_mutex_trylock(&p->mutex)>0){
 		ONION_WARNING("When cleaning the poller object, some poller is still active; not freeing memory");
@@ -328,7 +320,13 @@ void onion_poller_poll(onion_poller *p){
 				el->timeout_limit=ctime+el->timeout;
 			// Call the callback
 			//ONION_DEBUG("Calling callback for fd %d (%X %X)", el->fd, event[i].events);
-			int n=el->f(el->data);
+			int n;
+			if (event[i].events&EPOLLRDHUP){
+				n=-1;
+			}
+			else{
+				n=el->f(el->data);
+			}
 			if (n<0){
 				onion_poller_remove(p, el->fd);
 			}
