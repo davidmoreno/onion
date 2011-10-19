@@ -108,6 +108,14 @@ typedef struct onion_block_t onion_block;
 struct onion_poller_t;
 typedef struct onion_poller_t onion_poller;
 
+/**
+ * @struct onion_poller_slot_t
+ * @short Data about a poller element: timeout, function to call shutdown function
+ * @memberof onion_poller_t
+ */
+struct onion_poller_slot_t;
+typedef struct onion_poller_slot_t onion_poller_slot;
+
 
 /// Signature of request handlers.
 typedef int (*onion_handler_handler)(void *privdata, onion_request *req, onion_response *res);

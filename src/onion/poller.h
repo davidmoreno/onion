@@ -21,17 +21,19 @@
 
 #include "types.h"
 
+
+onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data);
+void onion_poller_slot_free(onion_poller_slot *el);
+void onion_poller_slot_set_shutdown(onion_poller_slot *el, void (*shutdown)(void*), void *data);
+void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout);
+
 onion_poller *onion_poller_new(int aprox_n);
 void onion_poller_free(onion_poller *);
-int onion_poller_add(onion_poller *poller, int fd, int (*f)(void*), void *data);
-int onion_poller_set_shutdown(onion_poller *poller, int fd, void (*f)(void*), void *data);
-int onion_poller_set_timeout(onion_poller *poller, int fd, int timeout);
+
+int onion_poller_add(onion_poller *poller, onion_poller_slot *el);
 int onion_poller_remove(onion_poller *poller, int fd);
-int onion_poller_go(onion_poller *poller, int fd);
 
 void onion_poller_poll(onion_poller *);
-
 void onion_poller_stop(onion_poller *);
 
 #endif
-

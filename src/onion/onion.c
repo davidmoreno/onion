@@ -452,8 +452,7 @@ int onion_listen(onion *o){
 #else
 		o->poller=onion_poller_new(8);
 #endif
-		onion_poller_add(o->poller, o->listenfd, (void*) onion_accept_request, o);
-		onion_poller_go(o->poller, o->listenfd);
+		onion_poller_add(o->poller, onion_poller_slot_new(o->listenfd, (void*)onion_accept_request, o));
 		// O_POLL && O_THREADED == O_POOL. Create several threads to poll.
 #ifdef HAVE_PTHREADS
 		if (o->flags&O_THREADED){
@@ -540,8 +539,9 @@ void onion_listen_stop(onion* server){
 	ONION_DEBUG("Stop listening");
 	int fd=server->listenfd;
 	server->listenfd=-1;
-	if (server->poller)
+	if (server->poller){
 		onion_poller_remove(server->poller, fd);
+	}
 	if (fd>0)
 		close(fd);
 }
@@ -659,10 +659,11 @@ static int onion_accept_request(onion *o){
 	
 	if (o->flags&O_POLL){
 		onion_request *req=onion_connection_start(o, clientfd, address);
-		onion_poller_add(o->poller, clientfd, (void*)onion_connection_read, req);
-		onion_poller_set_shutdown(o->poller, clientfd, (void*)onion_connection_shutdown, req);
-		onion_poller_set_timeout(o->poller, clientfd, o->timeout);
-		onion_poller_go(o->poller, clientfd);
+		onion_poller_slot *slot=onion_poller_slot_new(clientfd, (void*)onion_connection_read, req);
+		onion_poller_slot_set_shutdown(slot, (void*)onion_connection_shutdown, req);
+		onion_poller_slot_set_timeout(slot, o->timeout);
+		
+		onion_poller_add(o->poller, slot);
 	}
 	else{
 		onion_process_request(o, clientfd, address);
