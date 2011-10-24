@@ -60,13 +60,24 @@ extern unsigned int opack_oterm_input_js_length;
 extern unsigned int opack_oterm_data_js_length;
 extern unsigned int opack_oterm_parser_js_length;
 
+#define BUFFER_SIZE 4096*2
+
 /**
  * @short Information about a process
+ * 
+ * The process has a circular buffer. The pos is mod with BUFFER_SIZE. 
+ * 
+ * First time clients just ask data, and as a custom control command we send the latest position.
+ * 
+ * Then on next request the client sets that want from that position onwards. If data avaliable,
+ * it is sent, if not, then the first blocks on the fd, and the followings on a pthread_condition.
  */
 typedef struct process_t{
 	int fd;
-	unsigned int pid;
+	pid_t pid;
 	char *title;
+	char *buffer;
+	int32_t buffer_pos;
 	struct process_t *next;
 }process;
 
@@ -197,6 +208,10 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
 			break;
 	command_name=&data->exec_command[i+1];
 
+	oterm->buffer=malloc(BUFFER_SIZE);
+	memset(oterm->buffer, 0, BUFFER_SIZE);
+	oterm->buffer_pos=0;
+	
 	ONION_DEBUG("Creating new terminal, exec %s (%s)", data->exec_command, command_name);
 	
 	oterm->pid=forkpty(&oterm->fd, NULL, NULL, NULL);
@@ -358,6 +373,15 @@ int oterm_title(process *p, onion_request* req, onion_response *res){
 
 /// Gets the output data
 int oterm_out(process *o, onion_request *req, onion_response *res){
+	if (onion_request_get_query(req, "initial")){
+		if (o->buffer[BUFFER_SIZE-1]!=0){ // If 0 then never wrote on it. So if not, write from pos to end too, first.
+			onion_response_write(res, &o->buffer[o->buffer_pos], BUFFER_SIZE-o->buffer_pos);
+		}
+		onion_response_write(res, o->buffer, o->buffer_pos);
+		return OCS_PROCESSED;
+	}
+	
+	
 	// read data, if any. Else return inmediately empty.
 	char buffer[4096];
 	int n=0; // -O2 complains of maybe used uninitialized
@@ -374,6 +398,28 @@ int oterm_out(process *o, onion_request *req, onion_response *res){
 	}
 	else
 		n=0;
+	
+	// Store on buffer
+	{
+		const char *data=buffer;
+		int sd=n;
+		if (sd>BUFFER_SIZE){
+			data=&data[sd-BUFFER_SIZE];
+			sd=BUFFER_SIZE;
+		}
+
+		if (o->buffer_pos+sd > BUFFER_SIZE){
+			memcpy(&o->buffer[o->buffer_pos], data, BUFFER_SIZE-o->buffer_pos);
+			data=&data[BUFFER_SIZE-o->buffer_pos];
+			sd=sd-(BUFFER_SIZE-o->buffer_pos);
+			o->buffer_pos=0;
+		}
+		memcpy(&o->buffer[o->buffer_pos], data, sd);
+		o->buffer_pos+=sd;
+	}
+		
+	// Return data
+	
 	onion_response_set_length(res, n);
 	onion_response_write_headers(res);
 	if (n)
@@ -391,6 +437,7 @@ void oterm_session_free(oterm_session *o){
 	while (p){
 		kill(p->pid, SIGTERM);
 		close(p->fd);
+		free(p->buffer);
 		t=p;
 		p=p->next;
 		free(t);

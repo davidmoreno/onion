@@ -781,6 +781,10 @@ $(document).ready(function(){
 	
 	$('#term').html('')
 	newLine()
+	
+	onpetitionOut=true
+	$.get('out?initial',updateRequestData, 'plain')
+
 	requestNewData()
 	
 	$('#msg').fadeOut().html('')
