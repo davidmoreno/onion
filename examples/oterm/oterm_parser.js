@@ -138,6 +138,15 @@ updateData = function(text){
 			else
 				str+=c
 		}
+		else if (parserStatus=='oterm_position'){
+			if (c==';'){
+				otermReadPos(str)
+				clear()
+				parserStatus=0
+			}
+			else
+				str+=c
+		}
 
 	}
 	addText(str,length)

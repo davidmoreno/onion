@@ -44,6 +44,8 @@
 #include <onion/dict.h>
 
 #include "oterm_handler.h"
+#include <onion/onion.h>
+#include <onion/poller.h>
 
 /// Time to wait for output, or just return.
 #define TIMEOUT 60000
@@ -60,7 +62,8 @@ extern unsigned int opack_oterm_input_js_length;
 extern unsigned int opack_oterm_data_js_length;
 extern unsigned int opack_oterm_parser_js_length;
 
-#define BUFFER_SIZE 4096*2
+/// Max data to store. This is, more or less a window of 230*70, which is not so extrange
+#define BUFFER_SIZE 4096*4 
 
 /**
  * @short Information about a process
@@ -73,11 +76,13 @@ extern unsigned int opack_oterm_parser_js_length;
  * it is sent, if not, then the first blocks on the fd, and the followings on a pthread_condition.
  */
 typedef struct process_t{
-	int fd;
-	pid_t pid;
-	char *title;
-	char *buffer;
-	int32_t buffer_pos;
+	int fd;										///< fd that serves as communication channel with the pty.
+	pid_t pid;								///< PID of the command process
+	char *title;							///< Title of the process, normally from path, but is set using xterm commands
+	char *buffer;							///< Circular buffer, keeps las BUFFER_SIZE characters emmited
+	int16_t buffer_pos;				///< Position on the circular buffer, 0-BUFFER_SIZE
+	pthread_cond_t dataReady; ///< All but one will wait on the condition
+	pthread_mutex_t mutex; 		///< Mutex for this process, as several threads can access it.
 	struct process_t *next;
 }process;
 
@@ -95,6 +100,7 @@ typedef struct{
 struct oterm_data_t{
 	char *exec_command;
 	onion_handler *next;
+	onion *onion;
 	onion_dict *sessions; // Each user (session['username']) has a session.
 };
 
@@ -108,7 +114,7 @@ static int oterm_resize(process *o, onion_request *req, onion_response *res);
 static int oterm_title(process *o, onion_request *req, onion_response *res);
 static int oterm_in(process *o, onion_request *req, onion_response *res);
 static int oterm_out(process *o, onion_request *req, onion_response *res);
-
+static int oterm_data_ready(process *o);
 
 /// Returns the term from the list of known terms. FIXME, make this structure a tree or something faster than linear search.
 process *oterm_get_process(oterm_session *o, const char *id){
@@ -211,6 +217,8 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
 	oterm->buffer=malloc(BUFFER_SIZE);
 	memset(oterm->buffer, 0, BUFFER_SIZE);
 	oterm->buffer_pos=0;
+	pthread_mutex_init(&oterm->mutex, NULL);
+	pthread_cond_init(&oterm->dataReady, NULL);
 	
 	ONION_DEBUG("Creating new terminal, exec %s (%s)", data->exec_command, command_name);
 	
@@ -273,6 +281,9 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
 		while (next->next) next=next->next;
 		next->next=oterm;
 	}
+	onion_poller_slot *sl=onion_poller_slot_new(oterm->fd, (void*)oterm_data_ready, oterm);
+	onion_poller_add(onion_get_poller(data->onion), sl);
+	
 	pthread_mutex_unlock( &session->head_mutex );
 	
 	return oterm;
@@ -373,61 +384,65 @@ int oterm_title(process *p, onion_request* req, onion_response *res){
 
 /// Gets the output data
 int oterm_out(process *o, onion_request *req, onion_response *res){
+	pthread_mutex_lock(&o->mutex);
 	if (onion_request_get_query(req, "initial")){
 		if (o->buffer[BUFFER_SIZE-1]!=0){ // If 0 then never wrote on it. So if not, write from pos to end too, first.
 			onion_response_write(res, &o->buffer[o->buffer_pos], BUFFER_SIZE-o->buffer_pos);
 		}
 		onion_response_write(res, o->buffer, o->buffer_pos);
+		onion_response_printf(res, "\033]oterm;%d;", o->buffer_pos);
+		pthread_mutex_unlock(&o->mutex);
 		return OCS_PROCESSED;
 	}
 	
-	
+	int16_t p=atoi(onion_request_get_queryd(req, "pos", "0")); //o->buffer_pos;
+	ONION_DEBUG("Wait for data at %d", p);
+	while(p==o->buffer_pos) // We need it to be diferent, if not does not make sense to wake up
+		pthread_cond_wait(&o->dataReady, &o->mutex);
+	ONION_DEBUG("Data ready at %d (waiting from %d)", o->buffer_pos, p);
+	if (o->buffer_pos<p){
+		onion_response_write(res, &o->buffer[p], BUFFER_SIZE-p);
+		p=0;
+	}
+	onion_response_write(res, &o->buffer[p], o->buffer_pos-p);
+	onion_response_printf(res, "\033]oterm;%d;", o->buffer_pos);
+	pthread_mutex_unlock(&o->mutex);
+	return OCS_PROCESSED;
+}
+
+/**
+ * @short The onion main poller has some data ready.
+ * 
+ */
+static int oterm_data_ready(process *o){
 	// read data, if any. Else return inmediately empty.
 	char buffer[4096];
 	int n=0; // -O2 complains of maybe used uninitialized
-	struct pollfd p;
-	p.fd=o->fd;
-	p.events=POLLIN|POLLERR;
 	
-	if (poll(&p,1,TIMEOUT)>0){
-		if (p.revents==POLLIN){
-			//fprintf(stderr,"%s:%d read...\n",__FILE__,__LINE__);
-			n=read(o->fd, buffer, sizeof(buffer));
-			//fprintf(stderr,"%s:%d read ok, %d bytes\n",__FILE__,__LINE__,n);
-		}
-	}
-	else
-		n=0;
+	n=read(o->fd, buffer, sizeof(buffer));
 	
+	pthread_mutex_lock(&o->mutex);
 	// Store on buffer
-	{
-		const char *data=buffer;
-		int sd=n;
-		if (sd>BUFFER_SIZE){
-			data=&data[sd-BUFFER_SIZE];
-			sd=BUFFER_SIZE;
-		}
-
-		if (o->buffer_pos+sd > BUFFER_SIZE){
-			memcpy(&o->buffer[o->buffer_pos], data, BUFFER_SIZE-o->buffer_pos);
-			data=&data[BUFFER_SIZE-o->buffer_pos];
-			sd=sd-(BUFFER_SIZE-o->buffer_pos);
-			o->buffer_pos=0;
-		}
-		memcpy(&o->buffer[o->buffer_pos], data, sd);
-		o->buffer_pos+=sd;
+	const char *data=buffer;
+	int sd=n;
+	if (sd>BUFFER_SIZE){
+		data=&data[sd-BUFFER_SIZE];
+		sd=BUFFER_SIZE;
 	}
-		
-	// Return data
+
+	if (o->buffer_pos+sd > BUFFER_SIZE){
+		memcpy(&o->buffer[o->buffer_pos], data, BUFFER_SIZE-o->buffer_pos);
+		data=&data[BUFFER_SIZE-o->buffer_pos];
+		sd=sd-(BUFFER_SIZE-o->buffer_pos);
+		o->buffer_pos=0;
+	}
+	memcpy(&o->buffer[o->buffer_pos], data, sd);
+	o->buffer_pos+=sd;
 	
-	onion_response_set_length(res, n);
-	onion_response_write_headers(res);
-	if (n)
-		onion_response_write(res,buffer,n);
-
-	oterm_check_running(o);
-
-	return OCS_PROCESSED;
+	pthread_mutex_unlock(&o->mutex);
+	pthread_cond_broadcast(&o->dataReady);
+	
+	return 0;
 }
 
 /// Terminates all processes, and frees the memory.
@@ -466,7 +481,7 @@ void oterm_free(oterm_data *data){
 }
 
 /// Prepares the oterm handler
-onion_handler *oterm_handler(const char *exec_command){
+onion_handler *oterm_handler(onion *o, const char *exec_command){
 	onion_handler *next_handler;
 #ifdef __DEBUG__
 	if (getenv("OTERM_DEBUG"))
@@ -486,6 +501,7 @@ onion_handler *oterm_handler(const char *exec_command){
 	data->sessions=onion_dict_new();
 	data->next=next_handler;
 	data->exec_command=strdup(exec_command);
+	data->onion=o;
 	
 	return onion_handler_new((void*)oterm_get_data, data, (void*)oterm_free);
 }

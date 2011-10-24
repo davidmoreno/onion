@@ -678,7 +678,6 @@ static int onion_accept_request(onion *o){
 
 /// Initializes the connection, create request, sets up the SSL...
 static onion_request *onion_connection_start(onion *o, int clientfd, const char *client_info){
-	ONION_DEBUG("Processing request");
 	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
 #ifdef HAVE_GNUTLS
 	gnutls_session_t session=NULL;
@@ -775,7 +774,7 @@ static void onion_connection_shutdown(onion_request *req){
  * @param clientfd is the POSIX file descriptor of the connection.
  */
 static void onion_process_request(onion *o, int clientfd, const char *client_info){
-	ONION_DEBUG("Processing request");
+	ONION_DEBUG0("Processing request from %s", client_info);
 	onion_request *req=onion_connection_start(o, clientfd, client_info);
 	onion_connection_status cs=OCS_KEEP_ALIVE;
 	struct pollfd pfd;
@@ -962,3 +961,9 @@ onion_url *onion_root_url(onion *server){
 	return url;
 }
 
+/**
+ * @short Returns the poller, if any
+ */
+onion_poller *onion_get_poller(onion *server){
+	return server->poller;
+}

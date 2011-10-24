@@ -86,6 +86,7 @@ specialFuncs={
 
 specialFuncs2={
 		'0':prepareForTitle,
+		'oterm':prepareForOtermPosition
 }
 
 

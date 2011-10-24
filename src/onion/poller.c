@@ -315,10 +315,10 @@ void onion_poller_poll(onion_poller *p){
 			timeout=3600000;
 		else
 			timeout*=1000;
-		ONION_DEBUG("Wait for %d ms", timeout);
+		ONION_DEBUG0("Wait for %d ms", timeout);
 		int nfds = epoll_wait(p->fd, event, MAX_EVENTS, timeout);
 		ctime=time(NULL);
-		ONION_DEBUG("Current time is %d, limit is %d, timeout is %d.", ctime, maxtime, timeout);
+		ONION_DEBUG0("Current time is %d, limit is %d, timeout is %d.", ctime, maxtime, timeout);
 
 		pthread_mutex_lock(&p->mutex);
 		{ // Somebody timedout?
@@ -349,16 +349,20 @@ void onion_poller_poll(onion_poller *p){
 		int i;
 		for (i=0;i<nfds;i++){
 			onion_poller_slot *el=(onion_poller_slot*)event[i].data.ptr;
-			if (el->timeout>0)
-				el->timeout_limit=ctime+el->timeout;
 			// Call the callback
 			//ONION_DEBUG("Calling callback for fd %d (%X %X)", el->fd, event[i].events);
 			int n;
 			if (event[i].events&EPOLLRDHUP){
 				n=-1;
 			}
-			else{
+			else{ // I also take care of the timeout, no timeout when on the handler, it should handle it itself.
+				el->timeout_limit=INT_MAX;
+				
 				n=el->f(el->data);
+				
+				ctime=time(NULL);
+				if (el->timeout>0)
+					el->timeout_limit=ctime+el->timeout;
 			}
 			if (n<0){
 				onion_poller_remove(p, el->fd);

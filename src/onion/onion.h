@@ -72,6 +72,9 @@ void onion_set_user(onion *server, const char *username);
 /// If no root handler is set, creates an url handler and returns it.
 onion_url *onion_root_url(onion *server);
 
+/// If on poller mode, returns the poller, if not, returns NULL
+onion_poller *onion_get_poller(onion *server);
+
 #ifdef __cplusplus
 }
 #endif

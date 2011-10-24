@@ -21,6 +21,10 @@
 
 #include "types.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 /// Create a new slot for the poller
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data);
 /// Cleans a poller slot. Do not call if already on the poller (onion_poller_add). Use onion_poller_remove instead.
@@ -44,5 +48,10 @@ int onion_poller_remove(onion_poller *poller, int fd);
 void onion_poller_poll(onion_poller *);
 /// Stops the polling. This only marks the flag, and should be cancelled with pthread_cancel.
 void onion_poller_stop(onion_poller *);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif

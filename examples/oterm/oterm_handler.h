@@ -26,7 +26,7 @@
 extern "C"{
 #endif
 
-onion_handler *oterm_handler(const char *exec_command);
+onion_handler *oterm_handler(onion *, const char *exec_command);
 
 #ifdef __cplusplus
 }

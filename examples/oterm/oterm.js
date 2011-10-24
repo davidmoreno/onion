@@ -219,6 +219,7 @@ addText = function(text, length){
 cacheSendKeys=''
 onpetitionIn=false // no two petitions at the same time.
 onpetitionOut=false // no two petitions at the same time.
+readDataPos=0
 
 /**
  * @short Request new data, and do the timeout for next petition
@@ -237,7 +238,7 @@ requestNewData = function(keyvalue){
 	}
 	if (!onpetitionOut){
 		onpetitionOut=true
-		$.get('out',updateRequestData,'plain')
+		$.get('out',{pos:readDataPos},updateRequestData,'plain')
 	}
 }
 
@@ -763,6 +764,10 @@ prepareForTitle = function(){
 	parserStatus='title'
 }
 
+prepareForOtermPosition = function(){
+	parserStatus='oterm_position'
+}
+
 /// Sets the title. 
 setTitle = function(title){
 	$.post('title',{title:title})
@@ -770,6 +775,10 @@ setTitle = function(title){
 	document.title=title
 }
 
+/// Oterm custom command, set the read position
+otermReadPos = function(pos){
+	readDataPos=Number(pos)
+}
 
 /// Prepares basic status of the document: keydown are processed, and starts the updatedata.
 $(document).ready(function(){
