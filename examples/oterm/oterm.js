@@ -782,6 +782,7 @@ $(document).ready(function(){
 	$('#term').html('')
 	newLine()
 	
+	// Ask for stored buffer data
 	onpetitionOut=true
 	$.get('out?initial',updateRequestData, 'plain')
 
