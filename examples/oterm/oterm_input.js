@@ -23,9 +23,12 @@
 /// Parses key presses.
 keypress = function(event){
 	var keyCode=event.keyCode
+	var charCode=event.charCode
 	event.preventDefault()
-	//showMsg('Key pressed '+keyCode)
-	var keyValue=keyValue=String.fromCharCode(event.charCode)
+	if (event.ctrlKey)
+		return
+	//showMsg('Key pressed '+keyCode+" "+charCode)
+	var keyValue=keyValue=String.fromCharCode(charCode)
 	
 	/// If any text, do the petition.
 	requestNewData(keyValue)
@@ -35,8 +38,8 @@ keypress = function(event){
 keydown = function(event){
 	var keyCode=event.keyCode
 	var keyValue=''
+	//showMsg('Key down '+keyCode)
 	
-
 	if (keyCode in keyCodesToValues){
 		keyValue=keyCodesToValues[keyCode]
 	}
@@ -45,7 +48,7 @@ keydown = function(event){
 		//showMsg('Sent control '+String.fromCharCode(keyCode))
 	}
 	
-	if (keyValue!=''){
+	if (keyValue!='' && keyValue!=' '){
 		event.preventDefault()
 		requestNewData(keyValue)
 	}
