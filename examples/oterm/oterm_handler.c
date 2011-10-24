@@ -422,6 +422,8 @@ static int oterm_data_ready(process *o){
 	int n=0; // -O2 complains of maybe used uninitialized
 	
 	n=read(o->fd, buffer, sizeof(buffer));
+	if (n<0)
+		return n;
 	
 	pthread_mutex_lock(&o->mutex);
 	// Store on buffer
