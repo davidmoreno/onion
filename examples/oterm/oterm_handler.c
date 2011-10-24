@@ -55,12 +55,14 @@ void opack_oterm_js(onion_response *res);
 void opack_oterm_input_js(onion_response *res);
 void opack_oterm_data_js(onion_response *res);
 void opack_oterm_parser_js(onion_response *res);
+void opack_oterm_termfunctions_js(onion_response *res);
 
 extern unsigned int opack_oterm_html_length;
 extern unsigned int opack_oterm_js_length;
 extern unsigned int opack_oterm_input_js_length;
 extern unsigned int opack_oterm_data_js_length;
 extern unsigned int opack_oterm_parser_js_length;
+extern unsigned int opack_oterm_termfunctions_js_length;
 
 /// Max data to store. This is, more or less a window of 230*70, which is not so extrange
 #define BUFFER_SIZE 4096*4 
@@ -493,6 +495,7 @@ onion_handler *oterm_handler(onion *o, const char *exec_command){
 	onion_handler_add(next_handler, onion_handler_opack("/oterm_input.js", opack_oterm_input_js, opack_oterm_input_js_length));
 	onion_handler_add(next_handler, onion_handler_opack("/oterm_parser.js", opack_oterm_parser_js, opack_oterm_parser_js_length));
 	onion_handler_add(next_handler, onion_handler_opack("/oterm_data.js", opack_oterm_data_js, opack_oterm_data_js_length));
+	onion_handler_add(next_handler, onion_handler_opack("/oterm_termfunctions.js", opack_oterm_termfunctions_js, opack_oterm_termfunctions_js_length));
 #ifdef __DEBUG__
 	}
 #endif
