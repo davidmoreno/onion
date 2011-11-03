@@ -41,7 +41,7 @@ endif(HAVE_MSGFMT)
 
 
 add_executable(ofileserver fileserver.c fileserver_html.c)
-target_link_libraries(ofileserver onion_handlers_static onion_static )
+target_link_libraries(ofileserver onion_handlers_static onion_static z m )
 
 install(TARGETS ofileserver DESTINATION ${BINDIR})
 

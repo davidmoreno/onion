@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <malloc.h>
 #include <libgen.h>
+#include <ctype.h>
 
 struct onion_webdav_t{
 	char *path;
@@ -66,6 +67,7 @@ onion_connection_status onion_webdav_move(const char *filename, onion_webdav *wd
 onion_connection_status onion_webdav_delete(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_options(const char *filename, onion_webdav *wdpath, onion_request *req, onion_response *res);
 onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
+onion_connection_status onion_webdav_proppatch(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res);
 
 /**
  * @short Main webdav handler, just redirects to the proper handler depending on headers and method
@@ -107,6 +109,8 @@ onion_connection_status onion_webdav_handler(onion_webdav *wd, onion_request *re
 			return onion_webdav_move(filename, wd, req, res);
 		case OR_MKCOL:
 			return onion_webdav_mkcol(filename, wd, req, res);
+		case OR_PROPPATCH:
+			return onion_webdav_proppatch(filename, wd, req, res);
 	}
 	
 	onion_response_set_code(res, HTTP_NOT_IMPLEMENTED);
@@ -527,6 +531,71 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	
 	return OCS_PROCESSED;
 }
+
+/**
+ * @short Allows to change some properties of the file
+ */
+onion_connection_status onion_webdav_proppatch(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
+	xmlDocPtr doc;
+	const onion_block *block=onion_request_get_data(req);
+	ONION_DEBUG("%s",onion_block_data(block));
+	if (!block)
+		return OCS_INTERNAL_ERROR;
+	doc = xmlParseMemory((char*)onion_block_data(block), onion_block_size(block));
+	
+	xmlNode *root = NULL;
+	root = xmlDocGetRootElement(doc);
+	int ok=0;
+	
+	while (root){
+		ONION_DEBUG("%s", root->name);
+		if (strcmp((const char*)root->name,"propertyupdate")==0){
+			xmlNode *propertyupdate = root->children;
+			while (propertyupdate){
+				ONION_DEBUG("%s", propertyupdate->name);
+				if (strcmp((const char*)propertyupdate->name,"set")==0){
+					xmlNode *set = propertyupdate->children;
+					while (set){
+						ONION_DEBUG("%s", set->name);
+						if (strcmp((const char*)set->name,"prop")==0){
+							ONION_DEBUG("in prop");
+							xmlNode *prop = set->children;
+							while (prop){
+								ONION_DEBUG("prop %s", prop->name);
+								if (strcmp((const char*)prop->name,"executable")==0){
+									ONION_DEBUG("Setting executable %s", prop->children->content);
+									struct stat st;
+									stat(filename, &st);
+									if (toupper(prop->children->content[0])=='T'){
+										chmod(filename, st.st_mode | S_IXUSR | S_IXGRP | S_IXOTH);
+									}
+									else{
+										chmod(filename, st.st_mode & ~( S_IXUSR | S_IXGRP | S_IXOTH) );
+									}
+									ok=1;
+								}
+								prop=prop->next;
+							}
+						}
+						set=set->next;
+					}
+				}
+				propertyupdate=propertyupdate->next;
+			}
+		}
+		root=root->next;
+	}
+	
+	xmlFreeDoc(doc); 
+	if (ok){
+		onion_response_write_headers(res);
+		return OCS_PROCESSED;
+	}
+	else{
+		return OCS_INTERNAL_ERROR;
+	}
+}
+
 
 /**
  * @short Frees the webdav data

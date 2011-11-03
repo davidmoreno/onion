@@ -30,7 +30,9 @@
 #include "poller.h"
 
 #ifdef HAVE_PTHREADS
+# define __USE_UNIX98
 # include <pthread.h>
+# undef __USE_UNIX98
 #else  // if no pthreads, ignore locks.
 # define pthread_mutex_init(...)
 # define pthread_mutex_lock(...)
