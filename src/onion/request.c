@@ -394,6 +394,8 @@ void onion_request_session_free(onion_request *req){
  * If none the returns "C". 
  * 
  * Language code is short code. No localization by the moment.
+ * 
+ * @returns The language code for this request or C. Data must be freed.
  */
 const char *onion_request_get_language_code(onion_request *req){
 	const char *lang=onion_dict_get(req->headers, "Accept-Language");
@@ -410,7 +412,7 @@ const char *onion_request_get_language_code(onion_request *req){
 		//ONION_DEBUG("Language is %s", l);
 		return l;
 	}
-	return "C";
+	return strdup("C");
 }
 
 /**

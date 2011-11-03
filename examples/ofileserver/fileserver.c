@@ -153,12 +153,12 @@ int fileserver_page(const char *basepath, onion_request *req, onion_response *re
 			if (path[0]!='\0' && path[1]!='\0')
 				onion_dict_add(d, "go_up", "true", 0);
 			onion_dict *files=onion_dict_new();
-			onion_dict_add(d, "files", files, OD_DICT);
+			onion_dict_add(d, "files", files, OD_DICT|OD_FREE_VALUE);
 			
 			struct dirent *de;
 			while ( (de=readdir(dir)) ){ // Fill one files.[filename] per file.
 				onion_dict *file=onion_dict_new();
-				onion_dict_add(files, de->d_name, file, OD_DUP_KEY|OD_DICT);
+				onion_dict_add(files, de->d_name, file, OD_DUP_KEY|OD_DICT|OD_FREE_VALUE);
 				
 				onion_dict_add(file, "name", de->d_name, OD_DUP_VALUE);
 
