@@ -75,6 +75,8 @@ struct onion_t{
 
 struct onion_server_t{
 	onion_write write;					 	/// Function to call to write. The request has the io handler to write to.
+	onion_read read;					 		/// Function to call to read. The request has the io handler to write to.
+	onion_close close;					 		/// Function to call to close the socket.
 	onion_handler *root_handler;	/// Root processing handler for this server.
 	onion_handler *internal_error_handler;	/// Root processing handler for this server.
 	size_t max_post_size;					/// Maximum size of post data. This is the sum of posts, @see onion_request_write_post

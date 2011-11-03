@@ -79,6 +79,27 @@ void onion_server_set_write(onion_server *server, onion_write write){
 }
 
 /**
+ * @short Sets the writer function. 
+ * @memberof onion_server_t
+ * 
+ * It has the signature ssize_t (*onion_write)(void *handler, const char *data, unsigned int length). the handler is passed to the request.
+ */
+void onion_server_set_read(onion_server *server, onion_read read){
+	server->read=read;
+}
+
+/**
+ * @short Sets the writer function. 
+ * @memberof onion_server_t
+ * 
+ * It has the signature ssize_t (*onion_write)(void *handler, const char *data, unsigned int length). the handler is passed to the request.
+ */
+void onion_server_set_close(onion_server *server, onion_close close){
+	server->close=close;
+}
+
+
+/**
  * @short Sets the root handler that handles all the requests.
  * @memberof onion_server_t
  */

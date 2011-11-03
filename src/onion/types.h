@@ -131,6 +131,24 @@ typedef void (*onion_handler_private_data_free)(void *privdata);
  */
 typedef int (*onion_write)(void *handler, const char *data, unsigned int length);
 
+/**
+ * @short Prototype for the reading on the socket function.
+ *
+ * It can safely be just fread, with handler the FILE*, or write with the handler the fd.
+ * But its useful its like this so we can use another more complex to support, for example,
+ * SSL.
+ */
+typedef int (*onion_read)(void *handler, char *data, unsigned int length);
+
+/**
+ * @short Prototype for the closing the socket.
+ *
+ * It can safely be just fclose, with handler the FILE*, or write with the handler the fd.
+ * But its useful its like this so we can use another more complex to support, for example,
+ * SSL.
+ */
+typedef void (*onion_close)(void *handler);
+
 /// Flags for the mode of operation of the onion server.
 enum onion_mode_e{
 	O_ONE=1,							///< Perform just one petition

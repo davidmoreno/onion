@@ -32,9 +32,13 @@ onion_server *onion_server_new();
 
 /// frees the server.
 void onion_server_free(onion_server *server);
-
 /// Sets the write function
 void onion_server_set_write(onion_server *server, onion_write write);
+/// Sets the close function
+void onion_server_set_close(onion_server *server, onion_close close);
+
+/// Sets the read function
+void onion_server_set_read(onion_server *server, onion_read read);
 
 /// Sets the root handler
 void onion_server_set_root_handler(onion_server *server, onion_handler *handler);

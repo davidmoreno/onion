@@ -327,6 +327,33 @@ int onion_write_to_socket(int *fd, const char *data, unsigned int len){
 	return write((long int)fd, data, len);
 }
 
+/**
+ * @short Basic direct from socket read method.
+ * @memberof onion_t
+ */
+int onion_read_from_socket(int *fd, char *data, unsigned int len){
+	return read((long int)fd, data, len);
+}
+
+void onion_close_socket(int *socket){
+	long int fd=(long int)socket;
+	// Make it send the FIN packet.
+	shutdown(fd, SHUT_RDWR);
+	
+	if (0!=close(fd)){
+		ONION_ERROR("Error closing connection %d", fd);
+	}
+}
+
+#ifdef HAVE_GNUTLS
+static void onion_ssl_close(gnutls_session_t s){
+	int fd=(long int)gnutls_transport_get_ptr(s);
+	gnutls_bye (s, GNUTLS_SHUT_WR);
+	gnutls_deinit (s);
+	onion_close_socket((void*)(long int)fd);
+}
+#endif
+
 #ifdef HAVE_PTHREADS
 /// Simple adaptor to call from pool threads the poller.
 static __attribute__((unused)) void *onion_poller_adaptor(void *o){
@@ -664,6 +691,9 @@ static int onion_accept_request(onion *o){
 	
 	if (o->flags&O_POLL){
 		onion_request *req=onion_connection_start(o, clientfd, address);
+		if (!req){
+			return 0;
+		}
 		onion_poller_slot *slot=onion_poller_slot_new(clientfd, (void*)onion_connection_read, req);
 		onion_poller_slot_set_shutdown(slot, (void*)onion_connection_shutdown, req);
 		onion_poller_slot_set_timeout(slot, o->timeout);
@@ -683,8 +713,10 @@ static onion_request *onion_connection_start(onion *o, int clientfd, const char 
 	gnutls_session_t session=NULL;
 	if (o->flags&O_SSL_ENABLED){
 		session=onion_prepare_gnutls_session(o, clientfd);
-		if (session==NULL)
-			return;
+		if (session==NULL){
+			ONION_ERROR("Could not create session");
+			return NULL;
+		}
 	}
 #endif
 	signal(SIGPIPE, SIG_IGN); // FIXME. remove the thread better. Now it will try to write and fail on it.
@@ -693,19 +725,18 @@ static onion_request *onion_connection_start(onion *o, int clientfd, const char 
 #ifdef HAVE_GNUTLS
 	if (o->flags&O_SSL_ENABLED){
 		onion_server_set_write(o->server, (onion_write)gnutls_record_send); // Im lucky, has the same signature.
+		onion_server_set_read(o->server, (onion_read)gnutls_record_recv); // Im lucky, has the same signature.
+		onion_server_set_close(o->server, (onion_close)onion_ssl_close);
 		req=onion_request_new(o->server, session, client_info);
-		req->socket=session;
 	}
-	else{
-		onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
-		req=onion_request_new(o->server, &clientfd, client_info);
-		req->socket=(void*)clientfd;
-	}
-#else
-	req=onion_request_new(o->server, &clientfd, client_info);
-	onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
-	req->socket=(void*)(long int)clientfd;
+	else
 #endif
+	{
+		onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
+		onion_server_set_read(o->server, (onion_read)onion_read_from_socket);
+		onion_server_set_close(o->server, (onion_close)onion_close_socket);
+		req=onion_request_new(o->server, (void*)(long int)clientfd, client_info);
+	}
 	req->fd=clientfd;
 	if (!(o->flags&O_THREADED) || !(o->flags&O_POLL))
 		onion_request_set_no_keep_alive(req);
@@ -718,14 +749,7 @@ static onion_connection_status onion_connection_read(onion_request *req){
 	int r;
 	char buffer[1500];
 	errno=0;
-#if HAVE_GNUTLS
-	r = (o->flags&O_SSL_ENABLED)
-						? gnutls_record_recv (req->socket, buffer, sizeof(buffer))
-						: read((int)req->socket, buffer, sizeof(buffer));
-#else
-	errno=0;
-	r=read((long int)req->socket, buffer, sizeof(buffer));
-#endif
+	r = req->server->read(req->socket, buffer, sizeof(buffer));
 	if (r<=0){ // error reading.
 		ONION_DEBUG("Read %d bytes, errno %d %s", r, errno, strerror(errno));
 		if (errno==ECONNRESET)
@@ -740,21 +764,10 @@ static onion_connection_status onion_connection_read(onion_request *req){
 	return onion_server_write_to_request(req->server, req, buffer, r);
 }
 
+
 /// Closes a connection
 static void onion_connection_shutdown(onion_request *req){
-#ifdef HAVE_GNUTLS
-	if (o->flags&O_SSL_ENABLED){
-		gnutls_bye (req->session, GNUTLS_SHUT_WR);
-		gnutls_deinit (req->session);
-		/// FIXME! missing proper shutdown of real socket.
-	}
-#endif
-	// Make it send the FIN packet.
-	shutdown(req->fd, SHUT_RDWR);
-	
-	if (0!=close(req->fd)){
-		perror("Error closing connection");
-	}
+	req->server->close(req->socket);
 	onion_request_free(req);
 }
 
