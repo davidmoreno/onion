@@ -145,17 +145,6 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 	char etag[64];
 	onion_shortcut_etag(&st, etag);
 		
-	ONION_DEBUG0("Etag %s", etag);
-	const char *prev_etag=onion_request_get_header(request, "If-None-Match");
-	if (prev_etag && (strcmp(prev_etag, etag)==0)){
-		ONION_DEBUG0("Not modified");
-		onion_response_set_length(res, 0);
-		onion_response_set_code(res, HTTP_NOT_MODIFIED);
-		onion_response_write_headers(res);
-		close(fd);
-		return OCS_PROCESSED;
-	}
-	
 	const char *range=onion_request_get_header(request, "Range");
 	if (range){
 		strncat(etag,range,sizeof(etag)-1);
@@ -192,8 +181,18 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
 	onion_response_set_length(res, length);
 	onion_response_set_header(res, "Content-Type", onion_mime_get(filename) );
 	ONION_DEBUG("Mime type is %s",onion_mime_get(filename));
-	onion_response_write_headers(res);
-	
+
+  ONION_DEBUG0("Etag %s", etag);
+  const char *prev_etag=onion_request_get_header(request, "If-None-Match");
+  if (prev_etag && (strcmp(prev_etag, etag)==0)){
+    ONION_DEBUG0("Not modified");
+    onion_response_set_length(res, 0);
+    onion_response_set_code(res, HTTP_NOT_MODIFIED);
+    onion_response_write_headers(res);
+    close(fd);
+    return OCS_PROCESSED;
+  }
+
 	if ((onion_request_get_flags(request)&OR_HEAD) == OR_HEAD){ // Just head.
 		length=0;
 	}
