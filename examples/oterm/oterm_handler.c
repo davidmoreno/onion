@@ -17,6 +17,7 @@
 	*/
 
 #include <stdio.h>
+#include <fcntl.h>
 #include <malloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -85,6 +86,7 @@ typedef struct process_t{
 	int16_t buffer_pos;				///< Position on the circular buffer, 0-BUFFER_SIZE
 	pthread_cond_t dataReady; ///< All but one will wait on the condition
 	pthread_mutex_t mutex; 		///< Mutex for this process, as several threads can access it.
+	char uuid[37];            ///< UUID for this process. May be used to access it.
 	struct process_t *next;
 }process;
 
@@ -125,7 +127,7 @@ process *oterm_get_process(oterm_session *o, const char *id){
 	int pid=atoi(id);
 	int i=1;
 	while(p){
-		if (i==pid){
+		if ((strcmp(p->uuid, id)==0) || i==pid){
 			pthread_mutex_unlock( &o->head_mutex );
 			return p;
 		}
@@ -216,6 +218,24 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
 			break;
 	command_name=&data->exec_command[i+1];
 
+  
+  /// Get the UUID, linux nicely gives it.
+  {
+    int fd=open("/proc/sys/kernel/random/uuid", O_RDONLY);
+    if (fd>=0){
+      read(fd, oterm->uuid, sizeof(oterm->uuid)-1);
+      close(fd);
+    }
+    else{
+      const char random_chars[]="0123456789abcdef-";
+      for (i=0;i<sizeof(oterm->uuid)-1;i++){
+        oterm->uuid[i]=random_chars[rand()%sizeof(random_chars)];
+      }
+    }
+    oterm->uuid[sizeof(oterm->uuid)-1]=0;
+    ONION_DEBUG("New UUID for this terminal is %s", oterm->uuid);
+  }
+  
 	oterm->buffer=malloc(BUFFER_SIZE);
 	memset(oterm->buffer, 0, BUFFER_SIZE);
 	oterm->buffer_pos=0;

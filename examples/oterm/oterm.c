@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <time.h>
 
 #include <onion/onion.h>
 #include <onion/handler.h>
@@ -183,6 +184,8 @@ int main(int argc, char **argv){
 #endif
 		oterm=onion_handler_new((void*)oterm_nopam, url, (void*)onion_handler_free);
 	
+  srand(time(NULL));
+    
 	o=onion_new(O_POOL|O_SYSTEMD);
 	
 	onion_url_add_handler(url, "^term/", oterm_handler(o,command));
