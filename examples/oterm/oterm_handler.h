@@ -27,6 +27,7 @@ extern "C"{
 #endif
 
 onion_handler *oterm_handler(onion *, const char *exec_command);
+onion_connection_status oterm_uuid(void *_, onion_request *req, onion_response *res);
 
 #ifdef __cplusplus
 }

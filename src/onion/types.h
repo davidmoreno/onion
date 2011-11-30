@@ -215,6 +215,7 @@ enum onion_connection_status_e{
 	OCS_KEEP_ALIVE=3,
 	OCS_INTERNAL_ERROR=-500,
 	OCS_NOT_IMPLEMENTED=-501,
+  OCS_FORBIDDEN=-502,
 };
 
 typedef enum onion_connection_status_e onion_connection_status;

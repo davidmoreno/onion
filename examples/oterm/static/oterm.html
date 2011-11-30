@@ -19,12 +19,12 @@
 <html>
  <head>
   <title>Oterm -- Onion based terminal emulator over HTTP</title>
-  <script src="../../jquery-1.4.3.min.js"></script>
-  <script src="oterm.js"></script>
-  <script src="oterm_termfunctions.js"></script>
-  <script src="oterm_input.js"></script>
-  <script src="oterm_parser.js"></script>
-  <script src="oterm_data.js"></script>
+  <script src="/static/jquery-1.4.3.min.js"></script>
+  <script src="/static/oterm.js"></script>
+  <script src="/static/oterm_termfunctions.js"></script>
+  <script src="/static/oterm_input.js"></script>
+  <script src="/static/oterm_parser.js"></script>
+  <script src="/static/oterm_data.js"></script>
 <style>
 body{
 	margin: 0px;
@@ -61,18 +61,15 @@ span#msg{
 	right: 2em;
 	vertical-align: center;
 	text-align: center;
-/*
-}
-span#msg div{
-*/
-	background: #66f;
-	opacity: 0.8;
+
+	background: #66a;
 	font-weight: bold;
 	color: white;
-	border: 1px solid white;
+	border: 0px;
 	padding: 1em;
 	border-radius: 5px;
 	cursor: pointer;
+  box-shadow: 0 2px 10px rgba(255,255,255, 0.5);
 }
 
 .current_line{
@@ -149,9 +146,26 @@ div#term span.bg-white{
 	height: 32px;
 }
 
+#header{
+  background: white;
+  text-align: center;
+}
+
+#header a{
+  background: #eee;
+  border-radius: 3px;
+  color: #55f;
+  font-weight: bold;
+}
+
+#header a:hover{
+  background: yellow;
+}
+
 </style>
  </head>
  <body>
+<!--<div id="header"><a id="url" href="http://localhost:8080/">http://localhost:8080/</a></div>-->
 <span id="msg">Loading...</span>
 <span id="cursor">&nbsp;</span>
    <div id="term">

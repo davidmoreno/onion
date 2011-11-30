@@ -126,11 +126,17 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 	if (level>(sizeof(levelstr)/sizeof(levelstr[0]))-1)
 		level=(sizeof(levelstr)/sizeof(levelstr[0]))-1;
 
-	if (!(onion_log_flags&OF_NOCOLOR))
-		fprintf(stderr,"%s",levelcolor[level]);
-
 #ifdef HAVE_PTHREADS
-	fprintf(stderr, "[%06d] ",(int)syscall(SYS_gettid));
+  int pid=(int)syscall(SYS_gettid);
+  if (!(onion_log_flags&OF_NOCOLOR))
+    fprintf(stderr, "\033[%dm[%06d]%s ",30 + (pid%8), pid, levelcolor[level]);
+  else
+    fprintf(stderr, "[%06d] ", pid);
+#else
+  if (!(onion_log_flags&OF_NOCOLOR))
+    fprintf(stderr,"%s",levelcolor[level]);
+
+
 #endif
 	char datetime[32];
 	time_t t;

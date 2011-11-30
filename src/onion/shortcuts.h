@@ -35,8 +35,11 @@ int onion_shortcut_response(const char *response, int code, onion_request *req, 
 /// Shortcut for fast responses, like errors, with extra headers.
 int onion_shortcut_response_extra_headers(const char *response, int code, onion_request *req, onion_response *res, ...);
 
-/// Shortcut for fast redirect.
+/// Shortcut for fast redirect. It tells the browser to look somewhere else.
 int onion_shortcut_redirect(const char *newurl, onion_request *req, onion_response *res);
+
+/// Shortcut for fast internal redirect. It returns what the server would return with the new address.
+int onion_shortcut_internal_redirect(const char *newurl, onion_request *req, onion_response *res);
 
 /// Shortcut for response a static file on disk
 int onion_shortcut_response_file(const char *filename, onion_request *req, onion_response *res);

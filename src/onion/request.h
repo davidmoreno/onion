@@ -56,6 +56,7 @@ enum onion_request_flags_e{
 	OR_INTERNAL_ERROR=0x01000,
 	OR_NOT_IMPLEMENTED=0x02000,
 	OR_NOT_FOUND=0x03000,
+  OR_FORBIDDEN=0x04000,
 };
 
 typedef enum onion_request_flags_e onion_request_flags;

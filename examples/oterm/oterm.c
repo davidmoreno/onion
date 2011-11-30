@@ -22,7 +22,9 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <time.h>
+#include <errno.h>
 
+#include <onion/log.h>
 #include <onion/onion.h>
 #include <onion/handler.h>
 
@@ -39,15 +41,9 @@
 
 #include "oterm_handler.h"
 #include <onion/dict.h>
+#include <onion/shortcuts.h>
 
-
-void opack_index_html(onion_response *res);
-void opack_jquery_1_4_3_min_js(onion_response *res);
-void opack_coralbits_png(onion_response *res);
-extern unsigned int opack_index_html_length;
-extern unsigned int opack_jquery_1_4_3_min_js_length;
-extern unsigned int opack_coralbits_png_length;
-
+onion_connection_status opack_static(void *_, onion_request *req, onion_response *res);
 
 onion *o=NULL;
 
@@ -69,7 +65,7 @@ void show_help(){
 void free_onion(){
 	static int already_closing=0;
 	if (!already_closing){
-		fprintf(stderr,"\nClosing connections.\n");
+		ONION_INFO("Closing connections.");
 		onion_free(o);
 		already_closing=1;
 	}
@@ -106,7 +102,7 @@ int main(int argc, char **argv){
 		}
 		else if(strcmp(argv[i],"-p")==0 || strcmp(argv[i],"--port")==0){
 			if (i+1>argc){
-				fprintf(stderr, "Need to set the port number.\n");
+				ONION_ERROR("Need to set the port number.");
 				show_help();
 				exit(1);
 			}
@@ -115,7 +111,7 @@ int main(int argc, char **argv){
 		}
 		else if(strcmp(argv[i],"-i")==0 || strcmp(argv[i],"--ip")==0){
 			if (i+1>argc){
-				fprintf(stderr, "Need to set the ip address or hostname.\n");
+				ONION_ERROR("Need to set the ip address or hostname.");
 				show_help();
 				exit(1);
 			}
@@ -124,80 +120,79 @@ int main(int argc, char **argv){
 		}
 		else if(strcmp(argv[i],"-c")==0 || strcmp(argv[i],"--cert")==0){
 			if (i+1>argc){
-				fprintf(stderr, "Need to set the certificate filename\n");
+				ONION_ERROR("Need to set the certificate filename");
 				show_help();
 				exit(1);
 			}
 			certificatefile=argv[++i];
-			fprintf(stderr, "Using certificate %s\n",certificatefile);
+			ONION_INFO("Using certificate %s",certificatefile);
 		}
 		else if(strcmp(argv[i],"-k")==0 || strcmp(argv[i],"--key")==0){
 			if (i+1>argc){
-				fprintf(stderr, "Need to set the certificate key filename.\n");
+				ONION_ERROR("Need to set the certificate key filename.");
 				show_help();
 				exit(1);
 			}
 			keyfile=argv[++i];
-			fprintf(stderr, "Using certificate key %s\n",keyfile);
+			ONION_INFO("Using certificate key %s",keyfile);
 		}
 		else if(strcmp(argv[i],"-x")==0 || strcmp(argv[i],"--exec")==0){
 			if (i+1>argc){
-				fprintf(stderr, "Need the command to execute.\n");
+				ONION_ERROR("Need the command to execute.");
 				show_help();
 				exit(1);
 			}
 			command=argv[++i];
-			fprintf(stderr, "New terminal execute the command %s\n",command);
+			ONION_INFO("New terminal execute the command %s",command);
 		}
 		else if(strcmp(argv[i],"--no-ssl")==0){
 			ssl=0;
-			fprintf(stderr, "Disabling SSL!\n");
+			ONION_INFO("Disabling SSL!");
 		}
 #ifdef HAVE_PAM
 		else if(strcmp(argv[i],"--no-pam")==0){
 			use_pam=0;
-			fprintf(stderr, "Disabling PAM!\n");
+			ONION_INFO("Disabling PAM!");
 		}
 #endif
 	}
+  o=onion_new(O_POOL|O_SYSTEMD);
+  
 	
+	// I prepare the url handler, with static, uuid and term. Also added the empty rule that redirects to static/index.html
 	onion_url *url=onion_url_new();
+  onion_handler *term_handler=oterm_handler(o,command);
+#ifdef HAVE_PAM
+  if (use_pam){
+    onion_url_add_handler(url, "^term/", onion_handler_auth_pam("Onion Terminal", "login", term_handler));
+  }
+  else
+#endif
+  {
+    onion_url_add_with_data(url, "^term/", oterm_nopam, term_handler, NULL);
+  }
+  onion_url_add_with_data(url, "^uuid/", oterm_uuid, onion_handler_get_private_data(term_handler), NULL);
+  
 #ifdef __DEBUG__
 	if (getenv("OTERM_DEBUG"))
-		onion_url_add_handler(url, ".*", onion_handler_export_local_new("."));
-	else{
-		onion_url_add_handler(url, "^$", onion_handler_opack("",opack_index_html, opack_index_html_length));
-		onion_url_add_handler(url, "^coralbits.png$", onion_handler_opack("",opack_coralbits_png, opack_coralbits_png_length));
-		onion_url_add_handler(url, "^jquery-1.4.3.min.js$", onion_handler_opack("",opack_jquery_1_4_3_min_js, opack_jquery_1_4_3_min_js_length));
-	}
-#else
-	onion_url_add_handler(url, "^$", onion_handler_opack("",opack_index_html, opack_index_html_length));
-	onion_url_add_handler(url, "^coralbits.png$", onion_handler_opack("",opack_coralbits_png, opack_coralbits_png_length));
-	onion_url_add_handler(url, "^jquery-1.4.3.min.js$", onion_handler_opack("",opack_jquery_1_4_3_min_js, opack_jquery_1_4_3_min_js_length));
-#endif
-
-	onion_handler *oterm;
-#ifdef HAVE_PAM
-	if (use_pam)
-		oterm=onion_handler_auth_pam("Onion Terminal", "login", onion_url_to_handler(url));
+		onion_url_add_handler(url, "^static/", onion_handler_export_local_new("static"));
 	else
 #endif
-		oterm=onion_handler_new((void*)oterm_nopam, url, (void*)onion_handler_free);
-	
+  {
+    onion_url_add(url, "^static/", opack_static);
+	}
+  onion_url_add_with_data(url, "", onion_shortcut_internal_redirect, "static/index.html", NULL);
+
   srand(time(NULL));
-    
-	o=onion_new(O_POOL|O_SYSTEMD);
-	
-	onion_url_add_handler(url, "^term/", oterm_handler(o,command));
-	onion_set_root_handler(o, oterm);
+	onion_set_root_handler(o, onion_url_to_handler(url));
 
 	if (!(onion_flags(o)&O_SSL_AVAILABLE)){
-		fprintf(stderr,"SSL support is not available. Oterm is in unsecure mode!\n");
+		ONION_WARNING("SSL support is not available. Oterm is in unsecure mode!");
 	}
 	else if (ssl){ // Not necesary the else, as onion_use_certificate would just return an error. But then it will exit.
 		error=onion_set_certificate(o, O_SSL_CERTIFICATE_KEY, certificatefile, keyfile);
 		if (error){
-			fprintf(stderr, "Cant set certificate and key files (%s, %s)\n",certificatefile, keyfile);
+			ONION_ERROR("Cant set certificate and key files (%s, %s)",certificatefile, keyfile);
 			show_help();
 			exit(1);
 		}
@@ -211,7 +206,7 @@ int main(int argc, char **argv){
 	fprintf(stderr, "Listening at %s\n",port);
 	error=onion_listen(o);
 	if (error){
-		perror("Cant create the server");
+		ONION_ERROR("Cant create the server: %s", strerror(errno));
 	}
 	
 	onion_free(o);

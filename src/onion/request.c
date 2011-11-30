@@ -69,6 +69,7 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	else
 		req->client_info=NULL;
 
+  ONION_DEBUG0("Create request %p", req);
 	return req;
 }
 
@@ -86,6 +87,7 @@ static void unlink_files(void *p, const char *key, const char *value, int flags)
  * @memberof onion_request_t
  */
 void onion_request_free(onion_request *req){
+  ONION_DEBUG0("Free request %p", req);
 	onion_dict_free(req->headers);
 	
 	if (req->parser_data){
@@ -113,8 +115,45 @@ void onion_request_free(onion_request *req){
 		onion_dict_free(req->session); // Not really remove, just dereference
 	if (req->data)
 		onion_block_free(req->data);
-	
+
 	free(req);
+}
+
+/**
+ * @short Cleans a request object to reuse it.
+ * @memberof onion_request_t
+ */
+void onion_request_clean(onion_request* req){
+  ONION_DEBUG0("Clean request %p", req);
+  onion_dict_free(req->headers);
+  req->headers=onion_dict_new();
+  if (req->parser_data){
+    onion_request_parser_data_free(req->parser_data);
+    req->parser_data=NULL;
+  }
+  req->parser=NULL;
+  req->flags&=0x0F00; // I keep server flags.
+  if (req->fullpath){
+    free(req->fullpath);
+    req->path=req->fullpath=NULL;
+  }
+  if (req->GET){
+    onion_dict_free(req->GET);
+    req->GET=NULL;
+  }
+  if (req->POST){
+    onion_dict_free(req->POST);
+    req->POST=NULL;
+  }
+  if (req->FILES){
+    onion_dict_preorder(req->FILES, unlink_files, NULL);
+    onion_dict_free(req->FILES);
+    req->FILES=NULL;
+  }
+  if (req->data){
+    onion_block_free(req->data);
+    req->data=NULL;
+  }
 }
 
 
@@ -295,42 +334,6 @@ onion_dict *onion_request_get_session_dict(onion_request *req){
 	return req->session;
 }
 
-
-/**
- * @short Cleans a request object to reuse it.
- * @memberof onion_request_t
- */
-void onion_request_clean(onion_request* req){
-	onion_dict_free(req->headers);
-	req->headers=onion_dict_new();
-	if (req->parser_data){
-		onion_request_parser_data_free(req->parser_data);
-		req->parser_data=NULL;
-	}
-	req->parser=NULL;
-	req->flags&=0x0F00; // I keep server flags.
-	if (req->fullpath){
-		free(req->fullpath);
-		req->path=req->fullpath=NULL;
-	}
-	if (req->GET){
-		onion_dict_free(req->GET);
-		req->GET=NULL;
-	}
-	if (req->POST){
-		onion_dict_free(req->POST);
-		req->POST=NULL;
-	}
-	if (req->FILES){
-		onion_dict_preorder(req->FILES, unlink_files, NULL);
-		onion_dict_free(req->FILES);
-		req->FILES=NULL;
-	}
-	if (req->data){
-		onion_block_free(req->data);
-		req->data=NULL;
-	}
-}
 
 /**
  * @short Forces the request to process only one request, not doing the keep alive.

@@ -505,6 +505,11 @@ prepareForOtermPosition = function(){
 	parserStatus='oterm_position'
 }
 
+prepareForOtermURL = function(){
+  parserStatus='oterm_url'
+}
+
+
 /// Sets the title. 
 setTitle = function(title){
 	$.post('title',{title:title})
@@ -517,4 +522,8 @@ otermReadPos = function(pos){
 	readDataPos=Number(pos)
 }
 
+/// Oterm custom command, set the url
+otermSetURL = function(url){
+  $('#header #url').attr('href',url).text(url)
+}
 

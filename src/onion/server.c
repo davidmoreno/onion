@@ -177,6 +177,8 @@ onion_connection_status onion_server_handle_request(onion_server *server, onion_
 			req->flags|=OR_NOT_IMPLEMENTED;
 		if (hs==OCS_NOT_PROCESSED)
 			req->flags|=OR_NOT_FOUND;
+    if (hs==OCS_FORBIDDEN)
+      req->flags|=OR_FORBIDDEN;
 		
 		hs=onion_handler_handle(server->internal_error_handler, req, res);
 	}
@@ -191,6 +193,7 @@ onion_connection_status onion_server_handle_request(onion_server *server, onion_
 
 
 #define ERROR_500 "<h1>500 - Internal error</h1> Check server logs or contact administrator."
+#define ERROR_403 "<h1>403 - Forbidden</h1>"
 #define ERROR_404 "<h1>404 - Not found</h1>"
 #define ERROR_505 "<h1>505 - Not implemented</h1>"
 
@@ -215,6 +218,11 @@ static int onion_default_error(void *handler, onion_request *req, onion_response
 			l=sizeof(ERROR_505)-1;
 			code=HTTP_NOT_IMPLEMENTED;
 			break;
+    case OR_FORBIDDEN:
+      msg=ERROR_403;
+      l=sizeof(ERROR_403)-1;
+      code=HTTP_FORBIDDEN;
+      break;
 		default:
 			msg=ERROR_404;
 			l=sizeof(ERROR_404)-1;

@@ -147,6 +147,15 @@ updateData = function(text){
 			else
 				str+=c
 		}
+    else if (parserStatus=='oterm_url'){
+      if (c==';'){
+        otermSetURL(str)
+        clear()
+        parserStatus=0
+      }
+      else
+        str+=c
+    }
 
 	}
 	addText(str,length)

@@ -24,6 +24,9 @@
 #include <limits.h>
 #include <time.h>
 #include <unistd.h>
+#ifdef __DEBUG__
+#include <execinfo.h>
+#endif
 
 #include "log.h"
 #include "types.h"
@@ -293,7 +296,7 @@ static int onion_poller_get_next_timeout(onion_poller *p){
  */
 void onion_poller_poll(onion_poller *p){
 	struct epoll_event event[MAX_EVENTS];
-	ONION_DEBUG0("Start poll of fds");
+	ONION_DEBUG0("Start polling");
 	p->stop=0;
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&p->mutex);
@@ -319,8 +322,9 @@ void onion_poller_poll(onion_poller *p){
 			timeout*=1000;
 		ONION_DEBUG0("Wait for %d ms", timeout);
 		int nfds = epoll_wait(p->fd, event, MAX_EVENTS, timeout);
-		ctime=time(NULL);
-		ONION_DEBUG0("Current time is %d, limit is %d, timeout is %d.", ctime, maxtime, timeout);
+		int ctime_end=time(NULL);
+		ONION_DEBUG0("Current time is %d, limit is %d, timeout is %d. Waited for %d seconds", ctime, maxtime, timeout, ctime_end-ctime);
+    ctime=ctime_end;
 
 		pthread_mutex_lock(&p->mutex);
 		{ // Somebody timedout?
@@ -330,7 +334,15 @@ void onion_poller_poll(onion_poller *p){
 				next=next->next;
 				if (cur->timeout_limit <= ctime){
 					ONION_DEBUG0("Timeout on %d, was %d (ctime %d)", cur->fd, cur->timeout_limit, ctime);
-					onion_poller_remove(p, cur->fd);
+          int i;
+          for (i=0;i<nfds;i++){
+            onion_poller_slot *el=(onion_poller_slot*)event[i].data.ptr;
+            if (cur==el){ // If removed just one with event, make it ignore the event later.
+              ONION_DEBUG0("Ignoring event as it timeouted: %d", cur->fd);
+              event[i].data.ptr=NULL;
+            }
+          }
+          onion_poller_remove(p, cur->fd);
 				}
 			}
 		}
@@ -351,6 +363,8 @@ void onion_poller_poll(onion_poller *p){
 		int i;
 		for (i=0;i<nfds;i++){
 			onion_poller_slot *el=(onion_poller_slot*)event[i].data.ptr;
+      if (!el)
+        continue;
 			// Call the callback
 			//ONION_DEBUG("Calling callback for fd %d (%X %X)", el->fd, event[i].events);
 			int n;
@@ -359,7 +373,12 @@ void onion_poller_poll(onion_poller *p){
 			}
 			else{ // I also take care of the timeout, no timeout when on the handler, it should handle it itself.
 				el->timeout_limit=INT_MAX;
-				
+
+#ifdef __DEBUG__
+        char **bs=backtrace_symbols((void * const *)&el->f, 1);
+        ONION_DEBUG0("Calling handler: %s (%d)",bs[0], el->fd);
+        free(bs);
+#endif
 				n=el->f(el->data);
 				
 				ctime=time(NULL);
@@ -370,7 +389,7 @@ void onion_poller_poll(onion_poller *p){
 				onion_poller_remove(p, el->fd);
 			}
 			else{
-				ONION_DEBUG0("Resetting poller %d", el->fd);
+				ONION_DEBUG0("Re setting poller %d", el->fd);
 				event[i].events=EPOLLIN | EPOLLHUP | EPOLLONESHOT;
 				int e=epoll_ctl(p->fd, EPOLL_CTL_MOD, el->fd, &event[i]);
 				if (e<0){

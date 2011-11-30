@@ -51,20 +51,6 @@
 /// Time to wait for output, or just return.
 #define TIMEOUT 60000
 
-void opack_oterm_html(onion_response *res);
-void opack_oterm_js(onion_response *res);
-void opack_oterm_input_js(onion_response *res);
-void opack_oterm_data_js(onion_response *res);
-void opack_oterm_parser_js(onion_response *res);
-void opack_oterm_termfunctions_js(onion_response *res);
-
-extern unsigned int opack_oterm_html_length;
-extern unsigned int opack_oterm_js_length;
-extern unsigned int opack_oterm_input_js_length;
-extern unsigned int opack_oterm_data_js_length;
-extern unsigned int opack_oterm_parser_js_length;
-extern unsigned int opack_oterm_termfunctions_js_length;
-
 /// Max data to store. This is, more or less a window of 230*70, which is not so extrange
 #define BUFFER_SIZE 4096*4 
 
@@ -103,8 +89,8 @@ typedef struct{
  */
 struct oterm_data_t{
 	char *exec_command;
-	onion_handler *next;
 	onion *onion;
+  onion_dict *processes;
 	onion_dict *sessions; // Each user (session['username']) has a session.
 };
 
@@ -119,6 +105,7 @@ static int oterm_title(process *o, onion_request *req, onion_response *res);
 static int oterm_in(process *o, onion_request *req, onion_response *res);
 static int oterm_out(process *o, onion_request *req, onion_response *res);
 static int oterm_data_ready(process *o);
+static onion_connection_status oterm_process(oterm_data *data, process *term, const char *function, onion_request *req, onion_response *res);
 
 /// Returns the term from the list of known terms. FIXME, make this structure a tree or something faster than linear search.
 process *oterm_get_process(oterm_session *o, const char *id){
@@ -138,8 +125,52 @@ process *oterm_get_process(oterm_session *o, const char *id){
 	return NULL;
 }
 
+/// Returns the term from the list of known terms. FIXME, make this structure a tree or something faster than linear search.
+process *oterm_get_process_by_uuid(oterm_data *o, const char *id){
+  return (process*)onion_dict_get(o->processes, id);
+}
+
+onion_connection_status oterm_uuid(void *data, onion_request *req, onion_response *res){
+  const char *path=onion_request_get_path(req);
+  
+  ONION_DEBUG("Ask path %s (%p)", path, data);
+  // split id / function
+  int l=strlen(path)+1;
+  char *id=alloca(l);
+  char *function=NULL;
+  
+  int i;
+  memcpy(id,path,l);
+  int func_pos=0;
+  for (i=0;i<l;i++){
+    if (id[i]=='/'){
+      if (!function && id[i+1]!='\0')
+        function=id+i+1;
+      id[i]=0;
+      func_pos=i;
+      break;
+    }
+  }
+  ONION_DEBUG("Id %s, function %s", id, function);
+  process *term=oterm_get_process_by_uuid(data, id);
+  if (!term)
+    return OCS_INTERNAL_ERROR;
+  
+  if (!function)
+    return onion_shortcut_internal_redirect("static/oterm.html", req, res);
+  // do it
+  onion_request_advance_path(req, func_pos);
+
+  return oterm_process(data, term, function, req, res);
+}
+
 /// Plexes the request depending on arguments.
 int oterm_get_data(oterm_data *data, onion_request *req, onion_response *res){
+  const char *username=onion_request_get_session(req,"username");
+  if (!username){
+    ONION_WARNING("Trying to enter authenticated area without username.");
+    return OCS_FORBIDDEN;
+  }
 	oterm_session *o=(oterm_session*)onion_dict_get(data->sessions, onion_request_get_session(req,"username"));
 	if (!o){
 		o=oterm_session_new();
@@ -147,44 +178,25 @@ int oterm_get_data(oterm_data *data, onion_request *req, onion_response *res){
 		onion_dict_add(data->sessions,onion_request_get_session(req,"username"),o, 0);
 		onion_dict_unlock(data->sessions);
 	}
-	
-	
-	const char *path=onion_request_get_path(req);
-	
-	if (strcmp(path,"new")==0){
-		if (onion_request_get_post(req, "command")){
-			free(data->exec_command);
-			data->exec_command=strdup(onion_request_get_post(req, "command"));
-		}
-		oterm_new(data, o, onion_request_get_session(req, "username"), onion_request_get_session(req, "nopam") ? 0 : 1 );
-		return onion_shortcut_response("ok", 200, req, res);
-	}
-	if (strcmp(path,"status")==0)
-		return oterm_status(o,req, res);
+  const char *path=onion_request_get_path(req);
 
-	// split id / function
-	int l=strlen(path)+1;
-	char *id=alloca(l);
-	char *function=NULL;
-	
-	int i;
-	memcpy(id,path,l);
-	int func_pos=0;
-	for (i=0;i<l;i++){
-		if (id[i]=='/'){
-			id[i]=0;
-			if (function)
-				return onion_shortcut_response("Bad formed petition. (1)", 500, req, res);
-			function=id+i+1;
-			func_pos=i;
-			break;
-		}
-	}
-	
-	if (!function)
-		return onion_shortcut_response("Bad formed petition. (2)", 500, req, res);
-	// do it
-	process *term=oterm_get_process(o, id);
+  ONION_DEBUG("Ask path %s (%p)", path, data);
+  
+  if (strcmp(path,"new")==0){
+    if (onion_request_get_post(req, "command")){
+      free(data->exec_command);
+      data->exec_command=strdup(onion_request_get_post(req, "command"));
+    }
+    oterm_new(data, o, onion_request_get_session(req, "username"), onion_request_get_session(req, "nopam") ? 0 : 1 );
+    return onion_shortcut_response("ok", 200, req, res);
+  }
+  if (strcmp(path,"status")==0)
+    return oterm_status(o,req, res);
+
+  return OCS_NOT_PROCESSED;
+}
+
+static onion_connection_status oterm_process(oterm_data *data, process *term, const char *function, onion_request *req, onion_response *res){
 	if (!term)
 		return onion_shortcut_response("Terminal Id unknown", 404, req, res);
 	if (strcmp(function,"out")==0)
@@ -195,9 +207,8 @@ int oterm_get_data(oterm_data *data, onion_request *req, onion_response *res){
 		return oterm_resize(term,req,res);
 	if (strcmp(function,"title")==0)
 		return oterm_title(term,req,res);
-	onion_request_advance_path(req, func_pos);
 	
-	return onion_handler_handle(data->next, req, res);
+	return OCS_NOT_PROCESSED;
 }
 
 /// Variables that will be passed to the new environment.
@@ -303,10 +314,11 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
 		while (next->next) next=next->next;
 		next->next=oterm;
 	}
-	onion_poller_slot *sl=onion_poller_slot_new(oterm->fd, (void*)oterm_data_ready, oterm);
-	onion_poller_add(onion_get_poller(data->onion), sl);
+  onion_poller_slot *sl=onion_poller_slot_new(oterm->fd, (void*)oterm_data_ready, oterm);
+  onion_poller_add(onion_get_poller(data->onion), sl);
+  pthread_mutex_unlock( &session->head_mutex );
 	
-	pthread_mutex_unlock( &session->head_mutex );
+  onion_dict_add(data->processes, oterm->uuid, oterm, 0);
 	
 	return oterm;
 }
@@ -338,6 +350,7 @@ int oterm_status(oterm_session *session, onion_request *req, onion_response *res
 			sprintf(id, "%d", i);
 			onion_dict *term=onion_dict_new();
 			onion_dict_add(term, "title", n->title, OD_DUP_VALUE);
+      onion_dict_add(term, "uuid", n->uuid, 0);
 			onion_dict_add(status, id, term, OD_DICT|OD_FREE_ALL);
 			// Just a check, here is ok, no hanging childs
 			n=n->next;
@@ -413,6 +426,7 @@ int oterm_out(process *o, onion_request *req, onion_response *res){
 		}
 		onion_response_write(res, o->buffer, o->buffer_pos);
 		onion_response_printf(res, "\033]oterm;%d;", o->buffer_pos);
+    onion_response_printf(res, "\033]url;https://localhost:8080/uuid/%s/;", o->uuid);
 		pthread_mutex_unlock(&o->mutex);
 		return OCS_PROCESSED;
 	}
@@ -485,6 +499,10 @@ void oterm_session_free(oterm_session *o){
 	free(o);
 }
 
+void oterm_session_free_dict_helper(void *data, const char *key, const void *value, int flags){
+  oterm_session_free((oterm_session*)value);
+}
+
 /// Creates a new session, one per user at oterm_data->sessions.
 oterm_session *oterm_session_new(){
 	oterm_session *oterm=malloc(sizeof(oterm_session));
@@ -497,34 +515,20 @@ oterm_session *oterm_session_new(){
 
 /// Frees memory used by the handler
 void oterm_free(oterm_data *data){
-	// TODO Clean properly all processes
+  // Free all sessions.
+  onion_dict_preorder(data->sessions, oterm_session_free_dict_helper, NULL);
+  
 	onion_dict_free(data->sessions);
+  onion_dict_free(data->processes);
 	free(data->exec_command);
-	onion_handler_free(data->next);
 	free(data);
 }
 
 /// Prepares the oterm handler
 onion_handler *oterm_handler(onion *o, const char *exec_command){
-	onion_handler *next_handler;
-#ifdef __DEBUG__
-	if (getenv("OTERM_DEBUG"))
-		next_handler=onion_handler_export_local_new(".");
-	else{
-#endif
-	next_handler=onion_handler_opack("/",opack_oterm_html, opack_oterm_html_length);
-	onion_handler_add(next_handler, onion_handler_opack("/oterm.js", opack_oterm_js, opack_oterm_js_length));
-	onion_handler_add(next_handler, onion_handler_opack("/oterm_input.js", opack_oterm_input_js, opack_oterm_input_js_length));
-	onion_handler_add(next_handler, onion_handler_opack("/oterm_parser.js", opack_oterm_parser_js, opack_oterm_parser_js_length));
-	onion_handler_add(next_handler, onion_handler_opack("/oterm_data.js", opack_oterm_data_js, opack_oterm_data_js_length));
-	onion_handler_add(next_handler, onion_handler_opack("/oterm_termfunctions.js", opack_oterm_termfunctions_js, opack_oterm_termfunctions_js_length));
-#ifdef __DEBUG__
-	}
-#endif
-	
 	oterm_data *data=malloc(sizeof(oterm_data));
 	data->sessions=onion_dict_new();
-	data->next=next_handler;
+  data->processes=onion_dict_new();
 	data->exec_command=strdup(exec_command);
 	data->onion=o;
 	

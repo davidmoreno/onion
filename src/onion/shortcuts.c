@@ -101,6 +101,14 @@ int onion_shortcut_redirect(const char *newurl, onion_request *req, onion_respon
 																							 "Location", newurl, NULL );
 }
 
+
+/// Shortcut for fast internal redirect. It returns what the server would return with the new address.
+int onion_shortcut_internal_redirect(const char *newurl, onion_request *req, onion_response *res){
+  free(req->fullpath);
+  req->fullpath=req->path=strdup(newurl);
+  return onion_handler_handle(req->server->root_handler, req, res);
+}
+
 /**
  * @short This shortcut returns the given file contents. 
  * 

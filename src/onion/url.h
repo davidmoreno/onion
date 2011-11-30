@@ -31,9 +31,9 @@ onion_url *onion_url_new();
 void onion_url_free(onion_url *url);
 
 /// Adds a simple handler, with no custom data
-int onion_url_add(onion_url *url, const char *regexp, void *handler);
+int onion_url_add(onion_url *url, const char *regexp, void *handler_f);
 /// Adds a handler, with custom data
-int onion_url_add_with_data(onion_url *url, const char *regexp, void *handler, void *data, void *f);
+int onion_url_add_with_data(onion_url *url, const char *regexp, void *handler_f, void *data, void *datafree);
 /// Adds a handler, using handler methods
 int onion_url_add_handler(onion_url *url, const char *regexp, onion_handler *handler);
 /// Addsa another url on this regexp
