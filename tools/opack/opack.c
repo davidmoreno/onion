@@ -161,7 +161,7 @@ void parse_directory(const char *prefix, const char *dirname, FILE *outfd){
   struct dirent *de;
   char fullname[256];
   while ( (de=readdir(dir)) ){
-    if (de->d_name[0]=='.')
+    if (de->d_name[0]=='.' || de->d_name[strlen(de->d_name)-1]=='~')
       continue;
     snprintf(fullname, sizeof(fullname), "%s/%s", dirname, de->d_name);
     if (de->d_type==DT_DIR){
@@ -181,7 +181,7 @@ void parse_directory(const char *prefix, const char *dirname, FILE *outfd){
 
   dir=opendir(dirname);
   while ( (de=readdir(dir)) ){
-    if (de->d_name[0]=='.')
+    if (de->d_name[0]=='.' || de->d_name[strlen(de->d_name)-1]=='~')
       continue;
     char *fname=funcname(prefix, de->d_name);
     if (de->d_type==DT_DIR){
