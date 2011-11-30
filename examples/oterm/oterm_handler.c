@@ -234,10 +234,12 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
   {
     int fd=open("/proc/sys/kernel/random/uuid", O_RDONLY);
     if (fd>=0){
-      read(fd, oterm->uuid, sizeof(oterm->uuid)-1);
+      int r=read(fd, oterm->uuid, sizeof(oterm->uuid)-1);
       close(fd);
+      if (r!=sizeof(oterm->uuid)-1) // So we will use the pseudo random generator.
+        fd=-1;
     }
-    else{
+    if (fd<0){
       const char random_chars[]="0123456789abcdef-";
       for (i=0;i<sizeof(oterm->uuid)-1;i++){
         oterm->uuid[i]=random_chars[rand()%sizeof(random_chars)];
