@@ -153,6 +153,7 @@ int work(const char *infilename, const char *outfilename){
 	status.rawblock=onion_block_new();
 	status.infilename=infilename;
 	const char *tname=basename(strdupa(infilename));
+  ONION_DEBUG("Create init function on top, tname %s",tname);
 	status.blocks_init=function_new(&status, "%s_blocks_init", tname);
 	status.blocks_init->signature="onion_dict *context";
 	
@@ -166,6 +167,7 @@ int work(const char *infilename, const char *outfilename){
 		goto work_end;
 	}
 
+	ONION_DEBUG("Create main function on top, tname %s",tname);
 	function_new(&status, tname);
 	
 	function_add_code(&status, 

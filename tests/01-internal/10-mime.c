@@ -17,7 +17,7 @@
 	*/
 
 #include <onion/mime.h>
-#include "../test.h"
+#include "../ctest.h"
 
 void t01_test_mime(){
 	INIT_LOCAL();

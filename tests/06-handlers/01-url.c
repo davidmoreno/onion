@@ -25,7 +25,7 @@
 #include <onion/log.h>
 
 #include "buffer.h"
-#include "../test.h"
+#include "../ctest.h"
 
 buffer *server_buffer;
 

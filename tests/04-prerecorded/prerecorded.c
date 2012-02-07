@@ -31,7 +31,7 @@
 #include <onion/log.h>
 #include <onion/dict.h>
 
-#include "../test.h"
+#include "../ctest.h"
 #include <regex.h>
 
 onion_server *server;

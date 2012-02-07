@@ -22,7 +22,7 @@
 
 #include <onion/codecs.h>
 
-#include "../test.h"
+#include "../ctest.h"
 
 void t01_codecs_base64_decode(){
 	INIT_LOCAL();

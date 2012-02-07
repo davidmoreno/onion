@@ -19,7 +19,7 @@
 #include <onion/onion.h>
 #include <onion/sessions.h>
 #include <onion/dict.h>
-#include "../test.h"
+#include "../ctest.h"
 
 void t01_test_session(){
 	INIT_LOCAL();

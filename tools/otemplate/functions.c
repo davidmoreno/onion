@@ -26,6 +26,7 @@
 
 #include "list.h"
 #include "parser.h"
+#include <ctype.h>
 
 int use_orig_line_numbers=1;
 
@@ -88,7 +89,7 @@ void functions_write_main_code(parser_status *st){
 	const char *f=((function_data*)list_get_n(st->function_stack,1))->id;
 
 		fprintf(st->out,"\n\n"
-"int %s_handler_page(onion_dict *context, onion_request *req, onion_response *res){\n"
+"onion_connection_status %s_handler_page(onion_dict *context, onion_request *req, onion_response *res){\n"
 "\n"
 "  %s(context, res);\n"
 "\n"
@@ -104,7 +105,7 @@ void functions_write_main_code(parser_status *st){
 
 	fprintf(st->out,
 "\n"
-"int %s_template(onion_dict *context, onion_request *req, onion_response *res){\n"
+"onion_connection_status %s_template(onion_dict *context, onion_request *req, onion_response *res){\n"
 "\n"
 "  if (context) onion_dict_add(context, \"LANG\", onion_request_get_language_code(req), OD_FREE_VALUE);\n"
 "\n"
@@ -133,7 +134,7 @@ function_data *function_new(parser_status *st, const char *fmt, ...){
 	}
 	d->signature=NULL;
 	
-	char tmp[64];
+	char tmp[512]; // Here at begining was 128, but somehow it was corrupting stack. Stack cheap here, so no risks.
 	if (!fmt){
 		d->is_static=1;
 		snprintf(tmp, sizeof(tmp), "otemplate_f_%04X",st->function_count++);
@@ -149,11 +150,17 @@ function_data *function_new(parser_status *st, const char *fmt, ...){
 		while (*p){
 			if (*p=='.')
 				*p='_';
+      if (*p=='-')
+        *p='_';
 			p++;
 		}
+		if (isdigit(tmp[0])){
+      memmove(tmp+1,tmp,strlen(tmp)+1);
+      tmp[0]='_';
+    }
 	}
 	
-	//ONION_DEBUG("New function %s", tmp);
+	ONION_DEBUG("New function %s", tmp);
 	
 	
 	d->id=strdup(tmp);

@@ -24,7 +24,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <curl/curl.h>
-#include "../test.h"
+#include "../ctest.h"
 #include <fcntl.h>
 
 int checkfds();

@@ -30,7 +30,7 @@
 #include <onion/handlers/static.h>
 #include <onion/handlers/path.h>
 
-#include "../test.h"
+#include "../ctest.h"
 #include <onion/url.h>
 
 ssize_t mstrncat(char *a, const char *b, size_t l){

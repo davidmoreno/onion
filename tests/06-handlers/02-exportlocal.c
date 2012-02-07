@@ -24,7 +24,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../test.h"
+#include "../ctest.h"
 #include "buffer.h"
 
 onion_server *server;

@@ -117,11 +117,6 @@ struct onion_poller_slot_t;
 typedef struct onion_poller_slot_t onion_poller_slot;
 
 
-/// Signature of request handlers.
-typedef int (*onion_handler_handler)(void *privdata, onion_request *req, onion_response *res);
-/// Signature of free function of private data of request handlers
-typedef void (*onion_handler_private_data_free)(void *privdata);
-
 /**
  * @short Prototype for the writing on the socket function.
  *
@@ -219,6 +214,13 @@ enum onion_connection_status_e{
 };
 
 typedef enum onion_connection_status_e onion_connection_status;
+
+
+/// Signature of request handlers.
+typedef onion_connection_status (*onion_handler_handler)(void *privdata, onion_request *req, onion_response *res);
+/// Signature of free function of private data of request handlers
+typedef void (*onion_handler_private_data_free)(void *privdata);
+
 
 #endif
 

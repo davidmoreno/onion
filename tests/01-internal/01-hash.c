@@ -22,7 +22,7 @@
 #include <onion/dict.h>
 #include <onion/log.h>
 
-#include "../test.h"
+#include "../ctest.h"
 #include <unistd.h>
 #include <onion/block.h>
 
@@ -652,6 +652,8 @@ void t13_dict_rget(){
 }
 
 int main(int argc, char **argv){
+  START();
+  
 	t01_create_add_free();
 	t01_create_add_free_10();
 	t02_create_and_free_a_lot(100);

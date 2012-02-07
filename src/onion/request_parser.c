@@ -688,6 +688,8 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 	if (res<=1000)
 		return res;
 
+  ONION_DEBUG0("Got %d at KEY",res);
+  
 	if ( res == NEW_LINE ){
 		if ((req->flags&OR_METHODS)==OR_POST)
 			return prepare_POST(req);
@@ -733,7 +735,6 @@ static onion_connection_status parse_headers_VERSION(onion_request *req, onion_b
 	if (!req->GET)
 		req->GET=onion_dict_new();
 
-
 	if (res==STRING){
 		req->parser=parse_headers_KEY_skip_NL;
 		return parse_headers_KEY_skip_NL(req, data);
@@ -757,9 +758,14 @@ static onion_connection_status parse_headers_URL(onion_request *req, onion_buffe
 	onion_request_parse_query(req);
 	ONION_DEBUG0("URL path is %s", req->fullpath);
 	
-	req->parser=parse_headers_VERSION;
-	
-	return parse_headers_VERSION(req, data);
+  if (res==STRING_NEW_LINE){ // Old HTTP/0? or lazy user, dont set the HTTP version, straigth new line.
+    req->parser=parse_headers_KEY;
+    return parse_headers_KEY(req, data);
+  }
+  else{
+    req->parser=parse_headers_VERSION;
+    return parse_headers_VERSION(req, data);
+  }
 }
 
 static onion_connection_status parse_headers_GET(onion_request *req, onion_buffer *data){

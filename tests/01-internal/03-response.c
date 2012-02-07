@@ -25,7 +25,7 @@
 #include <onion/response.h>
 #include <onion/types_internal.h>
 
-#include "../test.h"
+#include "../ctest.h"
 
 #define FILL(a,b) onion_request_write(a,b,strlen(b))
 

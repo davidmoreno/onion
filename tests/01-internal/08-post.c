@@ -28,7 +28,7 @@
 #include <onion/server.h>
 #include <onion/log.h>
 
-#include "../test.h"
+#include "../ctest.h"
 #include <fcntl.h>
 
 // Just a file that is always there, and should be big enought to be several packages

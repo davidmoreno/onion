@@ -30,7 +30,7 @@
 #include <onion/handlers/static.h>
 #include <onion/handlers/path.h>
 
-#include "../test.h"
+#include "../ctest.h"
 #include <onion/url.h>
 #include <onion/block.h>
 

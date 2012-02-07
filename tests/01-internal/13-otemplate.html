@@ -1,0 +1,17 @@
+{% load i18n %}
+<html>
+<head>
+  <title>{{title}}</title>
+</head>
+<body>
+<h1>{% trans "List" %}</h1>
+<ul>
+{% for i in list %}
+<li>{{i}}</li>
+{% endfor %}
+</ul>
+<h2>{hello}</h2>
+
+{{title}} {{title}}
+</body>
+

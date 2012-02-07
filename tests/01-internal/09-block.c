@@ -20,7 +20,7 @@
 #include <onion/block.h>
 #include <onion/log.h>
 
-#include "../test.h"
+#include "../ctest.h"
 
 void t01_create_and_free(){
 	INIT_TEST();

@@ -24,7 +24,7 @@
 #include <onion/request.h>
 #include <onion/types_internal.h>
 
-#include "../test.h"
+#include "../ctest.h"
 
 onion_server *server;
 
