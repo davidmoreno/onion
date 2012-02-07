@@ -1,7 +1,7 @@
 #include <functional>
 #include <iostream>
 
-#include "../test.h"
+#include "../ctest.h"
 
 #include <bindings/cpp/onion.hpp>
 #include <bindings/cpp/response.hpp>
@@ -16,7 +16,7 @@ class DefaultHandler : public Onion::Handler{
 };
 
 onion_connection_status handler(Onion::Request &req, Onion::Response &res){
-  res<<"Hola mundo desde el handler: "<<req.query()["q"]<<std::endl;
+  res<<"Hola mundo desde el handler."<<std::endl;
   return OCS_PROCESSED;
 }
 
@@ -52,8 +52,9 @@ void t01_basic(){
 }
 
 int main(int argc, char **argv){
+  START();
   t01_basic();
 
   
-  END_TEST();
+  END();
 }

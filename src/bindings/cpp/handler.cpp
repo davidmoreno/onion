@@ -20,7 +20,7 @@
 #include "request.hpp"
 #include "response.hpp"
 
-static int onion_handler_call_operator(void *ptr, onion_request *_req, onion_response *_res){
+static onion_connection_status onion_handler_call_operator(void *ptr, onion_request *_req, onion_response *_res){
   try{
     Onion::Handler *handler=(Onion::Handler*)ptr;
     Onion::Request req(_req);
