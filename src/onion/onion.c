@@ -504,12 +504,13 @@ int onion_listen(onion *o){
 		}
 	}
 	else if (o->flags&O_ONE){
-		if (o->flags&O_ONE_LOOP){
-			while(1){
+		if ((o->flags&O_ONE_LOOP) == O_ONE_LOOP){
+			while(o->listenfd>0){ // Loop while listening
 				onion_accept_request(o);
 			}
 		}
 		else{
+      ONION_DEBUG("Listening just one connection");
 			onion_accept_request(o);
 		}
 	}
@@ -574,8 +575,10 @@ void onion_listen_stop(onion* server){
 	if (server->poller && fd>0){
 		onion_poller_remove(server->poller, fd);
 	}
-	if (fd>0)
+	if (fd>0){
+    shutdown(fd,SHUT_RDWR); // If no shutdown, listen blocks. 
 		close(fd);
+  }
 }
 
 
@@ -672,7 +675,7 @@ static int onion_accept_request(onion *o){
 
 	int clientfd=accept4(o->listenfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
 	if (clientfd<0){
-		ONION_ERROR("Error accepting connection.");
+		ONION_ERROR("Error accepting connection: %s",strerror(errno));
 		return -1;
 	}
 	if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out

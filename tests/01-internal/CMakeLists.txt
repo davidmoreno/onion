@@ -13,8 +13,10 @@ target_link_libraries(04-handler onion_handlers onion)
 add_executable(05-server 05-server.c)
 target_link_libraries(05-server onion_handlers onion)
 
+IF (CURL)
 add_executable(06-onion 06-onion.c)
-target_link_libraries(06-onion onion_handlers onion)
+target_link_libraries(06-onion onion_handlers onion curl)
+ENDIF (CURL)
 
 add_executable(07-codecs 07-codecs.c)
 target_link_libraries(07-codecs onion_handlers onion)

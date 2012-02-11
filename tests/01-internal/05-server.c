@@ -325,7 +325,7 @@ int main(int argc, char **argv){
 	t06_server_with_error_500();
 	t07_server_with_error_501();
 	t08_server_with_error_404();
-	
+  
 	END();
 }
 
