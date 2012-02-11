@@ -754,7 +754,7 @@ static onion_connection_status onion_connection_read(onion_request *req){
 	errno=0;
 	r = req->server->read(req->socket, buffer, sizeof(buffer));
 	if (r<=0){ // error reading.
-		ONION_DEBUG("Read %d bytes, errno %d %s", r, errno, strerror(errno));
+		ONION_DEBUG0("Read %d bytes, errno %d %s", r, errno, strerror(errno));
 		if (errno==ECONNRESET)
 			ONION_DEBUG("Connection reset by peer."); // Ok, this is more or less normal.
 		else if (errno==EAGAIN){

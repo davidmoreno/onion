@@ -31,6 +31,8 @@
 #include "log.h"
 #include "types.h"
 #include "poller.h"
+#include <sys/socket.h>
+#include <sys/eventfd.h>
 
 #ifdef HAVE_PTHREADS
 # define __USE_UNIX98
@@ -46,8 +48,9 @@
 
 struct onion_poller_t{
 	int fd;
-	int stop;
+	int eventfd; ///< fd to signal internal changes on poller.
 	int n;
+  char stop;
 #ifdef HAVE_PTHREADS
 	pthread_mutex_t mutex;
 	int npollers;
@@ -133,6 +136,10 @@ void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout){
 	ONION_DEBUG0("Set timeout to %d, %d s", el->timeout_limit, el->timeout);
 }
 
+static int onion_poller_empty_helper(void *_){
+  return 0;
+}
+
 /**
  * @short Returns a poller object that helps polling on sockets and files
  * @memberof onion_poller_t
@@ -149,9 +156,14 @@ onion_poller *onion_poller_new(int n){
 		free(p);
 		return NULL;
 	}
-	p->stop=0;
+	p->eventfd=eventfd(0,EFD_CLOEXEC);
 	p->head=NULL;
 	p->n=0;
+  p->stop=0;
+  
+  onion_poller_slot *ev=onion_poller_slot_new(p->eventfd,onion_poller_empty_helper,NULL);
+  onion_poller_add(p,ev);
+  
 #ifdef HAVE_PTHREADS
 	p->npollers=0;
 	pthread_mutexattr_t attr;
@@ -239,7 +251,7 @@ int onion_poller_remove(onion_poller *poller, int fd){
 		
 		poller->head=el->next;
 		pthread_mutex_unlock(&poller->mutex);
-		
+    
 		onion_poller_slot_free(el);
 		return 0;
 	}
@@ -248,6 +260,12 @@ int onion_poller_remove(onion_poller *poller, int fd){
 			ONION_DEBUG0("Removed from tail %p",el);
 			onion_poller_slot *t=el->next;
 			el->next=t->next;
+      
+      if (poller->head->next==NULL){ // This means only eventfd is here.
+        ONION_DEBUG0("Removed last, stopping poll");
+        onion_poller_stop(poller);
+      }
+      
 			pthread_mutex_unlock(&poller->mutex);
 			
 			onion_poller_slot_free(t);
@@ -412,6 +430,9 @@ void onion_poller_poll(onion_poller *p){
  * @memberof onion_poller_t
  */
 void onion_poller_stop(onion_poller *p){
-	p->stop=1;
+  ONION_DEBUG0("Stopping poller");
+  p->stop=1;
+  char data[8]={0,0,0,0, 0,0,0,1};
+  write(p->eventfd,data,8);
 }
 

@@ -30,7 +30,9 @@
 
 const int MAX_TIME=120;
 
-char processed;
+int processed;
+pthread_mutex_t processed_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 volatile char okexit=0;
 onion *o;
 FILE *null_file=NULL;
@@ -43,7 +45,9 @@ typedef struct{
 }params_t;
 
 onion_response_codes process_request(void *_, onion_request *req, onion_response *res){
+  pthread_mutex_lock(&processed_mutex);
   processed++;
+  pthread_mutex_unlock(&processed_mutex);
   onion_response_write0(res, "Done");
   
   return OCS_PROCESSED;
@@ -71,6 +75,7 @@ int curl_get(const char *url){
 }
 
 void *do_requests(params_t *t){
+  ONION_DEBUG("Do %d petitions",t->n_requests);
   int i;
   usleep(t->wait_s*1000000);
   for(i=0;i<t->n_requests;i++){
@@ -92,21 +97,32 @@ void *watchdog(void *_){
   return NULL;
 }
 
-void do_petition_set(float wait_s, float wait_c, int n_requests, char close){
+void do_petition_set_threaded(float wait_s, float wait_c, int nrequests, char close, int nthreads){
+  ONION_DEBUG("Using %d threads, %d petitions per thread",nthreads,nrequests);
   processed=0;
   
   params_t params;
   params.wait_s=wait_s;
   params.wait_t=wait_c;
-  params.n_requests=n_requests;
+  params.n_requests=nrequests;
   params.close_at_n=close;
   
-  pthread_t thread;
-  pthread_create(&thread, NULL, (void*)do_requests, &params);
+  pthread_t *thread=malloc(sizeof(pthread_t*)*nthreads);
+  int i;
+  for (i=0;i<nthreads;i++){
+    pthread_create(&thread[i], NULL, (void*)do_requests, &params);
+  }
   onion_listen(o);
-  pthread_join(thread, NULL);
+  for (i=0;i<nthreads;i++){
+    pthread_join(thread[i], NULL);
+  }
+  free(thread);
   
   FAIL_IF_NOT_EQUAL_INT(params.n_requests, processed);
+}
+
+void do_petition_set(float wait_s, float wait_c, int n_requests, char close){
+  do_petition_set_threaded(wait_s, wait_c, n_requests, close, 1);
 }
 
 void t01_server_one(){
@@ -137,7 +153,32 @@ void t02_server_epoll(){
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   do_petition_set(1,0.1,1,1);
   onion_free(o);
-  
+
+  o=onion_new(O_POLL);
+  onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
+  do_petition_set(1,0.001,100,1);
+  onion_free(o);
+
+  o=onion_new(O_POOL);
+  onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
+  do_petition_set(1,0.001,100,1);
+  onion_free(o);
+
+  o=onion_new(O_POOL);
+  onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
+  do_petition_set_threaded(1,0.001,100,1,10);
+  onion_free(o);
+
+  o=onion_new(O_POOL);
+  onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
+  do_petition_set_threaded(1,0.001,100,1,15);
+  onion_free(o);
+
+  o=onion_new(O_POOL);
+  onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
+  do_petition_set_threaded(1,0.001,100,1,100);
+  onion_free(o);
+
   END_LOCAL();
 }
 
@@ -146,7 +187,7 @@ int main(int argc, char **argv){
   pthread_t watchdog_thread;
   pthread_create(&watchdog_thread, NULL, (void*)watchdog, NULL);
   
-  t01_server_one();
+//  t01_server_one();
   t02_server_epoll();
   
   okexit=1;
