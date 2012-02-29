@@ -160,18 +160,20 @@ onion_poller *onion_poller_new(int n){
 	p->head=NULL;
 	p->n=0;
   p->stop=0;
-  
+
+#ifdef HAVE_PTHREADS
+  ONION_DEBUG("Init thread stuff for poll");
+  p->npollers=0;
+  pthread_mutexattr_t attr;
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&p->mutex, &attr);
+  pthread_mutexattr_destroy(&attr);
+#endif
+
   onion_poller_slot *ev=onion_poller_slot_new(p->eventfd,onion_poller_empty_helper,NULL);
   onion_poller_add(p,ev);
   
-#ifdef HAVE_PTHREADS
-	p->npollers=0;
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	pthread_mutex_init(&p->mutex, &attr);
-	pthread_mutexattr_destroy(&attr);
-#endif
 	return p;
 }
 
