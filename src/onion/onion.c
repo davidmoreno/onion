@@ -528,6 +528,9 @@ int onion_listen(onion *o){
 		while(1){
 			clientfd=accept(o->listenfd, (struct sockaddr *) &cli_addr, &clilen);
 			
+      if (clientfd<0 && o->listenfd<0) // Stopped listening
+        break;
+      
 			int flags=fcntl(clientfd, F_GETFD, 0);
 			if (fcntl(clientfd, F_SETFD, flags | O_CLOEXEC) < 0){ // This is inherited by sockets returned by listen.
 				ONION_ERROR("Could not set connection socket options: %s",strerror(errno));
@@ -792,6 +795,10 @@ static void onion_connection_shutdown(onion_request *req){
 static void onion_process_request(onion *o, int clientfd, const char *client_info){
 	ONION_DEBUG0("Processing request from %s", client_info);
 	onion_request *req=onion_connection_start(o, clientfd, client_info);
+  if (!req){
+    close(clientfd);
+    return;
+  }
 	onion_connection_status cs=OCS_KEEP_ALIVE;
 	struct pollfd pfd;
 	pfd.events=POLLIN;
@@ -864,7 +871,7 @@ static void onion_enable_tls(onion *o){
  *
  * There are several certificate types available, described at onion_ssl_certificate_type_e.
  * 
- * Returns the error code. If 0, no error.
+ * @returns the error code. If 0, no error.
  * 
  * Most basic and normal use is something like:
  * 
