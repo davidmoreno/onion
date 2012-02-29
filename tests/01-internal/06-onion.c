@@ -60,6 +60,8 @@ int curl_get(const char *url){
   CURL *curl;
   curl = curl_easy_init();
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_URL, url)==CURLE_OK);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_WRITEDATA, null_file)==CURLE_OK);
   CURLcode res=curl_easy_perform(curl);
   FAIL_IF_NOT_EQUAL((int)res,0);
@@ -81,6 +83,8 @@ int curl_get_to_fail(const char *url){
   CURL *curl;
   curl = curl_easy_init();
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_URL, url)==CURLE_OK);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_WRITEDATA, null_file)==CURLE_OK);
   CURLcode res=curl_easy_perform(curl);
   FAIL_IF_EQUAL((int)res,0);
