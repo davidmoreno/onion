@@ -369,7 +369,7 @@ void onion_poller_poll(onion_poller *p){
 		pthread_mutex_unlock(&p->mutex);
 		
 		if (nfds<0){ // This is normally closed p->fd
-			ONION_DEBUG("Some error happened");
+			//ONION_DEBUG("Some error happened"); // Also spurious wakeups... gdb is to blame sometimes or any other.
 			if(p->fd<0 || !p->head){
 				ONION_DEBUG("Finishing the epoll as finished: %s", strerror(errno));
 #ifdef HAVE_PTHREADS

@@ -107,8 +107,10 @@ void *do_requests(params_t *t){
     curl_get("http://localhost:8080/");
     usleep(t->wait_t*1000000);
   }
-  if (t->close_at_n)
+  if (t->close_at_n==1){
+    usleep(t->wait_s*1000000);
     onion_listen_stop(o);
+  }
   
   return NULL;
 }
@@ -122,6 +124,10 @@ void *watchdog(void *_){
   return NULL;
 }
 
+void do_listen(){
+  onion_listen(o);
+}
+
 void do_petition_set_threaded(float wait_s, float wait_c, int nrequests, char close, int nthreads){
   ONION_DEBUG("Using %d threads, %d petitions per thread",nthreads,nrequests);
   processed=0;
@@ -133,17 +139,24 @@ void do_petition_set_threaded(float wait_s, float wait_c, int nrequests, char cl
   params.close_at_n=close;
   
   pthread_t *thread=malloc(sizeof(pthread_t*)*nthreads);
+  pthread_t listen_thread;
   int i;
+  pthread_create(&listen_thread, NULL, (void*)do_listen, NULL);
   for (i=0;i<nthreads;i++){
     pthread_create(&thread[i], NULL, (void*)do_requests, &params);
   }
-  onion_listen(o);
   for (i=0;i<nthreads;i++){
     pthread_join(thread[i], NULL);
   }
   free(thread);
+  if (close==2){
+    usleep(wait_s*1000000);
+    onion_listen_stop(o);
+  }
+  pthread_join(listen_thread, NULL);
   
-  FAIL_IF_NOT_EQUAL_INT(params.n_requests, processed);
+  
+  FAIL_IF_NOT_EQUAL_INT(params.n_requests * nthreads, processed);
 }
 
 void do_petition_set(float wait_s, float wait_c, int n_requests, char close){
@@ -191,17 +204,17 @@ void t02_server_epoll(){
 
   o=onion_new(O_POOL);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
-  do_petition_set_threaded(1,0.001,100,1,10);
+  do_petition_set_threaded(1,0.001,100,2,10);
   onion_free(o);
 
   o=onion_new(O_POOL);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
-  do_petition_set_threaded(1,0.001,100,1,15);
+  do_petition_set_threaded(1,0.001,100,2,15);
   onion_free(o);
 
   o=onion_new(O_POOL);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
-  do_petition_set_threaded(1,0.001,100,1,100);
+  do_petition_set_threaded(1,0.001,100,2,100);
   onion_free(o);
 
   END_LOCAL();
@@ -230,8 +243,8 @@ int main(int argc, char **argv){
   pthread_t watchdog_thread;
   pthread_create(&watchdog_thread, NULL, (void*)watchdog, NULL);
   
-//  t01_server_one();
-//  t02_server_epoll();
+  t01_server_one();
+  t02_server_epoll();
   t03_server_https();
   
   okexit=1;

@@ -491,7 +491,7 @@ int onion_listen(onion *o){
 			onion_poller_poll(o->poller);
 			ONION_DEBUG("Stopped poll");
 			for(i=0;i<o->max_threads-1;i++){
-				pthread_cancel(thread[i]);
+				//pthread_cancel(thread[i]); // Cancel is WRONG! It left sometimes mutex without unlock, wich made deadlocks. For example.
 				pthread_join(thread[i], NULL);
 			}
 			free(thread);
