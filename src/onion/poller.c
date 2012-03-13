@@ -27,12 +27,16 @@
 #ifdef __DEBUG__
 #include <execinfo.h>
 #endif
+#include <unistd.h>
+#include <fcntl.h>
+
 
 #include "log.h"
 #include "types.h"
 #include "poller.h"
 #include <sys/socket.h>
 #include <sys/eventfd.h>
+#include <fcntl.h>
 
 #ifdef HAVE_PTHREADS
 # define __USE_UNIX98
@@ -140,6 +144,10 @@ static int onion_poller_empty_helper(void *_){
   return 0;
 }
 
+#ifndef EFD_CLOEXEC
+#define EFD_CLOEXEC 0
+#endif
+
 /**
  * @short Returns a poller object that helps polling on sockets and files
  * @memberof onion_poller_t
@@ -157,6 +165,9 @@ onion_poller *onion_poller_new(int n){
 		return NULL;
 	}
 	p->eventfd=eventfd(0,EFD_CLOEXEC);
+#if EFD_CLOEXEC == 0
+  fcntl(p->eventfd,F_SETFD,FD_CLOEXEC);
+#endif
 	p->head=NULL;
 	p->n=0;
   p->stop=0;

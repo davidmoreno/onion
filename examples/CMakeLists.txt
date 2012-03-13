@@ -30,7 +30,7 @@ if (OTEMPLATE)
 		message(WARNING "Some examples are disabled as you dont have libpng: mandelbrot")
 	endif (${PNG_ENABLED})
 else(OTEMPLATE)
-	message(WARNING "Some examples are disabled as you dont have otemplate installed: fileserver_otemplate mandelbrot")
+	message(WARNING "Some examples are disabled as you dont have otemplate installed: ofileserver mandelbrot")
 endif(OTEMPLATE)
 
 if (${CAIRO_ENABLED})

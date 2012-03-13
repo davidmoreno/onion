@@ -38,6 +38,7 @@ add_executable(12-cloexec 12-cloexec.c)
 target_link_libraries(12-cloexec onion curl)
 ENDIF (CURL)
 
+if (OTEMPLATE)
 add_executable(13-otemplates 13-otemplates.c 13-otemplate_html.c)
 add_custom_command(
    OUTPUT 13-otemplate_html.c
@@ -46,3 +47,4 @@ add_custom_command(
    DEPENDS ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/13-otemplate.html
    )
 target_link_libraries(13-otemplates onion)
+endif (OTEMPLATE)
