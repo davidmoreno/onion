@@ -51,6 +51,7 @@ enum onion_request_flags_e{
 	
 	/// Server flags are at 0x0F00.
 	OR_NO_KEEP_ALIVE=0x0100,
+  OR_HEADER_SENT_=0x0200,  ///< Dup name from onion_response_flags, same meaning.
 	
 	/// Errors at 0x0F000.
 	OR_INTERNAL_ERROR=0x01000,

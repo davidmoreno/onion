@@ -24,12 +24,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "server.h"
 #include "dict.h"
 #include "request.h"
-#include "response.h"
-#include "handler.h"
-#include "server.h"
 #include "types_internal.h"
 #include "codecs.h"
 #include "log.h"
@@ -53,7 +49,7 @@ typedef enum{
 
 /// @private
 typedef struct onion_token_s{
-	char str[256];
+	char str[256*4*8];
 	off_t pos;
 	
 	char *extra; // Only used when need some previous data, like at header value, i need the key
@@ -189,7 +185,8 @@ int token_read_LINE(onion_token *token, onion_buffer *data){
 		if (data->pos>=data->size)
 			return OCS_NEED_MORE_DATA;
 		if (!ignore_to_end && (token->pos>=(sizeof(token->str)-1))){
-			ONION_WARNING("Token too long to parse it. Ignoring remaining. ");
+			ONION_WARNING("Token too long to parse it. Ignoring remaining. "); 
+      ONION_DEBUG("Long token starts with: %16s...",token->str);
 			ignore_to_end=1;
 		}
 		c=data->data[data->pos++];
@@ -753,8 +750,7 @@ static onion_connection_status parse_headers_URL(onion_request *req, onion_buffe
 	if (res<=1000)
 		return res;
 
-	req->path=req->fullpath=strdup(token->str);
-	req->path++; // Skip the leading /
+	req->fullpath=strdup(token->str);
 	onion_request_parse_query(req);
 	ONION_DEBUG0("URL path is %s", req->fullpath);
 	

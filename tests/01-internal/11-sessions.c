@@ -17,10 +17,12 @@
 	*/
 
 #include <onion/onion.h>
+#include <onion/log.h>
 #include <onion/sessions.h>
 #include <onion/dict.h>
 #include "../ctest.h"
 #include <onion/types_internal.h>
+#include <onion/server.h>
 
 void t01_test_session(){
 	INIT_LOCAL();
@@ -157,11 +159,166 @@ void t02_cookies(){
   END_LOCAL();
 }
 
+static char lastsessionid[256];
+int has_set_cookie=0;
+int set_data_on_session=0;
+
+static onion_connection_status ask_session(void *_, onion_request *req, onion_response *res){
+  onion_dict *session=onion_request_get_session_dict(req);
+  if (set_data_on_session)
+    onion_dict_add(session,"Test","New data to create the session",0);
+  has_set_cookie=0;
+  onion_response_write0(res, "If I write before getting session, then there is no Set-Cookie.\n");
+  onion_response_printf(res, "%d elements at the session.\n", onion_dict_count(session));
+  ONION_DEBUG("Session ID is %s, cookies %s",req->session_id, onion_request_get_header(req, "Cookie"));
+  strcpy(lastsessionid, req->session_id);
+  
+  return OCS_PROCESSED;
+}
+
+int empty_write(void *handler, const char *data, unsigned int length){
+  ((char*)data)[length]=0;
+  ONION_DEBUG("%s",data);
+  if (strstr(data, "Set-Cookie:")!=NULL)
+    has_set_cookie=1;
+  
+  return length;
+}
+
+// This fixes that whenever a session is created, but no new data is added, it does not set the proper cookie, and should not create a new session.
+void t03_bug_empty_session_is_new_session(){
+  INIT_LOCAL();
+
+  onion *o=onion_new(O_ONE_LOOP);
+  onion_server_set_write(o->server, empty_write);
+  
+  onion_url *url=onion_root_url(o);
+  onion_url_add(url, "^.*", ask_session);
+  char sessionid[256];
+  char tmp[256];
+
+  set_data_on_session=1;
+  onion_request *req=onion_request_new(o->server, NULL, NULL);
+  req->fullpath="/";
+  onion_request_process(req);
+  FAIL_IF_EQUAL_STR(lastsessionid,"");
+  strcpy(sessionid, lastsessionid);
+  req->fullpath=NULL;
+  onion_request_free(req);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 1);
+  
+  req=onion_request_new(o->server, NULL, NULL);
+  req->fullpath="/";
+  onion_dict_add(req->headers, "Cookie", "sessionid=xxx", 0);
+  onion_request_process(req);
+  FAIL_IF_EQUAL_STR(lastsessionid,"");
+  FAIL_IF_EQUAL_STR(lastsessionid, sessionid);
+  FAIL_IF_NOT(has_set_cookie);
+  req->fullpath=NULL;
+  onion_request_free(req);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 2);
+  
+  req=onion_request_new(o->server, NULL, NULL);
+  req->fullpath="/";
+  snprintf(tmp,sizeof(tmp),"sessionid=%s",lastsessionid);
+  onion_dict_add(req->headers, "Cookie", tmp, 0);
+  onion_request_process(req);
+  FAIL_IF_EQUAL_STR(lastsessionid,"");
+  FAIL_IF_EQUAL_STR(lastsessionid, sessionid);
+  FAIL_IF_NOT(has_set_cookie);
+  strcpy(sessionid, lastsessionid);
+  req->fullpath=NULL;
+  onion_request_free(req);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 2);
+  
+  req=onion_request_new(o->server, NULL, NULL);
+  req->fullpath="/";
+  snprintf(tmp,sizeof(tmp),"sessionid=%sxx",lastsessionid);
+  onion_dict_add(req->headers, "Cookie", tmp, 0);
+  onion_request_process(req);
+  FAIL_IF_EQUAL_STR(lastsessionid,"");
+  FAIL_IF_EQUAL_STR(lastsessionid, sessionid);
+  FAIL_IF_NOT(has_set_cookie);
+  req->fullpath=NULL;
+  onion_request_free(req);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 3);
+
+  // Ask for new, without session data, but I will not set data on session, so session is not created.
+  set_data_on_session=0;
+  req=onion_request_new(o->server, NULL, NULL);
+  req->fullpath="/";
+  onion_request_process(req);
+  FAIL_IF_EQUAL_STR(lastsessionid,"");
+  strcpy(sessionid, lastsessionid);
+  req->fullpath=NULL;
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 4); // For a moment it exists, until onion realizes is not necesary.
+  onion_request_free(req);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 3);
+
+  
+  onion_free(o);
+  
+  END_LOCAL();
+}
+
+// This fixes that whenever a session is created, but no new data is added, it does not set the proper cookie
+void t04_lot_of_sessionid(){
+  INIT_LOCAL();
+
+  onion *o=onion_new(O_ONE_LOOP);
+  onion_server_set_write(o->server, empty_write);
+  
+  onion_url *url=onion_root_url(o);
+  onion_url_add(url, "^.*", ask_session);
+  char sessionid[256];
+  char tmp[1024];
+  char tmp2[4096];
+  onion_request *req;
+  int i;
+  set_data_on_session=1;
+
+  req=onion_request_new(o->server, NULL, NULL);
+  req->fullpath="/";
+  onion_request_process(req);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 1);
+  FAIL_IF_EQUAL_STR(lastsessionid,"");
+  strcpy(sessionid, lastsessionid);
+  req->fullpath=NULL;
+  onion_request_free(req);
+
+  req=onion_request_new(o->server, NULL, NULL);
+  req->fullpath="/";
+  snprintf(tmp,sizeof(tmp)," sessionid=xx%sxx;",lastsessionid);
+  strcpy(tmp2,"Cookie:");
+  for(i=0;i<64;i++)
+    strncat(tmp2, tmp, sizeof(tmp2));
+  snprintf(tmp,sizeof(tmp)," sessionid=%s\n",lastsessionid);
+  strncat(tmp2, tmp, sizeof(tmp2));
+  ONION_DEBUG("Set cookies (%d bytes): %s",strlen(tmp2),tmp2);
+  strcpy(tmp,"GET /\n");
+  onion_request_write(req,tmp,strlen(tmp)); // Here is the problem, at parsing too long headers
+  onion_request_write(req,tmp2,strlen(tmp2)); // Here is the problem, at parsing too long headers
+  //onion_dict_add(req->headers, "Cookie", tmp2, 0);
+  
+  onion_request_process(req);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 1);
+  FAIL_IF_EQUAL_STR(lastsessionid,"");
+  FAIL_IF_NOT_EQUAL_STR(lastsessionid, sessionid);
+  FAIL_IF_NOT(has_set_cookie);
+  onion_request_free(req);
+  
+  onion_free(o);
+  
+  END_LOCAL();
+}
+
 int main(int argc, char **argv){
   START();
   
 	t01_test_session();
   t02_cookies();
+  t03_bug_empty_session_is_new_session();
+  t04_lot_of_sessionid();
 	
 	END();
 }

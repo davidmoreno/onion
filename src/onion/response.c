@@ -183,6 +183,7 @@ static void write_header(onion_response *res, const char *key, const char *value
  */
 int onion_response_write_headers(onion_response *res){
 	res->flags|=OR_HEADER_SENT; // I Set at the begining so I can do normal writing.
+	res->request->flags|=OR_HEADER_SENT;
 	char chunked=0;
 	
 	if (res->request->flags&OR_HTTP11){
@@ -205,9 +206,9 @@ int onion_response_write_headers(onion_response *res){
 	
 	onion_dict_preorder(res->headers, write_header, res);
 	
-	if (res->request->session_id) // I have session, tell user
+	if (res->request->session_id && (onion_dict_count(res->request->session)>0)) // I have session with something, tell user
 		onion_response_printf(res, "Set-Cookie: sessionid=%s; httponly\n", res->request->session_id);
-	
+  
 	onion_response_write(res,"\r\n",2);
 	
 	res->sent_bytes=0; // the header size is not counted here.

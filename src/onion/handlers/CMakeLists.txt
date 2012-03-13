@@ -18,17 +18,17 @@ if (${XML2_ENABLED})
 endif (${XML2_ENABLED})
 
 
-add_library(onion_handlers SHARED static.c exportlocal.c opack.c path.c
+add_library(onion_handlers SHARED static.c exportlocal.c opack.c path.c internal_status.c
 																	${PAM} ${WEBDAV})
 target_link_libraries(onion_handlers ${PAMLIBS} ${XMLLIBS} onion)
 
-add_library(onion_handlers_static STATIC static.c exportlocal.c opack.c path.c
+add_library(onion_handlers_static STATIC static.c exportlocal.c opack.c path.c internal_status.c
 																	${PAM} ${WEBDAV})
 target_link_libraries(onion_handlers_static ${PAMLIBS} ${XMLLIBS})
 
 
 
-SET(INCLUDES_HANDLERS static.h exportlocal.h auth_pam.h opack.h path.h webdav.h)
+SET(INCLUDES_HANDLERS static.h exportlocal.h auth_pam.h opack.h path.h webdav.h internal_status.h)
 MESSAGE("Found include files ${INCLUDES_HANDLERS}")
 
 install(FILES ${INCLUDES_HANDLERS} DESTINATION ${INCLUDEDIR}/handlers/)

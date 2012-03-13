@@ -79,7 +79,7 @@ onion_dict *onion_dict_rget_dict(const onion_dict *dict, const char *key, ...);
 /// Prints a dot ready graph to stderr
 void onion_dict_print_dot(const onion_dict *dict);
 
-/// Visits the full graph in preorder, calling that function on each node
+/// Visits the full graph in preorder, calling that function on each node. void func(void *data, const char *key, const void *value, int flags).
 void onion_dict_preorder(const onion_dict *dict, void *func, void *data);
 
 /// Counts elements

@@ -110,10 +110,14 @@ void onion_request_free(onion_request *req){
 		free(req->parser_data);
 	if (req->client_info)
 		free(req->client_info);
-	if (req->session_id)
-		free(req->session_id);
-	if (req->session)
-		onion_dict_free(req->session); // Not really remove, just dereference
+	if (req->session){
+    if (onion_dict_count(req->session)==0)
+      onion_request_session_free(req);
+    else{
+      onion_dict_free(req->session); // Not really remove, just dereference
+      free(req->session_id);
+    }
+  }
 	if (req->data)
 		onion_block_free(req->data);
 
@@ -150,6 +154,17 @@ void onion_request_clean(onion_request* req){
     onion_dict_preorder(req->FILES, unlink_files, NULL);
     onion_dict_free(req->FILES);
     req->FILES=NULL;
+  }
+  if (req->session_id){
+    if (onion_dict_count(req->session)==0){
+      onion_request_session_free(req);
+    }
+    else{
+      onion_dict_free(req->session); // Not really remove, just dereference
+      req->session=NULL;
+      free(req->session_id);
+      req->session_id=NULL;
+    }
   }
   if (req->data){
     onion_block_free(req->data);
@@ -331,10 +346,21 @@ void onion_request_guess_session_id(onion_request *req){
  * If it does not exists it creates it. If there is a cookie with a proper name it is used, 
  * even for creation.
  * 
+ * Sessions HAVE TO be gotten before sending any header, or user may face double sessionid, ghost sessions and some other
+ * artifacts, as the cookie is not set if session is not used. If this condition happen (send headers and then ask for session) a
+ * WARNING is written. 
+ * 
+ * Session is not automatically retrieved as it is a slow operation and not used normally, only on "active" handlers.
+ * 
  * Returned dictionary can be freely managed (added new keys...) and this is the session data.
+ * 
+ * @return session dictionary for current request.
  */
 onion_dict *onion_request_get_session_dict(onion_request *req){
 	if (!req->session){
+    if (req->flags & OR_HEADER_SENT){
+      ONION_WARNING("Asking for session AFTER sending headers. This may result in double sessionids, and wrong session behaviour. Please modify your handlers to ask for session BEFORE sending any data.");
+    }
 		onion_request_guess_session_id(req);
 		if (!req->session){ // Maybe old session is not to be used anymore
 			req->session_id=onion_sessions_create(req->server->sessions);
@@ -384,6 +410,8 @@ int onion_request_keep_alive(onion_request *req){
  * @short Frees the session dictionary.
  * @memberof onion_request_t
  * 
+ * It removes the session from the sessions dictionary, so this session does not exist anymore.
+ * 
  * If data is under onion_dict scope (just dicts into dicts and strings), all data is freed.
  * If the user has set some custom data, THAT MEMORY IS LEAKED.
  */
@@ -391,6 +419,7 @@ void onion_request_session_free(onion_request *req){
 	if (!req->session_id)
 		onion_request_guess_session_id(req);
 	if (req->session_id){
+    ONION_DEBUG("Removing from session storage session id: %s",req->session_id);
 		onion_sessions_remove(req->server->sessions, req->session_id);
 		onion_dict_free(req->session);
 		req->session=NULL;
@@ -445,6 +474,11 @@ const onion_block *onion_request_get_data(onion_request *req){
  */
 onion_connection_status onion_request_process(onion_request *req){
 	//ONION_DEBUG0("Process request",req->path);
+	if (*req->fullpath)
+    req->path=req->fullpath+1;
+  else
+    req->path=req->fullpath;
+	
 	return onion_server_handle_request(req->server, req);
 }
 

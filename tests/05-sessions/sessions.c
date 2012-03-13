@@ -23,6 +23,7 @@
 #include <onion/onion.h>
 #include <onion/dict.h>
 #include <onion/log.h>
+#include <onion/handlers/internal_status.h>
 
 onion *o;
 
@@ -41,14 +42,13 @@ void print_dict_element(onion_response *res, const char *key, const char *value,
 	onion_response_write0(res,"</li>\n");
 }
 
-onion_connection_status sessions(void *ignore, onion_request *req){
-	onion_response *res=onion_response_new(req);
+onion_connection_status sessions(void *ignore, onion_request *req, onion_response *res){
 	onion_dict *session=onion_request_get_session_dict(req);
 
 	if (onion_request_get_query(req, "reset")){
 		onion_request_session_free(req);
 		onion_response_write0(res, "ok");
-		return onion_response_free(res);
+		return OCS_PROCESSED;
 	}
 	
 	const char *n=onion_dict_get(session, "count");
@@ -63,7 +63,7 @@ onion_connection_status sessions(void *ignore, onion_request *req){
 	onion_dict_add(session, "count", tmp, OD_DUP_ALL|OD_REPLACE);
 	
 	if (onion_response_write_headers(res)==OR_SKIP_CONTENT) // Head
-		return onion_response_free(res);
+		return OCS_PROCESSED;
 	
 	onion_response_write0(res, "<html><body>\n<h1>Session data</h1>\n");
 
@@ -77,15 +77,17 @@ onion_connection_status sessions(void *ignore, onion_request *req){
 	}
 	onion_response_write0(res,"</body></html>");
 	
-	return onion_response_free(res);
+	return OCS_PROCESSED;
 }
 
 int main(int argc, char **argv){
 	o=onion_new(O_ONE_LOOP);
 	
-	onion_handler *root=onion_handler_new((onion_handler_handler)sessions, NULL, NULL);
+	onion_url *root=onion_root_url(o);
+	
+  onion_url_add_handler(root, "status",onion_internal_status());
+  onion_url_add_handler(root, "^.*", onion_handler_new((onion_handler_handler)sessions, NULL, NULL));
 
-	onion_set_root_handler(o, root);
 	signal(SIGINT, free_onion);
 	
 	onion_listen(o);
