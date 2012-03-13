@@ -129,7 +129,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 #ifdef HAVE_PTHREADS
   int pid=(int)syscall(SYS_gettid);
   if (!(onion_log_flags&OF_NOCOLOR))
-    fprintf(stderr, "\033[%dm[%06d]%s ",30 + (pid%8), pid, levelcolor[level]);
+    fprintf(stderr, "\033[%dm[%06d]%s ",30 + (pid%7)+1, pid, levelcolor[level]);
   else
     fprintf(stderr, "[%06d] ", pid);
 #else
