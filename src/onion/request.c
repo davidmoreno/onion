@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include "server.h"
 #include "dict.h"
@@ -287,26 +288,35 @@ const onion_dict *onion_request_get_file_dict(onion_request *req){
 void onion_request_guess_session_id(onion_request *req){
 	if (req->session_id) // already known.
 		return;
-	const char *v=onion_dict_get(req->headers, "Cookie");
+	const char *ov=onion_dict_get(req->headers, "Cookie");
+  const char *v=ov;
 	ONION_DEBUG("Session ID, maybe from %s",v);
 	char *r=NULL;
 	onion_dict *session;
 	
 	do{ // Check all possible sessions
-		if (r)
+		if (r){
 			free(r);
+      r=NULL;
+    }
 		if (!v)
 			return;
 		v=strstr(v,"sessionid=");
 		if (!v) // exit point, no session found.
 			return;
-		v+=10;
-		r=strdup(v); // Maybe allocated more memory, not much anyway.
-		char *p=r;
-		while (*p!='\0' && *p!=';') p++;
-		*p='\0';
-		ONION_DEBUG0("Checking if %s exists in sessions", r);
-		session=onion_sessions_get(req->server->sessions, r);
+    if (v>ov && isalnum(v[-1])){
+      ONION_DEBUG("At -1: %c %d (%p %p)",v[-1],isalnum(v[-1]),v,ov);
+      v=strstr(v,";");
+    }
+    else{
+      v+=10;
+      r=strdup(v); // Maybe allocated more memory, not much anyway.
+      char *p=r;
+      while (*p!='\0' && *p!=';') p++;
+      *p='\0';
+      ONION_DEBUG0("Checking if %s exists in sessions", r);
+      session=onion_sessions_get(req->server->sessions, r);
+    }
 	}while(!session);
 	
 	req->session_id=r;

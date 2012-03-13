@@ -20,6 +20,7 @@
 #include <onion/sessions.h>
 #include <onion/dict.h>
 #include "../ctest.h"
+#include <onion/types_internal.h>
 
 void t01_test_session(){
 	INIT_LOCAL();
@@ -88,8 +89,79 @@ void t01_test_session(){
 }
 
 
+void t02_cookies(){
+  INIT_LOCAL();
+  
+  onion *o=onion_new(O_ONE_LOOP);
+  onion_request *req;
+  onion_dict *session;
+  char *cookieid;
+  char tmp[256];
+  
+  req=onion_request_new(o->server, NULL, NULL);
+  FAIL_IF_NOT_EQUAL(req->session_id, NULL);
+  session=onion_request_get_session_dict(req);
+  onion_dict_add(session,"Test","tseT", 0);
+  FAIL_IF_EQUAL(req->session_id, NULL);
+  cookieid=strdup(req->session_id);
+  onion_request_free(req);
+
+  req=onion_request_new(o->server, NULL, NULL);
+  FAIL_IF_NOT_EQUAL(req->session_id, NULL);
+  session=onion_request_get_session_dict(req);
+  FAIL_IF_EQUAL(req->session_id, NULL);
+  session=onion_request_get_session_dict(req);
+  onion_dict_add(session,"Test","Another value", 0);
+  FAIL_IF_EQUAL_STR(req->session_id, cookieid);
+  onion_request_free(req);
+
+  req=onion_request_new(o->server, NULL, NULL);
+  snprintf(tmp,sizeof(tmp),"sessionid=%s",cookieid);
+  onion_dict_add(req->headers,"Cookie",tmp, OD_DUP_VALUE);
+  FAIL_IF_NOT_EQUAL(req->session_id, NULL);
+  session=onion_request_get_session_dict(req);
+  FAIL_IF_NOT_EQUAL_STR(req->session_id, cookieid);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(session,"Test"),"tseT");
+  onion_request_free(req);
+
+  req=onion_request_new(o->server, NULL, NULL);
+  snprintf(tmp,sizeof(tmp),"trashthingish=nothing interesting; sessionid=%s; wtf=ianal",cookieid);
+  onion_dict_add(req->headers,"Cookie",tmp, OD_DUP_VALUE);
+  FAIL_IF_NOT_EQUAL(req->session_id, NULL);
+  session=onion_request_get_session_dict(req);
+  FAIL_IF_NOT_EQUAL_STR(req->session_id, cookieid);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(session,"Test"),"tseT");
+  onion_request_free(req);
+
+  req=onion_request_new(o->server, NULL, NULL);
+  snprintf(tmp,sizeof(tmp),"sessionid=nothing interesting; sessionid=%s; other_sessionid=ianal",cookieid);
+  onion_dict_add(req->headers,"Cookie",tmp, OD_DUP_VALUE);
+  FAIL_IF_NOT_EQUAL(req->session_id, NULL);
+  session=onion_request_get_session_dict(req);
+  FAIL_IF_NOT_EQUAL_STR(req->session_id, cookieid);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(session,"Test"),"tseT");
+  onion_request_free(req);
+
+  req=onion_request_new(o->server, NULL, NULL);
+  snprintf(tmp,sizeof(tmp),"sessionid=nothing interesting; xsessionid=%s; other_sessionid=ianal",cookieid);
+  onion_dict_add(req->headers,"Cookie",tmp, OD_DUP_VALUE);
+  FAIL_IF_NOT_EQUAL(req->session_id, NULL);
+  session=onion_request_get_session_dict(req);
+  FAIL_IF_EQUAL_STR(req->session_id, cookieid);
+  FAIL_IF_EQUAL_STR(onion_dict_get(session,"Test"),"tseT");
+  onion_request_free(req);
+
+  onion_free(o);
+  free(cookieid);
+  
+  END_LOCAL();
+}
+
 int main(int argc, char **argv){
+  START();
+  
 	t01_test_session();
+  t02_cookies();
 	
 	END();
 }
