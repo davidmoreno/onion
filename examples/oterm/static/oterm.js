@@ -301,8 +301,6 @@ $(document).ready(function(){
 	// Ask for stored buffer data
 	onpetitionOut=true
 	$.get('out?initial',updateRequestData, 'plain')
-
-	requestNewData()
 	
 	$('#msg').fadeOut().html('')
 	showMsg('Ready')
