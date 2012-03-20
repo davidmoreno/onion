@@ -137,7 +137,7 @@ void onion_request_clean(onion_request* req){
     req->parser_data=NULL;
   }
   req->parser=NULL;
-  req->flags&=0x0F00; // I keep server flags.
+  req->flags&=OR_NO_KEEP_ALIVE; // I keep keep alive.
   if (req->fullpath){
     free(req->fullpath);
     req->path=req->fullpath=NULL;
