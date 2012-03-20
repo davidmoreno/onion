@@ -714,6 +714,8 @@ static int onion_accept_request(onion *o){
 
 /// Initializes the connection, create request, sets up the SSL...
 static onion_request *onion_connection_start(onion *o, int clientfd, const char *client_info){
+  signal(SIGPIPE, SIG_IGN); // FIXME. remove the thread better. Now it will try to write and fail on it.
+  
 	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
 #ifdef HAVE_GNUTLS
 	gnutls_session_t session=NULL;
@@ -725,7 +727,6 @@ static onion_request *onion_connection_start(onion *o, int clientfd, const char 
 		}
 	}
 #endif
-	signal(SIGPIPE, SIG_IGN); // FIXME. remove the thread better. Now it will try to write and fail on it.
 
 	onion_request *req;
 #ifdef HAVE_GNUTLS
