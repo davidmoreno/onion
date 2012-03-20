@@ -473,12 +473,19 @@ const onion_block *onion_request_get_data(onion_request *req){
  * @returns The connection status: if it should be closed, error codes...
  */
 onion_connection_status onion_request_process(onion_request *req){
-	//ONION_DEBUG0("Process request",req->path);
-	if (*req->fullpath)
-    req->path=req->fullpath+1;
-  else
-    req->path=req->fullpath;
-	
 	return onion_server_handle_request(req->server, req);
 }
 
+/**
+ * @short Performs the final touches do the request is ready to be handled.
+ * 
+ * It sets the current path.
+ * 
+ * @param req The request.
+ */
+void onion_request_polish(onion_request *req){
+  if (*req->fullpath)
+    req->path=req->fullpath+1;
+  else
+    req->path=req->fullpath;
+}

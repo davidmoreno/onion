@@ -154,6 +154,7 @@ void t03_handle_path_request(){
 	
 	request=onion_request_new(server, block, NULL);
 	FILL(request,"GET / HTTP/1.1\n");
+  onion_request_polish(request);
 	response=onion_response_new(request);
 	onion_handler_handle(path, request, response);
 	onion_response_free(response);
@@ -167,6 +168,7 @@ void t03_handle_path_request(){
 	onion_block_clear(block);
 	request=onion_request_new(server, block, NULL);
 	FILL(request,"GET /test/ HTTP/1.1\n");
+  onion_request_polish(request);
 	response=onion_response_new(request);
 	onion_handler_handle(path, request, response);
 	onion_response_free(response);
@@ -179,6 +181,7 @@ void t03_handle_path_request(){
 	onion_block_clear(block);
 	request=onion_request_new(server, block, NULL);
 	FILL(request,"GET /test/index.html HTTP/1.1\n");
+  onion_request_polish(request);
 	response=onion_response_new(request);
 	onion_handler_handle(path, request, response);
 	onion_response_free(response);
@@ -197,6 +200,8 @@ void t03_handle_path_request(){
 
 
 int main(int argc, char **argv){
+  START();
+  
 	t01_handle_static_request();
 	t02_handle_generic_request();
 	t03_handle_path_request();

@@ -72,11 +72,11 @@ void t02_create_add_free_overflow(){
 
 	FAIL_IF_EQUAL(req,NULL);
 	
-	char of[4096];
+	char of[14096];
 	for (i=0;i<sizeof(of);i++)
 		of[i]='a'+i%26;
 	of[i-1]='\0';
-	char get[4096*4];
+	char get[14096*4];
 	
 	sprintf(get,"%s %s %s",of,of,of);
 	ok=onion_request_write(req,get,strlen(get));
@@ -125,6 +125,8 @@ void t03_create_add_free_full_flow(){
 	FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
 
 	FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
+  FAIL_IF_NOT_EQUAL(req->path,NULL);
+  onion_request_process(req); // this should set the req->path.
 	FAIL_IF_NOT_EQUAL_STR(req->path,"myurl /is/very/deeply/nested");
 
 	FAIL_IF_EQUAL(req->GET, NULL);
@@ -285,6 +287,8 @@ void t06_create_add_free_POST_toobig(){
 
 
 int main(int argc, char **argv){
+  START();
+  
 	setup();
 	t01_create_add_free();
 	t02_create_add_free_overflow();

@@ -144,6 +144,9 @@ const char *onion_request_get_language_code(onion_request *req);
 /// Returns PROPFIND data
 const onion_block *onion_request_get_data(onion_request *req);
 
+/// Performs final touches to the request to its ready to be processed.
+void onion_request_polish(onion_request *req);
+
 /// Executes the handler required for this request
 onion_connection_status onion_request_process(onion_request *req);
 

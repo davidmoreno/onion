@@ -164,7 +164,9 @@ void onion_server_set_max_file_size(onion_server *server, size_t max_file_size){
  */
 onion_connection_status onion_server_handle_request(onion_server *server, onion_request *req){
 	onion_response *res=onion_response_new(req);
-	
+	if (!req->path){ 
+    onion_request_polish(req);
+  }  
 	// Call the main handler.
 	onion_connection_status hs=onion_handler_handle(server->root_handler, req, res);
 
