@@ -39,9 +39,13 @@
 #include <fcntl.h>
 
 #ifdef HAVE_PTHREADS
-# define __USE_UNIX98
-# include <pthread.h>
-# undef __USE_UNIX98
+# ifndef __USE_UNIX98
+#  define __USE_UNIX98
+#  include <pthread.h>
+#  undef __USE_UNIX98
+# else
+#  include <pthread.h>
+# endif
 #else  // if no pthreads, ignore locks.
 # define pthread_mutex_init(...)
 # define pthread_mutex_lock(...)

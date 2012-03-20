@@ -144,7 +144,9 @@
  */
 
 // To have accept4
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <malloc.h>
 #include <stdio.h>
@@ -966,7 +968,9 @@ void onion_set_user(onion *server, const char *username){
 	server->username=strdup(username);
 }
 
-void onion_url_free_data(void *);
+struct onion_url_data_t;
+typedef struct onion_url_data_t onion_url_data;
+void onion_url_free_data(onion_url_data **d);
 
 /**
  * @short If no root handler is set, creates an url handler and returns it.
@@ -976,7 +980,7 @@ void onion_url_free_data(void *);
  */
 onion_url *onion_root_url(onion *server){
 	if (server->server->root_handler){
-		if (server->server->root_handler->priv_data_free==onion_url_free_data) // Only available check
+		if (server->server->root_handler->priv_data_free==(void*)onion_url_free_data) // Only available check
 			return (onion_url*)server->server->root_handler;
 		return NULL;
 	}
