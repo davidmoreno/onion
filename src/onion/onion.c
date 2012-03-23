@@ -679,10 +679,21 @@ static int onion_accept_request(onion *o){
 	char address[64];
 
 	int clientfd=accept4(o->listenfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
-	if (clientfd<0){
+
+  if (clientfd<0){
 		ONION_ERROR("Error accepting connection: %s",strerror(errno));
 		return -1;
 	}
+	
+  /// Thanks to Andrew Victor for pointing that without this client may block HTTPS connection. It could lead to DoS if occupies all connections.
+  {
+    struct timeval t;
+    t.tv_sec = o->timeout / 1000;
+    t.tv_usec = ( o->timeout % 1000 ) * 1000;
+
+    setsockopt(clientfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
+   }
+	
 	if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
 		int flags=fcntl(clientfd, F_GETFD);
 		if (flags==-1){
@@ -700,6 +711,8 @@ static int onion_accept_request(onion *o){
 	if (o->flags&O_POLL){
 		onion_request *req=onion_connection_start(o, clientfd, address);
 		if (!req){
+      shutdown(clientfd,SHUT_RDWR); // Socket must be destroyed.
+      close(clientfd);
 			return 0;
 		}
 		onion_poller_slot *slot=onion_poller_slot_new(clientfd, (void*)onion_connection_read, req);

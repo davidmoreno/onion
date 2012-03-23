@@ -200,6 +200,7 @@ int main(int argc, char **argv){
 	
 	onion_set_port(o, port);
 	onion_set_hostname(o, serverip);
+  onion_set_timeout(o,5000);
 	
 	signal(SIGINT, free_onion);
 	signal(SIGPIPE, SIG_IGN);
