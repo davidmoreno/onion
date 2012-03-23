@@ -143,6 +143,10 @@ typedef struct onion_block_t{
 	int maxsize;
 }block;
 
+/// Opaque type used at onion_url internally
+struct onion_url_data_t;
+typedef struct onion_url_data_t onion_url_data;
+
 
 #ifdef __cplusplus
 }

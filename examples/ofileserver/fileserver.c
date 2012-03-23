@@ -113,7 +113,7 @@ int main(int argc, char **argv){
 	textdomain("C"); // Default language
   // All is configured now, now in hands of dgettext(LANG, txt);
 	
-	o=onion_new(O_THREADED);
+	o=onion_new(O_POOL);
 
 	onion_set_root_handler(o, root);
 	onion_set_port(o, port);

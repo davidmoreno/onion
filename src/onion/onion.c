@@ -679,7 +679,6 @@ static int onion_accept_request(onion *o){
 	char address[64];
 
 	int clientfd=accept4(o->listenfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
-
   if (clientfd<0){
 		ONION_ERROR("Error accepting connection: %s",strerror(errno));
 		return -1;
@@ -981,8 +980,6 @@ void onion_set_user(onion *server, const char *username){
 	server->username=strdup(username);
 }
 
-struct onion_url_data_t;
-typedef struct onion_url_data_t onion_url_data;
 void onion_url_free_data(onion_url_data **d);
 
 /**

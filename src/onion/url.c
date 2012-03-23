@@ -55,7 +55,7 @@ struct onion_url_data_t{
 	struct onion_url_data_t *next;
 };
 
-typedef struct onion_url_data_t onion_url_data;
+//typedef struct onion_url_data_t onion_url_data; // already at types-internal.h
 
 /**
  * @short Performs the real request: checks if its for me, and then calls the inside level.
