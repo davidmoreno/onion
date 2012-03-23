@@ -747,7 +747,7 @@ static onion_request *onion_connection_start(onion *o, int clientfd, const char 
 		req=onion_request_new(o->server, (void*)(long int)clientfd, client_info);
 	}
 	req->fd=clientfd;
-	if (!(o->flags&O_THREADED) || !(o->flags&O_POLL))
+	if (!( (o->flags&O_THREADED) || (o->flags&O_POLL) ))
 		onion_request_set_no_keep_alive(req);
 	
 	return req;
