@@ -651,9 +651,20 @@ void t13_dict_rget(){
 	END_LOCAL();
 }
 
+void t14_dict_case_insensitive(){
+  INIT_LOCAL();
+  
+  onion_dict *d=onion_dict_new();
+  
+  onion_dict_add(d,"Test","OK", 0);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_iget(d,"test"),"OK");
+  FAIL_IF_NOT_EQUAL(onion_dict_get(d,"test"),NULL);
+  
+  END_LOCAL();
+}
+
 int main(int argc, char **argv){
   START();
-  
 	t01_create_add_free();
 	t01_create_add_free_10();
 	t02_create_and_free_a_lot(100);
@@ -670,6 +681,7 @@ int main(int argc, char **argv){
 	t11_hard_dup();
 	t12_dict_in_dict();
 	t13_dict_rget();
+  t14_dict_case_insensitive();
 	
 	END();
 }

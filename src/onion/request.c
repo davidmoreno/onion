@@ -210,7 +210,7 @@ void onion_request_advance_path(onion_request *req, int addtopos){
  * @memberof onion_request_t
  */
 const char *onion_request_get_header(onion_request *req, const char *header){
-	return onion_dict_get(req->headers, header);
+	return onion_dict_iget(req->headers, header);
 }
 
 /**

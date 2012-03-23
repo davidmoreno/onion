@@ -166,6 +166,8 @@ void t04_create_add_free_GET(){
 		FAIL_IF_EQUAL(req->headers, NULL);
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Host"), "127.0.0.1");
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
+    FAIL_IF_EQUAL_STR( onion_dict_get(req->headers,"other-heaDER"), "My header is very long and with spaces...");
+    FAIL_IF_NOT_EQUAL_STR( onion_request_get_header(req,"other-heaDER"), "My header is very long and with spaces...");
 
 		FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
 		FAIL_IF_NOT_EQUAL_STR(req->path,"myurl /is/very/deeply/nested");

@@ -67,6 +67,9 @@ onion_dict *onion_dict_hard_dup(onion_dict *dict);
 /// Gets a value
 const char *onion_dict_get(const onion_dict *dict, const char *key);
 
+/// Gets a value, case insensitive version.
+const char *onion_dict_iget(const onion_dict *dict, const char *key);
+
 /// Gets a value, recursively over the nested dicts, until NULL.
 const char *onion_dict_rget(const onion_dict *dict, const char *key, ...);
 

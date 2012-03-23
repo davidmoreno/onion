@@ -171,6 +171,28 @@ static const onion_dict_node *onion_dict_find_node(const onion_dict_node *curren
 	return NULL;
 }
 
+/**
+ * @short Searchs for a given key, and returns that node and its parent (if parent!=NULL). Case insensitive version.
+ * @memberof onion_dict_t
+ *
+ * If not found, returns the parent where it should be. Nice for adding too.
+ */
+static const onion_dict_node *onion_dict_ifind_node(const onion_dict_node *current, const char *key, const onion_dict_node **parent){
+  if (!current){
+    return NULL;
+  }
+  signed char cmp=strcasecmp(key, current->data.key);
+  //ONION_DEBUG0("%s cmp %s = %d",key, current->data.key, cmp);
+  if (cmp==0)
+    return current;
+  if (parent) *parent=current;
+  if (cmp<0)
+    return onion_dict_ifind_node(current->left, key, parent);
+  if (cmp>0)
+    return onion_dict_ifind_node(current->right, key, parent);
+  return NULL;
+}
+
 
 /// Allocates a new node data, and sets the data itself.
 static onion_dict_node *onion_dict_node_new(const char *key, const void *value, int flags){
@@ -377,6 +399,19 @@ const char *onion_dict_get(const onion_dict *dict, const char *key){
 		return r->data.value;
 	return NULL;
 }
+
+/**
+ * @short Gets a value Case-Insensitive version. For dicts returns NULL; use onion_dict_get_dict.
+ * @memberof onion_dict_t
+ */
+const char *onion_dict_iget(const onion_dict *dict, const char *key){
+  const onion_dict_node *r;
+  r=onion_dict_ifind_node(dict->root, key, NULL);
+  if (r && !(r->data.flags&OD_DICT))
+    return r->data.value;
+  return NULL;
+}
+
 
 /**
  * @short Gets a value, only if its a dict
