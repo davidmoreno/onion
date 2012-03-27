@@ -366,12 +366,60 @@ static __attribute__((unused)) void *onion_poller_adaptor(void *o){
 #endif
 
 /**
+ * @short Internal function to accept one connection. 
+ * 
+ * It performs timeout setting, CLOEXEC as needed by accept4/accept, and get client info.
+ * 
+ * @param o onion object.
+ * @param cli_info char pointer to where to store the client info.
+ * @param info_len size available at cli_info.
+ * 
+ * @returns new connection socket file descriptor
+ */
+static int onion_accept(onion *o, char *cli_info, size_t info_len){
+  struct sockaddr_storage cli_addr;
+  socklen_t clilen = sizeof(cli_addr);
+
+  int clientfd=accept4(o->listenfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
+  if (clientfd<0){
+    ONION_ERROR("Error accepting connection: %s",strerror(errno));
+    return -1;
+  }
+  
+  /// Thanks to Andrew Victor for pointing that without this client may block HTTPS connection. It could lead to DoS if occupies all connections.
+  {
+    struct timeval t;
+    t.tv_sec = o->timeout / 1000;
+    t.tv_usec = ( o->timeout % 1000 ) * 1000;
+
+    setsockopt(clientfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
+   }
+  
+  if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+    int flags=fcntl(clientfd, F_GETFD);
+    if (flags==-1){
+      ONION_ERROR("Retrieving flags from connection");
+    }
+    flags|=FD_CLOEXEC;
+    if (fcntl(clientfd, F_SETFD, flags)==-1){
+      ONION_ERROR("Setting FD_CLOEXEC to connection");
+    }
+  }
+  
+  getnameinfo((struct sockaddr *)&cli_addr, clilen, cli_info, info_len, 
+              NULL, 0, NI_NUMERICHOST);
+  
+  ONION_DEBUG("Accepted connection from %s",cli_info);
+  return clientfd;
+}
+
+/**
  * @short Performs the listening with the given mode
  * @memberof onion_t
  *
  * This is the main loop for the onion server.
  *
- * Returns if there is any error. It returns actualy errno from the network operations. See socket for more information.
+ * @returns !=0 if there is any error. It returns actualy errno from the network operations. See socket for more information.
  */
 int onion_listen(onion *o){
 #ifdef HAVE_PTHREADS
@@ -518,26 +566,16 @@ int onion_listen(onion *o){
 	}
 #ifdef HAVE_PTHREADS
 	else if (o->flags&O_THREADS_ENABLED){
-		struct sockaddr_storage cli_addr;
-		char address[64];
-		int clientfd;
 		pthread_attr_t attr;
 		pthread_attr_init(&attr);
 		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
 		
-		socklen_t clilen = sizeof(cli_addr);
-
 		while(1){
-			clientfd=accept(o->listenfd, (struct sockaddr *) &cli_addr, &clilen);
-			
-      if (clientfd<0 && o->listenfd<0) // Stopped listening
-        break;
+      char address[64];
+      int clientfd=onion_accept(o, address, sizeof(address));
       
-			int flags=fcntl(clientfd, F_GETFD, 0);
-			if (fcntl(clientfd, F_SETFD, flags | O_CLOEXEC) < 0){ // This is inherited by sockets returned by listen.
-				ONION_ERROR("Could not set connection socket options: %s",strerror(errno));
-			}
-
+      if (clientfd<0)
+        return errno;
 			// If more than allowed processes, it waits here blocking socket, as it should be.
 			// __DEBUG__
 #if 0 
@@ -547,9 +585,6 @@ int onion_listen(onion *o){
 #endif
 			sem_wait(&o->thread_count); 
 
-			getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
-										NULL, 0, NI_NUMERICHOST);
-			
 			// Has to be malloc'd. If not it wil be overwritten on next petition. The threads frees it
 			onion_request_thread_data *data=malloc(sizeof(onion_request_thread_data)); 
 			data->o=o;
@@ -672,41 +707,16 @@ static void onion_connection_shutdown(onion_request *req);
  * @short Internal accept of just one request. 
  * 
  * It might be called straight from listen, or from the epoller.
+ * 
+ * @returns 0 if ok, <0 if error.
  */
 static int onion_accept_request(onion *o){
-	struct sockaddr_storage cli_addr;
-	socklen_t clilen = sizeof(cli_addr);
-	char address[64];
-
-	int clientfd=accept4(o->listenfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
-  if (clientfd<0){
-		ONION_ERROR("Error accepting connection: %s",strerror(errno));
-		return -1;
-	}
-	
-  /// Thanks to Andrew Victor for pointing that without this client may block HTTPS connection. It could lead to DoS if occupies all connections.
-  {
-    struct timeval t;
-    t.tv_sec = o->timeout / 1000;
-    t.tv_usec = ( o->timeout % 1000 ) * 1000;
-
-    setsockopt(clientfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
-   }
-	
-	if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
-		int flags=fcntl(clientfd, F_GETFD);
-		if (flags==-1){
-			ONION_ERROR("Retrieving flags from connection");
-		}
-		flags|=FD_CLOEXEC;
-		if (fcntl(clientfd, F_SETFD, flags)==-1){
-			ONION_ERROR("Setting FD_CLOEXEC to connection");
-		}
-	}
-	
-	getnameinfo((struct sockaddr *)&cli_addr, clilen, address, sizeof(address), 
-							NULL, 0, NI_NUMERICHOST);
-	
+  char address[64];
+  int clientfd=onion_accept(o, address, sizeof(address));
+  
+  if (clientfd<0)
+    return -1;
+  
 	if (o->flags&O_POLL){
 		onion_request *req=onion_connection_start(o, clientfd, address);
 		if (!req){
@@ -821,6 +831,7 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 	while ((cs>=0) && (poll(&pfd,1, o->timeout)>0)){
 		cs=onion_connection_read(req);
 	}
+	ONION_DEBUG0("Shutdown connection %s",client_info);
 	onion_connection_shutdown(req);
 }
 
