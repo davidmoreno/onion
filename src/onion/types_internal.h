@@ -48,6 +48,7 @@ struct onion_dict_t{
 	pthread_mutex_t refmutex;
 #endif
 	int refcount;
+  int (*cmp)(const char *a, const char *b);
 };
 
 

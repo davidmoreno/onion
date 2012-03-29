@@ -64,8 +64,22 @@ onion_dict *onion_dict_new(){
 	pthread_mutex_init(&dict->refmutex, NULL);
 #endif
 	dict->refcount=1;
+  dict->cmp=strcmp;
 	return dict;
 }
+
+/**
+ * @memberof onion_dict_t
+ * 
+ * Sets the dict flags.
+ */
+void onion_dict_set_flags(onion_dict *dict, int flags){
+  if (flags&OD_ICASE){
+    dict->cmp=strcasecmp;
+  }
+}
+
+
 
 /**
  * @short Creates a duplicate of the dict
@@ -155,42 +169,20 @@ void onion_dict_free(onion_dict *dict){
  *
  * If not found, returns the parent where it should be. Nice for adding too.
  */
-static const onion_dict_node *onion_dict_find_node(const onion_dict_node *current, const char *key, const onion_dict_node **parent){
+static const onion_dict_node *onion_dict_find_node(const onion_dict *d, const onion_dict_node *current, const char *key, const onion_dict_node **parent){
 	if (!current){
 		return NULL;
 	}
-	signed char cmp=strcmp(key, current->data.key);
+	signed char cmp=d->cmp(key, current->data.key);
 	//ONION_DEBUG0("%s cmp %s = %d",key, current->data.key, cmp);
 	if (cmp==0)
 		return current;
 	if (parent) *parent=current;
 	if (cmp<0)
-		return onion_dict_find_node(current->left, key, parent);
+		return onion_dict_find_node(d, current->left, key, parent);
 	if (cmp>0)
-		return onion_dict_find_node(current->right, key, parent);
+		return onion_dict_find_node(d, current->right, key, parent);
 	return NULL;
-}
-
-/**
- * @short Searchs for a given key, and returns that node and its parent (if parent!=NULL). Case insensitive version.
- * @memberof onion_dict_t
- *
- * If not found, returns the parent where it should be. Nice for adding too.
- */
-static const onion_dict_node *onion_dict_ifind_node(const onion_dict_node *current, const char *key, const onion_dict_node **parent){
-  if (!current){
-    return NULL;
-  }
-  signed char cmp=strcasecmp(key, current->data.key);
-  //ONION_DEBUG0("%s cmp %s = %d",key, current->data.key, cmp);
-  if (cmp==0)
-    return current;
-  if (parent) *parent=current;
-  if (cmp<0)
-    return onion_dict_ifind_node(current->left, key, parent);
-  if (cmp>0)
-    return onion_dict_ifind_node(current->right, key, parent);
-  return NULL;
 }
 
 
@@ -272,12 +264,12 @@ static void decrease_level(onion_dict_node *node){
  * 
  * Returns the root node of the subtree
  */
-static onion_dict_node  *onion_dict_node_add(onion_dict_node *node, onion_dict_node *nnode){
+static onion_dict_node  *onion_dict_node_add(onion_dict *d, onion_dict_node *node, onion_dict_node *nnode){
 	if (node==NULL){
 		//ONION_DEBUG("Add here %p",nnode);
 		return nnode;
 	}
-	signed int cmp=strcmp(nnode->data.key, node->data.key);
+	signed int cmp=d->cmp(nnode->data.key, node->data.key);
 	//ONION_DEBUG0("cmp %d, %X, %X %X",cmp, nnode->data.flags,nnode->data.flags&OD_REPLACE, OD_REPLACE);
 	if ((cmp==0) && (nnode->data.flags&OD_REPLACE)){
 		//ONION_DEBUG("Replace %s with %s", node->data.key, nnode->data.key);
@@ -287,11 +279,11 @@ static onion_dict_node  *onion_dict_node_add(onion_dict_node *node, onion_dict_n
 		return node;
 	}
 	else if (cmp<0){
-		node->left=onion_dict_node_add(node->left, nnode);
+		node->left=onion_dict_node_add(d, node->left, nnode);
 		//ONION_DEBUG("%p[%s]->left=%p[%s]",node, node->data.key, node->left, node->left->data.key);
 	}
 	else{ // >=
-		node->right=onion_dict_node_add(node->right, nnode);
+		node->right=onion_dict_node_add(d, node->right, nnode);
 		//ONION_DEBUG("%p[%s]->right=%p[%s]",node, node->data.key, node->right, node->right->data.key);
 	}
 	
@@ -307,7 +299,7 @@ static onion_dict_node  *onion_dict_node_add(onion_dict_node *node, onion_dict_n
  * Adds a value in the tree.
  */
 void onion_dict_add(onion_dict *dict, const char *key, const void *value, int flags){
-	dict->root=onion_dict_node_add(dict->root, onion_dict_node_new(key, value, flags));
+	dict->root=onion_dict_node_add(dict, dict->root, onion_dict_node_new(key, value, flags));
 }
 
 /// Frees the memory, if necesary of key and value
@@ -325,16 +317,16 @@ static void onion_dict_node_data_free(onion_dict_node_data *data){
 }
 
 /// AA tree remove the node
-static onion_dict_node *onion_dict_node_remove(onion_dict_node *node, const char *key){
+static onion_dict_node *onion_dict_node_remove(const onion_dict *d, onion_dict_node *node, const char *key){
 	if (!node)
 		return NULL;
-	int cmp=strcmp(key, node->data.key);
+	int cmp=d->cmp(key, node->data.key);
 	if (cmp<0){
-		node->left=onion_dict_node_remove(node->left, key);
+		node->left=onion_dict_node_remove(d, node->left, key);
 		//ONION_DEBUG("%p[%s]->left=%p[%s]",node, node->data.key, node->left, node->left ? node->left->data.key : "NULL");
 	}
 	else if (cmp>0){
-		node->right=onion_dict_node_remove(node->right, key);
+		node->right=onion_dict_node_remove(d, node->right, key);
 		//ONION_DEBUG("%p[%s]->right=%p[%s]",node, node->data.key, node->right, node->right ? node->right->data.key : "NULL");
 	}
 	else{ // Real remove
@@ -350,7 +342,7 @@ static onion_dict_node *onion_dict_node_remove(onion_dict_node *node, const char
 			//ONION_DEBUG("Set data from %p[%s] to %p[already deleted %s]",t,t->data.key, node, key);
 			memcpy(&node->data, &t->data, sizeof(onion_dict_node_data));
 			t->data.flags=0; // No double free later, please
-			node->right=onion_dict_node_remove(node->right, t->data.key);
+			node->right=onion_dict_node_remove(d, node->right, t->data.key);
 			//ONION_DEBUG("%p[%s]->right=%p[%s]",node, node->data.key, node->right, node->right ? node->right->data.key : "NULL");
 		}
 		else{
@@ -359,7 +351,7 @@ static onion_dict_node *onion_dict_node_remove(onion_dict_node *node, const char
 			
 			memcpy(&node->data, &t->data, sizeof(onion_dict_node_data));
 			t->data.flags=0; // No double free later, please
-			node->left=onion_dict_node_remove(node->left, t->data.key);
+			node->left=onion_dict_node_remove(d, node->left, t->data.key);
 			//ONION_DEBUG("%p[%s]->left=%p[%s]",node, node->data.key, node->left, node->left ? node->left->data.key : "NULL");
 		}
 	}
@@ -384,7 +376,7 @@ static onion_dict_node *onion_dict_node_remove(onion_dict_node *node, const char
  * Returns if it removed any node.
  */ 
 int onion_dict_remove(onion_dict *dict, const char *key){
-	dict->root=onion_dict_node_remove(dict->root, key);
+	dict->root=onion_dict_node_remove(dict, dict->root, key);
 	return 1;
 }
 
@@ -394,24 +386,11 @@ int onion_dict_remove(onion_dict *dict, const char *key){
  */
 const char *onion_dict_get(const onion_dict *dict, const char *key){
 	const onion_dict_node *r;
-	r=onion_dict_find_node(dict->root, key, NULL);
+	r=onion_dict_find_node(dict, dict->root, key, NULL);
 	if (r && !(r->data.flags&OD_DICT))
 		return r->data.value;
 	return NULL;
 }
-
-/**
- * @short Gets a value Case-Insensitive version. For dicts returns NULL; use onion_dict_get_dict.
- * @memberof onion_dict_t
- */
-const char *onion_dict_iget(const onion_dict *dict, const char *key){
-  const onion_dict_node *r;
-  r=onion_dict_ifind_node(dict->root, key, NULL);
-  if (r && !(r->data.flags&OD_DICT))
-    return r->data.value;
-  return NULL;
-}
-
 
 /**
  * @short Gets a value, only if its a dict
@@ -419,7 +398,7 @@ const char *onion_dict_iget(const onion_dict *dict, const char *key){
  */
 onion_dict *onion_dict_get_dict(const onion_dict *dict, const char *key){
 	const onion_dict_node *r;
-	r=onion_dict_find_node(dict->root, key, NULL);
+	r=onion_dict_find_node(dict, dict->root, key, NULL);
 	if (r){
 		if (r->data.flags&OD_DICT)
 			return (onion_dict*)r->data.value;

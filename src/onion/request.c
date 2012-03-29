@@ -64,6 +64,7 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	
 	req->server=server;
 	req->headers=onion_dict_new();
+  onion_dict_set_flags(req->headers, OD_ICASE);
 	req->socket=socket;
 	if (client_info) // This is kept even on clean
 		req->client_info=strdup(client_info);
@@ -132,6 +133,7 @@ void onion_request_clean(onion_request* req){
   ONION_DEBUG0("Clean request %p", req);
   onion_dict_free(req->headers);
   req->headers=onion_dict_new();
+  onion_dict_set_flags(req->headers, OD_ICASE);
   if (req->parser_data){
     onion_request_parser_data_free(req->parser_data);
     req->parser_data=NULL;
@@ -210,7 +212,7 @@ void onion_request_advance_path(onion_request *req, int addtopos){
  * @memberof onion_request_t
  */
 const char *onion_request_get_header(onion_request *req, const char *header){
-	return onion_dict_iget(req->headers, header);
+	return onion_dict_get(req->headers, header);
 }
 
 /**

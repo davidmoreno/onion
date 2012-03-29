@@ -38,16 +38,21 @@ enum onion_dict_flags_e{
 	OD_DUP_VALUE=0x24, /// Whether the value has to be dupped
 	OD_DUP_ALL=0x36,   /// Whether both, the key and value have to be dupped. In any case its also marked for freeing later.
 	OD_REPLACE=0x040,  /// If already exists, replaces content.
-	
+  
 	// Types
 	OD_STRING=0,       /// Stored data is a string, this is the most normal situation
 	OD_DICT=0x0100,    /// Stored data is another dictionary
 	
 	OD_TYPE_MASK=0x0FF00, /// Mask for the types
+  
+  // Flags for onion_dict_set_flags
+  OD_ICASE=0x01,     /// Do case insensitive cmps.
 };
 
 /// Initializes a dict.
 onion_dict *onion_dict_new();
+
+void onion_dict_set_flags(onion_dict *dict, int flags);
 
 /// Adds a value
 void onion_dict_add(onion_dict *dict, const char *key, const void *value, int flags);
@@ -66,9 +71,6 @@ onion_dict *onion_dict_hard_dup(onion_dict *dict);
 
 /// Gets a value
 const char *onion_dict_get(const onion_dict *dict, const char *key);
-
-/// Gets a value, case insensitive version.
-const char *onion_dict_iget(const onion_dict *dict, const char *key);
 
 /// Gets a value, recursively over the nested dicts, until NULL.
 const char *onion_dict_rget(const onion_dict *dict, const char *key, ...);

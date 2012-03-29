@@ -320,27 +320,26 @@ void t07_replace(){
 }
 
 #ifdef HAVE_PTHREADS
-#define N_READERS 3
+#define N_READERS 30
 
 char *t08_thread_read(onion_dict *d){
 	char done=0;
 	char *ret=NULL;
 	while (!done){
 		//ONION_DEBUG("Lock read");
-		onion_dict_lock_read(d);
+		onion_dict_lock_write(d);
 		//ONION_DEBUG("Got read lock");
 		const char *test=onion_dict_get(d,"test");
 		if (test){
 			//ONION_DEBUG("Unlock");
-			onion_dict_unlock(d);
-			//ONION_DEBUG("Lock write");
-			onion_dict_lock_write(d);
+			
+			//onion_dict_lock_write(d);
 			//ONION_DEBUG("Got write lock");
 			char tmp[16];
 			snprintf(tmp,16,"%d",onion_dict_count(d));
 			onion_dict_remove(d,"test");
 			onion_dict_add(d,tmp,"test",OD_DUP_ALL);
-			ONION_INFO("Write answer %d", onion_dict_count(d));
+			ONION_DEBUG("Write answer %d", onion_dict_count(d));
 			done=1;
 			//ONION_DEBUG("Unlock");
 			onion_dict_unlock(d);
@@ -349,7 +348,7 @@ char *t08_thread_read(onion_dict *d){
 		}
 		//ONION_DEBUG("Unlock");
 		onion_dict_unlock(d);
-		sleep(1);
+		usleep(200);
 	}
 	//ONION_DEBUG("dict free");
 	onion_dict_free(d);
@@ -379,8 +378,8 @@ void *t08_thread_write(onion_dict *d){
 		onion_dict_add(d, "test", "test", OD_DUP_ALL|OD_REPLACE);
 		//ONION_DEBUG("Unlock");
 		onion_dict_unlock(d);
-		ONION_INFO("Found %d answers, should be %d.", n, N_READERS);
-		sleep(1);
+		ONION_DEBUG("Found %d answers, should be %d.", n, N_READERS);
+		usleep(200);
 	}
 	
 	onion_dict_free(d);
@@ -398,7 +397,7 @@ void t08_threaded_lock(){
 		onion_dict *d2=onion_dict_dup(d);
 		pthread_create(&thread[i], NULL, (void*)t08_thread_read, d2);
 	}
-	sleep(1);
+	//sleep(1);
 	t08_thread_write(d);
 	
 	for (i=0;i<N_READERS;i++){
@@ -657,8 +656,10 @@ void t14_dict_case_insensitive(){
   onion_dict *d=onion_dict_new();
   
   onion_dict_add(d,"Test","OK", 0);
-  FAIL_IF_NOT_EQUAL_STR(onion_dict_iget(d,"test"),"OK");
   FAIL_IF_NOT_EQUAL(onion_dict_get(d,"test"),NULL);
+  
+  onion_dict_set_flags(d,OD_ICASE);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(d,"test"),"OK");
   
   END_LOCAL();
 }
