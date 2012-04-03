@@ -150,6 +150,9 @@ void onion_request_polish(onion_request *req);
 /// Executes the handler required for this request
 onion_connection_status onion_request_process(onion_request *req);
 
+/// Get a string with a client description
+const char *onion_request_get_client_description(onion_request *req);
+
 #ifdef __cplusplus
 }
 #endif

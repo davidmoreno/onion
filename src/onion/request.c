@@ -480,8 +480,9 @@ onion_connection_status onion_request_process(onion_request *req){
 
 /**
  * @short Performs the final touches do the request is ready to be handled.
+ * @memberof onion_request_t
  * 
- * It sets the current path.
+ * After parsing the request, some final touches are needed to set the current path.
  * 
  * @param req The request.
  */
@@ -490,4 +491,14 @@ void onion_request_polish(onion_request *req){
     req->path=req->fullpath+1;
   else
     req->path=req->fullpath;
+}
+
+/**
+ * @short Returns a string with the client's description.
+ * @memberof onion_request_t
+ * 
+ * @return A const char * with the client description
+ */
+const char *onion_request_get_client_description(onion_request *req){
+  return req->client_info;
 }

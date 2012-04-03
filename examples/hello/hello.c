@@ -9,6 +9,7 @@ int hello(void *p, onion_request *req, onion_response *res){
 	if (onion_request_get_query(req, "1")){
 		onion_response_printf(res, "<p>Path: %s", onion_request_get_query(req, "1"));
 	}
+	onion_response_printf(res,"<p>Client description: %s",onion_request_get_client_description(req));
 	return OCS_PROCESSED;
 }
 
@@ -25,7 +26,7 @@ int main(int argc, char **argv){
 	
 	o=onion_new(O_POOL);
 	onion_set_timeout(o, 5000);
-	onion_set_hostname(o,"0.0.0.0");
+	//onion_set_hostname(o,"0.0.0.0");
 	onion_url *urls=onion_root_url(o);
 	
 	onion_url_add_static(urls, "static", "Hello static world", HTTP_OK);
