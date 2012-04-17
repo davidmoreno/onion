@@ -117,6 +117,8 @@ void t03_create_add_free_full_flow(){
 	FAIL_IF_NOT(ok);
 	ok=FILL(req,"Other-Header: My header is very long and with spaces...\n");
 	FAIL_IF_NOT(ok);
+	ok=FILL(req,"Final-Header: This header do not get into headers as a result of now knowing if its finished, or if its multiline.\n");
+	FAIL_IF_NOT(ok);
 	
 	FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 	
@@ -166,7 +168,7 @@ void t04_create_add_free_GET(){
 		FAIL_IF_EQUAL(req->headers, NULL);
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Host"), "127.0.0.1");
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
-    FAIL_IF_EQUAL_STR( onion_dict_get(req->headers,"other-heaDER"), "My header is very long and with spaces...");
+    FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"other-heaDER"), "My header is very long and with spaces...");
     FAIL_IF_NOT_EQUAL_STR( onion_request_get_header(req,"other-heaDER"), "My header is very long and with spaces...");
 
 		FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
@@ -288,6 +290,48 @@ void t06_create_add_free_POST_toobig(){
 }
 
 
+void t07_multiline_headers(){
+	INIT_LOCAL();
+	
+	onion_request *req;
+	int ok;
+	
+	onion_server_set_max_post_size(server, 1024);
+	req=onion_request_new(server, 0,NULL);
+	FAIL_IF_EQUAL(req,NULL);
+	FAIL_IF_NOT_EQUAL(req->socket, 0);
+	
+	{
+		const char *query="GET / HTTP/1.0\n"
+											"Host: 127.0.0.1\n\rContent-Length: 24\n"
+											"Other-Header: My header is very long and with several\n lines\n"
+											"Extra-Other-Header: My header is very long and with several\n \n lines\n"
+											"My-Other-Header: My header is very long and with several\n\tlines\n\n";
+		
+		ok=onion_request_write(req,query,strlen(query));
+	}
+	FAIL_IF_EQUAL(ok,OCS_INTERNAL_ERROR);
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"other-header"),"My header is very long and with several lines");
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"extra-other-header"),"My header is very long and with several lines");
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"My-other-header"),"My header is very long and with several lines");
+	onion_request_clean(req);
+
+	{
+		const char *query="GET / HTTP/1.0\n"
+											"Host: 127.0.0.1\n\rContent-Length: 24\n"
+											"Other-Header: My header is very long and with several\n lines\n"
+											"My-Other-Header: My header is very long and with several\nlines\n\n";
+		
+		ok=onion_request_write(req,query,strlen(query));
+	}
+	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); // No \t at my-other-header
+	
+	onion_request_free(req);
+	
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
   START();
   
@@ -298,6 +342,7 @@ int main(int argc, char **argv){
 	t04_create_add_free_GET();
 	t05_create_add_free_POST();
 	t06_create_add_free_POST_toobig();
+	t07_multiline_headers();
 	teardown();
 	END();
 }

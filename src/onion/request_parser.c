@@ -65,6 +65,7 @@ typedef struct onion_buffer_s{
 
 /**
  * @short This struct is mapped at token->extra. The token, _start and data are maped to token->extra area too.
+ * @private
  * 
  * This is a bit juggling with pointers, but needed to keep the deallocation simple, and the token object minimal in most cases.
  * 
@@ -195,7 +196,7 @@ int token_read_LINE(onion_token *token, onion_buffer *data){
 		token->str[token->pos-1]='\0';
 	else
 		token->str[token->pos]='\0';
-	token->pos=0;
+	//token->pos=0;
 	
 	//ONION_DEBUG0("Found LINE token %s",token->str);
 	return LINE;
@@ -278,6 +279,12 @@ int token_read_NEW_LINE(onion_token *token, onion_buffer *data){
 	token->pos=0;
 	
 	return res;
+}
+
+static char token_peek_next_char(onion_buffer *data){
+	if (data->pos>=data->size)
+		return '\0'; // If not enought data, go to safe side.
+	return data->data[data->pos];
 }
 
 static onion_connection_status parse_POST_multipart_next(onion_request *req, onion_buffer *data);
@@ -564,6 +571,7 @@ static onion_connection_status parse_POST_multipart_ignore_header(onion_request 
 	
 	if (res<=1000)
 		return res;
+	token->pos=0;
 	
 	req->parser=parse_POST_multipart_headers_key;
 	return OCS_NEED_MORE_DATA;
@@ -659,6 +667,48 @@ static onion_connection_status parse_POST_urlencode(onion_request *req, onion_bu
 }
 
 static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffer *data);
+static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buffer *data);
+
+static onion_connection_status parse_headers_VALUE_skip_leading_whitespace(onion_request *req, onion_buffer *data){
+	while (data->pos<data->size){
+		char peek=data->data[data->pos++];
+		if (peek!='\t' && peek!=' '){
+			onion_token *token=req->parser_data;
+			if (peek=='\n')
+				return OCS_NEED_MORE_DATA;
+			token->str[token->pos++]=' ';
+			token->str[token->pos++]=peek;
+			req->parser=parse_headers_VALUE;
+			return parse_headers_VALUE(req, data);
+		}
+	}
+	return OCS_NEED_MORE_DATA;
+}
+
+static onion_connection_status parse_headers_VALUE_multiline_if_space(onion_request *req, onion_buffer *data){
+	char peek=token_peek_next_char(data);
+	ONION_DEBUG0("Multiline if space, peek %d",peek);
+	if (peek==0){
+		req->parser=parse_headers_VALUE_multiline_if_space;
+		return OCS_NEED_MORE_DATA;
+	}
+	if (peek==' ' || peek=='\t'){
+		req->parser=parse_headers_VALUE_skip_leading_whitespace;
+		return parse_headers_VALUE_skip_leading_whitespace(req, data);
+	}
+	onion_token *token=req->parser_data;
+	token->pos=0;
+
+	char *p=token->str; // skips leading spaces
+	while (isspace(*p)) p++;
+
+	ONION_DEBUG0("Adding header %s : %s",token->extra,p);
+	onion_dict_add(req->headers,token->extra,p, OD_DUP_VALUE|OD_FREE_KEY);
+	token->extra=NULL;
+	
+	req->parser=parse_headers_KEY;
+	return OCS_NEED_MORE_DATA; // Get back recursion if any, to prevent too long callstack (on long headers) and stack overflow.
+}
 
 static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
@@ -666,20 +716,14 @@ static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buf
 	
 	if (res<=1000)
 		return res;
-
-	char *p=token->str; // skips leading spaces
-	while (isspace(*p)) p++;
-	ONION_DEBUG0("Adding header %s : %s",token->extra,p);
-	onion_dict_add(req->headers,token->extra,p, OD_DUP_VALUE|OD_FREE_KEY);
-	token->extra=NULL;
 	
-	req->parser=parse_headers_KEY;
-	return OCS_NEED_MORE_DATA; // Get back recursion if any, to prevent too long callstack (on long headers) and stack ovrflow.
+	return parse_headers_VALUE_multiline_if_space(req, data);
 }
 
 
 static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffer *data){
 	onion_token *token=req->parser_data;
+	
 	int res=token_read_KEY(token, data);
 
 	if (res<=1000)
@@ -986,7 +1030,7 @@ static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req){
 	size_t cl=atol(content_size);
 	
 	if (cl>req->server->max_post_size){
-		ONION_ERROR("Trying to set more data at server than allowed");
+		ONION_ERROR("Trying to set more data at server than allowed %d", req->server->max_post_size);
 		return OCS_INTERNAL_ERROR;
 	}
 

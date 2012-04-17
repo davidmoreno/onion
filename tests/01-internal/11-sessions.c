@@ -298,6 +298,7 @@ void t04_lot_of_sessionid(){
   strcpy(tmp,"GET /\n");
   onion_request_write(req,tmp,strlen(tmp)); // Here is the problem, at parsing too long headers
   onion_request_write(req,tmp2,strlen(tmp2)); // Here is the problem, at parsing too long headers
+	onion_request_write(req,"\n",1);
   //onion_dict_add(req->headers, "Cookie", tmp2, 0);
   
   onion_request_process(req);
