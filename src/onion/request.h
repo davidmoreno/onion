@@ -157,6 +157,9 @@ onion_connection_status onion_request_process(onion_request *req);
 /// Get a string with a client description
 const char *onion_request_get_client_description(onion_request *req);
 
+/// Get the sockaddr_storage from the client, if any.
+struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, socklen_t *client_len);
+
 #ifdef __cplusplus
 }
 #endif

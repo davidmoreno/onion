@@ -2,6 +2,7 @@
 #include <onion/onion.h>
 #include <onion/log.h>
 #include <signal.h>
+#include <netdb.h>
 
 int hello(void *p, onion_request *req, onion_response *res){
 	//onion_response_set_length(res, 11);
@@ -10,6 +11,22 @@ int hello(void *p, onion_request *req, onion_response *res){
 		onion_response_printf(res, "<p>Path: %s", onion_request_get_query(req, "1"));
 	}
 	onion_response_printf(res,"<p>Client description: %s",onion_request_get_client_description(req));
+  
+  // Now using sockaddr_storage
+  struct sockaddr_storage *client_addr;
+  socklen_t client_len;
+  client_addr=onion_request_get_sockadd_storage(req, &client_len);
+  
+  char tmp[256];
+  getnameinfo((struct sockaddr *)client_addr, client_len, tmp, sizeof(tmp),
+    NULL, 0, NI_NUMERICHOST);
+  
+  onion_response_printf(res,"<p>Client description bis: %s", tmp);
+  tmp[0]=0;
+  getnameinfo((struct sockaddr *)client_addr, client_len, tmp, sizeof(tmp),
+    NULL, 0, NI_NAMEREQD);
+  onion_response_printf(res,"<p>Client name: %s", tmp);
+  
 	return OCS_PROCESSED;
 }
 

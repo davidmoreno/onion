@@ -531,3 +531,18 @@ const char *onion_request_get_client_description(onion_request *req){
   }
   return req->client_info;
 }
+
+/**
+ * @short Returns the sockaddr_storage pointer to the data client data as stored here.
+ * @memberof onion_request_t
+ * 
+ * @param req Request to get data from
+ * @param client_len The lenght of the returned sockaddr_storage
+ * @returns Pointer to the stored sockaddr_storage.
+ */
+struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, socklen_t *client_len){
+  if (client_len)
+    *client_len=req->client_len;
+  return &req->client_addr;
+}
+
