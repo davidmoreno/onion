@@ -20,6 +20,7 @@
 #define __ONION_REQUEST__
 
 #include <sys/types.h>
+#include <sys/socket.h>
 
 #include "types.h"
 
@@ -65,8 +66,11 @@ typedef enum onion_request_flags_e onion_request_flags;
 /// List of known methods. NULL empty space, position is the method as listed at the flags. @see onion_request_flags
 extern const char *onion_request_methods[16];
 
-/// Creates a request
+/// Creates a request with client info
 onion_request *onion_request_new(onion_server *server, void *socket, const char *client_info);
+
+/// Creates a request, with socket info.
+onion_request *onion_request_new_from_socket(onion_server *server, void *socket, struct sockaddr_storage *cli_addr, socklen_t cli_len);
 
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req);

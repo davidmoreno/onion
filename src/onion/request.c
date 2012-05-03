@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <netdb.h>
 
 #include "server.h"
 #include "dict.h"
@@ -66,13 +67,35 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	req->headers=onion_dict_new();
   onion_dict_set_flags(req->headers, OD_ICASE);
 	req->socket=socket;
-	if (client_info) // This is kept even on clean
-		req->client_info=strdup(client_info);
-	else
-		req->client_info=NULL;
+  if (client_info){
+    req->client_info=strdup(client_info);
+  }
+  req->client_len=0;
+  req->client_info=NULL;
 
   ONION_DEBUG0("Create request %p", req);
 	return req;
+}
+
+/**
+ * @short Creates a request object from a socket
+ * @memberof onion_request_t
+ * 
+ * This is the most common way to create a request, but alternative methods can use the onion_request_new.
+ * 
+ * @see onion_request_new
+ * @param server onion_server that will be used for writing and some other data
+ * @param socket Socket as needed by onion_server write method.
+ * @param cli_addr The sockaddr_storage * as returned from accept/accept4
+ * @param cli_len Length of the sockaddr_storage data.
+ */
+onion_request* onion_request_new_from_socket(onion_server* server, void* socket, struct sockaddr_storage* cli_addr, socklen_t cli_len){
+  onion_request *req=onion_request_new(server, socket, NULL);
+  if (cli_addr){
+    req->client_addr=*cli_addr;
+  }
+  req->client_len=cli_len;
+  return req;
 }
 
 /**
@@ -500,5 +523,11 @@ void onion_request_polish(onion_request *req){
  * @return A const char * with the client description
  */
 const char *onion_request_get_client_description(onion_request *req){
+  if (!req->client_info){
+    char tmp[256];
+    getnameinfo((struct sockaddr *)&req->client_addr, req->client_len, tmp, sizeof(tmp),
+          NULL, 0, NI_NUMERICHOST);
+    req->client_info=strdup(tmp);
+  }
   return req->client_info;
 }

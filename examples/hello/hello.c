@@ -15,14 +15,14 @@ int hello(void *p, onion_request *req, onion_response *res){
 
 onion *o=NULL;
 
-static void shutdown(int _){
+static void shutdown_server(int _){
 	if (o) 
 		onion_listen_stop(o);
 }
 
 int main(int argc, char **argv){
-	signal(SIGINT,shutdown);
-	signal(SIGTERM,shutdown);
+	signal(SIGINT,shutdown_server);
+	signal(SIGTERM,shutdown_server);
 	
 	o=onion_new(O_POOL);
 	onion_set_timeout(o, 5000);

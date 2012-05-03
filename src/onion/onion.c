@@ -206,7 +206,8 @@ static void onion_enable_tls(onion *o);
 struct onion_request_thread_data_t{
 	onion *o;
 	int clientfd;
-	const char *client_info;
+  struct sockaddr_storage client_addr;
+  socklen_t client_len;
 	pthread_t thread_handle;
 };
 
@@ -216,7 +217,7 @@ static void *onion_request_thread(void*);
 #endif
 
 /// Internal processor of just one request.
-static void onion_process_request(onion *o, int clientfd, const char *client_info);
+static void onion_process_request(onion *o, int clientfd, struct sockaddr_storage *client_addr, socklen_t client_len);
 
 /// Accepts a request.
 static int onion_accept_request(onion *o);
@@ -376,11 +377,10 @@ static __attribute__((unused)) void *onion_poller_adaptor(void *o){
  * 
  * @returns new connection socket file descriptor
  */
-static int onion_accept(onion *o, char *cli_info, size_t info_len){
-  struct sockaddr_storage cli_addr;
-  socklen_t clilen = sizeof(cli_addr);
+static int onion_accept(onion *o, struct sockaddr_storage *cli_addr, socklen_t *clilen){
+  *clilen = sizeof(cli_addr);
 
-  int clientfd=accept4(o->listenfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_CLOEXEC);
+  int clientfd=accept4(o->listenfd, (struct sockaddr *) cli_addr, clilen, SOCK_CLOEXEC);
   if (clientfd<0){
     ONION_ERROR("Error accepting connection: %s",strerror(errno));
     return -1;
@@ -406,10 +406,7 @@ static int onion_accept(onion *o, char *cli_info, size_t info_len){
     }
   }
   
-  getnameinfo((struct sockaddr *)&cli_addr, clilen, cli_info, info_len, 
-              NULL, 0, NI_NUMERICHOST);
-  
-  ONION_DEBUG("Accepted connection from %s",cli_info);
+  ONION_DEBUG("Accepted connection");
   return clientfd;
 }
 
@@ -571,8 +568,9 @@ int onion_listen(onion *o){
 		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
 		
 		while(1){
-      char address[64];
-      int clientfd=onion_accept(o, address, sizeof(address));
+      struct sockaddr_storage cli_addr;
+      socklen_t cli_len;
+      int clientfd=onion_accept(o, &cli_addr, &cli_len);
       
       if (clientfd<0)
         return errno;
@@ -589,7 +587,8 @@ int onion_listen(onion *o){
 			onion_request_thread_data *data=malloc(sizeof(onion_request_thread_data)); 
 			data->o=o;
 			data->clientfd=clientfd;
-			data->client_info=address;
+			data->client_addr=cli_addr;
+      data->client_len=cli_len;
 			
 			pthread_create(&data->thread_handle, &attr, onion_request_thread, data);
 		}
@@ -699,7 +698,7 @@ void onion_set_max_threads(onion *onion, int max_threads){
 #endif
 }
 
-static onion_request *onion_connection_start(onion *o, int clientfd, const char *client_info);
+static onion_request *onion_connection_start(onion *o, int clientfd, struct sockaddr_storage *cli_addr, socklen_t cli_len);
 static onion_connection_status onion_connection_read(onion_request *req);
 static void onion_connection_shutdown(onion_request *req);
 
@@ -711,14 +710,15 @@ static void onion_connection_shutdown(onion_request *req);
  * @returns 0 if ok, <0 if error.
  */
 static int onion_accept_request(onion *o){
-  char address[64];
-  int clientfd=onion_accept(o, address, sizeof(address));
+  struct sockaddr_storage cli_addr;
+  socklen_t cli_len;
+  int clientfd=onion_accept(o, &cli_addr, &cli_len);
   
   if (clientfd<0)
     return -1;
   
 	if (o->flags&O_POLL){
-		onion_request *req=onion_connection_start(o, clientfd, address);
+		onion_request *req=onion_connection_start(o, clientfd, &cli_addr, cli_len);
 		if (!req){
       shutdown(clientfd,SHUT_RDWR); // Socket must be destroyed.
       close(clientfd);
@@ -731,13 +731,13 @@ static int onion_accept_request(onion *o){
 		onion_poller_add(o->poller, slot);
 	}
 	else{
-		onion_process_request(o, clientfd, address);
+		onion_process_request(o, clientfd, &cli_addr, cli_len);
 	}
 	return 0;
 }
 
 /// Initializes the connection, create request, sets up the SSL...
-static onion_request *onion_connection_start(onion *o, int clientfd, const char *client_info){
+static onion_request *onion_connection_start(onion *o, int clientfd, struct sockaddr_storage *cli_addr, socklen_t cli_len){
   signal(SIGPIPE, SIG_IGN); // FIXME. remove the thread better. Now it will try to write and fail on it.
   
 	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
@@ -758,7 +758,7 @@ static onion_request *onion_connection_start(onion *o, int clientfd, const char 
 		onion_server_set_write(o->server, (onion_write)gnutls_record_send); // Im lucky, has the same signature.
 		onion_server_set_read(o->server, (onion_read)gnutls_record_recv); // Im lucky, has the same signature.
 		onion_server_set_close(o->server, (onion_close)onion_ssl_close);
-		req=onion_request_new(o->server, session, client_info);
+		req=onion_request_new_from_socket(o->server, session, cli_addr, cli_len);
 	}
 	else
 #endif
@@ -766,7 +766,7 @@ static onion_request *onion_connection_start(onion *o, int clientfd, const char 
 		onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
 		onion_server_set_read(o->server, (onion_read)onion_read_from_socket);
 		onion_server_set_close(o->server, (onion_close)onion_close_socket);
-		req=onion_request_new(o->server, (void*)(long int)clientfd, client_info);
+		req=onion_request_new_from_socket(o->server, (void*)(long int)clientfd, cli_addr, cli_len);
 	}
 	req->fd=clientfd;
 	if (!( (o->flags&O_THREADED) || (o->flags&O_POLL) ))
@@ -817,9 +817,9 @@ static void onion_connection_shutdown(onion_request *req){
  * @param o Onion struct.
  * @param clientfd is the POSIX file descriptor of the connection.
  */
-static void onion_process_request(onion *o, int clientfd, const char *client_info){
-	ONION_DEBUG0("Processing request from %s", client_info);
-	onion_request *req=onion_connection_start(o, clientfd, client_info);
+static void onion_process_request(onion *o, int clientfd, struct sockaddr_storage *client_addr, socklen_t client_len){
+	ONION_DEBUG0("Processing request");
+	onion_request *req=onion_connection_start(o, clientfd, client_addr, client_len);
   if (!req){
     close(clientfd);
     return;
@@ -831,7 +831,7 @@ static void onion_process_request(onion *o, int clientfd, const char *client_inf
 	while ((cs>=0) && (poll(&pfd,1, o->timeout)>0)){
 		cs=onion_connection_read(req);
 	}
-	ONION_DEBUG0("Shutdown connection %s",client_info);
+	ONION_DEBUG0("Shutdown connection");
 	onion_connection_shutdown(req);
 }
 
@@ -967,7 +967,7 @@ static void *onion_request_thread(void *d){
 	onion *o=td->o;
 	
 	//ONION_DEBUG0("Open connection %d",td->clientfd);
-	onion_process_request(o,td->clientfd, td->client_info);
+	onion_process_request(o,td->clientfd, &td->client_addr, td->client_len);
 		
 	//ONION_DEBUG0("Closed connection %d",td->clientfd);
 	free(td);

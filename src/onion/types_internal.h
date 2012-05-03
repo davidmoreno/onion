@@ -20,6 +20,8 @@
 #define __ONION_TYPES_INTERNAL__
 
 #include <sys/types.h>
+#include <unistd.h>
+#include <sys/socket.h>
 
 #include "types.h"
 
@@ -105,6 +107,9 @@ struct onion_request_t{
 	char *client_info;    /// A string that describes the client, normally the IP.
 	
 	int fd; 							/// Helper that stores the original fd
+	
+	struct sockaddr_storage client_addr; /// Info as stored by TCP/IP, so that handlers can get as much data as needed from peer
+	socklen_t client_len;	               /// Size of the sockaddr_storage as needed.
 };
 
 struct onion_response_t{
