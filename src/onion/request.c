@@ -92,7 +92,7 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 onion_request* onion_request_new_from_socket(onion_server* server, void* socket, struct sockaddr_storage* cli_addr, socklen_t cli_len){
   onion_request *req=onion_request_new(server, socket, NULL);
   if (cli_addr){
-    req->client_addr=*cli_addr;
+    memcpy(&req->client_addr,cli_addr, cli_len);
   }
   req->client_len=cli_len;
   return req;
@@ -543,6 +543,8 @@ const char *onion_request_get_client_description(onion_request *req){
 struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, socklen_t *client_len){
   if (client_len)
     *client_len=req->client_len;
+	if (req->client_len==0)
+		return NULL;
   return &req->client_addr;
 }
 

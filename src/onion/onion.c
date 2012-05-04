@@ -446,7 +446,6 @@ int onion_listen(onion *o){
 		}
 	}
 #endif
-	char address[64];
 	if (sockfd==0){
 		struct addrinfo hints;
 		struct addrinfo *result, *rp;
@@ -491,11 +490,13 @@ int onion_listen(onion *o){
 			return errno;
 		}
 
+#ifdef __DEBUG__
+		char address[64];
 		getnameinfo(rp->ai_addr, rp->ai_addrlen, address, 32,
 								&address[32], 32, NI_NUMERICHOST | NI_NUMERICSERV);
 		ONION_DEBUG("Listening to %s:%s",address,&address[32]);
+#endif
 		freeaddrinfo(result);
-		
 		listen(sockfd,5); // queue of only 5.
 	}
 	o->listenfd=sockfd;

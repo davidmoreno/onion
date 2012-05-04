@@ -18,6 +18,7 @@
 
 #include <malloc.h>
 #include <string.h>
+#include <netdb.h>
 
 #include <onion/dict.h>
 #include <onion/server.h>
@@ -332,6 +333,78 @@ void t07_multiline_headers(){
 	END_LOCAL();
 }
 
+void t08_sockaddr_storage(){
+	INIT_LOCAL();
+	onion_request *req;
+	
+	
+	{
+		struct sockaddr_storage client_addr;
+		socklen_t client_len=0;
+		
+		req=onion_request_new_from_socket(NULL, NULL, &client_addr, client_len);
+		FAIL_IF_EQUAL(onion_request_get_sockadd_storage(req, NULL), &client_addr);
+		FAIL_IF_EQUAL(onion_request_get_sockadd_storage(req, &client_len), &client_addr);
+		FAIL_IF_NOT_EQUAL_INT(client_len, 0);
+		onion_request_free(req);
+	}
+	
+	{
+		struct sockaddr_storage *client_addr;
+		socklen_t client_len=0;
+		struct addrinfo hints;
+		struct addrinfo *result, *rp;
+		char hostA[128], portA[16];
+		char hostB[128], portB[16];
+		
+		memset(&hints,0, sizeof(struct addrinfo));
+		hints.ai_canonname=NULL;
+		hints.ai_addr=NULL;
+		hints.ai_next=NULL;
+		hints.ai_socktype=SOCK_STREAM;
+		hints.ai_family=AF_UNSPEC;
+		hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
+
+		int err=getaddrinfo("localhost","8080", &hints, &result);
+		FAIL_IF_NOT_EQUAL_INT(err,0);
+		if (err!=0)
+			goto exit;
+		for(rp=result;rp!=NULL;rp=rp->ai_next){
+			memset(hostA,0,sizeof(hostA));
+			memset(hostB,0,sizeof(hostB));
+			memset(portA,0,sizeof(portA));
+			memset(portB,0,sizeof(portB));
+			
+			getnameinfo(rp->ai_addr, rp->ai_addrlen, hostA, sizeof(hostA), portA, sizeof(portA), NI_NUMERICHOST | NI_NUMERICSERV);
+			req=onion_request_new_from_socket(NULL, NULL,(struct sockaddr_storage *)rp->ai_addr, rp->ai_addrlen);
+			client_addr=onion_request_get_sockadd_storage(req, &client_len);
+			FAIL_IF_EQUAL(client_addr, (struct sockaddr_storage *)rp->ai_addr);
+			FAIL_IF_EQUAL(client_addr, NULL);
+			
+			getnameinfo((struct sockaddr *)client_addr, client_len, hostB, sizeof(hostB), portB, sizeof(portB), NI_NUMERICHOST | NI_NUMERICSERV);
+			
+			FAIL_IF_NOT_EQUAL_STR(hostA, hostB);
+			FAIL_IF_NOT_EQUAL_STR(portA, portB);
+			FAIL_IF_NOT_EQUAL_STR(hostA, onion_request_get_client_description(req));
+			onion_request_free(req);
+		}
+		freeaddrinfo(result);
+		
+	}
+	
+	{
+		req=onion_request_new(NULL, NULL, NULL);
+		struct sockaddr_storage *client_addr;
+		socklen_t client_len;
+		client_addr=onion_request_get_sockadd_storage(req, &client_len);
+		FAIL_IF_NOT_EQUAL(client_addr, NULL);
+		onion_request_free(req);
+	}
+	
+exit:
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
   START();
   
@@ -343,6 +416,7 @@ int main(int argc, char **argv){
 	t05_create_add_free_POST();
 	t06_create_add_free_POST_toobig();
 	t07_multiline_headers();
+  t08_sockaddr_storage();
 	teardown();
 	END();
 }
