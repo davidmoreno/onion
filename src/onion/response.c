@@ -366,6 +366,9 @@ const char *onion_response_code_description(int code){
 		case HTTP_MULTI_STATUS:
 			return "MULTI STATUS";
 			
+		case HTTP_SWITCH_PROTOCOL:
+			return "SWITCHING PROTOCOLS";
+			
 		case HTTP_MOVED:
 			return "MOVED";
 		case HTTP_REDIRECT:

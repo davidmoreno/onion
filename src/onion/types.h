@@ -19,6 +19,11 @@
 #ifndef __ONION_TYPES__
 #define __ONION_TYPES__
 
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 /**
  * @struct onion_dict_t
  * @short A 'char *' to 'char *' dictionary.
@@ -118,6 +123,13 @@ typedef struct onion_poller_slot_t onion_poller_slot;
 
 
 /**
+ * @struct onion_websocket_t
+ * @short Websocket data type, as returned by onion_request_get_websocket
+ */
+struct onion_websocket_t;
+typedef struct onion_websocket_t onion_websocket;
+
+/**
  * @short Prototype for the writing on the socket function.
  *
  * It can safely be just fwrite, with handler the FILE*, or write with the handler the fd.
@@ -208,6 +220,7 @@ enum onion_connection_status_e{
 	OCS_PROCESSED=2,
 	OCS_CLOSE_CONNECTION=-2,
 	OCS_KEEP_ALIVE=3,
+	OCS_WEBSOCKET=4,
 	OCS_INTERNAL_ERROR=-500,
 	OCS_NOT_IMPLEMENTED=-501,
   OCS_FORBIDDEN=-502,
@@ -221,6 +234,28 @@ typedef onion_connection_status (*onion_handler_handler)(void *privdata, onion_r
 /// Signature of free function of private data of request handlers
 typedef void (*onion_handler_private_data_free)(void *privdata);
 
+/**
+ * @short Prototype for websocket callbacks
+ * 
+ * The callbacks are the functions to be called when new data is available on websockets.
+ * 
+ * They are not mandatory, but when used they can be changed from the callback itself, using
+ * onion_websocket_set_callback. If data is left for read after a callback call, next callback is 
+ * called with that data. If same callback stays, and no data has been consumed, it will not 
+ * be called until new data is available. 
+ * 
+ * The privte data is that of the original request handler.
+ * 
+ * This chaining of callbacks allows easy creation of state machines. 
+ * 
+ * @returns OCS_INTERNAL_ERROR | OCS_CLOSE_CONNECTION | OCS_NEED_MORE_DATA. Other returns result in OCS_INTERNAL_ERROR.
+ */
+typedef onion_connection_status (*onion_websocket_callback_t)(void *privdata, onion_websocket *ws, size_t data_ready_length);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

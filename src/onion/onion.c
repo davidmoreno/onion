@@ -335,7 +335,10 @@ int onion_write_to_socket(int *fd, const char *data, unsigned int len){
  * @memberof onion_t
  */
 int onion_read_from_socket(int *fd, char *data, unsigned int len){
-	return read((long int)fd, data, len);
+	ONION_DEBUG("Prepare for read %d", len);
+	int r=read((long int)fd, data, len);
+	ONION_DEBUG("Read some Data %d, got %d, %d", len,r,(long int)fd);
+	return r;
 }
 
 void onion_close_socket(int *socket){

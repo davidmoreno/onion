@@ -145,6 +145,9 @@ void onion_request_free(onion_request *req){
 	if (req->data)
 		onion_block_free(req->data);
 
+	if (req->websocket)
+		free(req->websocket);
+	
 	free(req);
 }
 

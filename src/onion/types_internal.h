@@ -110,6 +110,8 @@ struct onion_request_t{
 	
 	struct sockaddr_storage client_addr; /// Info as stored by TCP/IP, so that handlers can get as much data as needed from peer
 	socklen_t client_len;	               /// Size of the sockaddr_storage as needed.
+	
+	onion_websocket *websocket; /// Websocket handler. 
 };
 
 struct onion_response_t{
@@ -153,6 +155,11 @@ typedef struct onion_block_t{
 struct onion_url_data_t;
 typedef struct onion_url_data_t onion_url_data;
 
+
+struct onion_websocket_t{
+	onion_request *req; /// Associated request
+	onion_websocket_callback_t callback; /// Callback to call, if any, when new data is available.
+};
 
 #ifdef __cplusplus
 }

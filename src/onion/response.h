@@ -33,6 +33,9 @@ extern "C"{
  * Check other sources for complete listings.
  */
 enum onion_response_codes_e{
+	//
+	HTTP_SWITCH_PROTOCOL=101,
+	
 	// OK codes
 	HTTP_OK=200,
 	HTTP_CREATED=201,
