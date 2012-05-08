@@ -236,6 +236,7 @@ typedef void (*onion_handler_private_data_free)(void *privdata);
 
 /**
  * @short Prototype for websocket callbacks
+ * @memberof onion_websocket_t
  * 
  * The callbacks are the functions to be called when new data is available on websockets.
  * 

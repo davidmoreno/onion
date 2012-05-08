@@ -33,6 +33,7 @@
 #include "log.h"
 #include "sessions.h"
 #include "block.h"
+#include "websocket.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 
@@ -146,7 +147,7 @@ void onion_request_free(onion_request *req){
 		onion_block_free(req->data);
 
 	if (req->websocket)
-		free(req->websocket);
+		onion_websocket_free(req->websocket);
 	
 	free(req);
 }

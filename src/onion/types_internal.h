@@ -159,6 +159,15 @@ typedef struct onion_url_data_t onion_url_data;
 struct onion_websocket_t{
 	onion_request *req; /// Associated request
 	onion_websocket_callback_t callback; /// Callback to call, if any, when new data is available.
+	
+	void *user_data;
+	void (*free_user_data)(void *);
+	
+	int64_t data_left;
+	char mask[4];
+	int8_t mask_pos;
+	int8_t flags; /// Defined at websocket.c
+	int8_t opcode;
 };
 
 #ifdef __cplusplus
