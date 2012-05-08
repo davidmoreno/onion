@@ -19,6 +19,7 @@
 #ifndef __ONION_TYPES__
 #define __ONION_TYPES__
 
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C"{
