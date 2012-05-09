@@ -125,7 +125,13 @@ typedef struct onion_poller_slot_t onion_poller_slot;
 
 /**
  * @struct onion_websocket_t
- * @short Websocket data type, as returned by onion_request_get_websocket
+ * @short Websocket data type, as returned by onion_websocket_new
+ * 
+ * FIXME: Some websocket description on how to use.
+ * 
+ * Ping requests (client->server) are handled internally. pong answers are not (server->client).
+ * 
+ * When a ping request is received, callback may be called with length=0, and no data waiting to be read.
  */
 struct onion_websocket_t;
 typedef struct onion_websocket_t onion_websocket;
@@ -228,6 +234,20 @@ enum onion_connection_status_e{
 };
 
 typedef enum onion_connection_status_e onion_connection_status;
+
+/**
+ * @short Types of fragments that websockets support
+ * @memberof onion_websocket_t
+ */
+enum onion_websocket_opcode_e{
+	OWS_TEXT=1,
+	OWS_BINARY=2,
+	OWS_CONNECTION_CLOSE=8,
+	OWS_PING=0x0a,
+	OWS_PONG=0x0b
+};
+
+typedef enum onion_websocket_opcode_e onion_websocket_opcode;
 
 
 /// Signature of request handlers.

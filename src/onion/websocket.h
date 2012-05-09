@@ -27,6 +27,7 @@ extern "C"{
 #include <stddef.h>
 #include "types.h"
 
+
 /// Get the current websocket handler, or create it. If not a websocket request, returns NULL
 onion_websocket *onion_websocket_new(onion_request *req, onion_response *res);
 void onion_websocket_free(onion_websocket *ws);
@@ -36,7 +37,8 @@ int onion_websocket_read(onion_websocket *ws, char *buffer, size_t len);
 int onion_websocket_write(onion_websocket *ws, const char *buffer, size_t len);
 int onion_websocket_printf(onion_websocket *ws, const char *str, ...);
 onion_connection_status onion_websocket_call(onion_websocket *ws);
-
+void onion_websocket_set_opcode(onion_websocket *ws, onion_websocket_opcode opcode);
+onion_websocket_opcode onion_websocket_get_opcode(onion_websocket *ws);
 
 #ifdef __cplusplus
 }

@@ -167,7 +167,7 @@ struct onion_websocket_t{
 	char mask[4];
 	int8_t mask_pos;
 	int8_t flags; /// Defined at websocket.c
-	int8_t opcode;
+	onion_websocket_opcode opcode:4;
 };
 
 #ifdef __cplusplus

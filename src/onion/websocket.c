@@ -34,15 +34,6 @@ enum onion_websocket_flags_e{
 	WS_MASK=2,
 };
 
-enum onion_websocket_opcodes_e{
-	WS_CONTINUATION=0x0100 + 0,
-	WS_TEXT=0x0100 + 1,
-	WS_BINARY=0x0100 + 2,
-	WS_CONNECTION_CLOSE=0x0100 + 8,
-	WS_PING=0x010 + 0x0a,
-	WS_PONG=0x010 + 0x0b,
-};
-
 static int onion_websocket_read_packet_header(onion_websocket *ws);
 
 const static char *websocket_magic_13="258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -54,6 +45,8 @@ const static int websocket_magic_13_length=36;
  * 
  * It makes all the checks about it being a proper websocket connection, and returns the 
  * websocket object.
+ * 
+ * Default opcode mode is OWS_TEXT.
  * 
  * @param req The request
  * @param res The response
@@ -120,6 +113,7 @@ onion_websocket* onion_websocket_new(onion_request* req, onion_response *res)
 	ret->flags=0;
 	ret->user_data=req->data;
 	ret->free_user_data=NULL;
+	ret->opcode=OWS_TEXT;
 	
 	req->websocket=ret;
 	
@@ -161,7 +155,7 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 	{
 		char header[16];
 		int hlen=2;
-		header[0]=0x81; // Also final in fragment.
+		header[0]=0x80|(ws->opcode&0x0F); // Also final in fragment.
 		header[1]=0x80; // With mask
 		if (len<126)
 			header[1]|=len;
@@ -367,6 +361,15 @@ static int onion_websocket_read_packet_header(onion_websocket *ws){
 		if (r!=4){ ONION_DEBUG("Error reading header"); return -1; }
 		ws->mask_pos=0;
 	}
+	
+	if (ws->opcode==OWS_PING){ // I do answer ping myself.
+		onion_websocket_set_opcode(ws, OWS_PONG);
+		char *data=malloc(ws->data_left);
+		ssize_t r=onion_websocket_read(ws,data, ws->data_left);
+		
+		onion_websocket_write(ws, data, r);
+	}
+	
 	return 0;
 	//ONION_DEBUG("Mask %02X %02X %02X %02X", ws->mask[0]&0x0FF, ws->mask[1]&0x0FF, ws->mask[2]&0x0FF, ws->mask[3]&0x0FF);
 }
@@ -413,3 +416,32 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 		return ret;
 	return OCS_INTERNAL_ERROR;
 }
+
+/**
+ * @short Sets the opcode for the websocket
+ * 
+ * This can be called before writes to change the meaning of the write. 
+ * 
+ * WARNING: If untouched, its the opcode of the last received fragment. 
+ * 
+ * This is the normal desired way, as if server talks to you in text normally you answer in text, 
+ * and so on.
+ * 
+ * @param ws The websocket
+ * @param opcode The new opcode, from onion_websocket_opcode enum (matches specification numbers)
+ */
+void onion_websocket_set_opcode(onion_websocket *ws, onion_websocket_opcode opcode){
+	ws->opcode=opcode;
+}
+
+/**
+ * @short Returns current in use opcodes
+ * 
+ * @param ws The websocket
+ * @returns The current opcodes in use
+ */
+onion_websocket_opcode onion_websocket_get_opcode(onion_websocket* ws)
+{
+	return ws->opcode;
+}
+
