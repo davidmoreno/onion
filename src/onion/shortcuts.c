@@ -50,7 +50,7 @@ int onion_write_to_socket(int *fd, const char *data, unsigned int len);
  * Prepares a fast response. You pass only the request, the text and the code, and it do the full response
  * object and sends the data.
  */
-int onion_shortcut_response(const char* response, int code, onion_request* req, onion_response *res)
+onion_connection_status onion_shortcut_response(const char* response, int code, onion_request* req, onion_response *res)
 {
 	return onion_shortcut_response_extra_headers(response, code, req, res, NULL);
 }
@@ -64,7 +64,7 @@ int onion_shortcut_response(const char* response, int code, onion_request* req, 
  * 
  * On this version you also pass a NULL terminated list of headers, in key, value pairs.
  */
-int onion_shortcut_response_extra_headers(const char* response, int code, onion_request* req, onion_response *res, ... ){
+onion_connection_status onion_shortcut_response_extra_headers(const char* response, int code, onion_request* req, onion_response *res, ... ){
 	unsigned int l=strlen(response);
 	const char *key, *value;
 	
@@ -96,14 +96,14 @@ int onion_shortcut_response_extra_headers(const char* response, int code, onion_
  * 
  * The browser message is fixed; if need more flexibility, create your own redirector.
  */
-int onion_shortcut_redirect(const char *newurl, onion_request *req, onion_response *res){
+onion_connection_status onion_shortcut_redirect(const char *newurl, onion_request *req, onion_response *res){
 	return onion_shortcut_response_extra_headers("<h1>302 - Moved</h1>", HTTP_REDIRECT, req, res,
 																							 "Location", newurl, NULL );
 }
 
 
 /// Shortcut for fast internal redirect. It returns what the server would return with the new address.
-int onion_shortcut_internal_redirect(const char *newurl, onion_request *req, onion_response *res){
+onion_connection_status onion_shortcut_internal_redirect(const char *newurl, onion_request *req, onion_response *res){
   free(req->fullpath);
   req->fullpath=req->path=strdup(newurl);
   return onion_handler_handle(req->server->root_handler, req, res);
@@ -119,7 +119,7 @@ int onion_shortcut_internal_redirect(const char *newurl, onion_request *req, oni
  * 
  * It does no security checks, so caller must be security aware.
  */
-int onion_shortcut_response_file(const char *filename, onion_request *request, onion_response *res){
+onion_connection_status onion_shortcut_response_file(const char *filename, onion_request *request, onion_response *res){
 	int fd=open(filename,O_RDONLY|O_CLOEXEC);
 	
 	if (fd<0)
@@ -258,7 +258,7 @@ int onion_shortcut_response_file(const char *filename, onion_request *request, o
  * 
  * It converts to json the passed dict and returns it. The dict is freed before returning.
  */
-int onion_shortcut_response_json(onion_dict *d, onion_request *req, onion_response *res){
+onion_connection_status onion_shortcut_response_json(onion_dict *d, onion_request *req, onion_response *res){
 	onion_response_set_header(res, "Content-Type", "application/json");
 	
 	onion_block *bl=onion_dict_to_json(d);

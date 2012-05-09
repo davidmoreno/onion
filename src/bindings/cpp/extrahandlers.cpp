@@ -16,39 +16,24 @@
   License along with this library; if not see <http://www.gnu.org/licenses/>.
   */
 
-#include "handler.hpp"
+#include "extrahandlers.hpp"
 #include "request.hpp"
 #include "response.hpp"
 #include <onion/shortcuts.h>
 
-static onion_connection_status onion_handler_call_operator(void *ptr, onion_request *_req, onion_response *_res){
-  try{
-    Onion::Handler *handler=(Onion::Handler*)ptr;
-    Onion::Request req(_req);
-    Onion::Response res(_res);
-    return (*handler)(req, res);
-  }
-  catch(const Onion::HttpInternalError &e){
-		return onion_shortcut_response(e.what(), HTTP_INTERNAL_ERROR, _req, _res);
-	}
-  catch(const std::exception &e){
-    ONION_ERROR("Catched exception: %s", e.what());
-    return OCS_INTERNAL_ERROR;
-  }
-}
+using namespace Onion;
 
-static void onion_handler_delete_operator(void *ptr){
-  Onion::Handler *handler=(Onion::Handler*)ptr;
-  delete handler;
-}
-
-Onion::Handler::Handler()
+StaticHandler::StaticHandler(const std::string& _path) : path(_path)
 {
-  ptr=onion_handler_new(onion_handler_call_operator, this, onion_handler_delete_operator);
+	
 }
 
-Onion::Handler::~Handler()
+StaticHandler::~StaticHandler()
 {
 
 }
 
+onion_connection_status StaticHandler::operator()(Request &req, Response &res)
+{
+	return onion_shortcut_response_file((path+req.path()).c_str(), req.c_handler(), res.c_handler());
+}

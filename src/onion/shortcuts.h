@@ -30,22 +30,22 @@ extern "C"{
 struct stat;
 
 /// Shortcut for fast responses, like errors.
-int onion_shortcut_response(const char *response, int code, onion_request *req, onion_response *res);
+onion_connection_status onion_shortcut_response(const char *response, int code, onion_request *req, onion_response *res);
 
 /// Shortcut for fast responses, like errors, with extra headers.
-int onion_shortcut_response_extra_headers(const char *response, int code, onion_request *req, onion_response *res, ...);
+onion_connection_status onion_shortcut_response_extra_headers(const char *response, int code, onion_request *req, onion_response *res, ...);
 
 /// Shortcut for fast redirect. It tells the browser to look somewhere else.
-int onion_shortcut_redirect(const char *newurl, onion_request *req, onion_response *res);
+onion_connection_status onion_shortcut_redirect(const char *newurl, onion_request *req, onion_response *res);
 
 /// Shortcut for fast internal redirect. It returns what the server would return with the new address.
-int onion_shortcut_internal_redirect(const char *newurl, onion_request *req, onion_response *res);
+onion_connection_status onion_shortcut_internal_redirect(const char *newurl, onion_request *req, onion_response *res);
 
 /// Shortcut for response a static file on disk
-int onion_shortcut_response_file(const char *filename, onion_request *req, onion_response *res);
+onion_connection_status onion_shortcut_response_file(const char *filename, onion_request *req, onion_response *res);
 
 /// Shortcut for response json data. Dict is freed before return.
-int onion_shortcut_response_json(onion_dict *d, onion_request *req, onion_response *res);
+onion_connection_status onion_shortcut_response_json(onion_dict *d, onion_request *req, onion_response *res);
 
 /// Shortcut to return the date in "RFC 822 / section 5, 4 digit years" date format. 
 void onion_shortcut_date_string(time_t t, char *dest);

@@ -60,6 +60,10 @@ namespace Onion{
     void setCode(int code){
       onion_response_set_code(ptr,code);
     }
+    
+    onion_response *c_handler(){
+			return ptr;
+		}
   };
   
 }

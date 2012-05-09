@@ -26,6 +26,7 @@
 namespace Onion{
   class Dict{
     onion_dict *ptr;
+		bool autodelete;
   public:
     class key_not_found : public std::exception{
       std::string msg;
@@ -35,8 +36,13 @@ namespace Onion{
       const char *what() const throw(){ return msg.c_str(); }
     };
     
-    Dict(onion_dict *_ptr) : ptr(_ptr){}
-    Dict(const onion_dict *_ptr) : ptr((onion_dict*)_ptr){} // FIXME, loses constness
+    Dict() : ptr(onion_dict_new()), autodelete(true){}
+    Dict(onion_dict *_ptr, bool autodelete=false) : ptr(_ptr), autodelete(autodelete){}
+    Dict(const onion_dict *_ptr) : ptr((onion_dict*)_ptr), autodelete(false){} // FIXME, loses constness
+    ~Dict(){
+			if (autodelete)
+				onion_dict_free(ptr);
+		}
     
     std::string operator[](const std::string &k) const{
       const char *ret=onion_dict_get(ptr, k.c_str());
@@ -66,6 +72,11 @@ namespace Onion{
     void add(const std::string &k, Dict &v, int flags=OD_DUP_ALL){
       onion_dict_add(ptr,k.c_str(),v.c_handle(),flags|OD_DICT);
     }
+    
+    /// Sets the autodelete on delete flag. Use with care.
+    void setAutodelete(bool s){
+			autodelete=s;
+		}
     
     onion_dict *c_handle(){
       return ptr;
