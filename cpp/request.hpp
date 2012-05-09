@@ -39,14 +39,28 @@ namespace Onion{
       return Dict(onion_request_get_header_dict(ptr));
     }
     const Dict post() const{
-      return Dict(onion_request_get_post_dict(ptr));
+			const onion_dict *d=onion_request_get_post_dict(ptr);
+			if (d)
+				return Dict(d);
+			else
+				return Dict();
     }
     const Dict query() const{
       return Dict(onion_request_get_query_dict(ptr));
     }
     const Dict session() const{
-      return Dict(onion_request_get_session_dict(ptr));
+			onion_dict *d=onion_request_get_session_dict(ptr);
+			if (d)
+				return Dict(d);
+			else
+				return Dict();
     }
+    std::string path() const{
+			return onion_request_get_path(ptr);
+		}
+		onion_request *c_handler(){
+			return ptr;
+		}
   };
 }
 

@@ -20,6 +20,8 @@
 #define __HANDLER_HPP__
 
 #include <onion/handler.h>
+#include <exception>
+#include <string>
 
 namespace Onion{
   class Request;
@@ -61,6 +63,34 @@ namespace Onion{
       fn(req, res);
     }
   };
+	
+	class HttpException : public std::exception{
+		std::string str;
+	public:
+		HttpException(const std::string &str) : str(str){}
+		virtual ~HttpException() throw(){}
+		const char *what() const throw(){ return str.c_str(); }
+		const std::string &message(){ return str; }
+	};
+	
+	class HttpInternalError : public HttpException{
+	public:
+		HttpInternalError(const std::string &str) : HttpException(str){};
+		virtual ~HttpInternalError() throw(){}
+	};
+	
+	class HttpNotFound : public HttpException{
+	public:
+		HttpNotFound(const std::string &str) : HttpException(str){};
+		virtual ~HttpNotFound() throw(){}
+	};
+
+	class HttpRedirect : public HttpException{
+	public:
+		HttpRedirect(const std::string &url) : HttpException(url){};
+		virtual ~HttpRedirect() throw(){}
+	};
+	
 };
 
 #endif
