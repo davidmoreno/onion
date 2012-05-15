@@ -255,6 +255,7 @@ onion *onion_new(int flags){
 	o->flags=flags&0x0FF;
 	o->listenfd=0;
 	o->server=onion_server_new();
+	o->server->onion=o;
 	o->timeout=5000; // 5 seconds of timeout, default.
 	o->port=strdup("8080");
 	o->hostname=strdup("::");

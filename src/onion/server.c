@@ -51,6 +51,7 @@ onion_server *onion_server_new(void){
 	ret->max_post_size=1024*1024; // 1MB
 	ret->max_file_size=1024*1024*1024; // 1GB
 	ret->sessions=onion_sessions_new();
+	ret->onion=NULL;
 	return ret;
 }
 
@@ -253,4 +254,14 @@ onion_connection_status onion_server_write_to_request(onion_server *server, onio
 	// This is one maybe unnecesary indirection, but helps when creating new "onion" like classes.
 	onion_connection_status connection_status=onion_request_write(request, data, len);
 	return connection_status;
+}
+
+/**
+ * @short Returns the onion struct if any
+ * @memberof onion_server_t
+ * 
+ * @returns The onion struct.
+ */
+onion *onion_server_get_onion(onion_server *o){
+	return o->onion;
 }

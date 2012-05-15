@@ -85,6 +85,7 @@ struct onion_server_t{
 	size_t max_post_size;					/// Maximum size of post data. This is the sum of posts, @see onion_request_write_post
 	size_t max_file_size;					/// Maximum size of files. @see onion_request_write_post
 	onion_sessions *sessions;			/// Storage for sessions.
+	struct onion_t *onion;				/// Access to parent onion.
 };
 
 struct onion_request_t{
