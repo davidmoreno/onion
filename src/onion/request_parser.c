@@ -393,7 +393,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request *req, oni
 			}
 		}
 		else{
-			if (multipart->file_total_size>req->server->max_file_size){
+			if (multipart->file_total_size>req->connection->listen_point->server->max_file_size){
 				ONION_ERROR("Files on this post too big. Aborting.");
 				return OCS_INTERNAL_ERROR;
 			}
@@ -850,7 +850,6 @@ onion_connection_status onion_request_write(onion_request *req, const char *data
 		token=req->parser_data=malloc(sizeof(onion_token));
 		memset(token,0,sizeof(onion_token));
 		req->parser=parse_headers_GET;
-		req->parser_data=token;
 	}
 	else
 		token=req->parser_data;
@@ -971,8 +970,8 @@ static onion_connection_status prepare_POST(onion_request *req){
 	size_t cl=atol(content_size);
 	//ONION_DEBUG("Content type %s",content_type);
 	if (!content_type || (strstr(content_type, "application/x-www-form-urlencoded"))){
-		if (cl>req->server->max_post_size){
-			ONION_ERROR("Asked to send much POST data. Limit %d. Failing.",req->server->max_post_size);
+		if (cl>req->connection->listen_point->server->max_post_size){
+			ONION_ERROR("Asked to send much POST data. Limit %d. Failing.",req->connection->listen_point->server->max_post_size);
 			return OCS_INTERNAL_ERROR;
 		}
 		token->extra=malloc(cl+1); // Cl + \0
@@ -990,8 +989,8 @@ static onion_connection_status prepare_POST(onion_request *req){
 		return OCS_INTERNAL_ERROR;
 	}
 	mp_token+=9;
-	if (cl>req->server->max_post_size) // I hope the missing part is files, else error later.
-		cl=req->server->max_post_size;
+	if (cl>req->connection->listen_point->server->max_post_size) // I hope the missing part is files, else error later.
+		cl=req->connection->listen_point->server->max_post_size;
 	
 	int mp_token_size=strlen(mp_token);
 	token->extra_size=cl; // Max size of the multipart->data
@@ -1029,8 +1028,8 @@ static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req){
 	}
 	size_t cl=atol(content_size);
 	
-	if (cl>req->server->max_post_size){
-		ONION_ERROR("Trying to set more data at server than allowed %d", req->server->max_post_size);
+	if (cl>req->connection->listen_point->server->max_post_size){
+		ONION_ERROR("Trying to set more data at server than allowed %d", req->connection->listen_point->server->max_post_size);
 		return OCS_INTERNAL_ERROR;
 	}
 
@@ -1058,7 +1057,7 @@ static onion_connection_status prepare_PUT(onion_request *req){
 	}
 	size_t cl=atol(content_size);
 
-	if (cl>req->server->max_file_size){
+	if (cl>req->connection->listen_point->server->max_file_size){
 		ONION_ERROR("Trying to PUT a file bigger than allowed size");
 		return OCS_INTERNAL_ERROR;
 	}

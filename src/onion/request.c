@@ -23,16 +23,15 @@
 #include <ctype.h>
 #include <netdb.h>
 
-#include "server.h"
 #include "dict.h"
 #include "request.h"
 #include "response.h"
 #include "handler.h"
-#include "server.h"
 #include "types_internal.h"
 #include "log.h"
 #include "sessions.h"
 #include "block.h"
+#include "connection.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 
@@ -58,44 +57,16 @@ const char *onion_request_methods[16]={
  * @param socket Socket as needed by onion_server write method.
  * @param client_info String that describes the client, for example, the IP address.
  */
-onion_request *onion_request_new(onion_server *server, void *socket, const char *client_info){
+onion_request *onion_request_new(onion_connection *con){
 	onion_request *req;
 	req=malloc(sizeof(onion_request));
 	memset(req,0,sizeof(onion_request));
 	
-	req->server=server;
+	req->connection=con;
 	req->headers=onion_dict_new();
   onion_dict_set_flags(req->headers, OD_ICASE);
-	req->socket=socket;
-  if (client_info){
-    req->client_info=strdup(client_info);
-  }
-  req->client_len=0;
-  req->client_info=NULL;
-
   ONION_DEBUG0("Create request %p", req);
 	return req;
-}
-
-/**
- * @short Creates a request object from a socket
- * @memberof onion_request_t
- * 
- * This is the most common way to create a request, but alternative methods can use the onion_request_new.
- * 
- * @see onion_request_new
- * @param server onion_server that will be used for writing and some other data
- * @param socket Socket as needed by onion_server write method.
- * @param cli_addr The sockaddr_storage * as returned from accept/accept4
- * @param cli_len Length of the sockaddr_storage data.
- */
-onion_request* onion_request_new_from_socket(onion_server* server, void* socket, struct sockaddr_storage* cli_addr, socklen_t cli_len){
-  onion_request *req=onion_request_new(server, socket, NULL);
-  if (cli_addr){
-    memcpy(&req->client_addr,cli_addr, cli_len);
-  }
-  req->client_len=cli_len;
-  return req;
 }
 
 /**
@@ -115,11 +86,6 @@ void onion_request_free(onion_request *req){
   ONION_DEBUG0("Free request %p", req);
 	onion_dict_free(req->headers);
 	
-	if (req->parser_data){
-		onion_request_parser_data_free(req->parser_data);
-		req->parser_data=NULL;
-	}
-	
 	if (req->fullpath)
 		free(req->fullpath);
 	if (req->GET)
@@ -130,10 +96,6 @@ void onion_request_free(onion_request *req){
 		onion_dict_preorder(req->FILES, unlink_files, NULL);
 		onion_dict_free(req->FILES);
 	}
-	if (req->parser_data)
-		free(req->parser_data);
-	if (req->client_info)
-		free(req->client_info);
 	if (req->session){
     if (onion_dict_count(req->session)==0)
       onion_request_session_free(req);
@@ -144,7 +106,10 @@ void onion_request_free(onion_request *req){
   }
 	if (req->data)
 		onion_block_free(req->data);
-
+	
+	if (req->parser_data)
+    onion_request_parser_data_free(req->parser_data);
+	
 	free(req);
 }
 
@@ -157,12 +122,11 @@ void onion_request_clean(onion_request* req){
   onion_dict_free(req->headers);
   req->headers=onion_dict_new();
   onion_dict_set_flags(req->headers, OD_ICASE);
+  req->flags&=OR_NO_KEEP_ALIVE; // I keep keep alive.
   if (req->parser_data){
     onion_request_parser_data_free(req->parser_data);
     req->parser_data=NULL;
   }
-  req->parser=NULL;
-  req->flags&=OR_NO_KEEP_ALIVE; // I keep keep alive.
   if (req->fullpath){
     free(req->fullpath);
     req->path=req->fullpath=NULL;
@@ -355,7 +319,7 @@ void onion_request_guess_session_id(onion_request *req){
       while (*p!='\0' && *p!=';') p++;
       *p='\0';
       ONION_DEBUG0("Checking if %s exists in sessions", r);
-      session=onion_sessions_get(req->server->sessions, r);
+      session=onion_sessions_get(req->connection->listen_point->server->sessions, r);
     }
 	}while(!session);
 	
@@ -388,8 +352,8 @@ onion_dict *onion_request_get_session_dict(onion_request *req){
     }
 		onion_request_guess_session_id(req);
 		if (!req->session){ // Maybe old session is not to be used anymore
-			req->session_id=onion_sessions_create(req->server->sessions);
-			req->session=onion_sessions_get(req->server->sessions, req->session_id);
+			req->session_id=onion_sessions_create(req->connection->listen_point->server->sessions);
+			req->session=onion_sessions_get(req->connection->listen_point->server->sessions, req->session_id);
 		}
 	}
 	return req->session;
@@ -445,7 +409,7 @@ void onion_request_session_free(onion_request *req){
 		onion_request_guess_session_id(req);
 	if (req->session_id){
     ONION_DEBUG("Removing from session storage session id: %s",req->session_id);
-		onion_sessions_remove(req->server->sessions, req->session_id);
+		onion_sessions_remove(req->connection->listen_point->server->sessions, req->session_id);
 		onion_dict_free(req->session);
 		req->session=NULL;
 		free(req->session_id);
@@ -498,7 +462,34 @@ const onion_block *onion_request_get_data(onion_request *req){
  * @returns The connection status: if it should be closed, error codes...
  */
 onion_connection_status onion_request_process(onion_request *req){
-	return onion_server_handle_request(req->server, req);
+	onion_response *res=onion_response_new(req);
+	if (!req->path){ 
+    onion_request_polish(req);
+  }  
+	// Call the main handler.
+	onion_connection_status hs=onion_handler_handle(req->connection->listen_point->server->root_handler, req, res);
+
+	if (hs==OCS_INTERNAL_ERROR || 
+		hs==OCS_NOT_IMPLEMENTED || 
+		hs==OCS_NOT_PROCESSED){
+		if (hs==OCS_INTERNAL_ERROR)
+			req->flags|=OR_INTERNAL_ERROR;
+		if (hs==OCS_NOT_IMPLEMENTED)
+			req->flags|=OR_NOT_IMPLEMENTED;
+		if (hs==OCS_NOT_PROCESSED)
+			req->flags|=OR_NOT_FOUND;
+    if (hs==OCS_FORBIDDEN)
+      req->flags|=OR_FORBIDDEN;
+		
+		hs=onion_handler_handle(req->connection->listen_point->server->internal_error_handler, req, res);
+	}
+
+	
+	int rs=onion_response_free(res);
+	if (hs>=0 && rs==OCS_KEEP_ALIVE) // if keep alive, reset struct to get the new petition.
+		onion_request_clean(req);
+	
+	return hs>0 ? rs : hs;
 }
 
 /**
@@ -523,13 +514,13 @@ void onion_request_polish(onion_request *req){
  * @return A const char * with the client description
  */
 const char *onion_request_get_client_description(onion_request *req){
-  if (!req->client_info){
+  if (!req->connection->cli_info){
     char tmp[256];
-    getnameinfo((struct sockaddr *)&req->client_addr, req->client_len, tmp, sizeof(tmp),
+    getnameinfo((struct sockaddr *)&req->connection->cli_addr, req->connection->cli_len, tmp, sizeof(tmp),
           NULL, 0, NI_NUMERICHOST);
-    req->client_info=strdup(tmp);
+    req->connection->cli_info=strdup(tmp);
   }
-  return req->client_info;
+  return req->connection->cli_info;
 }
 
 /**
@@ -542,9 +533,9 @@ const char *onion_request_get_client_description(onion_request *req){
  */
 struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, socklen_t *client_len){
   if (client_len)
-    *client_len=req->client_len;
-	if (req->client_len==0)
+    *client_len=req->connection->cli_len;
+	if (req->connection->cli_len==0)
 		return NULL;
-  return &req->client_addr;
+  return &req->connection->cli_addr;
 }
 

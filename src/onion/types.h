@@ -118,31 +118,32 @@ typedef struct onion_poller_slot_t onion_poller_slot;
 
 
 /**
- * @short Prototype for the writing on the socket function.
+ * @struct onion_listen_point_t
+ * @short Stored common data for each listen point: address, port, protocol status data...
+ * @memberof onion_protocol_t
  *
- * It can safely be just fwrite, with handler the FILE*, or write with the handler the fd.
- * But its useful its like this so we can use another more complex to support, for example,
- * SSL.
+ * Stored information about the listen points; where they are listenting, and how to handle
+ * a new connection. Each listen point can understand a protocol and associated data.
+ * 
+ * A protocol is HTTP, HTTPS, SPDY... each may do the request parsing in adiferent way, and the 
+ * response write too.
+ * 
+ * A listen point A can be HTTPS with one certificate, and B with another, with C using SPDY.
+ * 
  */
-typedef int (*onion_write)(void *handler, const char *data, unsigned int length);
+struct onion_listen_point_t;
+typedef struct onion_listen_point_t onion_listen_point;
 
 /**
- * @short Prototype for the reading on the socket function.
- *
- * It can safely be just fread, with handler the FILE*, or write with the handler the fd.
- * But its useful its like this so we can use another more complex to support, for example,
- * SSL.
+ * @struct onion_port_t
+ * @short Each connection between the server and client
+ * @memberof onion_port_t
+ * 
+ * Each connection is stored here. Its not straigth at the request as having it here helps
+ * the nesting of protocols (HTTPS is based over HTTP), and other tricks (gzip compression).
  */
-typedef int (*onion_read)(void *handler, char *data, unsigned int length);
-
-/**
- * @short Prototype for the closing the socket.
- *
- * It can safely be just fclose, with handler the FILE*, or write with the handler the fd.
- * But its useful its like this so we can use another more complex to support, for example,
- * SSL.
- */
-typedef void (*onion_close)(void *handler);
+struct onion_connection_t;
+typedef struct onion_connection_t onion_connection;
 
 /// Flags for the mode of operation of the onion server.
 enum onion_mode_e{

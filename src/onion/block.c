@@ -31,7 +31,7 @@
  * @memberof onion_block_t
  */
 onion_block *onion_block_new(){
-	onion_block *ret=malloc(sizeof(block));
+	onion_block *ret=malloc(sizeof(onion_block));
 	ret->data=malloc(ONION_BLOCK_GROW_MIN_BLOCK);
 	ret->maxsize=ONION_BLOCK_GROW_MIN_BLOCK;
 	ret->size=0;

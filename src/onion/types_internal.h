@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2012 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Lesser General Public
@@ -57,63 +57,42 @@ struct onion_dict_t{
 struct onion_t{
 	int flags;
 	int listenfd;
-	onion_server *server;
-	char *port;
-	char *hostname;
 	int timeout;   ///< Timeout in milliseconds
 	char *username;
-#ifdef HAVE_GNUTLS
-	gnutls_certificate_credentials_t x509_cred;
-	gnutls_dh_params_t dh_params;
-	gnutls_priority_t priority_cache;
-#endif
-#ifdef HAVE_PTHREADS
-	int max_threads;
-	sem_t thread_count;
-	pthread_mutex_t mutex;		/// Mutexes data on this struct.
-#endif
 	onion_poller *poller;
-};
-
-
-struct onion_server_t{
-	onion_write write;					 	/// Function to call to write. The request has the io handler to write to.
-	onion_read read;					 		/// Function to call to read. The request has the io handler to write to.
-	onion_close close;					 		/// Function to call to close the socket.
+	onion_listen_point **listen_points; ///< List of listen_point. Everytime a new listen point adds, 
+														 ///< it reallocs the full list. Its NULL terminated. 
+														 ///< If NULL at listen, creates a http at 8080.
 	onion_handler *root_handler;	/// Root processing handler for this server.
 	onion_handler *internal_error_handler;	/// Root processing handler for this server.
 	size_t max_post_size;					/// Maximum size of post data. This is the sum of posts, @see onion_request_write_post
 	size_t max_file_size;					/// Maximum size of files. @see onion_request_write_post
 	onion_sessions *sessions;			/// Storage for sessions.
+#ifdef HAVE_PTHREADS
+	int max_threads;
+	sem_t thread_count;
+#endif
 };
 
 struct onion_request_t{
-	onion_server *server; /// Server original data, like write function
-	onion_dict *headers;  /// Headers prepared for this response.
-	void *socket;         /// Write function handler
+	onion_connection *connection;  /// Connection to the client.
 	int flags;            /// Flags for this response. Ored onion_request_flags_e
-
-	void *parser;         /// When recieving data, where to put it. Check at request_parser.c.
-	void *parser_data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
 
 	char *fullpath;       /// Original path for the request
 	char *path;           /// Path at this level. Its actually a pointer inside fullpath, removing the leading parts already processed by handlers
+	onion_dict *headers;  /// Headers prepared for this response.
 	onion_dict *GET;      /// When the query (?q=query) is processed, the dict with the values @see onion_request_parse_query
 	onion_dict *POST;     /// Dictionary with POST values
 	onion_dict *FILES;    /// Dictionary with files. They are automatically saved at /tmp/ and removed at request free. mapped string is full path.
 	onion_dict *session;  /// Pointer to related session
-	onion_block *data;    /// Some extra data, normally PROPFIND.
+	onion_block *data;    /// Some extra data from PUT, normally PROPFIND.
 	char *session_id;     /// Session id of the request, if any.
-	char *client_info;    /// A string that describes the client, normally the IP.
-	
-	int fd; 							/// Helper that stores the original fd
-	
-	struct sockaddr_storage client_addr; /// Info as stored by TCP/IP, so that handlers can get as much data as needed from peer
-	socklen_t client_len;	               /// Size of the sockaddr_storage as needed.
+	void *parser;         /// When recieving data, where to put it. Check at request_parser.c.
+	void *parser_data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
 };
 
 struct onion_response_t{
-	onion_request *request;  	/// Original request, so both are related, and get connected to the onion_server_t structure.
+	onion_request *request;  	/// Original request, so both are related, and get connected to the onion_server_t structure. Writes through the request connection.
 	onion_dict *headers;			/// Headers to write when appropiate.
 	int code;									/// Response code
 	int flags;								/// Flags. @see onion_response_flags_e
@@ -122,8 +101,6 @@ struct onion_response_t{
 	unsigned int sent_bytes_total; /// Total sent bytes, including headers.
 	char buffer[ONION_RESPONSE_BUFFER_SIZE]; /// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
 	off_t buffer_pos;						/// Position in the internal buffer. When sizeof(buffer) its flushed to the onion_server IO.
-	onion_write write;    /// Write function
-	void *socket;         /// Write function handler
 };
 
 struct onion_handler_t{
@@ -143,16 +120,49 @@ struct onion_sessions_t{
 	onion_dict *sessions; 		/// Where all sessions are stored. Each element is another onion_dict.
 };
 
-typedef struct onion_block_t{
+struct onion_block_t{
 	char *data;
 	int size;
 	int maxsize;
-}block;
+};
 
 /// Opaque type used at onion_url internally
 struct onion_url_data_t;
 typedef struct onion_url_data_t onion_url_data;
 
+
+struct onion_listen_point_t{
+	onion *server;
+	char *hostname;
+	char *port;
+	int listenfd;
+	
+	void *user_data;
+	void (*free_user_data)(void *user_data);
+	
+	/// Has default implementation that do the socket accept and set of default params. On some protocols may be 
+	/// reimplemented to do non socket-petition accept.
+	onion_connection *(*accept_connection)(onion_listen_point *op, int newfd); 
+	/// Passed to set the user_data and custom onion_connection methods. Has all to NULL, except fd and protocol.
+	void (*init_connection)(onion_connection *);
+
+	/// @{ @name To be used by connections, but as these methods are shared by protocol, done here.
+	ssize_t (*write)(onion_connection *con, const char *data, size_t len);
+	ssize_t (*read)(onion_connection *con, char *data, size_t len);
+	void (*close)(onion_connection *con);
+	/// @}
+};
+
+struct onion_connection_t{
+	onion_listen_point *listen_point;
+	void *user_data;
+	int fd; // Original fd, to use at polling.
+	void (*free_user_data)(void *user_data);
+	int (*read_ready)(onion_connection *con); // When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.
+	struct sockaddr_storage cli_addr;
+	socklen_t cli_len;
+	char *cli_info;
+};
 
 #ifdef __cplusplus
 }

@@ -53,7 +53,7 @@ static onion_connection_status onion_internal_handler(void *_, onion_request *re
   
   // Sessions
   onion_response_write0(res,"<h1>Sessions and data</h1><ul>");
-  onion_dict_preorder( req->server->sessions->sessions, session_write, res);
+  onion_dict_preorder( req->connection->listen_point->server->sessions->sessions, session_write, res);
   onion_response_write0(res, "</ul>");
   
   onion_response_write0(res, "</body></html>");

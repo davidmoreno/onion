@@ -102,14 +102,6 @@ ssize_t onion_response_write0(onion_response *res, const char *data);
 ssize_t onion_response_printf(onion_response *res, const char *fmt, ...);
 /// @}
 
-/// Sets the writer to use on this response
-void onion_response_set_writer(onion_response *res, onion_write write, void *socket);
-
-/// Returns the write object.
-onion_write onion_response_get_writer(onion_response *res);
-/// Returns the writing handler, also known as socket object.
-void *onion_response_get_socket(onion_response *res);
-
 #ifdef __cplusplus
 }
 #endif

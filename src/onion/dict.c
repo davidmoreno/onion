@@ -551,7 +551,7 @@ static void onion_dict_json_preorder(onion_block *block, const char *key, const 
  * 
  * @returns an onion_block with the json data, or NULL on error
  */
-block *onion_dict_to_json(onion_dict *dict){
+onion_block *onion_dict_to_json(onion_dict *dict){
 	onion_block *block=onion_block_new();
 	
 	onion_block_add_char(block, '{');

@@ -42,7 +42,8 @@
 #define O_CLOEXEC 0
 #endif
 
-int onion_write_to_socket(int *fd, const char *data, unsigned int len);
+// Import it here as I need it to know if can use sendfile.
+ssize_t onion_http_write(onion_connection *con, const char *data, size_t len);
 
 /**
  * @short Shortcut for fast responses, like errors.
@@ -106,7 +107,7 @@ onion_connection_status onion_shortcut_redirect(const char *newurl, onion_reques
 onion_connection_status onion_shortcut_internal_redirect(const char *newurl, onion_request *req, onion_response *res){
   free(req->fullpath);
   req->fullpath=req->path=strdup(newurl);
-  return onion_handler_handle(req->server->root_handler, req, res);
+  return onion_handler_handle(req->connection->listen_point->server->root_handler, req, res);
 }
 
 /**
@@ -207,10 +208,10 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 	
 	if (length){
 #ifdef USE_SENDFILE
-		if (request->server->write==(void*)onion_write_to_socket){ // Lets have a house party! I can use sendfile!
+		if (request->connection->listen_point->write==(void*)onion_http_write){ // Lets have a house party! I can use sendfile!
 			onion_response_write(res,NULL,0);
 			ONION_DEBUG("Using sendfile");
-			int r=sendfile((long int)request->socket, fd, NULL, length);
+			int r=sendfile(request->connection->fd, fd, NULL, length);
 			ONION_DEBUG("Wrote %d, should be %d (%s)", r, length, r==length ? "ok" : "nok");
 			if (r!=length || r<0){
 				ONION_ERROR("Could not send all file (%s)", strerror(errno));
