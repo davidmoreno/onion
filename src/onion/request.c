@@ -34,6 +34,8 @@
 #include "connection.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
+void onion_request_deinit(onion_request *req);
+void onion_request_init(onion_request *req, onion_connection *con);
 
 /**
  * @memberof onion_request_t
@@ -60,13 +62,16 @@ const char *onion_request_methods[16]={
 onion_request *onion_request_new(onion_connection *con){
 	onion_request *req;
 	req=malloc(sizeof(onion_request));
+	onion_request_init(req, con);
+	return req;
+}
+
+void onion_request_init(onion_request *req, onion_connection *con){
 	memset(req,0,sizeof(onion_request));
-	
 	req->connection=con;
 	req->headers=onion_dict_new();
   onion_dict_set_flags(req->headers, OD_ICASE);
   ONION_DEBUG0("Create request %p", req);
-	return req;
 }
 
 /**
@@ -84,6 +89,12 @@ static void unlink_files(void *p, const char *key, const char *value, int flags)
  */
 void onion_request_free(onion_request *req){
   ONION_DEBUG0("Free request %p", req);
+	onion_request_deinit(req);
+	free(req);
+}
+
+/// Deinits the request.
+void onion_request_deinit(onion_request *req){
 	onion_dict_free(req->headers);
 	
 	if (req->fullpath)
@@ -110,7 +121,6 @@ void onion_request_free(onion_request *req){
 	if (req->parser_data)
     onion_request_parser_data_free(req->parser_data);
 	
-	free(req);
 }
 
 /**

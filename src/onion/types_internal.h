@@ -144,7 +144,7 @@ struct onion_listen_point_t{
 	/// reimplemented to do non socket-petition accept.
 	onion_connection *(*connection_new)(onion_listen_point *op);
 	/// Passed to set the user_data and custom onion_connection methods. Has all to NULL, except fd and protocol.
-	void (*init_connection)(onion_connection *);
+	void (*connection_init)(onion_connection *);
 
 	/// @{ @name To be used by connections, but as these methods are shared by protocol, done here.
 	int (*read_ready)(onion_connection *con); ///< When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.

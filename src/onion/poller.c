@@ -206,7 +206,7 @@ onion_poller *onion_poller_new(int n){
 
 /// @memberof onion_poller_t
 void onion_poller_free(onion_poller *p){
-	ONION_DEBUG("Free onion poller");
+	ONION_DEBUG("Free onion poller: %d waiting", p->n);
 	p->stop=1;
 	close(p->fd); 
 	// Wait until all pollers exit.

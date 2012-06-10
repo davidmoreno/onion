@@ -33,16 +33,20 @@ ssize_t onion_http_write(onion_connection *con, const char *data, size_t len);
 int onion_http_read_ready(onion_connection *op);
 static void onion_http_close(onion_connection *con);
 
+void onion_request_deinit(onion_request *req);
+void onion_request_init(onion_request *req, onion_connection *con);
+
+
 // If modified, modify too at https
 struct onion_http_t{
-	onion_request *req;
+	onion_request req;
 };
 
 onion_listen_point* onion_http_new()
 {
 	onion_listen_point *ret=onion_listen_point_new();
 	
-	ret->init_connection=onion_http_init_connection;
+	ret->connection_init=onion_http_init_connection;
 	ret->read=onion_http_read;
 	ret->write=onion_http_write;
 	ret->close=onion_http_close;
@@ -54,8 +58,7 @@ onion_listen_point* onion_http_new()
 static void onion_http_init_connection(onion_connection *con){
 	con->user_data=malloc(sizeof(struct onion_http_t));
 	struct onion_http_t *ot=(struct onion_http_t*)con->user_data;
-	ot->req=onion_request_new(con);
-	
+	onion_request_init(&ot->req, con);
 }
 
 static ssize_t onion_http_read(onion_connection *con, char *data, size_t len){
@@ -70,7 +73,7 @@ int onion_http_read_ready(onion_connection *con){
 		return OCS_CLOSE_CONNECTION;
 	
 	struct onion_http_t *ot=(struct onion_http_t*)con->user_data;
-	onion_connection_status st=onion_request_write(ot->req, buffer, len);
+	onion_connection_status st=onion_request_write(&ot->req, buffer, len);
 	if (st!=OCS_NEED_MORE_DATA){
 		if (st<0)
 			return st;
@@ -87,7 +90,7 @@ static void onion_http_close(onion_connection *con){
 	onion_connection_close_socket(con);
 	struct onion_http_t *ot=(struct onion_http_t*)con->user_data;
 	ONION_DEBUG("Free http user data");
-	onion_request_free(ot->req);
+	onion_request_deinit(&ot->req);
 	free(con->user_data);
 }
 

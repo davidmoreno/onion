@@ -35,6 +35,8 @@
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #endif
 
+void onion_request_deinit(onion_request *req);
+void onion_request_init(onion_request *req, onion_connection *con);
 
 struct onion_https_t{
 	gnutls_certificate_credentials_t x509_cred;
@@ -46,7 +48,7 @@ typedef struct onion_https_t onion_https;
 
 
 struct onion_https_connection_t{
-	onion_request *req;
+	onion_request req;
 	gnutls_session_t session;
 };
 
@@ -138,7 +140,7 @@ static void onion_https_free(onion_listen_point *op){
 	gnutls_certificate_free_credentials (https->x509_cred);
 	gnutls_dh_params_deinit(https->dh_params);
 	gnutls_priority_deinit (https->priority_cache);
-	if (!(op->server->flags&O_SSL_NO_DEINIT))
+	//if (op->server->flags&O_SSL_NO_DEINIT)
 		gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
 	free(https);
 	shutdown(op->listenfd,SHUT_RDWR);
@@ -171,12 +173,14 @@ onion_connection *onion_https_accept_connection(onion_listen_point *op){
 	}while (ret < 0 && gnutls_error_is_fatal (ret) == 0);
 	if (ret<0){ // could not handshake. assume an error.
 	  ONION_ERROR("Handshake has failed (%s)", gnutls_strerror (ret));
+		gnutls_bye (session, GNUTLS_SHUT_WR);
+		gnutls_deinit(session);
 		onion_connection_free(oc);
 		return NULL;
 	}
 	
 	onion_https_connection *user_data=malloc(sizeof(onion_https_connection));
-	user_data->req=onion_request_new(oc);
+	onion_request_init(&user_data->req, oc);
 	user_data->session=session;
 	oc->user_data=user_data;
 	ONION_DEBUG("Connection session %p, oc %p", session, oc);
@@ -193,6 +197,7 @@ static ssize_t onion_https_read(onion_connection *con, char *data, size_t len){
 	}
 	return ret;
 }
+
 static ssize_t onion_https_write(onion_connection *con, const char *data, size_t len){
 	onion_https_connection *user_data=(onion_https_connection*)con->user_data;
 	ONION_DEBUG("Write! (%p)", user_data->session);
@@ -205,14 +210,11 @@ static void onion_https_close(onion_connection *con){
 	if (data){
 		ONION_DEBUG("Close HTTPS connection %p, oc %p", data->session, con);
 		if (con->user_data){
-			gnutls_session_t s=(gnutls_session_t)data->session;
-			gnutls_bye (s, GNUTLS_SHUT_WR);
-			
 			ONION_DEBUG("Free session %p", con);
-			if (data->session)
-				gnutls_deinit(data->session);
-			
-			onion_request_free(data->req);
+			gnutls_bye (data->session, GNUTLS_SHUT_WR);
+			gnutls_deinit(data->session);
+		
+			onion_request_deinit(&data->req);
 			free(data);
 			con->user_data=NULL;
 		}

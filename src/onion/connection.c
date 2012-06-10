@@ -79,8 +79,8 @@ onion_connection *onion_connection_new(onion_listen_point* op){
 		oc=onion_connection_new_from_socket(op);
 	}
 	if (oc){
-		if (op->init_connection)
-			op->init_connection(oc);
+		if (op->connection_init)
+			op->connection_init(oc);
 		
 		ONION_DEBUG("Accepted connection");
 	}
