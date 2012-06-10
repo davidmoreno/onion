@@ -22,6 +22,8 @@
 #include <onion/types.h>
 
 onion_connection *onion_connection_new(onion_listen_point *op);
+onion_connection *onion_connection_new_from_socket(onion_listen_point *op);
+void onion_connection_close_socket(onion_connection *oc);
 void onion_connection_free(onion_connection *oc);
 onion_request *onion_connection_request(onion_connection *op);
 int onion_connection_accept(onion_listen_point *p);

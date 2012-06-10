@@ -37,17 +37,23 @@
 #endif
 
 void onion_connection_free(onion_connection *oc){
-	if (oc->free_user_data)
-		oc->free_user_data(oc->user_data);
+	if (oc->listen_point->close)
+		oc->listen_point->close(oc);
 	if (oc->cli_info)
 		free(oc->cli_info);
+	
 	free(oc);
 }
 
 static int onion_connection_read_ready(onion_connection *con){
-	if (con->read_ready)
-		return con->read_ready(con);
-	return OCS_INTERNAL_ERROR;
+#ifdef __DEBUG__
+	if (!con->listen_point->read_ready){
+		ONION_ERROR("read_ready handler not set!");
+		return OCS_INTERNAL_ERROR;
+	}
+#endif
+		
+	return con->listen_point->read_ready(con);
 }
 
 
@@ -65,45 +71,12 @@ int onion_connection_accept(onion_listen_point *p){
 }
 
 onion_connection *onion_connection_new(onion_listen_point* op){
-	int listenfd=op->listenfd;
 	onion_connection *oc=NULL;
-	if (op->accept_connection){
-		oc=op->accept_connection(op, listenfd);
+	if (op->connection_new){
+		oc=op->connection_new(op);
 	}
 	else{
-		oc=calloc(1,sizeof(onion_connection));
-		
-		/// Follows default socket implementation. If your protocol is socket based, just use it.
-		
-		oc->cli_len = sizeof(oc->cli_addr);
-
-		int clientfd=accept4(listenfd, (struct sockaddr *) &oc->cli_addr, &oc->cli_len, SOCK_CLOEXEC);
-		if (clientfd<0){
-			ONION_ERROR("Error accepting connection: %s",strerror(errno));
-			return NULL;
-		}
-		
-		/// Thanks to Andrew Victor for pointing that without this client may block HTTPS connection. It could lead to DoS if occupies all connections.
-		{
-			struct timeval t;
-			t.tv_sec = op->server->timeout / 1000;
-			t.tv_usec = ( op->server->timeout % 1000 ) * 1000;
-
-			setsockopt(clientfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
-		}
-		
-		if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
-			int flags=fcntl(clientfd, F_GETFD);
-			if (flags==-1){
-				ONION_ERROR("Retrieving flags from connection");
-			}
-			flags|=FD_CLOEXEC;
-			if (fcntl(clientfd, F_SETFD, flags)==-1){
-				ONION_ERROR("Setting FD_CLOEXEC to connection");
-			}
-		}
-		oc->fd=clientfd;
-		oc->listen_point=op;
+		oc=onion_connection_new_from_socket(op);
 	}
 	if (oc){
 		if (op->init_connection)
@@ -116,4 +89,50 @@ onion_connection *onion_connection_new(onion_listen_point* op){
 	}
 	
 	return oc;
+}
+
+onion_connection *onion_connection_new_from_socket(onion_listen_point *op){
+	onion_connection *oc=calloc(1,sizeof(onion_connection));
+	int listenfd=op->listenfd;
+	oc->listen_point=op;
+	oc->fd=-1;
+	/// Follows default socket implementation. If your protocol is socket based, just use it.
+	
+	oc->cli_len = sizeof(oc->cli_addr);
+
+	int clientfd=accept4(listenfd, (struct sockaddr *) &oc->cli_addr, &oc->cli_len, SOCK_CLOEXEC);
+	if (clientfd<0){
+		ONION_ERROR("Error accepting connection: %s",strerror(errno));
+		free(oc);
+		return NULL;
+	}
+	
+	/// Thanks to Andrew Victor for pointing that without this client may block HTTPS connection. It could lead to DoS if occupies all connections.
+	{
+		struct timeval t;
+		t.tv_sec = op->server->timeout / 1000;
+		t.tv_usec = ( op->server->timeout % 1000 ) * 1000;
+
+		setsockopt(clientfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
+	}
+	
+	if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+		int flags=fcntl(clientfd, F_GETFD);
+		if (flags==-1){
+			ONION_ERROR("Retrieving flags from connection");
+		}
+		flags|=FD_CLOEXEC;
+		if (fcntl(clientfd, F_SETFD, flags)==-1){
+			ONION_ERROR("Setting FD_CLOEXEC to connection");
+		}
+	}
+	oc->fd=clientfd;
+	return oc;
+}
+
+void onion_connection_close_socket(onion_connection *oc){
+	ONION_DEBUG("Closing socket");
+	int fd=oc->fd;
+	shutdown(fd,SHUT_RDWR);
+	close(fd);
 }

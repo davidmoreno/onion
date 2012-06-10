@@ -145,16 +145,8 @@
 
 #include <malloc.h>
 #include <stdio.h>
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdarg.h>
-#include <poll.h>
-#include <arpa/inet.h>
 #include <signal.h>
+#include <string.h>
 
 #include "onion.h"
 #include "handler.h"
@@ -162,13 +154,9 @@
 #include "log.h"
 #include "poller.h"
 #include "listen_point.h"
-#include "mime.h"
-#include "sessions.h"
 #include "connection.h"
-#include <netdb.h>
-#include <fcntl.h>
-#include <pwd.h>
-#include <grp.h>
+#include "sessions.h"
+#include "mime.h"
 
 static int onion_default_error(void *handler, onion_request *req, onion_response *res);
 
@@ -334,6 +322,11 @@ void onion_set_internal_error_handler(onion* server, onion_handler* handler){
  * @param port The number of port to listen to, or service name, as string always.
  */
 int onion_add_listen_point(onion* server, const char* hostname, const char* port, onion_listen_point* protocol){
+	if (protocol==NULL){
+		ONION_ERROR("Trying to add an invalid entry point. Ignoring.");
+		return -1;
+	}
+	
 	protocol->server=server;
 	if (hostname)
 		protocol->hostname=strdup(hostname);

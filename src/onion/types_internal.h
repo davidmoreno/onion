@@ -138,27 +138,26 @@ struct onion_listen_point_t{
 	int listenfd;
 	
 	void *user_data;
-	void (*free_user_data)(void *user_data);
+	void (*free)(onion_listen_point *user_data);
 	
 	/// Has default implementation that do the socket accept and set of default params. On some protocols may be 
 	/// reimplemented to do non socket-petition accept.
-	onion_connection *(*accept_connection)(onion_listen_point *op, int newfd); 
+	onion_connection *(*connection_new)(onion_listen_point *op);
 	/// Passed to set the user_data and custom onion_connection methods. Has all to NULL, except fd and protocol.
 	void (*init_connection)(onion_connection *);
 
 	/// @{ @name To be used by connections, but as these methods are shared by protocol, done here.
+	int (*read_ready)(onion_connection *con); ///< When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.
 	ssize_t (*write)(onion_connection *con, const char *data, size_t len);
 	ssize_t (*read)(onion_connection *con, char *data, size_t len);
-	void (*close)(onion_connection *con);
+	void (*close)(onion_connection *con); ///< Closes the connection and frees user data.
 	/// @}
 };
 
 struct onion_connection_t{
 	onion_listen_point *listen_point;
 	void *user_data;
-	int fd; // Original fd, to use at polling.
-	void (*free_user_data)(void *user_data);
-	int (*read_ready)(onion_connection *con); // When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.
+	int fd; ///< Original fd, to use at polling.
 	struct sockaddr_storage cli_addr;
 	socklen_t cli_len;
 	char *cli_info;

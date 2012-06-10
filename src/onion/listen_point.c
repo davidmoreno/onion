@@ -31,8 +31,8 @@ onion_listen_point *onion_listen_point_new(){
 }
 
 void onion_listen_point_free(onion_listen_point *op){
-	if (op->free_user_data)
-		op->free_user_data(op->user_data);
+	if (op->free)
+		op->free(op);
 	if (op->hostname)
 		free(op->hostname);
 	if (op->port)
