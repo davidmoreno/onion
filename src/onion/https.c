@@ -84,7 +84,7 @@ onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char 
 	gnutls_dh_params_init (&https->dh_params);
 	gnutls_dh_params_generate2 (https->dh_params, 1024);
 	gnutls_certificate_set_dh_params (https->x509_cred, https->dh_params);
-	gnutls_priority_init (&https->priority_cache, "NORMAL", NULL);
+	gnutls_priority_init (&https->priority_cache, "PERFORMANCE:%SAFE_RENEGOTIATION:-VERS-TLS1.0", NULL);
 	
 	int r=0;
 	switch(type&0x0FF){
@@ -132,7 +132,7 @@ onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char 
 
 
 static void onion_https_free(onion_listen_point *op){
-	
+	ONION_DEBUG("Close HTTPS %s:%s", op->hostname, op->port);
 	onion_https *https=(onion_https*)op->user_data;
 	
 	gnutls_certificate_free_credentials (https->x509_cred);
@@ -141,6 +141,7 @@ static void onion_https_free(onion_listen_point *op){
 	if (!(op->server->flags&O_SSL_NO_DEINIT))
 		gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
 	free(https);
+	shutdown(op->listenfd,SHUT_RDWR);
 	close(op->listenfd);
 }
 
@@ -210,6 +211,7 @@ static void onion_https_close(onion_connection *con){
 			ONION_DEBUG("Free session %p", con);
 			if (data->session)
 				gnutls_deinit(data->session);
+			
 			onion_request_free(data->req);
 			free(data);
 			con->user_data=NULL;

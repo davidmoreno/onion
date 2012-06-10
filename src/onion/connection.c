@@ -67,7 +67,7 @@ int onion_connection_accept(onion_listen_point *p){
 		return 1;
 	}
 	ONION_ERROR("Error creating connection");
-	return -1;
+	return 1;
 }
 
 onion_connection *onion_connection_new(onion_listen_point* op){
