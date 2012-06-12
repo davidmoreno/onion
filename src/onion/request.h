@@ -67,7 +67,7 @@ typedef enum onion_request_flags_e onion_request_flags;
 extern const char *onion_request_methods[16];
 
 /// Creates a request with client info
-onion_request *onion_request_new(onion_connection *con);
+onion_request *onion_request_new(onion_listen_point *con);
 
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req);

@@ -16,6 +16,9 @@
 	License along with this library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
+#define _GNU_SOURCE             /* See feature_test_macros(7) */
+#include <sys/socket.h>
+
 #include <string.h>
 #include <malloc.h>
 #include <netdb.h>
@@ -24,6 +27,18 @@
 
 #include "types_internal.h"
 #include "log.h"
+#include "poller.h"
+#include "request.h"
+#include "listen_point.h"
+
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC 0
+#define accept4(a,b,c,d) accept(a,b,c);
+#endif
+
+
+static int onion_listen_point_read_ready(onion_request *req);
+
 
 onion_listen_point *onion_listen_point_new(){
 	onion_listen_point *ret=calloc(1,sizeof(onion_listen_point));
@@ -39,6 +54,22 @@ void onion_listen_point_free(onion_listen_point *op){
 		free(op->port);
 	free(op);
 }
+
+
+int onion_listen_point_accept(onion_listen_point *op){
+	onion_request *req=op->request_new(op);
+	if (req){
+		onion_poller_slot *slot=onion_poller_slot_new(req->connection.fd, (void*)onion_listen_point_read_ready, req);
+		onion_poller_slot_set_timeout(slot, req->connection.listen_point->server->timeout);
+		onion_poller_slot_set_shutdown(slot, (void*)req->connection.listen_point->close, req);
+		onion_poller_add(req->connection.listen_point->server->poller, slot);
+		return 1;
+	}
+	ONION_ERROR("Error creating connection");
+
+	return 1;
+}
+
 
 int onion_listen_point_listen(onion_listen_point *op){
 	struct addrinfo hints;
@@ -98,4 +129,64 @@ int onion_listen_point_listen(onion_listen_point *op){
 	
 	op->listenfd=sockfd;
 	return 0;
+}
+
+static int onion_listen_point_read_ready(onion_request *req){
+#ifdef __DEBUG__
+	if (!req->connection.listen_point->read_ready){
+		ONION_ERROR("read_ready handler not set!");
+		return OCS_INTERNAL_ERROR;
+	}
+#endif
+		
+	return req->connection.listen_point->read_ready(req);
+}
+
+
+onion_request *onion_listen_point_request_new_from_socket(onion_listen_point *op){
+	onion_request *req=onion_request_new(op);
+	if (!req){
+		return NULL;
+	}
+	int listenfd=op->listenfd;
+	/// Follows default socket implementation. If your protocol is socket based, just use it.
+	
+	req->connection.cli_len = sizeof(req->connection.cli_addr);
+
+	int clientfd=accept4(listenfd, (struct sockaddr *) &req->connection.cli_addr, &req->connection.cli_len, SOCK_CLOEXEC);
+	if (clientfd<0){
+		ONION_ERROR("Error accepting connection: %s",strerror(errno));
+		onion_listen_point_request_close_socket(req);
+		return NULL;
+	}
+	req->connection.fd=clientfd;
+	
+	/// Thanks to Andrew Victor for pointing that without this client may block HTTPS connection. It could lead to DoS if occupies all connections.
+	{
+		struct timeval t;
+		t.tv_sec = op->server->timeout / 1000;
+		t.tv_usec = ( op->server->timeout % 1000 ) * 1000;
+
+		setsockopt(clientfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
+	}
+	
+	if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+		int flags=fcntl(clientfd, F_GETFD);
+		if (flags==-1){
+			ONION_ERROR("Retrieving flags from connection");
+		}
+		flags|=FD_CLOEXEC;
+		if (fcntl(clientfd, F_SETFD, flags)==-1){
+			ONION_ERROR("Setting FD_CLOEXEC to connection");
+		}
+	}
+	return req;
+}
+
+void onion_listen_point_request_close_socket(onion_request *oc){
+	ONION_DEBUG("Closing socket");
+	int fd=oc->connection.fd;
+	shutdown(fd,SHUT_RDWR);
+	close(fd);
+	onion_request_free(oc);
 }

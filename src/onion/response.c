@@ -85,8 +85,8 @@ onion_connection_status onion_response_free(onion_response *res){
 	onion_response_write_buffer(res);
 	
 	if (res->flags&OR_CHUNKED){ // Set the chunked data end.
-		onion_connection *con=res->request->connection;
-		con->listen_point->write(con, "0\r\n\r\n",5);
+		onion_request *req=res->request;
+		req->connection.listen_point->write(req, "0\r\n\r\n",5);
 	}
 	
 	int r=OCS_CLOSE_CONNECTION;
@@ -103,7 +103,7 @@ onion_connection_status onion_response_free(onion_response *res){
 			r=OCS_KEEP_ALIVE;
 		
 		// FIXME! This is no proper logging at all. Maybe use a handler.
-		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->connection->cli_info,
+		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->connection.cli_info,
 							 onion_request_methods[res->request->flags&OR_METHODS],
 						res->request->fullpath, res->code, res->sent_bytes,
 						(r==OCS_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
@@ -278,9 +278,9 @@ static int onion_response_write_buffer(onion_response *res){
 	if (res->flags&OR_SKIP_CONTENT || res->buffer_pos==0)
 		return 0;
 	
-	onion_connection *con=res->request->connection;
-	ssize_t (*write)(onion_connection *, const char *data, size_t len);
-	write=con->listen_point->write;
+	onion_request *req=res->request;
+	ssize_t (*write)(onion_request *, const char *data, size_t len);
+	write=req->connection.listen_point->write;
 	
 	ssize_t w;
 	off_t pos=0;
@@ -288,12 +288,12 @@ static int onion_response_write_buffer(onion_response *res){
 	if (res->flags&OR_CHUNKED){
 		char tmp[16];
 		snprintf(tmp,sizeof(tmp),"%X\r\n",(unsigned int)res->buffer_pos);
-		if (write(con, tmp, strlen(tmp))<=0){
+		if (write(req, tmp, strlen(tmp))<=0){
 			ONION_WARNING("Error writing chunk encoding length. Aborting write.");
 			return OCS_CLOSE_CONNECTION;
 		}
 	}
-	while ( (w=write(con, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
+	while ( (w=write(req, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0 || res->buffer_pos<0){
 			ONION_ERROR("Error writing %d bytes. Maybe closed connection. Code %d. ",res->buffer_pos, w);
 			perror("");
@@ -305,7 +305,7 @@ static int onion_response_write_buffer(onion_response *res){
 		res->buffer_pos-=w;
 	}
 	if (res->flags&OR_CHUNKED){
-		write(con,"\r\n",2);
+		write(req,"\r\n",2);
 	}
 	res->buffer_pos=0;
 	return 0;

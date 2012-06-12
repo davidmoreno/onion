@@ -154,7 +154,6 @@
 #include "log.h"
 #include "poller.h"
 #include "listen_point.h"
-#include "connection.h"
 #include "sessions.h"
 #include "mime.h"
 
@@ -254,7 +253,7 @@ int onion_listen(onion *o){
 	while (*listen_points){
 		onion_listen_point *p=*listen_points;
 		ONION_DEBUG("Adding %d to poller", p->listenfd);
-		onion_poller_slot *slot=onion_poller_slot_new(p->listenfd, (void*)onion_connection_accept, p);
+		onion_poller_slot *slot=onion_poller_slot_new(p->listenfd, (void*)onion_listen_point_accept, p);
 		//onion_poller_slot_set_timeout(slot, o->timeout);
 		onion_poller_slot_set_type(slot, O_POLL_ALL);
 		onion_poller_add(o->poller, slot);

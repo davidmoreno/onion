@@ -26,7 +26,6 @@
 #include "http.h"
 #include "types_internal.h"
 #include "log.h"
-#include "connection.h"
 #include "listen_point.h"
 #include "request.h"
 
@@ -34,9 +33,6 @@
 #include <pthread.h>
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #endif
-
-void onion_request_deinit(onion_request *req);
-void onion_request_init(onion_request *req, onion_connection *con);
 
 struct onion_https_t{
 	gnutls_certificate_credentials_t x509_cred;
@@ -47,23 +43,16 @@ struct onion_https_t{
 typedef struct onion_https_t onion_https;
 
 
-struct onion_https_connection_t{
-	onion_request req;
-	gnutls_session_t session;
-};
-
-typedef struct onion_https_connection_t onion_https_connection;
-
-int onion_http_read_ready(onion_connection *con);
-onion_connection *onion_https_accept_connection(onion_listen_point *op);
-static ssize_t onion_https_read(onion_connection *con, char *data, size_t len);
-static ssize_t onion_https_write(onion_connection *con, const char *data, size_t len);
-static void onion_https_close(onion_connection *con);
+int onion_http_read_ready(onion_request *req);
+onion_request *onion_https_request_new(onion_listen_point *op);
+static ssize_t onion_https_read(onion_request *req, char *data, size_t len);
+static ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
+static void onion_https_close(onion_request *req);
 static void onion_https_free(onion_listen_point *op);
 
 onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char *filename, ...){
 	onion_listen_point *op=onion_listen_point_new();
-	op->connection_new=onion_https_accept_connection;
+	op->request_new=onion_https_request_new;
 	op->user_data=calloc(1,sizeof(onion_https));
 	op->free=onion_https_free;
 	op->read=onion_https_read;
@@ -147,11 +136,11 @@ static void onion_https_free(onion_listen_point *op){
 	close(op->listenfd);
 }
 
-onion_connection *onion_https_accept_connection(onion_listen_point *op){
-	onion_connection *oc=onion_connection_new_from_socket(op);
+onion_request* onion_https_request_new(onion_listen_point* op){
+	onion_request *req=onion_listen_point_request_new_from_socket(op);
 	onion_https *https=(onion_https*)op->user_data;
 	
-	ONION_DEBUG("Socket fd %d",oc->fd);
+	ONION_DEBUG("Socket fd %d",req->connection.fd);
 	
 	gnutls_session_t session;
 
@@ -166,7 +155,7 @@ onion_connection *onion_https_accept_connection(onion_listen_point *op){
    */
   gnutls_session_enable_compatibility_mode (session);
 
-	gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)(long) oc->fd);
+	gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)(long) req->connection.fd);
 	int ret;
 	do{
 			ret = gnutls_handshake (session);
@@ -175,49 +164,39 @@ onion_connection *onion_https_accept_connection(onion_listen_point *op){
 	  ONION_ERROR("Handshake has failed (%s)", gnutls_strerror (ret));
 		gnutls_bye (session, GNUTLS_SHUT_WR);
 		gnutls_deinit(session);
-		onion_connection_free(oc);
+		onion_listen_point_request_close_socket(req);
 		return NULL;
 	}
 	
-	onion_https_connection *user_data=malloc(sizeof(onion_https_connection));
-	onion_request_init(&user_data->req, oc);
-	user_data->session=session;
-	oc->user_data=user_data;
-	ONION_DEBUG("Connection session %p, oc %p", session, oc);
+	req->connection.user_data=(void*)session;
 	
-	return oc;
+	return req;
 }
 
-static ssize_t onion_https_read(onion_connection *con, char *data, size_t len){
-	onion_https_connection *user_data=(onion_https_connection*)con->user_data;
-	ssize_t ret=gnutls_record_recv(user_data->session, data, len);
-	ONION_DEBUG("Read! (%p), %d bytes", user_data->session, ret);
+static ssize_t onion_https_read(onion_request *req, char *data, size_t len){
+	gnutls_session_t session=(gnutls_session_t)req->connection.user_data;
+	ssize_t ret=gnutls_record_recv(session, data, len);
+	ONION_DEBUG("Read! (%p), %d bytes", session, ret);
 	if (ret<0){
 	  ONION_ERROR("Reading data has failed (%s)", gnutls_strerror (ret));
 	}
 	return ret;
 }
 
-static ssize_t onion_https_write(onion_connection *con, const char *data, size_t len){
-	onion_https_connection *user_data=(onion_https_connection*)con->user_data;
-	ONION_DEBUG("Write! (%p)", user_data->session);
-	return gnutls_record_send(user_data->session, data, len);
+static ssize_t onion_https_write(onion_request *req, const char *data, size_t len){
+	gnutls_session_t session=(gnutls_session_t)req->connection.user_data;
+	ONION_DEBUG("Write! (%p)", session);
+	return gnutls_record_send(session, data, len);
 }
 
-static void onion_https_close(onion_connection *con){
+static void onion_https_close(onion_request *req){
 	ONION_DEBUG("Close HTTPS connection");
-	onion_https_connection *data=(onion_https_connection*)con->user_data;
-	if (data){
-		ONION_DEBUG("Close HTTPS connection %p, oc %p", data->session, con);
-		if (con->user_data){
-			ONION_DEBUG("Free session %p", con);
-			gnutls_bye (data->session, GNUTLS_SHUT_WR);
-			gnutls_deinit(data->session);
-		
-			onion_request_deinit(&data->req);
-			free(data);
-			con->user_data=NULL;
-		}
+	gnutls_session_t session=(gnutls_session_t)req->connection.user_data;
+	if (session){
+		ONION_DEBUG("Free session %p", session);
+		gnutls_bye (session, GNUTLS_SHUT_WR);
+		gnutls_deinit(session);
+	
 	}
-	onion_connection_close_socket(con);
+	onion_listen_point_request_close_socket(req);
 }

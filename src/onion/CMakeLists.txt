@@ -6,7 +6,7 @@ endif(SYSTEMD_ENABLED)
 
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
                         log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} poller.c
-                        connection.c listen_point.c request_parser.c http.c https.c)
+                        listen_point.c request_parser.c http.c https.c)
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(

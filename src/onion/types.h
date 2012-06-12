@@ -134,17 +134,6 @@ typedef struct onion_poller_slot_t onion_poller_slot;
 struct onion_listen_point_t;
 typedef struct onion_listen_point_t onion_listen_point;
 
-/**
- * @struct onion_port_t
- * @short Each connection between the server and client
- * @memberof onion_port_t
- * 
- * Each connection is stored here. Its not straigth at the request as having it here helps
- * the nesting of protocols (HTTPS is based over HTTP), and other tricks (gzip compression).
- */
-struct onion_connection_t;
-typedef struct onion_connection_t onion_connection;
-
 /// Flags for the mode of operation of the onion server.
 enum onion_mode_e{
 	O_ONE=1,							///< Perform just one petition

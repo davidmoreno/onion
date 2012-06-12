@@ -74,8 +74,16 @@ struct onion_t{
 #endif
 };
 
+
 struct onion_request_t{
-	onion_connection *connection;  /// Connection to the client.
+	struct{
+		onion_listen_point *listen_point;
+		void *user_data;
+		int fd; ///< Original fd, to use at polling.
+		struct sockaddr_storage cli_addr;
+		socklen_t cli_len;
+		char *cli_info;
+	}connection;  /// Connection to the client.
 	int flags;            /// Flags for this response. Ored onion_request_flags_e
 
 	char *fullpath;       /// Original path for the request
@@ -142,25 +150,14 @@ struct onion_listen_point_t{
 	
 	/// Has default implementation that do the socket accept and set of default params. On some protocols may be 
 	/// reimplemented to do non socket-petition accept.
-	onion_connection *(*connection_new)(onion_listen_point *op);
-	/// Passed to set the user_data and custom onion_connection methods. Has all to NULL, except fd and protocol.
-	void (*connection_init)(onion_connection *);
+	onion_request *(*request_new)(onion_listen_point *op);
 
 	/// @{ @name To be used by connections, but as these methods are shared by protocol, done here.
-	int (*read_ready)(onion_connection *con); ///< When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.
-	ssize_t (*write)(onion_connection *con, const char *data, size_t len);
-	ssize_t (*read)(onion_connection *con, char *data, size_t len);
-	void (*close)(onion_connection *con); ///< Closes the connection and frees user data.
+	int (*read_ready)(onion_request *con); ///< When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.
+	ssize_t (*write)(onion_request *con, const char *data, size_t len);
+	ssize_t (*read)(onion_request *con, char *data, size_t len);
+	void (*close)(onion_request *con); ///< Closes the connection and frees user data.
 	/// @}
-};
-
-struct onion_connection_t{
-	onion_listen_point *listen_point;
-	void *user_data;
-	int fd; ///< Original fd, to use at polling.
-	struct sockaddr_storage cli_addr;
-	socklen_t cli_len;
-	char *cli_info;
 };
 
 #ifdef __cplusplus
