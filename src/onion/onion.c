@@ -197,13 +197,18 @@ ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
  * @see onion_mode_e onion_t
  */
 onion *onion_new(int flags){
+	const int supported_flags=O_POLL|O_SYSTEMD;
+	if (flags & ~(supported_flags)){
+		ONION_WARNING("Not all running modes for onion are supported yet on the new listen point branch. Asked for %04X, have %04X",flags, supported_flags);
+	}
 	ONION_DEBUG0("Some internal sizes: onion size: %d, request size %d, response size %d",sizeof(onion),sizeof(onion_request),sizeof(onion_response));
 	if(SOCK_CLOEXEC == 0){
 		ONION_WARNING("There is no support for SOCK_CLOEXEC compiled in libonion. This may be a SECURITY PROBLEM as connections may leak into executed programs.");
 	}
 	
 	onion *o=calloc(1,sizeof(onion));
-	o->flags=flags&0x0FF;
+	o->flags=(flags&0x0FF)|O_SSL_AVAILABLE;
+	
 	o->timeout=5000; // 5 seconds of timeout, default.
 	o->poller=onion_poller_new(15);
 	o->sessions=onion_sessions_new();

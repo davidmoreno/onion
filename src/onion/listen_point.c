@@ -36,6 +36,10 @@
 #define accept4(a,b,c,d) accept(a,b,c);
 #endif
 
+#ifdef HAVE_SYSTEMD
+#include "sd-daemon.h"
+#endif
+
 
 static int onion_listen_point_read_ready(onion_request *req);
 
@@ -72,6 +76,22 @@ int onion_listen_point_accept(onion_listen_point *op){
 
 
 int onion_listen_point_listen(onion_listen_point *op){
+#ifdef HAVE_SYSTEMD
+	if (op->server->flags&O_SYSTEMD){
+		int n=sd_listen_fds(0);
+		ONION_DEBUG("Checking if have systemd sockets: %d",n);
+		if (n>0){ // If 0, normal startup. Else use the first LISTEN_FDS.
+			ONION_DEBUG("Using systemd sockets");
+			if (n>1){
+				ONION_WARNING("Get more than one systemd socket descriptor. Using only the first.");
+			}
+			op->listenfd=SD_LISTEN_FDS_START+0;
+			return 0;
+		}
+	}
+#endif
+
+	
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
 	int sockfd;
