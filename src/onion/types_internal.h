@@ -160,6 +160,7 @@ struct onion_listen_point_t{
 	/// @}
 };
 
+
 #ifdef __cplusplus
 }
 #endif

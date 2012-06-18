@@ -186,7 +186,9 @@ onion_request *onion_listen_point_request_new_from_socket(onion_listen_point *op
 void onion_listen_point_request_close_socket(onion_request *oc){
 	ONION_DEBUG("Closing socket");
 	int fd=oc->connection.fd;
-	shutdown(fd,SHUT_RDWR);
-	close(fd);
+	if (fd>=0){
+		shutdown(fd,SHUT_RDWR);
+		close(fd);
+	}
 	onion_request_free(oc);
 }

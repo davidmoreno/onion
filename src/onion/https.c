@@ -46,7 +46,7 @@ typedef struct onion_https_t onion_https;
 int onion_http_read_ready(onion_request *req);
 onion_request *onion_https_request_new(onion_listen_point *op);
 static ssize_t onion_https_read(onion_request *req, char *data, size_t len);
-static ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
+ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 static void onion_https_close(onion_request *req);
 static void onion_https_free(onion_listen_point *op);
 
@@ -78,35 +78,11 @@ onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char 
 	gnutls_priority_init (&https->priority_cache, "PERFORMANCE:%SAFE_RENEGOTIATION:-VERS-TLS1.0", NULL);
 	
 	int r=0;
-	switch(type&0x0FF){
-		case O_SSL_CERTIFICATE_CRL:
-			r=gnutls_certificate_set_x509_crl_file(https->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
-			break;
-		case O_SSL_CERTIFICATE_KEY:
-		{
-			va_list va;
-			va_start(va, filename);
-			r=gnutls_certificate_set_x509_key_file(https->x509_cred, filename, va_arg(va, const char *), 
-																									(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
-			va_end(va);
-		}
-			break;
-		case O_SSL_CERTIFICATE_TRUST:
-			r=gnutls_certificate_set_x509_trust_file(https->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
-			break;
-		case O_SSL_CERTIFICATE_PKCS12:
-		{
-			va_list va;
-			va_start(va, filename);
-			r=gnutls_certificate_set_x509_simple_pkcs12_file(https->x509_cred, filename,
-																														(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM,
-																														va_arg(va, const char *));
-			va_end(va);
-		}
-			break;
-		default:
-			r=-1;
-			ONION_ERROR("Set unknown type of certificate: %d",type);
+	if (type!=O_SSL_NONE){
+		va_list va;
+		va_start(va, filename);
+		r=onion_https_set_certificate_argv(op, type, filename, va);
+		va_end(va);
 	}
 	
 	if (r<0){
@@ -183,7 +159,7 @@ static ssize_t onion_https_read(onion_request *req, char *data, size_t len){
 	return ret;
 }
 
-static ssize_t onion_https_write(onion_request *req, const char *data, size_t len){
+ssize_t onion_https_write(onion_request *req, const char *data, size_t len){
 	gnutls_session_t session=(gnutls_session_t)req->connection.user_data;
 	ONION_DEBUG("Write! (%p)", session);
 	return gnutls_record_send(session, data, len);
@@ -199,4 +175,54 @@ static void onion_https_close(onion_request *req){
 	
 	}
 	onion_listen_point_request_close_socket(req);
+}
+
+
+int onion_https_set_certificate(onion_listen_point *ol, onion_ssl_certificate_type type, const char *filename, ...){
+	va_list va;
+	va_start(va, filename);
+	int r=onion_https_set_certificate_argv(ol, type, filename, va);
+	va_end(va);
+
+	return r;
+}
+
+int onion_https_set_certificate_argv(onion_listen_point *ol, onion_ssl_certificate_type type, const char *filename, va_list va){
+	onion_https *https=(onion_https*)ol->user_data;
+	
+	if (ol->write!=onion_https_write){
+		ONION_ERROR("Trying to et a certificate on a non HTTPS listen point");
+		errno=EINVAL;
+		return -1;
+	}
+	int r=0;
+	switch(type&0x0FF){
+		case O_SSL_CERTIFICATE_CRL:
+			r=gnutls_certificate_set_x509_crl_file(https->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
+			break;
+		case O_SSL_CERTIFICATE_KEY:
+		{
+			//va_arg(va, const char *); // Ignore first.
+			const char *keyfile=va_arg(va, const char *);
+			ONION_DEBUG("Setting certificate %s, key %s", filename, keyfile);
+			r=gnutls_certificate_set_x509_key_file(https->x509_cred, filename, keyfile, 
+																									(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
+		}
+			break;
+		case O_SSL_CERTIFICATE_TRUST:
+			r=gnutls_certificate_set_x509_trust_file(https->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
+			break;
+		case O_SSL_CERTIFICATE_PKCS12:
+		{
+			r=gnutls_certificate_set_x509_simple_pkcs12_file(https->x509_cred, filename,
+																														(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM,
+																														va_arg(va, const char *));
+		}
+			break;
+		default:
+			r=-1;
+			ONION_ERROR("Set unknown type of certificate: %d",type);
+	}
+
+	return r;
 }

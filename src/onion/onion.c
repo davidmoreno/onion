@@ -32,7 +32,16 @@
  * 
  * A basic example of a server with authentication, SSL support that serves a static directory is:
  * 
- * @include examples/basic/basic.c
+ * @include examples/basic/basic.c/// Sets the port to listen
+void onion_set_port(onion *server, const char *port);
+
+/// Sets the hostname on which to listen
+void onion_set_hostname(onion *server, const char *hostname);
+
+/// Set a certificate for use in the connection
+int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...);
+
+
  * 
  * To be compiled as
  * 
@@ -156,8 +165,13 @@
 #include "listen_point.h"
 #include "sessions.h"
 #include "mime.h"
+#include "http.h"
+#include "https.h"
 
 static int onion_default_error(void *handler, onion_request *req, onion_response *res);
+// Import it here as I need it to know if we have a HTTP port.
+ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
+ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
@@ -475,4 +489,60 @@ static int onion_default_error(void *handler, onion_request *req, onion_response
 	onion_response_write(res,msg,l);
 	return OCS_PROCESSED;
 }
+
+/// Sets the port to listen
+void onion_set_port(onion *server, const char *port){
+	if (server->listen_points){
+		free(server->listen_points[0]->port);
+		server->listen_points[0]->port=strdup(port);
+	}
+	else{
+		onion_add_listen_point(server, NULL, port, onion_http_new());
+	}
+}
+
+/// Sets the hostname on which to listen
+void onion_set_hostname(onion *server, const char *hostname){
+	if (server->listen_points){
+		free(server->listen_points[0]->hostname);
+		server->listen_points[0]->hostname=strdup(hostname);
+	}
+	else{
+		onion_add_listen_point(server, hostname, NULL, onion_http_new());
+	}
+}
+
+/// Set a certificate for use in the connection
+int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
+	if (!onion->listen_points){
+		onion_add_listen_point(onion,NULL,"8080",onion_https_new(O_SSL_NONE,NULL));
+	}
+	else{
+		onion_listen_point *first_listen_point=onion->listen_points[0];
+		if (first_listen_point->write!=onion_https_write){
+			if (first_listen_point->write!=onion_http_write){
+				ONION_ERROR("First listen point is not HTTP not HTTPS. Refusing to promote it to HTTPS. Use proper onion_https_new.");
+				return -1;
+			}
+			ONION_DEBUG("Promoting from HTTP to HTTPS");
+			char *port=first_listen_point->port ? strdup(first_listen_point->port) : NULL;
+			char *hostname=first_listen_point->hostname ? strdup(first_listen_point->hostname) : NULL;
+			onion_listen_point_free(first_listen_point);
+			onion_listen_point *https=onion_https_new(O_SSL_NONE,NULL);
+			if (NULL==https){
+				ONION_ERROR("Could not promote from HTTP to HTTPS. Certificate not set.");
+			}
+			https->port=port;
+			https->hostname=hostname;
+			onion->listen_points[0]=https;
+			first_listen_point=https;
+		}
+	}
+	va_list va;
+	va_start(va, filename);
+	int r=onion_https_set_certificate_argv(onion->listen_points[0], type, filename, va);
+	va_end(va);
+	return r;
+}
+
 
