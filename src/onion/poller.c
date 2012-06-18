@@ -343,7 +343,7 @@ static int onion_poller_get_next_timeout(onion_poller *p){
  */
 void onion_poller_poll(onion_poller *p){
 	struct epoll_event event[MAX_EVENTS];
-	ONION_DEBUG0("Start polling");
+	ONION_DEBUG("Start polling");
 	p->stop=0;
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&p->mutex);
@@ -421,7 +421,7 @@ void onion_poller_poll(onion_poller *p){
 			else{ // I also take care of the timeout, no timeout when on the handler, it should handle it itself.
 				el->timeout_limit=INT_MAX;
 
-#ifdef __DEBUG__
+#ifdef __DEBUG0__
         char **bs=backtrace_symbols((void * const *)&el->f, 1);
         ONION_DEBUG0("Calling handler: %s (%d)",bs[0], el->fd);
         free(bs);
@@ -445,7 +445,7 @@ void onion_poller_poll(onion_poller *p){
 			}
 		}
 	}
-	ONION_DEBUG0("Finished polling fds");
+	ONION_DEBUG("Finished polling fds");
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&p->mutex);
 	p->npollers--;
@@ -459,7 +459,7 @@ void onion_poller_poll(onion_poller *p){
  * @memberof onion_poller_t
  */
 void onion_poller_stop(onion_poller *p){
-  ONION_DEBUG0("Stopping poller");
+  ONION_DEBUG("Stopping poller");
   p->stop=1;
   char data[8]={0,0,0,0, 0,0,0,1};
   write(p->eventfd,data,8);

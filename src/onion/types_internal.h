@@ -56,7 +56,6 @@ struct onion_dict_t{
 
 struct onion_t{
 	int flags;
-	int listenfd;
 	int timeout;   ///< Timeout in milliseconds
 	char *username;
 	onion_poller *poller;
@@ -69,8 +68,8 @@ struct onion_t{
 	size_t max_file_size;					/// Maximum size of files. @see onion_request_write_post
 	onion_sessions *sessions;			/// Storage for sessions.
 #ifdef HAVE_PTHREADS
-	int max_threads;
-	sem_t thread_count;
+	pthread_t *threads;
+	int nthreads;
 #endif
 };
 

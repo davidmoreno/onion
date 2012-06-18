@@ -104,9 +104,9 @@ int onion_listen_point_listen(onion_listen_point *op){
 	hints.ai_family=AF_UNSPEC;
 	hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
 	
-	ONION_DEBUG("Trying to listen at %s:%s", op->hostname, op->port);
+	ONION_DEBUG("Trying to listen at %s:%s", op->hostname, op->port ? op->port : "8080");
 
-	if (getaddrinfo(op->hostname, op->port, &hints, &result) !=0 ){
+	if (getaddrinfo(op->hostname, op->port ? op->port : "8080", &hints, &result) !=0 ){
 		ONION_ERROR("Error getting local address and port: %s", strerror(errno));
 		return errno;
 	}
@@ -200,12 +200,15 @@ onion_request *onion_listen_point_request_new_from_socket(onion_listen_point *op
 			ONION_ERROR("Setting FD_CLOEXEC to connection");
 		}
 	}
+	
+	ONION_DEBUG("New connection, socket %d",clientfd);
+	
 	return req;
 }
 
 void onion_listen_point_request_close_socket(onion_request *oc){
-	ONION_DEBUG("Closing socket");
 	int fd=oc->connection.fd;
+	ONION_DEBUG("Closing socket %d",fd);
 	if (fd>=0){
 		shutdown(fd,SHUT_RDWR);
 		close(fd);

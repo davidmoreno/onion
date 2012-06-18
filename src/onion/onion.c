@@ -157,6 +157,11 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 #include <signal.h>
 #include <string.h>
 
+//#define HAVE_PTHREADS
+#ifdef HAVE_PTHREADS
+#include <pthread.h>
+#endif
+
 #include "onion.h"
 #include "handler.h"
 #include "types_internal.h"
@@ -197,7 +202,7 @@ ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
  * @see onion_mode_e onion_t
  */
 onion *onion_new(int flags){
-	const int supported_flags=O_POLL|O_SYSTEMD;
+	const int supported_flags=O_POLL|O_SYSTEMD|O_POOL;
 	if (flags & ~(supported_flags)){
 		ONION_WARNING("Not all running modes for onion are supported yet on the new listen point branch. Asked for %04X, have %04X",flags, supported_flags);
 	}
@@ -215,7 +220,12 @@ onion *onion_new(int flags){
 	o->internal_error_handler=onion_handler_new((onion_handler_handler)onion_default_error, NULL, NULL);
 	o->max_post_size=1024*1024; // 1MB
 	o->max_file_size=1024*1024*1024; // 1GB
-
+#ifdef HAVE_PTHREADS
+	o->flags|=O_THREADS_AVALIABLE;
+	o->nthreads=8;
+	if (o->flags&O_THREADED)
+		o->flags|=O_THREADS_ENABLED;
+#endif
 	return o;
 }
 
@@ -226,8 +236,8 @@ onion *onion_new(int flags){
  */
 void onion_free(onion *onion){
 	ONION_DEBUG("Onion free");
-	close(onion->listenfd);
-
+	onion_listen_stop(onion);
+	
 	if (onion->poller)
 		onion_poller_free(onion->poller);
 	
@@ -250,6 +260,11 @@ void onion_free(onion *onion){
 	if (onion->sessions)
 		onion_sessions_free(onion->sessions);
 	
+#ifdef HAVE_PTHREADS
+	if (onion->threads)
+		free(onion->threads);
+#endif
+	
 	free(onion);
 }
 
@@ -263,9 +278,8 @@ void onion_free(onion *onion){
  */
 int onion_listen(onion *o){
 	if (!o->listen_points){
-		ONION_ERROR("There is no listen point configured!");
-		/// FIXME! create old set_port and set_address, and create a listen port with old interface.
-		return -1;
+		onion_add_listen_point(o,NULL,NULL,onion_http_new());
+		ONION_DEBUG("Created default HTTP listen port");
 	}
 	
 	onion_listen_point **listen_points=o->listen_points;
@@ -278,15 +292,34 @@ int onion_listen(onion *o){
 		onion_poller_add(o->poller, slot);
 		listen_points++;
 	}
-	
+
+#ifdef HAVE_PTHREADS
 	ONION_DEBUG("Start polling / listening %p, %p, %p", o->listen_points, *o->listen_points, *(o->listen_points+1));
-	onion_poller_poll(o->poller);
-	
+	if (o->flags&O_THREADED){
+		o->threads=malloc(sizeof(pthread_t)*(o->nthreads-1));
+		int i;
+		for (i=0;i<o->nthreads-1;i++){
+			pthread_create(&o->threads[i],NULL,(void*)onion_poller_poll, o->poller);
+		}
+		
+		// Here is where it waits.. but eventually it will exit at onion_listen_stop
+		onion_poller_poll(o->poller);
+		ONION_DEBUG("Closing onion_listen");
+		
+		for (i=0;i<o->nthreads-1;i++){
+			pthread_join(o->threads[i],NULL);
+		}
+	}
+	else
+#endif
+		onion_poller_poll(o->poller);
+
 	listen_points=o->listen_points;
 	while (*listen_points){
 		onion_listen_point *p=*listen_points;
 		ONION_DEBUG("Removing %d from poller", p->listenfd);
-		onion_poller_remove(o->poller, p->listenfd);
+		if (p->listenfd>0)
+			onion_poller_remove(o->poller, p->listenfd);
 		listen_points++;
 	}
 	return 0;
@@ -302,15 +335,7 @@ int onion_listen(onion *o){
  */
 void onion_listen_stop(onion* server){
 	ONION_DEBUG("Stop listening");
-	int fd=server->listenfd;
-	server->listenfd=-1;
-	if (server->poller && fd>0){
-		onion_poller_remove(server->poller, fd);
-	}
-	if (fd>0){
-    shutdown(fd,SHUT_RDWR); // If no shutdown, listen blocks. 
-		close(fd);
-  }
+	onion_poller_stop(server->poller);
 }
 
 
@@ -395,8 +420,8 @@ void onion_set_timeout(onion *onion, int timeout){
  */
 void onion_set_max_threads(onion *onion, int max_threads){
 #ifdef HAVE_PTHREADS
-	onion->max_threads=max_threads;
-	sem_init(&onion->thread_count, 0, max_threads);
+	onion->nthreads=max_threads;
+	//sem_init(&onion->thread_count, 0, max_threads);
 #endif
 }
 
@@ -520,7 +545,7 @@ void onion_set_hostname(onion *server, const char *hostname){
 /// Set a certificate for use in the connection
 int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
 	if (!onion->listen_points){
-		onion_add_listen_point(onion,NULL,"8080",onion_https_new(O_SSL_NONE,NULL));
+		onion_add_listen_point(onion,NULL,NULL,onion_https_new(O_SSL_NONE,NULL));
 	}
 	else{
 		onion_listen_point *first_listen_point=onion->listen_points[0];
