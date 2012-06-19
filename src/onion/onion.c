@@ -202,10 +202,6 @@ ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
  * @see onion_mode_e onion_t
  */
 onion *onion_new(int flags){
-	const int supported_flags=O_POLL|O_SYSTEMD|O_POOL;
-	if (flags & ~(supported_flags)){
-		ONION_WARNING("Not all running modes for onion are supported yet on the new listen point branch. Asked for %04X, have %04X",flags, supported_flags);
-	}
 	ONION_DEBUG0("Some internal sizes: onion size: %d, request size %d, response size %d",sizeof(onion),sizeof(onion_request),sizeof(onion_response));
 	if(SOCK_CLOEXEC == 0){
 		ONION_WARNING("There is no support for SOCK_CLOEXEC compiled in libonion. This may be a SECURITY PROBLEM as connections may leak into executed programs.");
@@ -282,45 +278,65 @@ int onion_listen(onion *o){
 		ONION_DEBUG("Created default HTTP listen port");
 	}
 	
-	onion_listen_point **listen_points=o->listen_points;
-	while (*listen_points){
-		onion_listen_point *p=*listen_points;
-		ONION_DEBUG("Adding %d to poller", p->listenfd);
-		onion_poller_slot *slot=onion_poller_slot_new(p->listenfd, (void*)onion_listen_point_accept, p);
-		//onion_poller_slot_set_timeout(slot, o->timeout);
-		onion_poller_slot_set_type(slot, O_POLL_ALL);
-		onion_poller_add(o->poller, slot);
-		listen_points++;
+	if (o->flags&O_ONE){
+		onion_listen_point **listen_points=o->listen_points;
+		if (listen_points[1]!=NULL){
+			ONION_WARNING("Trying to use non-poll and non-thread mode with several listen points. Only the first will be listened");
+		}
+		onion_listen_point *op=listen_points[0];
+		do{
+			onion_request *req=op->request_new(op);
+			ONION_DEBUG("Accepted request %p", req);
+			onion_request_set_no_keep_alive(req);
+			int ret;
+			do{
+				ret=req->connection.listen_point->read_ready(req);
+			}while(ret>=0);
+			ONION_DEBUG("End of request %p", req);
+			req->connection.listen_point->close(req);
+		}while(((o->flags&O_ONE_LOOP) == O_ONE_LOOP) && op->listenfd>0);
 	}
+	else{
+		onion_listen_point **listen_points=o->listen_points;
+		while (*listen_points){
+			onion_listen_point *p=*listen_points;
+			ONION_DEBUG("Adding %d to poller", p->listenfd);
+			onion_poller_slot *slot=onion_poller_slot_new(p->listenfd, (void*)onion_listen_point_accept, p);
+			//onion_poller_slot_set_timeout(slot, o->timeout);
+			onion_poller_slot_set_type(slot, O_POLL_ALL);
+			onion_poller_add(o->poller, slot);
+			listen_points++;
+		}
 
 #ifdef HAVE_PTHREADS
-	ONION_DEBUG("Start polling / listening %p, %p, %p", o->listen_points, *o->listen_points, *(o->listen_points+1));
-	if (o->flags&O_THREADED){
-		o->threads=malloc(sizeof(pthread_t)*(o->nthreads-1));
-		int i;
-		for (i=0;i<o->nthreads-1;i++){
-			pthread_create(&o->threads[i],NULL,(void*)onion_poller_poll, o->poller);
+		ONION_DEBUG("Start polling / listening %p, %p, %p", o->listen_points, *o->listen_points, *(o->listen_points+1));
+		if (o->flags&O_THREADED){
+			o->threads=malloc(sizeof(pthread_t)*(o->nthreads-1));
+			int i;
+			for (i=0;i<o->nthreads-1;i++){
+				pthread_create(&o->threads[i],NULL,(void*)onion_poller_poll, o->poller);
+			}
+			
+			// Here is where it waits.. but eventually it will exit at onion_listen_stop
+			onion_poller_poll(o->poller);
+			ONION_DEBUG("Closing onion_listen");
+			
+			for (i=0;i<o->nthreads-1;i++){
+				pthread_join(o->threads[i],NULL);
+			}
 		}
-		
-		// Here is where it waits.. but eventually it will exit at onion_listen_stop
-		onion_poller_poll(o->poller);
-		ONION_DEBUG("Closing onion_listen");
-		
-		for (i=0;i<o->nthreads-1;i++){
-			pthread_join(o->threads[i],NULL);
-		}
-	}
-	else
+		else
 #endif
-		onion_poller_poll(o->poller);
+			onion_poller_poll(o->poller);
 
-	listen_points=o->listen_points;
-	while (*listen_points){
-		onion_listen_point *p=*listen_points;
-		ONION_DEBUG("Removing %d from poller", p->listenfd);
-		if (p->listenfd>0)
-			onion_poller_remove(o->poller, p->listenfd);
-		listen_points++;
+		listen_points=o->listen_points;
+		while (*listen_points){
+			onion_listen_point *p=*listen_points;
+			ONION_DEBUG("Removing %d from poller", p->listenfd);
+			if (p->listenfd>0)
+				onion_poller_remove(o->poller, p->listenfd);
+			listen_points++;
+		}
 	}
 	return 0;
 }
