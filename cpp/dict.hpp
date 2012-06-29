@@ -77,6 +77,10 @@ namespace Onion{
     void setAutodelete(bool s){
 			autodelete=s;
 		}
+		
+		size_t count() const{
+			return onion_dict_count(ptr);
+		}
     
     onion_dict *c_handle(){
       return ptr;
