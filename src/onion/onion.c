@@ -592,3 +592,15 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 }
 
 
+/**
+ * @short Set the maximum POST size on requests
+ * 
+ * By default its 1MB of post data. This data has to be chossen carefully as this
+ * data is stored in memory, and can be abused.
+ * 
+ * @param server The onion server
+ * @param max_size The maximum desired size in bytes, by default 1MB.
+ */
+void onion_set_max_post_size(onion *server, size_t max_size){
+	server->max_post_size=max_size;
+}

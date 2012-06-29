@@ -99,15 +99,15 @@ struct onion_request_t{
 };
 
 struct onion_response_t{
-	onion_request *request;  	/// Original request, so both are related, and get connected to the onion_server_t structure. Writes through the request connection.
+	onion_request *request;  	/// Original request, so both are related, and get connected to the onion_t structure. Writes through the request connection.
 	onion_dict *headers;			/// Headers to write when appropiate.
 	int code;									/// Response code
 	int flags;								/// Flags. @see onion_response_flags_e
-	unsigned int length;			/// Length, if known of the response, to create the Content-Lenght header. 
+	unsigned int length;			/// Length, if known, of the response, to create the Content-Lenght header. 
 	unsigned int sent_bytes; 	/// Sent bytes at content.
 	unsigned int sent_bytes_total; /// Total sent bytes, including headers.
 	char buffer[ONION_RESPONSE_BUFFER_SIZE]; /// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
-	off_t buffer_pos;						/// Position in the internal buffer. When sizeof(buffer) its flushed to the onion_server IO.
+	off_t buffer_pos;						/// Position in the internal buffer. When sizeof(buffer) its flushed to the onion IO.
 };
 
 struct onion_handler_t{

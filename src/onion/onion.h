@@ -78,6 +78,9 @@ onion_url *onion_root_url(onion *server);
 /// If on poller mode, returns the poller, if not, returns NULL
 onion_poller *onion_get_poller(onion *server);
 
+/// Set the maximum post size
+void onion_set_max_post_size(onion *server, size_t max_size);
+
 #ifdef __cplusplus
 }
 #endif

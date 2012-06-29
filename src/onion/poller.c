@@ -174,7 +174,7 @@ static int onion_poller_empty_helper(void *_){
  */
 onion_poller *onion_poller_new(int n){
 	onion_poller *p=malloc(sizeof(onion_poller));
-	p->fd=epoll_create(n);
+	p->fd=epoll_create1(EPOLL_CLOEXEC);
 	if (p->fd < 0){
 		ONION_ERROR("Error creating the poller. %s", strerror(errno));
 		free(p);

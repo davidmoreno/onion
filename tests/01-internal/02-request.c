@@ -20,26 +20,34 @@
 #include <string.h>
 #include <netdb.h>
 
+#include <onion/onion.h>
 #include <onion/dict.h>
-#include <onion/server.h>
 #include <onion/request.h>
 #include <onion/types_internal.h>
+#include <onion/listen_point.h>
+#include <onion/http.h>
 
 #include "../ctest.h"
 
-onion_server *server;
+onion *server;
+onion_listen_point *custom_io;
 
-ssize_t empty_write(void *a, const char *b, size_t size){
+ssize_t empty_write(onion_request *a, const char *b, size_t size){
 	return size;
 }
 
 void setup(){
-	server=onion_server_new();
-	onion_server_set_write(server, (void*)empty_write);
+	server=onion_new(O_ONE);
+	custom_io=onion_http_new();
+	custom_io->server=server;
+	custom_io->write=empty_write;
 }
 
+#define REQ_WRITE(req, txt) onion_request_write(req, txt, strlen(txt));
+
 void teardown(){
-	onion_server_free(server);
+	onion_listen_point_free(custom_io);
+	onion_free(server);
 }
 
 void t01_create_add_free(){
@@ -48,13 +56,11 @@ void t01_create_add_free(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(server, (void*)111, "localhost");
-	FAIL_IF_NOT_EQUAL(req->socket, (void*)111);
+	req=onion_request_new(custom_io);
 	
 	FAIL_IF_EQUAL(req,NULL);
 	
-#define _GET "GET / HTTP/1.1\n"
-	ok=onion_request_write(req,_GET,sizeof(_GET));
+	ok=REQ_WRITE(req, "GET / HTTP/1.1\n");
 	FAIL_IF_NOT(ok);
 	
 	onion_request_free(req);
@@ -68,8 +74,8 @@ void t02_create_add_free_overflow(){
 	onion_request *req;
 	int ok, i;
 	
-	req=onion_request_new(server, NULL, NULL);
-	FAIL_IF_NOT_EQUAL(req->socket, NULL);
+	req=onion_request_new(custom_io);
+	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
 
 	FAIL_IF_EQUAL(req,NULL);
 	
@@ -80,18 +86,18 @@ void t02_create_add_free_overflow(){
 	char get[14096*4];
 	
 	sprintf(get,"%s %s %s",of,of,of);
-	ok=onion_request_write(req,get,strlen(get));
+	ok=REQ_WRITE(req,get);
 	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); 
 	onion_request_clean(req);
 	
 	sprintf(get,"%s %s %s\n",of,of,of);
-	ok=onion_request_write(req,get,strlen(get));
+	ok=REQ_WRITE(req,get);
 	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); 
 	onion_request_clean(req);
 
 	
 	sprintf(get,"GET %s %s\n",of,of);
-	ok=onion_request_write(req,get,strlen(get));
+	ok=REQ_WRITE(req,get);
 	printf("%d\n",ok);
 	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); 
 	
@@ -100,25 +106,23 @@ void t02_create_add_free_overflow(){
 	END_LOCAL();
 }
 
-#define FILL(a,b) onion_request_write(a,b,strlen(b))
-
 void t03_create_add_free_full_flow(){
 	INIT_LOCAL();
 	
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(server, 0,NULL);
+	req=onion_request_new(custom_io);
 	FAIL_IF_EQUAL(req,NULL);
-	FAIL_IF_NOT_EQUAL(req->socket, 0);
+	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
 	
-	ok=FILL(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10&empty&empty2 HTTP/1.0\n");
+	ok=REQ_WRITE(req,"GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10&empty&empty2 HTTP/1.0\n");
 	FAIL_IF_NOT(ok);
-	ok=FILL(req,"Host: 127.0.0.1\r\n");
+	ok=REQ_WRITE(req,"Host: 127.0.0.1\r\n");
 	FAIL_IF_NOT(ok);
-	ok=FILL(req,"Other-Header: My header is very long and with spaces...\n");
+	ok=REQ_WRITE(req,"Other-Header: My header is very long and with spaces...\n");
 	FAIL_IF_NOT(ok);
-	ok=FILL(req,"Final-Header: This header do not get into headers as a result of now knowing if its finished, or if its multiline.\n");
+	ok=REQ_WRITE(req,"Final-Header: This header do not get into headers as a result of now knowing if its finished, or if its multiline.\n");
 	FAIL_IF_NOT(ok);
 	
 	FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
@@ -151,9 +155,9 @@ void t04_create_add_free_GET(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(server, 0, NULL);
+	req=onion_request_new(custom_io);
 	FAIL_IF_EQUAL(req,NULL);
-	FAIL_IF_NOT_EQUAL(req->socket, 0);
+	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
 	
 	const char *query="GET /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n"
 													"Host: 127.0.0.1\n\r"
@@ -162,7 +166,7 @@ void t04_create_add_free_GET(){
 	int i; // Straight write, with clean (keep alive like)
 	for (i=0;i<10;i++){
 		FAIL_IF_NOT_EQUAL_INT(req->flags,0);
-		ok=onion_request_write(req,query,strlen(query));
+		ok=REQ_WRITE(req, query);
 		FAIL_IF_NOT_EQUAL_INT(ok, OCS_CLOSE_CONNECTION);
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
@@ -195,9 +199,9 @@ void t05_create_add_free_POST(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(server, 0,NULL);
+	req=onion_request_new(custom_io);
 	FAIL_IF_EQUAL(req,NULL);
-	FAIL_IF_NOT_EQUAL(req->socket, 0);
+	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
 	
 	const char *query="POST /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n"
 													"Host: 127.0.0.1\n\rContent-Length: 50\n"
@@ -206,7 +210,7 @@ void t05_create_add_free_POST(){
 	int i; // Straight write, with clean (keep alive like)
 	for (i=0;i<10;i++){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
-		ok=onion_request_write(req,query,strlen(query));
+		ok=REQ_WRITE(req,query);
 		
 		FAIL_IF_NOT_EQUAL(ok, OCS_CLOSE_CONNECTION);
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
@@ -245,12 +249,12 @@ void t06_create_add_free_bad_method(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(server, (void*)111, "localhost");
-	FAIL_IF_NOT_EQUAL(req->socket, (void*)111);
+	req=onion_request_new(custom_io);
+	//FAIL_IF_NOT_EQUAL(req->socket, (void*)111);
 	
 	FAIL_IF_EQUAL(req,NULL);
 	
-	ok=FILL(req,"XGETX / HTTP/1.1\n");
+	ok=REQ_WRITE(req,"XGETX / HTTP/1.1\n");
 	FAIL_IF_NOT_EQUAL(ok,OCS_NOT_IMPLEMENTED);
 	
 	onion_request_free(req);
@@ -264,11 +268,11 @@ void t06_create_add_free_POST_toobig(){
 	onion_request *req;
 	int ok;
 	
-	req=onion_request_new(server, 0,NULL);
+	req=onion_request_new(custom_io);
 	FAIL_IF_EQUAL(req,NULL);
-	FAIL_IF_NOT_EQUAL(req->socket, 0);
+	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
 	
-	onion_server_set_max_post_size(server, 10); // Very small limit
+	onion_set_max_post_size(server, 10); // Very small limit
 	
 	const char *query="POST /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n"
 													"Host: 127.0.0.1\n\rContent-Length: 24\n"
@@ -277,7 +281,7 @@ void t06_create_add_free_POST_toobig(){
 	int i; // Straight write, with clean (keep alive like)
 	for (i=0;i<10;i++){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
-		ok=onion_request_write(req,query,strlen(query));
+		ok=REQ_WRITE(req,query);
 		
 		FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR);
 
@@ -297,10 +301,10 @@ void t07_multiline_headers(){
 	onion_request *req;
 	int ok;
 	
-	onion_server_set_max_post_size(server, 1024);
-	req=onion_request_new(server, 0,NULL);
+	onion_set_max_post_size(server, 1024);
+	req=onion_request_new(custom_io);
 	FAIL_IF_EQUAL(req,NULL);
-	FAIL_IF_NOT_EQUAL(req->socket, 0);
+	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
 	
 	{
 		const char *query="GET / HTTP/1.0\n"
@@ -342,7 +346,7 @@ void t08_sockaddr_storage(){
 		struct sockaddr_storage client_addr;
 		socklen_t client_len=0;
 		
-		req=onion_request_new_from_socket(NULL, NULL, &client_addr, client_len);
+		req=onion_request_new(custom_io);
 		FAIL_IF_EQUAL(onion_request_get_sockadd_storage(req, NULL), &client_addr);
 		FAIL_IF_EQUAL(onion_request_get_sockadd_storage(req, &client_len), &client_addr);
 		FAIL_IF_NOT_EQUAL_INT(client_len, 0);
@@ -376,7 +380,7 @@ void t08_sockaddr_storage(){
 			memset(portB,0,sizeof(portB));
 			
 			getnameinfo(rp->ai_addr, rp->ai_addrlen, hostA, sizeof(hostA), portA, sizeof(portA), NI_NUMERICHOST | NI_NUMERICSERV);
-			req=onion_request_new_from_socket(NULL, NULL,(struct sockaddr_storage *)rp->ai_addr, rp->ai_addrlen);
+			req=onion_request_new_from_socket(NULL, 0,(struct sockaddr_storage *)rp->ai_addr, rp->ai_addrlen);
 			client_addr=onion_request_get_sockadd_storage(req, &client_len);
 			FAIL_IF_EQUAL(client_addr, (struct sockaddr_storage *)rp->ai_addr);
 			FAIL_IF_EQUAL(client_addr, NULL);
@@ -393,7 +397,7 @@ void t08_sockaddr_storage(){
 	}
 	
 	{
-		req=onion_request_new(NULL, NULL, NULL);
+		req=onion_request_new(custom_io); //NULL, NULL, NULL);
 		struct sockaddr_storage *client_addr;
 		socklen_t client_len;
 		client_addr=onion_request_get_sockadd_storage(req, &client_len);

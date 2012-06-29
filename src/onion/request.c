@@ -72,6 +72,15 @@ onion_request *onion_request_new(onion_listen_point *op){
 	return req;
 }
 
+/// Creates a request, with socket info.
+onion_request *onion_request_new_from_socket(onion_listen_point *con, int fd, struct sockaddr_storage *cli_addr, socklen_t cli_len){
+	onion_request *req=onion_request_new(con);
+	req->connection.fd=fd;
+	memcpy(&req->connection.cli_addr,cli_addr,cli_len);
+	req->connection.cli_len=cli_len;
+	return req;
+}
+
 /**
  * @short Helper to remove temporal files from req->files
  * @memberof onion_request_t
@@ -112,6 +121,9 @@ void onion_request_free(onion_request *req){
 	
 	if (req->parser_data)
     onion_request_parser_data_free(req->parser_data);
+	
+	if (req->connection.cli_info)
+		free(req->connection.cli_info);
 	
 	free(req);
 }
@@ -162,6 +174,10 @@ void onion_request_clean(onion_request* req){
     onion_block_free(req->data);
     req->data=NULL;
   }
+	if (req->connection.cli_info){
+		free(req->connection.cli_info);
+		req->connection.cli_info=NULL;
+	}
 }
 
 
@@ -517,7 +533,7 @@ void onion_request_polish(onion_request *req){
  * @return A const char * with the client description
  */
 const char *onion_request_get_client_description(onion_request *req){
-  if (!req->connection.cli_info){
+  if (!req->connection.cli_info && req->connection.cli_len){
     char tmp[256];
     getnameinfo((struct sockaddr *)&req->connection.cli_addr, req->connection.cli_len, tmp, sizeof(tmp),
           NULL, 0, NI_NUMERICHOST);
