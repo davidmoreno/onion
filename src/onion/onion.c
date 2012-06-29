@@ -862,7 +862,13 @@ static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd){
   gnutls_session_enable_compatibility_mode (session);
 
 	gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)(long) clientfd);
-	int ret = gnutls_handshake (session);
+	int ret;
+	int n_tries=0;
+	do{
+		ret = gnutls_handshake (session);
+		if (n_tries++>10) // Ok, dont abuse the system. Maybe trying to DoS me?
+			break;
+	}while (ret<0 && gnutls_error_is_fatal(ret)==0);
 	if (ret<0){ // could not handshake. assume an error.
 	  ONION_ERROR("Handshake has failed (%s)", gnutls_strerror (ret));
 		gnutls_deinit (session);
