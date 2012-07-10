@@ -59,6 +59,8 @@ void t01_get(){
  * @short Simple server that always launch testfds, and returns the result.
  */
 int main(int argc, char **argv){
+	START();
+	
 	if (argc==2 && strcmp(argv[1],"--checkfds")==0)
 		return checkfds(argc, argv);
 	

@@ -34,7 +34,6 @@ onion_listen_point* onion_http_new()
 {
 	onion_listen_point *ret=onion_listen_point_new();
 	
-	ret->request_new=onion_listen_point_request_new_from_socket;
 	ret->read=onion_http_read;
 	ret->write=onion_http_write;
 	ret->close=onion_listen_point_request_close_socket;

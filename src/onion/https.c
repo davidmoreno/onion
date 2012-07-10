@@ -44,7 +44,7 @@ typedef struct onion_https_t onion_https;
 
 
 int onion_http_read_ready(onion_request *req);
-onion_request *onion_https_request_new(onion_listen_point *op);
+void onion_https_request_init(onion_request *req);
 static ssize_t onion_https_read(onion_request *req, char *data, size_t len);
 ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 static void onion_https_close(onion_request *req);
@@ -52,7 +52,7 @@ static void onion_https_free(onion_listen_point *op);
 
 onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char *filename, ...){
 	onion_listen_point *op=onion_listen_point_new();
-	op->request_new=onion_https_request_new;
+	op->request_init=onion_https_request_init;
 	op->user_data=calloc(1,sizeof(onion_https));
 	op->free=onion_https_free;
 	op->read=onion_https_read;
@@ -112,9 +112,9 @@ static void onion_https_free(onion_listen_point *op){
 	close(op->listenfd);
 }
 
-onion_request* onion_https_request_new(onion_listen_point* op){
-	onion_request *req=onion_listen_point_request_new_from_socket(op);
-	onion_https *https=(onion_https*)op->user_data;
+void onion_https_request_init(onion_request *req){
+	onion_listen_point_request_init_from_socket(req);
+	onion_https *https=(onion_https*)req->connection.listen_point->user_data;
 	
 	ONION_DEBUG("Socket fd %d",req->connection.fd);
 	
@@ -141,12 +141,9 @@ onion_request* onion_https_request_new(onion_listen_point* op){
 		gnutls_bye (session, GNUTLS_SHUT_WR);
 		gnutls_deinit(session);
 		onion_listen_point_request_close_socket(req);
-		return NULL;
 	}
 	
 	req->connection.user_data=(void*)session;
-	
-	return req;
 }
 
 static ssize_t onion_https_read(onion_request *req, char *data, size_t len){

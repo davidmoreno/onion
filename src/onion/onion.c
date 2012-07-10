@@ -285,7 +285,7 @@ int onion_listen(onion *o){
 		}
 		onion_listen_point *op=listen_points[0];
 		do{
-			onion_request *req=op->request_new(op);
+			onion_request *req=onion_request_new(op);
 			ONION_DEBUG("Accepted request %p", req);
 			onion_request_set_no_keep_alive(req);
 			int ret;
@@ -392,7 +392,10 @@ int onion_add_listen_point(onion* server, const char* hostname, const char* port
 	if (port)
 		protocol->port=strdup(port);
 	
-	onion_listen_point_listen(protocol);
+	if (protocol->listen)
+		protocol->listen(protocol);
+	else // default implementation, use sockets.
+		onion_listen_point_listen(protocol);
 	
 	if (server->listen_points){
 		onion_listen_point **p=server->listen_points;

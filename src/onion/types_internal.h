@@ -147,9 +147,11 @@ struct onion_listen_point_t{
 	void *user_data;
 	void (*free)(onion_listen_point *user_data);
 	
+	/// How to start the listening phase. Normally NULL means socket listening. Must set at fd a file descriptor that will be polled.
+	void (*listen)(onion_listen_point *lp);
 	/// Has default implementation that do the socket accept and set of default params. On some protocols may be 
 	/// reimplemented to do non socket-petition accept.
-	onion_request *(*request_new)(onion_listen_point *op);
+	void (*request_init)(onion_request *req);
 
 	/// @{ @name To be used by connections, but as these methods are shared by protocol, done here.
 	int (*read_ready)(onion_request *con); ///< When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.

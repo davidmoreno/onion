@@ -76,6 +76,8 @@ void t02_several_add_methods(){
 
 
 int main(int argc, char **argv){
+	START();
+	
 	t01_create_and_free();
 	t02_several_add_methods();
 	

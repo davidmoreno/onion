@@ -83,29 +83,29 @@ onion_response *onion_response_new(onion_request *req){
 onion_connection_status onion_response_free(onion_response *res){
 	// write pending data.
 	onion_response_write_buffer(res);
+	onion_request *req=res->request;
 	
 	if (res->flags&OR_CHUNKED){ // Set the chunked data end.
-		onion_request *req=res->request;
 		req->connection.listen_point->write(req, "0\r\n\r\n",5);
 	}
 	
 	int r=OCS_CLOSE_CONNECTION;
 	
 	// it is a rare ocassion that there is no request, but although unlikely, it may happend
-	if (res->request){
+	if (req){
 		// keep alive only on HTTP/1.1.
 		//ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d || [chunked] %d)", 
-		//						onion_request_keep_alive(res->request),
+		//						onion_request_keep_alive(req),
 		//						res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes, res->flags&OR_CHUNKED);
-		if ( onion_request_keep_alive(res->request) && 
+		if ( onion_request_keep_alive(req) && 
 				 ( res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes || res->flags&OR_CHUNKED ) 
 			 )
 			r=OCS_KEEP_ALIVE;
 		
 		// FIXME! This is no proper logging at all. Maybe use a handler.
-		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->connection.cli_info,
-							 onion_request_methods[res->request->flags&OR_METHODS],
-						res->request->fullpath, res->code, res->sent_bytes,
+		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", req->connection.cli_info,
+							 onion_request_methods[req->flags&OR_METHODS],
+						req->fullpath, res->code, res->sent_bytes,
 						(r==OCS_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
 	}
 	

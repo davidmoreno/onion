@@ -1,10 +1,10 @@
 add_executable(01-hash 01-hash.c)
 target_link_libraries(01-hash onion)
 
-add_executable(02-request 02-request.c)
+add_executable(02-request 02-request.c buffer_listen_point.c)
 target_link_libraries(02-request onion)
 
-add_executable(03-response 03-response.c)
+add_executable(03-response 03-response.c buffer_listen_point.c)
 target_link_libraries(03-response onion)
 
 add_executable(04-handler 04-handler.c)

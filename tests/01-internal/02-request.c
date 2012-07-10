@@ -28,25 +28,19 @@
 #include <onion/http.h>
 
 #include "../ctest.h"
+#include "buffer_listen_point.h"
 
 onion *server;
 onion_listen_point *custom_io;
 
-ssize_t empty_write(onion_request *a, const char *b, size_t size){
-	return size;
-}
-
 void setup(){
 	server=onion_new(O_ONE);
-	custom_io=onion_http_new();
-	custom_io->server=server;
-	custom_io->write=empty_write;
+	onion_add_listen_point(server, NULL, NULL, onion_buffer_listen_point_new());
 }
 
 #define REQ_WRITE(req, txt) onion_request_write(req, txt, strlen(txt));
 
 void teardown(){
-	onion_listen_point_free(custom_io);
 	onion_free(server);
 }
 

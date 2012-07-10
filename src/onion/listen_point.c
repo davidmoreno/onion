@@ -61,7 +61,7 @@ void onion_listen_point_free(onion_listen_point *op){
 
 
 int onion_listen_point_accept(onion_listen_point *op){
-	onion_request *req=op->request_new(op);
+	onion_request *req=onion_request_new(op);
 	if (req){
 		onion_poller_slot *slot=onion_poller_slot_new(req->connection.fd, (void*)onion_listen_point_read_ready, req);
 		onion_poller_slot_set_timeout(slot, req->connection.listen_point->server->timeout);
@@ -163,11 +163,8 @@ static int onion_listen_point_read_ready(onion_request *req){
 }
 
 
-onion_request *onion_listen_point_request_new_from_socket(onion_listen_point *op){
-	onion_request *req=onion_request_new(op);
-	if (!req){
-		return NULL;
-	}
+void onion_listen_point_request_init_from_socket(onion_request *req){
+	onion_listen_point *op=req->connection.listen_point;
 	int listenfd=op->listenfd;
 	/// Follows default socket implementation. If your protocol is socket based, just use it.
 	
@@ -177,7 +174,6 @@ onion_request *onion_listen_point_request_new_from_socket(onion_listen_point *op
 	if (clientfd<0){
 		ONION_ERROR("Error accepting connection: %s",strerror(errno));
 		onion_listen_point_request_close_socket(req);
-		return NULL;
 	}
 	req->connection.fd=clientfd;
 	
@@ -202,8 +198,6 @@ onion_request *onion_listen_point_request_new_from_socket(onion_listen_point *op
 	}
 	
 	ONION_DEBUG("New connection, socket %d",clientfd);
-	
-	return req;
 }
 
 void onion_listen_point_request_close_socket(onion_request *oc){

@@ -28,32 +28,10 @@
 #include <onion/http.h>
 
 #include "../ctest.h"
+#include "buffer_listen_point.h"
 
 #define FILL(a,b) onion_request_write(a,b,strlen(b))
 
-
-
-static void __onion_request_close(onion_request *lp){
-	free(lp->connection.user_data);
-	onion_request_free(lp);
-}
-
-static onion_request *__onion_request_new(onion_listen_point *lp){
-	onion_request *req=lp->request_new(lp);
-	req->connection.user_data=calloc(1,1024);
-	ONION_DEBUG("char data %p", lp->user_data);
-	return req;
-}
-
-static void __onion_set_write(onion *server, void *write_append){
-	if (server->listen_points)
-		return;
-	onion_listen_point *lp=onion_http_new();
-	onion_add_listen_point(server, NULL, NULL, lp);
-	lp->request_new=__onion_request_new;
-	lp->write=write_append;
-	lp->close=__onion_request_close;
-}
 
 void t01_create_add_free(){
 	INIT_LOCAL();
@@ -74,8 +52,8 @@ void t01_create_add_free(){
 }
 
 /// Just appends to the handler. Must be big enought or segfault.. Just for tests.
-int write_append(onion_request *handler, const char *data, unsigned int length){
-	char *str=handler->connection.user_data;
+int write_append(onion_request *req, const char *data, unsigned int length){
+	char *str=req->connection.user_data;
 	ONION_DEBUG("char data %p", str);
 	int p=strlen(str);
 	strncat(str,data,length);
@@ -88,12 +66,12 @@ void t02_full_cycle_http10(){
 	INIT_LOCAL();
 	
 	onion *server=onion_new(0);
-	__onion_set_write(server, write_append);
+	onion_add_listen_point(buffer_listen_point_new());
 	onion_request *request;
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	request=onion_request_new(server->listen_points[0]);
+	request=server->listen_points[0]->request_new(server->listen_points[0]);
 	
 	onion_response *response=onion_response_new(request);
 	
@@ -106,6 +84,7 @@ void t02_full_cycle_http10(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
+	strncpy(buffer,buffer_listen_point_get_buffer_data(request));
 	onion_request_free(request);
 	onion_free(server);
 	
@@ -123,12 +102,12 @@ void t03_full_cycle_http11(){
 	INIT_LOCAL();
 	
 	onion *server=onion_new(0);
-	__onion_set_write(server, write_append);
+	onion_add_listen_point(buffer_listen_point_new());
 	onion_request *request;
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	request=onion_request_new(server->listen_points[0]);
+	request=server->listen_points[0]->request_new(server->listen_points[0]);
 	FILL(request,"GET / HTTP/1.1\n");
 	
 	onion_response *response=onion_response_new(request);
@@ -142,6 +121,7 @@ void t03_full_cycle_http11(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
+	strncpy(buffer,buffer_listen_point_get_buffer_data(request));
 	onion_request_free(request);
 	onion_free(server);
 	
@@ -158,6 +138,8 @@ void t03_full_cycle_http11(){
 }
 
 int main(int argc, char **argv){
+	START();
+	
 	t01_create_add_free();
 	t02_full_cycle_http10();
 	t03_full_cycle_http11();

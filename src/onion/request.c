@@ -69,6 +69,13 @@ onion_request *onion_request_new(onion_listen_point *op){
 	req->headers=onion_dict_new();
   onion_dict_set_flags(req->headers, OD_ICASE);
   ONION_DEBUG0("Create request %p", req);
+	
+	if (op){
+		if (op->request_init)
+			op->request_init(req);
+		else
+			onion_listen_point_request_init_from_socket(req);
+	}
 	return req;
 }
 
