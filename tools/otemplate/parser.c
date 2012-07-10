@@ -35,8 +35,8 @@ static void set_mode(parser_status *status, int mode);
  */
 void parse_template(parser_status *status){
 	int c;
-	while ( (status->c=fgetc(status->in)) != EOF){
-		c=status->c;
+	while ( (c=fgetc(status->in)) != EOF){
+		status->c=c;
 		if (c=='\n')
 			status->line++;
 		switch(status->mode){
