@@ -378,7 +378,7 @@ static __attribute__((unused)) void *onion_poller_adaptor(void *o){
  * @returns new connection socket file descriptor
  */
 static int onion_accept(onion *o, struct sockaddr_storage *cli_addr, socklen_t *clilen){
-  *clilen = sizeof(cli_addr);
+  *clilen = sizeof(*cli_addr);
 
   int clientfd=accept4(o->listenfd, (struct sockaddr *) cli_addr, clilen, SOCK_CLOEXEC);
   if (clientfd<0){
