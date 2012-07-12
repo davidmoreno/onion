@@ -66,12 +66,12 @@ void t02_full_cycle_http10(){
 	INIT_LOCAL();
 	
 	onion *server=onion_new(0);
-	onion_add_listen_point(buffer_listen_point_new());
+	onion_add_listen_point(server,NULL,NULL,onion_buffer_listen_point_new());
 	onion_request *request;
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	request=server->listen_points[0]->request_new(server->listen_points[0]);
+	request=onion_request_new(server->listen_points[0]);
 	
 	onion_response *response=onion_response_new(request);
 	
@@ -84,7 +84,7 @@ void t02_full_cycle_http10(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
-	strncpy(buffer,buffer_listen_point_get_buffer_data(request));
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer));
 	onion_request_free(request);
 	onion_free(server);
 	
@@ -102,12 +102,12 @@ void t03_full_cycle_http11(){
 	INIT_LOCAL();
 	
 	onion *server=onion_new(0);
-	onion_add_listen_point(buffer_listen_point_new());
+	onion_add_listen_point(server, NULL,NULL,onion_buffer_listen_point_new());
 	onion_request *request;
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	request=server->listen_points[0]->request_new(server->listen_points[0]);
+	request=onion_request_new(server->listen_points[0]);
 	FILL(request,"GET / HTTP/1.1\n");
 	
 	onion_response *response=onion_response_new(request);
@@ -121,7 +121,7 @@ void t03_full_cycle_http11(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
-	strncpy(buffer,buffer_listen_point_get_buffer_data(request));
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer));
 	onion_request_free(request);
 	onion_free(server);
 	

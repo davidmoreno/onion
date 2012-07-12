@@ -35,7 +35,8 @@ onion_listen_point *custom_io;
 
 void setup(){
 	server=onion_new(O_ONE);
-	onion_add_listen_point(server, NULL, NULL, onion_buffer_listen_point_new());
+	custom_io=onion_buffer_listen_point_new();
+	onion_add_listen_point(server, NULL, NULL, custom_io);
 }
 
 #define REQ_WRITE(req, txt) onion_request_write(req, txt, strlen(txt));
