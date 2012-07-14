@@ -109,7 +109,7 @@ onion_connection_status onion_response_free(onion_response *res){
 			r=OCS_KEEP_ALIVE;
 		
 		// FIXME! This is no proper logging at all. Maybe use a handler.
-		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", res->request->client_info,
+		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", onion_request_get_client_description(res->request),
 							 onion_request_methods[res->request->flags&OR_METHODS],
 						res->request->fullpath, res->code, res->sent_bytes,
 						(r==OCS_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
