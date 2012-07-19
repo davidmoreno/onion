@@ -17,21 +17,23 @@
 	*/
 
 #include <malloc.h>
+#include <string.h>
 
 #include <onion/log.h>
 #include <onion/http.h>
 #include <onion/types.h>
 #include <onion/types_internal.h>
 #include <onion/request.h>
-
+#include <onion/block.h>
 
 static void oblp_onion_request_close(onion_request *lp){
-	free(lp->connection.user_data);
+	onion_block_free(lp->connection.user_data);
 	onion_request_free(lp);
 }
 
 static ssize_t oblp_write_append(onion_request *a, const char *b, size_t size){
-	ONION_DEBUG("Write %d bytes",size);
+	ONION_DEBUG("Write %d bytes: %s",size,b);
+	onion_block_add_data(a->connection.user_data,b,size);
 	return size;
 }
 
@@ -42,11 +44,12 @@ static void oblp_listen(onion_listen_point *lp){
 
 static void oblp_onion_request_init(onion_request *req){
 	ONION_DEBUG("Empty init.");
+	req->connection.user_data=onion_block_new();
 }
 
 const char* onion_buffer_listen_point_get_buffer_data(onion_request* req)
 {
-		return req->connection.user_data;
+		return onion_block_data(req->connection.user_data);
 }
 
 onion_listen_point* onion_buffer_listen_point_new()

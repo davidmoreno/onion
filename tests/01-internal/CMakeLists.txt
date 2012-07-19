@@ -7,10 +7,10 @@ target_link_libraries(02-request onion)
 add_executable(03-response 03-response.c buffer_listen_point.c)
 target_link_libraries(03-response onion)
 
-add_executable(04-handler 04-handler.c)
+add_executable(04-handler 04-handler.c buffer_listen_point.c)
 target_link_libraries(04-handler onion_handlers onion)
 
-add_executable(05-server 05-server.c)
+add_executable(05-server 05-server.c buffer_listen_point.c)
 target_link_libraries(05-server onion_handlers onion)
 
 IF (CURL)
