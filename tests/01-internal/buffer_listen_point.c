@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2012 David Moreno Montero
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU Affero General Public License as
@@ -27,12 +27,12 @@
 #include <onion/block.h>
 
 static void oblp_onion_request_close(onion_request *lp){
+	ONION_DEBUG("Free onion buffer listen point");
 	onion_block_free(lp->connection.user_data);
-	onion_request_free(lp);
 }
 
 static ssize_t oblp_write_append(onion_request *a, const char *b, size_t size){
-	ONION_DEBUG("Write %d bytes: %s",size,b);
+	ONION_DEBUG("Write %d bytes.",size);
 	onion_block_add_data(a->connection.user_data,b,size);
 	return size;
 }

@@ -50,7 +50,7 @@ int onion_http_read_ready(onion_request *con){
 	char buffer[1500];
 	ssize_t len=con->connection.listen_point->read(con, buffer, sizeof(buffer));
 	
-	if (len<0)
+	if (len<=0)
 		return OCS_CLOSE_CONNECTION;
 	
 	onion_connection_status st=onion_request_write(con, buffer, len);

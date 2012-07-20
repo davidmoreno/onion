@@ -150,6 +150,7 @@ void t03_server_no_overflow(){
 	FAIL_IF_NOT_STRSTR(buffer, "libonion");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nSuccedded");
 
+	onion_block_free(long_req);
 	onion_request_free(req);
 	onion_free(server);
 
@@ -183,6 +184,7 @@ void t04_server_overflow(){
 	FAIL_IF_NOT_STRSTR(buffer, "libonion");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nSuccedded");
 
+	onion_block_free(long_req);
 	onion_request_free(req);
 	onion_free(server);
 

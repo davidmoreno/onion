@@ -269,6 +269,8 @@ void onion_free(onion *onion){
  * @memberof onion_t
  *
  * This is the main loop for the onion server.
+ * 
+ * It initiates the listening on all the selected ports and addresses.
  *
  * @returns !=0 if there is any error. It returns actualy errno from the network operations. See socket for more information.
  */
@@ -277,6 +279,14 @@ int onion_listen(onion *o){
 		onion_add_listen_point(o,NULL,NULL,onion_http_new());
 		ONION_DEBUG("Created default HTTP listen port");
 	}
+
+	/// Start listening
+	onion_listen_point **lp=o->listen_points;
+	while (*lp){
+		onion_listen_point_listen(*lp);
+		lp++;
+	}	
+
 	
 	if (o->flags&O_ONE){
 		onion_listen_point **listen_points=o->listen_points;
@@ -293,7 +303,8 @@ int onion_listen(onion *o){
 				ret=req->connection.listen_point->read_ready(req);
 			}while(ret>=0);
 			ONION_DEBUG("End of request %p", req);
-			req->connection.listen_point->close(req);
+			onion_request_free(req);
+			//req->connection.listen_point->close(req);
 		}while(((o->flags&O_ONE_LOOP) == O_ONE_LOOP) && op->listenfd>0);
 	}
 	else{
@@ -302,7 +313,6 @@ int onion_listen(onion *o){
 			onion_listen_point *p=*listen_points;
 			ONION_DEBUG("Adding %d to poller", p->listenfd);
 			onion_poller_slot *slot=onion_poller_slot_new(p->listenfd, (void*)onion_listen_point_accept, p);
-			//onion_poller_slot_set_timeout(slot, o->timeout);
 			onion_poller_slot_set_type(slot, O_POLL_ALL);
 			onion_poller_add(o->poller, slot);
 			listen_points++;
@@ -350,6 +360,12 @@ int onion_listen(onion *o){
  * If there is any pending connection, it can finish if onion not freed before.
  */
 void onion_listen_stop(onion* server){
+	/// Start listening
+	onion_listen_point **lp=server->listen_points;
+	while (*lp){
+		onion_listen_point_listen_stop(*lp);
+		lp++;
+	}	
 	ONION_DEBUG("Stop listening");
 	onion_poller_stop(server->poller);
 }
@@ -391,11 +407,6 @@ int onion_add_listen_point(onion* server, const char* hostname, const char* port
 		protocol->hostname=strdup(hostname);
 	if (port)
 		protocol->port=strdup(port);
-	
-	if (protocol->listen)
-		protocol->listen(protocol);
-	else // default implementation, use sockets.
-		onion_listen_point_listen(protocol);
 	
 	if (server->listen_points){
 		onion_listen_point **p=server->listen_points;

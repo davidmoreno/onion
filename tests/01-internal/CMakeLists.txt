@@ -21,7 +21,7 @@ ENDIF (CURL)
 add_executable(07-codecs 07-codecs.c)
 target_link_libraries(07-codecs onion_handlers onion)
 
-add_executable(08-post 08-post.c)
+add_executable(08-post 08-post.c buffer_listen_point.c)
 target_link_libraries(08-post onion)
 
 add_executable(09-block 09-block.c)
@@ -30,7 +30,7 @@ target_link_libraries(09-block onion)
 add_executable(10-mime 10-mime.c)
 target_link_libraries(10-mime onion)
 
-add_executable(11-sessions 11-sessions.c)
+add_executable(11-sessions 11-sessions.c buffer_listen_point.c)
 target_link_libraries(11-sessions onion)
 
 IF (CURL)
@@ -39,7 +39,7 @@ target_link_libraries(12-cloexec onion curl)
 ENDIF (CURL)
 
 if (OTEMPLATE)
-add_executable(13-otemplates 13-otemplates.c 13-otemplate_html.c)
+add_executable(13-otemplates 13-otemplates.c 13-otemplate_html.c buffer_listen_point.c)
 add_custom_command(
    OUTPUT 13-otemplate_html.c
    COMMAND ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/13-otemplate.html

@@ -83,11 +83,11 @@ int connect_to(const char *addr, const char *port){
 }
 
 int curl_get(const char *url){
+	CURL *curl;
+	curl = curl_easy_init();
   if (!null_file)
     null_file=fopen("/dev/null","w");
   FAIL_IF(null_file == NULL);
-  CURL *curl;
-  curl = curl_easy_init();
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_URL, url)==CURLE_OK);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -99,18 +99,18 @@ int curl_get(const char *url){
   FAIL_IF_NOT_EQUAL((int)res,0);
   char buffer[1024]; size_t l;
   curl_easy_recv(curl,buffer,sizeof(buffer),&l);
-  curl_easy_cleanup(curl);
   FAIL_IF_NOT_EQUAL_INT((int)http_code, HTTP_OK);
+	curl_easy_cleanup(curl);
   
   return http_code;
 }
 
 int curl_get_to_fail(const char *url){
+	CURL *curl;
+	curl = curl_easy_init();
   if (!null_file)
     null_file=fopen("/dev/null","w");
   FAIL_IF(null_file == NULL);
-  CURL *curl;
-  curl = curl_easy_init();
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_URL, url)==CURLE_OK);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -122,8 +122,8 @@ int curl_get_to_fail(const char *url){
   FAIL_IF_NOT_EQUAL((int)res,0);
   char buffer[1024]; size_t l;
   curl_easy_recv(curl,buffer,sizeof(buffer),&l);
-  curl_easy_cleanup(curl);
   FAIL_IF_EQUAL_INT((int)http_code, HTTP_OK);
+	curl_easy_cleanup(curl);
   
   return http_code;
 }
@@ -322,9 +322,9 @@ int main(int argc, char **argv){
   START();
   pthread_t watchdog_thread;
   pthread_create(&watchdog_thread, NULL, (void*)watchdog, NULL);
-  
-	t01_server_one();
-  t02_server_epoll();
+
+// 	t01_server_one();
+//   t02_server_epoll();
   t03_server_https();
   t04_server_timeout_threaded();
   t05_server_timeout_threaded_ssl();
@@ -335,7 +335,7 @@ int main(int argc, char **argv){
   
   if (null_file)
     fclose(null_file);
-  
+
 	END();
 }
 

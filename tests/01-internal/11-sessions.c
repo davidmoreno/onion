@@ -21,8 +21,8 @@
 #include <onion/sessions.h>
 #include <onion/dict.h>
 #include "../ctest.h"
+#include "buffer_listen_point.h"
 #include <onion/types_internal.h>
-#include <onion/server.h>
 
 void t01_test_session(){
 	INIT_LOCAL();
@@ -95,12 +95,15 @@ void t02_cookies(){
   INIT_LOCAL();
   
   onion *o=onion_new(O_ONE_LOOP);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	onion_add_listen_point(o,NULL,NULL,lp);
+
   onion_request *req;
   onion_dict *session;
   char *cookieid;
   char tmp[256];
   
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   FAIL_IF_NOT_EQUAL(req->session_id, NULL);
   session=onion_request_get_session_dict(req);
   onion_dict_add(session,"Test","tseT", 0);
@@ -108,7 +111,7 @@ void t02_cookies(){
   cookieid=strdup(req->session_id);
   onion_request_free(req);
 
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   FAIL_IF_NOT_EQUAL(req->session_id, NULL);
   session=onion_request_get_session_dict(req);
   FAIL_IF_EQUAL(req->session_id, NULL);
@@ -117,7 +120,7 @@ void t02_cookies(){
   FAIL_IF_EQUAL_STR(req->session_id, cookieid);
   onion_request_free(req);
 
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   snprintf(tmp,sizeof(tmp),"sessionid=%s",cookieid);
   onion_dict_add(req->headers,"Cookie",tmp, OD_DUP_VALUE);
   FAIL_IF_NOT_EQUAL(req->session_id, NULL);
@@ -126,7 +129,7 @@ void t02_cookies(){
   FAIL_IF_NOT_EQUAL_STR(onion_dict_get(session,"Test"),"tseT");
   onion_request_free(req);
 
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   snprintf(tmp,sizeof(tmp),"trashthingish=nothing interesting; sessionid=%s; wtf=ianal",cookieid);
   onion_dict_add(req->headers,"Cookie",tmp, OD_DUP_VALUE);
   FAIL_IF_NOT_EQUAL(req->session_id, NULL);
@@ -135,7 +138,7 @@ void t02_cookies(){
   FAIL_IF_NOT_EQUAL_STR(onion_dict_get(session,"Test"),"tseT");
   onion_request_free(req);
 
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   snprintf(tmp,sizeof(tmp),"sessionid=nothing interesting; sessionid=%s; other_sessionid=ianal",cookieid);
   onion_dict_add(req->headers,"Cookie",tmp, OD_DUP_VALUE);
   FAIL_IF_NOT_EQUAL(req->session_id, NULL);
@@ -144,7 +147,7 @@ void t02_cookies(){
   FAIL_IF_NOT_EQUAL_STR(onion_dict_get(session,"Test"),"tseT");
   onion_request_free(req);
 
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   snprintf(tmp,sizeof(tmp),"sessionid=nothing interesting; xsessionid=%s; other_sessionid=ianal",cookieid);
   onion_dict_add(req->headers,"Cookie",tmp, OD_DUP_VALUE);
   FAIL_IF_NOT_EQUAL(req->session_id, NULL);
@@ -176,7 +179,7 @@ static onion_connection_status ask_session(void *_, onion_request *req, onion_re
   return OCS_PROCESSED;
 }
 
-int empty_write(void *handler, const char *data, unsigned int length){
+ssize_t empty_write(onion_request *handler, const char *data, size_t length){
   ((char*)data)[length]=0;
   ONION_DEBUG("%s",data);
   if (strstr(data, "Set-Cookie:")!=NULL)
@@ -190,7 +193,10 @@ void t03_bug_empty_session_is_new_session(){
   INIT_LOCAL();
 
   onion *o=onion_new(O_ONE_LOOP);
-  onion_server_set_write(o->server, empty_write);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	lp->write=empty_write;
+	onion_add_listen_point(o,NULL,NULL,lp);
+
   
   onion_url *url=onion_root_url(o);
   onion_url_add(url, "^.*", ask_session);
@@ -198,16 +204,16 @@ void t03_bug_empty_session_is_new_session(){
   char tmp[256];
 
   set_data_on_session=1;
-  onion_request *req=onion_request_new(o->server, NULL, NULL);
+  onion_request *req=onion_request_new(lp);
   req->fullpath="/";
   onion_request_process(req);
   FAIL_IF_EQUAL_STR(lastsessionid,"");
   strcpy(sessionid, lastsessionid);
   req->fullpath=NULL;
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 1);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 1);
   
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   req->fullpath="/";
   onion_dict_add(req->headers, "Cookie", "sessionid=xxx", 0);
   onion_request_process(req);
@@ -216,9 +222,9 @@ void t03_bug_empty_session_is_new_session(){
   FAIL_IF_NOT(has_set_cookie);
   req->fullpath=NULL;
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 2);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 2);
   
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   req->fullpath="/";
   snprintf(tmp,sizeof(tmp),"sessionid=%s",lastsessionid);
   onion_dict_add(req->headers, "Cookie", tmp, 0);
@@ -229,9 +235,9 @@ void t03_bug_empty_session_is_new_session(){
   strcpy(sessionid, lastsessionid);
   req->fullpath=NULL;
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 2);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 2);
   
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   req->fullpath="/";
   snprintf(tmp,sizeof(tmp),"sessionid=%sxx",lastsessionid);
   onion_dict_add(req->headers, "Cookie", tmp, 0);
@@ -241,19 +247,19 @@ void t03_bug_empty_session_is_new_session(){
   FAIL_IF_NOT(has_set_cookie);
   req->fullpath=NULL;
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 3);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 3);
 
   // Ask for new, without session data, but I will not set data on session, so session is not created.
   set_data_on_session=0;
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   req->fullpath="/";
   onion_request_process(req);
   FAIL_IF_EQUAL_STR(lastsessionid,"");
   strcpy(sessionid, lastsessionid);
   req->fullpath=NULL;
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 4); // For a moment it exists, until onion realizes is not necesary.
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 4); // For a moment it exists, until onion realizes is not necesary.
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 3);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 3);
 
   
   onion_free(o);
@@ -266,7 +272,10 @@ void t04_lot_of_sessionid(){
   INIT_LOCAL();
 
   onion *o=onion_new(O_ONE_LOOP);
-  onion_server_set_write(o->server, empty_write);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	lp->write=empty_write;
+	onion_add_listen_point(o,NULL,NULL,lp);
+
   
   onion_url *url=onion_root_url(o);
   onion_url_add(url, "^.*", ask_session);
@@ -277,16 +286,16 @@ void t04_lot_of_sessionid(){
   int i;
   set_data_on_session=1;
 
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   req->fullpath="/";
   onion_request_process(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 1);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 1);
   FAIL_IF_EQUAL_STR(lastsessionid,"");
   strcpy(sessionid, lastsessionid);
   req->fullpath=NULL;
   onion_request_free(req);
 
-  req=onion_request_new(o->server, NULL, NULL);
+  req=onion_request_new(lp);
   req->fullpath="/";
   snprintf(tmp,sizeof(tmp)," sessionid=xx%sxx;",lastsessionid);
   strcpy(tmp2,"Cookie:");
@@ -302,7 +311,7 @@ void t04_lot_of_sessionid(){
   //onion_dict_add(req->headers, "Cookie", tmp2, 0);
   
   onion_request_process(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->server->sessions->sessions), 1);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 1);
   FAIL_IF_EQUAL_STR(lastsessionid,"");
   FAIL_IF_NOT_EQUAL_STR(lastsessionid, sessionid);
   FAIL_IF_NOT(has_set_cookie);

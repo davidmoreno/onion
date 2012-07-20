@@ -48,13 +48,15 @@ void onion_https_request_init(onion_request *req);
 static ssize_t onion_https_read(onion_request *req, char *data, size_t len);
 ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 static void onion_https_close(onion_request *req);
-static void onion_https_free(onion_listen_point *op);
+static void onion_https_listen_stop(onion_listen_point *op);
+static void onion_https_free_user_data(onion_listen_point *op);
 
 onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char *filename, ...){
 	onion_listen_point *op=onion_listen_point_new();
 	op->request_init=onion_https_request_init;
 	op->user_data=calloc(1,sizeof(onion_https));
-	op->free=onion_https_free;
+	op->free_user_data=onion_https_free_user_data;
+	op->listen_stop=onion_https_listen_stop;
 	op->read=onion_https_read;
 	op->write=onion_https_write;
 	op->close=onion_https_close;
@@ -98,18 +100,22 @@ onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char 
 }
 
 
-static void onion_https_free(onion_listen_point *op){
+static void onion_https_listen_stop(onion_listen_point *op){
 	ONION_DEBUG("Close HTTPS %s:%s", op->hostname, op->port);
+	shutdown(op->listenfd,SHUT_RDWR);
+	close(op->listenfd);
+}
+
+static void onion_https_free_user_data(onion_listen_point *op){
+	ONION_DEBUG("Free HTTPS %s:%s", op->hostname, op->port);
 	onion_https *https=(onion_https*)op->user_data;
 	
 	gnutls_certificate_free_credentials (https->x509_cred);
 	gnutls_dh_params_deinit(https->dh_params);
 	gnutls_priority_deinit (https->priority_cache);
 	//if (op->server->flags&O_SSL_NO_DEINIT)
-		gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
+	gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
 	free(https);
-	shutdown(op->listenfd,SHUT_RDWR);
-	close(op->listenfd);
 }
 
 void onion_https_request_init(onion_request *req){

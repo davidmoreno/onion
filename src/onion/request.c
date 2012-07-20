@@ -105,6 +105,8 @@ void onion_request_free(onion_request *req){
   ONION_DEBUG0("Free request %p", req);
 	onion_dict_free(req->headers);
 	
+	if (req->connection.listen_point!=NULL && req->connection.listen_point->close)
+		req->connection.listen_point->close(req);
 	if (req->fullpath)
 		free(req->fullpath);
 	if (req->GET)

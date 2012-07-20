@@ -50,8 +50,10 @@ onion_listen_point *onion_listen_point_new(){
 }
 
 void onion_listen_point_free(onion_listen_point *op){
-	if (op->free)
-		op->free(op);
+	ONION_DEBUG("Free listen point %d", op->listenfd);
+	onion_listen_point_listen_stop(op);
+	if (op->free_user_data)
+		op->free_user_data(op);
 	if (op->hostname)
 		free(op->hostname);
 	if (op->port)
@@ -65,7 +67,7 @@ int onion_listen_point_accept(onion_listen_point *op){
 	if (req){
 		onion_poller_slot *slot=onion_poller_slot_new(req->connection.fd, (void*)onion_listen_point_read_ready, req);
 		onion_poller_slot_set_timeout(slot, req->connection.listen_point->server->timeout);
-		onion_poller_slot_set_shutdown(slot, (void*)req->connection.listen_point->close, req);
+		onion_poller_slot_set_shutdown(slot, (void*)onion_request_free, req);
 		onion_poller_add(req->connection.listen_point->server->poller, slot);
 		return 1;
 	}
@@ -74,8 +76,24 @@ int onion_listen_point_accept(onion_listen_point *op){
 	return 1;
 }
 
+void onion_listen_point_listen_stop(onion_listen_point *op){
+	if (op->listen_stop)
+		op->listen_stop(op);
+	else{
+		if (op->listenfd>=0){
+			shutdown(op->listenfd,SHUT_RDWR);
+			close(op->listenfd);
+			op->listenfd=-1;
+		}
+	}
+}
+
 
 int onion_listen_point_listen(onion_listen_point *op){
+	if (op->listen){
+			op->listen(op);
+			return 0;
+	}
 #ifdef HAVE_SYSTEMD
 	if (op->server->flags&O_SYSTEMD){
 		int n=sd_listen_fds(0);
@@ -114,6 +132,8 @@ int onion_listen_point_listen(onion_listen_point *op){
 	int optval=1;
 	for(rp=result;rp!=NULL;rp=rp->ai_next){
 		sockfd=socket(rp->ai_family, rp->ai_socktype | SOCK_CLOEXEC, rp->ai_protocol);
+		if (sockfd<0) // not valid
+			continue;
 		if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
 			int flags=fcntl(sockfd, F_GETFD);
 			if (flags==-1){
@@ -124,8 +144,6 @@ int onion_listen_point_listen(onion_listen_point *op){
 				ONION_ERROR("Setting O_CLOEXEC to listen socket");
 			}
 		}
-		if (sockfd<0) // not valid
-			continue;
 		if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) < 0){
 			ONION_ERROR("Could not set socket options: %s",strerror(errno));
 		}
@@ -142,7 +160,7 @@ int onion_listen_point_listen(onion_listen_point *op){
 	char address[64];
 	getnameinfo(rp->ai_addr, rp->ai_addrlen, address, 32,
 							&address[32], 32, NI_NUMERICHOST | NI_NUMERICSERV);
-	ONION_DEBUG("Listening to %s:%s",address,&address[32]);
+	ONION_DEBUG("Listening to %s:%s, fd %d",address,&address[32],sockfd);
 #endif
 	freeaddrinfo(result);
 	listen(sockfd,5); // queue of only 5.
@@ -197,15 +215,14 @@ void onion_listen_point_request_init_from_socket(onion_request *req){
 		}
 	}
 	
-	ONION_DEBUG("New connection, socket %d",clientfd);
+	ONION_DEBUG0("New connection, socket %d",clientfd);
 }
 
 void onion_listen_point_request_close_socket(onion_request *oc){
 	int fd=oc->connection.fd;
-	ONION_DEBUG("Closing socket %d",fd);
+	ONION_DEBUG0("Closing connection socket %d",fd);
 	if (fd>=0){
 		shutdown(fd,SHUT_RDWR);
 		close(fd);
 	}
-	onion_request_free(oc);
 }

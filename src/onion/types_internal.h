@@ -145,9 +145,11 @@ struct onion_listen_point_t{
 	int listenfd;
 	
 	void *user_data;
-	void (*free)(onion_listen_point *user_data);
+	void (*free_user_data)(onion_listen_point *lp);
+	/// Frees internal data and state of listen point, but not listen point itself. NULL means socket listen, and should be closed.
+	void (*listen_stop)(onion_listen_point *lp);
 	
-	/// How to start the listening phase. Normally NULL means socket listening. Must set at fd a file descriptor that will be polled.
+	/// How to start the listening phase. Normally NULL means socket listening. Must set at listenfd a file descriptor that will be polled.
 	void (*listen)(onion_listen_point *lp);
 	/// Has default implementation that do the socket accept and set of default params. On some protocols may be 
 	/// reimplemented to do non socket-petition accept.
@@ -157,7 +159,7 @@ struct onion_listen_point_t{
 	int (*read_ready)(onion_request *con); ///< When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.
 	ssize_t (*write)(onion_request *con, const char *data, size_t len);
 	ssize_t (*read)(onion_request *con, char *data, size_t len);
-	void (*close)(onion_request *con); ///< Closes the connection and frees user data.
+	void (*close)(onion_request *con); ///< Closes the connection and frees listen point user data. Request itself it left. It is called from onion_request_free ONLY.
 	/// @}
 };
 
