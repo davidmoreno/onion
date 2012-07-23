@@ -14,8 +14,8 @@ struct tests_call_otemplate{
   char ok_title_title;
 };
 
-ssize_t test_call_otemplate_writer(onion_request *ret, const char *data, size_t length){
-	struct tests_call_otemplate *test=ret->connection.user_data;
+ssize_t test_call_otemplate_writer(onion_request *req, const char *data, size_t length){
+	struct tests_call_otemplate *test=req->connection.user_data;
   ONION_DEBUG("Server writes %d: %s", length, data);
   if (strstr(data, "TITLE"))
     test->ok_title=1;
@@ -48,7 +48,9 @@ void t01_call_otemplate(){
   struct tests_call_otemplate tests= { -1, -1, -1, -1 };
   
   onion_request *req=onion_request_new(lp);
+	req->connection.listen_point->close(req);
 	req->connection.user_data=&tests;
+	req->connection.listen_point->close=NULL;
   FAIL_IF_NOT_EQUAL_INT(onion_request_write0(req, "GET /\n\n"), OCS_CLOSE_CONNECTION);
   
   FAIL_IF_NOT_EQUAL_INT(tests.ok_hello,1);
@@ -63,7 +65,8 @@ void t01_call_otemplate(){
   
   memset(&tests,0,sizeof(tests));
   onion_request_clean(req);
-  onion_set_root_handler(s, onion_handler_new((void*)_13_otemplate_html_handler_page, d, (void*)onion_dict_free));
+	onion_handler_free(onion_get_root_handler(s));
+  onion_set_root_handler(s, onion_handler_new((void*)_13_otemplate_html_handler_page, d, NULL));
   FAIL_IF_NOT_EQUAL_INT(onion_request_write0(req, "GET /\n\n"), OCS_CLOSE_CONNECTION);
   
   FAIL_IF_NOT_EQUAL_INT(tests.ok_hello,1);
@@ -80,6 +83,7 @@ void t01_call_otemplate(){
   
   memset(&tests,0,sizeof(tests));
   onion_request_clean(req);
+	onion_handler_free(onion_get_root_handler(s));
   onion_set_root_handler(s, onion_handler_new((void*)_13_otemplate_html_handler_page, d, (void*)onion_dict_free));
   FAIL_IF_NOT_EQUAL_INT(onion_request_write0(req, "GET /\n\n"), OCS_CLOSE_CONNECTION);
   

@@ -380,6 +380,21 @@ void onion_set_root_handler(onion *onion, onion_handler *handler){
 }
 
 /**
+ * @short Returns current root handler. 
+ * @memberof onion_t
+ * 
+ * For example when changing root handler, the old one is not deleted (as oposed that when deleting the onion*
+ * object it is). So user may use onion_handler_free(onion_get_root_handler(o));
+ * 
+ * @param server The onion server
+ * @returns onion_handler currently at root.
+ */
+onion_handler *onion_get_root_handler(onion *server){
+	return server->root_handler;
+}
+
+
+/**
  * @short  Sets the internal error handler
  * @memberof onion_t
  */

@@ -26,9 +26,9 @@
 #include <onion/request.h>
 #include <onion/block.h>
 
-static void oblp_onion_request_close(onion_request *lp){
+static void oblp_onion_request_close(onion_request *req){
 	ONION_DEBUG("Free onion buffer listen point");
-	onion_block_free(lp->connection.user_data);
+	onion_block_free(req->connection.user_data);
 }
 
 static ssize_t oblp_write_append(onion_request *a, const char *b, size_t size){
