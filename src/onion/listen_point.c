@@ -44,11 +44,27 @@
 static int onion_listen_point_read_ready(onion_request *req);
 
 
+/**
+ * @short Creates an empty listen point.
+ * @struct onion_listen_point_t
+ * 
+ * Called by real listen points to ease the creation.
+ * 
+ * @returns An alloc'ed onion_listen_point pointer
+ */
 onion_listen_point *onion_listen_point_new(){
 	onion_listen_point *ret=calloc(1,sizeof(onion_listen_point));
 	return ret;
 }
 
+/**
+ * @short Free and closes the listen point
+ * @struct onion_listen_point_t
+ * 
+ * Calls the custom listen_stop mathod, and frees all common structures.
+ * 
+ * @param op the listen point
+ */
 void onion_listen_point_free(onion_listen_point *op){
 	ONION_DEBUG("Free listen point %d", op->listenfd);
 	onion_listen_point_listen_stop(op);
@@ -62,6 +78,14 @@ void onion_listen_point_free(onion_listen_point *op){
 }
 
 
+/**
+ * @short Called when a new connection appears on the listenfd
+ * 
+ * When the new conneciton appears, creates the request and adds it to the pollers.
+ * 
+ * @param op The listen point from where the request must be built
+ * @returns 1 if ok, <0 if error; the request was invalid (for example HTTP asked for an HTTPS).
+ */
 int onion_listen_point_accept(onion_listen_point *op){
 	onion_request *req=onion_request_new(op);
 	if (req){
@@ -76,6 +100,13 @@ int onion_listen_point_accept(onion_listen_point *op){
 	return -1;
 }
 
+/**
+ * @short Stops listening the listen point
+ * 
+ * Calls the op->listen_stop if any, and if not just closes the listenfd.
+ * 
+ * @param op The listen point
+ */
 void onion_listen_point_listen_stop(onion_listen_point *op){
 	if (op->listen_stop)
 		op->listen_stop(op);
@@ -88,7 +119,14 @@ void onion_listen_point_listen_stop(onion_listen_point *op){
 	}
 }
 
-
+/**
+ * @short Starts the listening phase for this listen point for sockets.
+ * 
+ * Default listen implementation that listens on sockets. Opens sockets and setup everything properly.
+ * 
+ * @param op The listen point
+ * @returns 0 if ok, !=0 some error; it will be the errno value.
+ */
 int onion_listen_point_listen(onion_listen_point *op){
 	if (op->listen){
 			op->listen(op);
@@ -169,6 +207,12 @@ int onion_listen_point_listen(onion_listen_point *op){
 	return 0;
 }
 
+/**
+ * @short This listen point has data ready to read; calls the listen_point read_ready
+ * 
+ * @param req The request with data ready
+ * @returns <0 in case of error and request connection should be closed.
+ */
 static int onion_listen_point_read_ready(onion_request *req){
 #ifdef __DEBUG__
 	if (!req->connection.listen_point->read_ready){
@@ -181,7 +225,15 @@ static int onion_listen_point_read_ready(onion_request *req){
 }
 
 
-void onion_listen_point_request_init_from_socket(onion_request *req){
+/**
+ * @short Default implementation that initializes the request from a socket
+ * 
+ * Accepts the connection and initializes it.
+ * 
+ * @param req Request to initialize
+ * @returns <0 if error opening the connection
+ */
+int onion_listen_point_request_init_from_socket(onion_request *req){
 	onion_listen_point *op=req->connection.listen_point;
 	int listenfd=op->listenfd;
 	/// Follows default socket implementation. If your protocol is socket based, just use it.
@@ -192,6 +244,7 @@ void onion_listen_point_request_init_from_socket(onion_request *req){
 	if (clientfd<0){
 		ONION_ERROR("Error accepting connection: %s",strerror(errno));
 		onion_listen_point_request_close_socket(req);
+		return -1;
 	}
 	req->connection.fd=clientfd;
 	
@@ -216,8 +269,14 @@ void onion_listen_point_request_init_from_socket(onion_request *req){
 	}
 	
 	ONION_DEBUG0("New connection, socket %d",clientfd);
+	return 0;
 }
 
+/**
+ * @short Default implementation that just closes the connection
+ * 
+ * @param oc The request
+ */
 void onion_listen_point_request_close_socket(onion_request *oc){
 	int fd=oc->connection.fd;
 	ONION_DEBUG0("Closing connection socket %d",fd);

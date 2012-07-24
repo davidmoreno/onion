@@ -16,8 +16,8 @@
 	License along with this library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_LISTEN_POINTL_H__
-#define __ONION_LISTEN_POINTL_H__
+#ifndef __ONION_LISTEN_POINT_H__
+#define __ONION_LISTEN_POINT_H__
 
 #include "types.h"
 
@@ -26,7 +26,7 @@ int onion_listen_point_listen(onion_listen_point *);
 void onion_listen_point_listen_stop(onion_listen_point *op);
 void onion_listen_point_free(onion_listen_point *);
 int onion_listen_point_accept(onion_listen_point *);
-void onion_listen_point_request_init_from_socket(onion_request *op);
+int onion_listen_point_request_init_from_socket(onion_request *op);
 void onion_listen_point_request_close_socket(onion_request *oc);
 
 #endif

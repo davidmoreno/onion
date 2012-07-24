@@ -255,7 +255,7 @@ void t02_server_epoll(){
 void t03_server_https(){
   INIT_LOCAL();
   
-  o=onion_new(O_THREADED | O_DETACH_LISTEN);
+  o=onion_new(O_ONE_LOOP | O_DETACH_LISTEN);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   FAIL_IF_NOT_EQUAL_INT(onion_set_certificate(o, O_SSL_CERTIFICATE_KEY, "mycert.pem", "mycert.pem"),0);
   FAIL_IF_NOT_EQUAL_INT(onion_listen(o),0);

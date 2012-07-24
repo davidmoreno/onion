@@ -22,7 +22,7 @@
 #include <stdarg.h>
 #include "types.h"
 
-onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char *filename, ...);
+onion_listen_point *onion_https_new();
 int onion_https_set_certificate(onion_listen_point *ol, onion_ssl_certificate_type type, const char *filename, ...);
 int onion_https_set_certificate_argv(onion_listen_point *ol, onion_ssl_certificate_type type, const char *filename, va_list va);
 

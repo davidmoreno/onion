@@ -140,18 +140,38 @@ typedef struct onion_url_data_t onion_url_data;
 
 
 struct onion_listen_point_t{
-	onion *server;
-	char *hostname;
-	char *port;
-	int listenfd;
+	onion *server;  ///< Onion server
+	char *hostname; ///< Stated hostname, as a string. If NULL tries to attach to any hostname, normally 0.0.0.0 (ipv4 and ipv6)
+	char *port;     ///< Stated port, if none then 8080
+	int listenfd;   ///< For socket listening listen points, the listen fd. For others may be -1 as not used, or an fd to watch and when changed calls the request_init with a new request.
 	
-	void *user_data;
-	void (*free_user_data)(onion_listen_point *lp);
-	/// Frees internal data and state of listen point, but not listen point itself. NULL means socket listen, and should be closed.
-	void (*listen_stop)(onion_listen_point *lp);
+	/// Internal data used by the listen point, for example in HTTPS is the certificate loaded data.
+	void *user_data; 
+	/// Method to call to free the user data
+	void (*free_user_data)(onion_listen_point *lp); 
 	
-	/// How to start the listening phase. Normally NULL means socket listening. Must set at listenfd a file descriptor that will be polled.
+	/**
+	 * @short How to start the listening phase. 
+	 * 
+	 * Normally NULL means socket listening. 
+	 * 
+	 * Must set at listenfd a file descriptor that will be polled, and when data arrives,
+	 * it will call the request_init with a new request object.
+	 */
 	void (*listen)(onion_listen_point *lp);
+	/**
+	 * @short Frees internal data and state of listen point, but not listen point itself. 
+	 * 
+	 * If NULL means socket listen, and should be closed calling onion_listen_point_listen_stop. 
+	 * If a port is open must be closed. Its the exact oposite of listen.
+	 * 
+	 * May be called in a loop: listen -> ... -> listen_stop -> ... -> listen.
+	 * 
+	 * It also may be called two succesive times, and should do nothing on second.
+	 */
+	void (*listen_stop)(onion_listen_point *lp);
+
+	/// @{ @name To be used by requests, but as these methods are shared by protocol, done here.
 	/** 
 	 * @short Initialize the request object. Data is already malloc'd but specific listen protocols may need custom data
 	 * 
@@ -161,12 +181,10 @@ struct onion_listen_point_t{
 	 * @returns 0 if everything ok, <0 if request is invalid and should be closed.
 	 */
 	int (*request_init)(onion_request *req);
-
-	/// @{ @name To be used by connections, but as these methods are shared by protocol, done here.
-	int (*read_ready)(onion_request *con); ///< When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.
-	ssize_t (*write)(onion_request *con, const char *data, size_t len);
-	ssize_t (*read)(onion_request *con, char *data, size_t len);
-	void (*close)(onion_request *con); ///< Closes the connection and frees listen point user data. Request itself it left. It is called from onion_request_free ONLY.
+	int (*read_ready)(onion_request *req); ///< When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.
+	ssize_t (*write)(onion_request *req, const char *data, size_t len); ///< Write data to the given request.
+	ssize_t (*read)(onion_request *req, char *data, size_t len); ///< Read data from the given request and write it in data.
+	void (*close)(onion_request *req); ///< Closes the connection and frees listen point user data. Request itself it left. It is called from onion_request_free ONLY.
 	/// @}
 };
 

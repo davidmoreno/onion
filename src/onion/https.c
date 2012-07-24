@@ -34,6 +34,11 @@
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #endif
 
+/**
+ * @short Stores some data about the connection
+ * 
+ * It has the main data for the connection; the setup certificate and such.
+ */
 struct onion_https_t{
 	gnutls_certificate_credentials_t x509_cred;
 	gnutls_dh_params_t dh_params;
@@ -44,14 +49,27 @@ typedef struct onion_https_t onion_https;
 
 
 int onion_http_read_ready(onion_request *req);
-int onion_https_request_init(onion_request *req);
+static int onion_https_request_init(onion_request *req);
 static ssize_t onion_https_read(onion_request *req, char *data, size_t len);
 ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 static void onion_https_close(onion_request *req);
 static void onion_https_listen_stop(onion_listen_point *op);
 static void onion_https_free_user_data(onion_listen_point *op);
 
-onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char *filename, ...){
+/**
+ * @short Creates a new listen point with HTTPS powers.
+ * @struct onion_https_t
+ * 
+ * Creates the HTTPS listen point.
+ * 
+ * Might be called with (O_SSL_NONE,NULL), and set up the certificate later with onion_https_set_certificate.
+ * 
+ * @param type Type of certificate to setup
+ * @param filename File from where to get the data
+ * @param ... More types and filenames until O_SSL_NONE.
+ * @returns An onion_listen_point with the desired data, ready to start listening.
+ */
+onion_listen_point *onion_https_new(){
 	onion_listen_point *op=onion_listen_point_new();
 	op->request_init=onion_https_request_init;
 	op->user_data=calloc(1,sizeof(onion_https));
@@ -79,33 +97,32 @@ onion_listen_point *onion_https_new(onion_ssl_certificate_type type, const char 
 	gnutls_certificate_set_dh_params (https->x509_cred, https->dh_params);
 	gnutls_priority_init (&https->priority_cache, "PERFORMANCE:%SAFE_RENEGOTIATION:-VERS-TLS1.0", NULL);
 	
-	int r=0;
-	if (type!=O_SSL_NONE){
-		va_list va;
-		va_start(va, filename);
-		r=onion_https_set_certificate_argv(op, type, filename, va);
-		va_end(va);
-	}
-	
-	if (r<0){
-	  ONION_ERROR("Error setting the certificate (%s)", gnutls_strerror (r));
-		onion_listen_point_free(op);
-		return NULL;
-	}
-	
-	
 	ONION_DEBUG("HTTPS connection ready");
 	
 	return op;
 }
 
-
+/**
+ * @short Stop the listening.
+ * @struct onion_https_t
+ * 
+ * Just closes the listen port.
+ * 
+ * @param op The listen port.
+ */
 static void onion_https_listen_stop(onion_listen_point *op){
 	ONION_DEBUG("Close HTTPS %s:%s", op->hostname, op->port);
 	shutdown(op->listenfd,SHUT_RDWR);
 	close(op->listenfd);
+	op->listenfd=-1;
 }
 
+/**
+ * @short Frees the user data
+ * @struct onion_https_t
+ * 
+ * @param op
+ */
 static void onion_https_free_user_data(onion_listen_point *op){
 	ONION_DEBUG("Free HTTPS %s:%s", op->hostname, op->port);
 	onion_https *https=(onion_https*)op->user_data;
@@ -118,7 +135,16 @@ static void onion_https_free_user_data(onion_listen_point *op){
 	free(https);
 }
 
-int onion_https_request_init(onion_request *req){
+/**
+ * @short Initializes a connection on a request
+ * @struct onion_https_t
+ * 
+ * Do the accept of the request, and the SSL handshake.
+ * 
+ * @param req The request
+ * @returns <0 in case of error.
+ */
+static int onion_https_request_init(onion_request *req){
 	onion_listen_point_request_init_from_socket(req);
 	onion_https *https=(onion_https*)req->connection.listen_point->user_data;
 	
@@ -154,6 +180,15 @@ int onion_https_request_init(onion_request *req){
 	return 0;
 }
 
+/**
+ * @short Method to read some HTTPS data.
+ * @struct onion_https_t
+ * 
+ * @param req to get data from
+ * @param data where to store unencrypted data
+ * @param Lenght of desired data
+ * @returns Actual read data. 0 means EOF.
+ */
 static ssize_t onion_https_read(onion_request *req, char *data, size_t len){
 	gnutls_session_t session=(gnutls_session_t)req->connection.user_data;
 	ssize_t ret=gnutls_record_recv(session, data, len);
@@ -164,12 +199,29 @@ static ssize_t onion_https_read(onion_request *req, char *data, size_t len){
 	return ret;
 }
 
+/**
+ * @short Writes some data to the HTTPS client.
+ * @struct onion_https_t
+ * 
+ * @param req to where write the data
+ * @param data to write
+ * @param len Ammount of data desired to write
+ * @returns Actual ammount of data written.
+ */
 ssize_t onion_https_write(onion_request *req, const char *data, size_t len){
 	gnutls_session_t session=(gnutls_session_t)req->connection.user_data;
 	ONION_DEBUG("Write! (%p)", session);
 	return gnutls_record_send(session, data, len);
 }
 
+/**
+ * @short Closes the https connection
+ * @struct onion_https_t
+ * 
+ * It frees local data and closes the socket.
+ * 
+ * @param req to close.
+ */
 static void onion_https_close(onion_request *req){
 	ONION_DEBUG("Close HTTPS connection");
 	gnutls_session_t session=(gnutls_session_t)req->connection.user_data;
@@ -182,7 +234,15 @@ static void onion_https_close(onion_request *req){
 	onion_listen_point_request_close_socket(req);
 }
 
-
+/**
+ * @short Set new certificate elements
+ * @struct onion_https_t
+ * 
+ * @param ol Listen point
+ * @param type Type of certificate to add
+ * @param filename File where this data is.
+ * @returns If the operation was sucesful
+ */
 int onion_https_set_certificate(onion_listen_point *ol, onion_ssl_certificate_type type, const char *filename, ...){
 	va_list va;
 	va_start(va, filename);
@@ -192,6 +252,14 @@ int onion_https_set_certificate(onion_listen_point *ol, onion_ssl_certificate_ty
 	return r;
 }
 
+/**
+ * @short Same as onion_https_set_certificate, but with a va_list
+ * @struct onion_https_t
+ * 
+ * This allows to manage va_lists more easily.
+ * 
+ * @see onion_https_set_certificate
+ */
 int onion_https_set_certificate_argv(onion_listen_point *ol, onion_ssl_certificate_type type, const char *filename, va_list va){
 	onion_https *https=(onion_https*)ol->user_data;
 	
@@ -203,6 +271,7 @@ int onion_https_set_certificate_argv(onion_listen_point *ol, onion_ssl_certifica
 	int r=0;
 	switch(type&0x0FF){
 		case O_SSL_CERTIFICATE_CRL:
+			ONION_DEBUG("Setting SSL Certificate CRL");
 			r=gnutls_certificate_set_x509_crl_file(https->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
 			break;
 		case O_SSL_CERTIFICATE_KEY:
@@ -215,10 +284,12 @@ int onion_https_set_certificate_argv(onion_listen_point *ol, onion_ssl_certifica
 		}
 			break;
 		case O_SSL_CERTIFICATE_TRUST:
+			ONION_DEBUG("Setting SSL Certificate Trust");
 			r=gnutls_certificate_set_x509_trust_file(https->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
 			break;
 		case O_SSL_CERTIFICATE_PKCS12:
 		{
+			ONION_DEBUG("Setting SSL Certificate PKCS12");
 			r=gnutls_certificate_set_x509_simple_pkcs12_file(https->x509_cred, filename,
 																														(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM,
 																														va_arg(va, const char *));

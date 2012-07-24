@@ -39,7 +39,7 @@ void onion_set_port(onion *server, const char *port);
 void onion_set_hostname(onion *server, const char *hostname);
 
 /// Set a certificate for use in the connection
-int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...);
+int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename);
 
 
  * 
@@ -304,6 +304,8 @@ int onion_listen(onion *o){
 		onion_listen_point *op=listen_points[0];
 		do{
 			onion_request *req=onion_request_new(op);
+			if (!req)
+				continue;
 			ONION_DEBUG("Accepted request %p", req);
 			onion_request_set_no_keep_alive(req);
 			int ret;
@@ -377,7 +379,8 @@ void onion_listen_stop(onion* server){
 	ONION_DEBUG("Stop listening");
 	onion_poller_stop(server->poller);
 #ifdef HAVE_PTHREADS
-	pthread_join(server->listen_thread, NULL);
+	if (server->flags&O_DETACHED)
+		pthread_join(server->listen_thread, NULL);
 #endif
 }
 
@@ -599,9 +602,9 @@ void onion_set_hostname(onion *server, const char *hostname){
 }
 
 /// Set a certificate for use in the connection
-int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
+int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename,...){
 	if (!onion->listen_points){
-		onion_add_listen_point(onion,NULL,NULL,onion_https_new(O_SSL_NONE,NULL));
+		onion_add_listen_point(onion,NULL,NULL,onion_https_new());
 	}
 	else{
 		onion_listen_point *first_listen_point=onion->listen_points[0];
@@ -614,7 +617,7 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 			char *port=first_listen_point->port ? strdup(first_listen_point->port) : NULL;
 			char *hostname=first_listen_point->hostname ? strdup(first_listen_point->hostname) : NULL;
 			onion_listen_point_free(first_listen_point);
-			onion_listen_point *https=onion_https_new(O_SSL_NONE,NULL);
+			onion_listen_point *https=onion_https_new();
 			if (NULL==https){
 				ONION_ERROR("Could not promote from HTTP to HTTPS. Certificate not set.");
 			}
@@ -626,8 +629,9 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 	}
 	va_list va;
 	va_start(va, filename);
-	int r=onion_https_set_certificate_argv(onion->listen_points[0], type, filename, va);
+	int r=onion_https_set_certificate_argv(onion->listen_points[0], type, filename,va);
 	va_end(va);
+
 	return r;
 }
 
