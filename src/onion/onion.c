@@ -275,6 +275,14 @@ void onion_free(onion *onion){
  * @returns !=0 if there is any error. It returns actualy errno from the network operations. See socket for more information.
  */
 int onion_listen(onion *o){
+#ifdef HAVE_PTHREADS
+	if (!(o->flags&O_DETACHED) && (o->flags&O_DETACH_LISTEN)){ // Must detach and return
+		o->flags|=O_DETACHED;
+		pthread_create(&o->listen_thread,NULL, (void*)onion_listen, o);
+		return 0;
+	}
+#endif
+	
 	if (!o->listen_points){
 		onion_add_listen_point(o,NULL,NULL,onion_http_new());
 		ONION_DEBUG("Created default HTTP listen port");
@@ -368,6 +376,9 @@ void onion_listen_stop(onion* server){
 	}	
 	ONION_DEBUG("Stop listening");
 	onion_poller_stop(server->poller);
+#ifdef HAVE_PTHREADS
+	pthread_join(server->listen_thread, NULL);
+#endif
 }
 
 

@@ -94,6 +94,9 @@ int curl_get(const char *url){
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_WRITEDATA, null_file)==CURLE_OK);
   CURLcode res=curl_easy_perform(curl);
   FAIL_IF_NOT_EQUAL((int)res,0);
+	if (res!=0){
+		ONION_ERROR("%s",curl_easy_strerror(res));
+	}
   long int http_code;
   res=curl_easy_getinfo(curl, CURLINFO_HTTP_CODE, &http_code);
   FAIL_IF_NOT_EQUAL((int)res,0);
@@ -258,7 +261,7 @@ void t03_server_https(){
   FAIL_IF_NOT_EQUAL_INT(onion_listen(o),0);
   //do_petition_set(1,1,1,1);
   sleep(1);
-  FAIL_IF_EQUAL_INT(  curl_get_to_fail("http://localhost:8080"), HTTP_OK);
+  //FAIL_IF_EQUAL_INT(  curl_get_to_fail("http://localhost:8080"), HTTP_OK);
   sleep(1);
   FAIL_IF_NOT_EQUAL_INT(  curl_get("https://localhost:8080"), HTTP_OK);
   sleep(1);
@@ -326,8 +329,8 @@ int main(int argc, char **argv){
 // 	t01_server_one();
 //   t02_server_epoll();
   t03_server_https();
-  t04_server_timeout_threaded();
-  t05_server_timeout_threaded_ssl();
+//   t04_server_timeout_threaded();
+//   t05_server_timeout_threaded_ssl();
   
   okexit=1;
   pthread_cancel(watchdog_thread);

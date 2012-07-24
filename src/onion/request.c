@@ -71,8 +71,13 @@ onion_request *onion_request_new(onion_listen_point *op){
   ONION_DEBUG0("Create request %p", req);
 	
 	if (op){
-		if (op->request_init)
-			op->request_init(req);
+		if (op->request_init){
+			if (op->request_init(req)<0){
+				ONION_DEBUG("Invalid request, closing");
+				onion_request_free(req);
+				return NULL;
+			}
+		}
 		else
 			onion_listen_point_request_init_from_socket(req);
 	}

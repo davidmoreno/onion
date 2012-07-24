@@ -73,7 +73,7 @@ int onion_listen_point_accept(onion_listen_point *op){
 	}
 	ONION_ERROR("Error creating connection");
 
-	return 1;
+	return -1;
 }
 
 void onion_listen_point_listen_stop(onion_listen_point *op){
@@ -224,5 +224,6 @@ void onion_listen_point_request_close_socket(onion_request *oc){
 	if (fd>=0){
 		shutdown(fd,SHUT_RDWR);
 		close(fd);
+		oc->connection.fd=-1;
 	}
 }

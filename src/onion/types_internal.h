@@ -68,6 +68,7 @@ struct onion_t{
 	size_t max_file_size;					/// Maximum size of files. @see onion_request_write_post
 	onion_sessions *sessions;			/// Storage for sessions.
 #ifdef HAVE_PTHREADS
+	pthread_t listen_thread;
 	pthread_t *threads;
 	int nthreads;
 #endif
@@ -151,9 +152,15 @@ struct onion_listen_point_t{
 	
 	/// How to start the listening phase. Normally NULL means socket listening. Must set at listenfd a file descriptor that will be polled.
 	void (*listen)(onion_listen_point *lp);
-	/// Has default implementation that do the socket accept and set of default params. On some protocols may be 
-	/// reimplemented to do non socket-petition accept.
-	void (*request_init)(onion_request *req);
+	/** 
+	 * @short Initialize the request object. Data is already malloc'd but specific listen protocols may need custom data
+	 * 
+	 * Has default implementation that do the socket accept and set of default params. On some protocols may be 
+	 * reimplemented to do non socket-petition accept.
+	 * 
+	 * @returns 0 if everything ok, <0 if request is invalid and should be closed.
+	 */
+	int (*request_init)(onion_request *req);
 
 	/// @{ @name To be used by connections, but as these methods are shared by protocol, done here.
 	int (*read_ready)(onion_request *con); ///< When poller detects data is ready to be read. Might be diferent in diferent parts of the processing.
