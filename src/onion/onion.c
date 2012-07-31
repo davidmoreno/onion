@@ -260,8 +260,6 @@ void onion_free(onion *onion){
 	if (onion->threads)
 		free(onion->threads);
 #endif
-	
-	free(onion);
 }
 
 /**

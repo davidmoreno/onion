@@ -52,6 +52,8 @@ onion_response_codes process_request(void *_, onion_request *req, onion_response
   pthread_mutex_unlock(&processed_mutex);
   onion_response_write0(res, "Done");
   
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_client_description(req),"127.0.0.1");
+	
   return OCS_PROCESSED;
 }
 
