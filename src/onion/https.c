@@ -85,17 +85,16 @@ onion_listen_point *onion_https_new(){
 #ifdef HAVE_PTHREADS
 	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 #endif
-	/*
-	if (!(o->flags&O_USE_DEV_RANDOM)){
+	//if (!(o->flags&O_USE_DEV_RANDOM)){
 		gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-	}
-	*/
+	//}
+	
 	gnutls_global_init ();
 	gnutls_certificate_allocate_credentials (&https->x509_cred);
 	gnutls_dh_params_init (&https->dh_params);
 	gnutls_dh_params_generate2 (https->dh_params, 1024);
 	gnutls_certificate_set_dh_params (https->x509_cred, https->dh_params);
-	gnutls_priority_init (&https->priority_cache, "PERFORMANCE:%SAFE_RENEGOTIATION:-VERS-TLS1.0", NULL);
+	gnutls_priority_init (&https->priority_cache, "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:%COMPAT", NULL); // PERFORMANCE:%SAFE_RENEGOTIATION:-VERS-TLS1.0:%COMPAT"
 	
 	ONION_DEBUG("HTTPS connection ready");
 	

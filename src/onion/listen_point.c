@@ -83,8 +83,13 @@ void onion_listen_point_free(onion_listen_point *op){
  * 
  * When the new conneciton appears, creates the request and adds it to the pollers.
  * 
+ * It returns always 1 as any <0 would detach from the poller and close the listen point, 
+ * and not accepting a request does not mean the connection point is corrupted. If a 
+ * connection point may become corrupted should be the connection point itself who detaches 
+ * from the poller.
+ * 
  * @param op The listen point from where the request must be built
- * @returns 1 if ok, <0 if error; the request was invalid (for example HTTP asked for an HTTPS).
+ * @returns 1 always. 
  */
 int onion_listen_point_accept(onion_listen_point *op){
 	onion_request *req=onion_request_new(op);
@@ -97,7 +102,7 @@ int onion_listen_point_accept(onion_listen_point *op){
 	}
 	ONION_ERROR("Error creating connection");
 
-	return -1;
+	return 1;
 }
 
 /**

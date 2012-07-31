@@ -44,6 +44,8 @@
  * - FAIL_IF_NOT_EQUAL_STR(A,B)
  * - FAIL_IF_STRSTR(A,B) -- B is contained in A.
  * - FAIL_IF_NOT_STRSTR(A,B)
+ * - FAIL_IF_EXCEPTION( code )
+ * - FAIL_IF_NOT_EXCEPTION( code )
  */
 
 static int failures=0;

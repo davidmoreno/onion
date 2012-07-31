@@ -315,8 +315,8 @@ void t05_server_timeout_threaded_ssl(){
   close(fd);
 
   FAIL_IF_NOT(curl_get("https://localhost:8081"));
-  
-  onion_free(o);
+
+	onion_free(o);
   
   END_LOCAL();
 }
@@ -326,11 +326,11 @@ int main(int argc, char **argv){
   pthread_t watchdog_thread;
   pthread_create(&watchdog_thread, NULL, (void*)watchdog, NULL);
 
-// 	t01_server_one();
-//   t02_server_epoll();
-  t03_server_https();
-//   t04_server_timeout_threaded();
-//   t05_server_timeout_threaded_ssl();
+	t01_server_one();
+	t02_server_epoll();
+	t03_server_https();
+	t04_server_timeout_threaded();
+	t05_server_timeout_threaded_ssl();
   
   okexit=1;
   pthread_cancel(watchdog_thread);
