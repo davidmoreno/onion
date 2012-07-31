@@ -33,6 +33,9 @@ extern "C"{
  * Check other sources for complete listings.
  */
 enum onion_response_codes_e{
+	//
+	HTTP_SWITCH_PROTOCOL=101,
+	
 	// OK codes
 	HTTP_OK=200,
 	HTTP_CREATED=201,
@@ -75,6 +78,7 @@ enum onion_response_flags_e{
 	OR_CLOSE_CONNECTION=1,	/// The connection will be closed when processing finishes.
 	OR_SKIP_CONTENT=8,			/// This is set when the method is HEAD. @see onion_response_write_headers
 	OR_CHUNKED=32,					/// The data is to be sent using chunk encoding. Its on if no lenght is set.
+	OR_CONNECTION_UPGRADE=64, /// The connection is upgraded (websockets).
   OR_HEADER_SENT=0x0200,  /// The header has already been written. Its done automatically on first user write. Same id as OR_HEADER_SENT from onion_response_flags.
 };
 

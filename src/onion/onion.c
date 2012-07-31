@@ -209,7 +209,6 @@ onion *onion_new(int flags){
 	
 	onion *o=calloc(1,sizeof(onion));
 	o->flags=(flags&0x0FF)|O_SSL_AVAILABLE;
-	
 	o->timeout=5000; // 5 seconds of timeout, default.
 	o->poller=onion_poller_new(15);
 	o->sessions=onion_sessions_new();

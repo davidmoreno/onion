@@ -97,6 +97,7 @@ struct onion_request_t{
 	char *session_id;     /// Session id of the request, if any.
 	void *parser;         /// When recieving data, where to put it. Check at request_parser.c.
 	void *parser_data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
+	onion_websocket *websocket; /// Websocket handler. 
 };
 
 struct onion_response_t{
@@ -188,6 +189,20 @@ struct onion_listen_point_t{
 	/// @}
 };
 
+
+struct onion_websocket_t{
+	onion_request *req; /// Associated request
+	onion_websocket_callback_t callback; /// Callback to call, if any, when new data is available.
+	
+	void *user_data;
+	void (*free_user_data)(void *);
+	
+	int64_t data_left;
+	char mask[4];
+	int8_t mask_pos;
+	int8_t flags; /// Defined at websocket.c
+	onion_websocket_opcode opcode:4;
+};
 
 #ifdef __cplusplus
 }

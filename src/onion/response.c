@@ -160,6 +160,7 @@ static void write_header(onion_response *res, const char *key, const char *value
 #define CONNECTION_CLOSE "Connection: Close\r\n"
 #define CONNECTION_KEEP_ALIVE "Connection: Keep-Alive\r\n"
 #define CONNECTION_CHUNK_ENCODING "Transfer-Encoding: chunked\r\n"
+#define CONNECTION_UPGRADE "Connection: Upgrade\r\n"
 
 /**
  * @short Writes all the header to the given response
@@ -195,8 +196,11 @@ int onion_response_write_headers(onion_response *res){
 			onion_response_write(res, CONNECTION_KEEP_ALIVE, sizeof(CONNECTION_KEEP_ALIVE)-1);
 	}
 	
-	if (!(res->flags&OR_LENGTH_SET) && !chunked)
+	if (!(res->flags&OR_LENGTH_SET) && !chunked && !(res->flags&OR_CONNECTION_UPGRADE))
 		onion_response_write(res, CONNECTION_CLOSE, sizeof(CONNECTION_CLOSE)-1);
+	
+	if (res->flags&OR_CONNECTION_UPGRADE)
+		onion_response_write(res, CONNECTION_UPGRADE, sizeof(CONNECTION_UPGRADE)-1);
 	
 	onion_dict_preorder(res->headers, write_header, res);
 	
@@ -346,6 +350,9 @@ const char *onion_response_code_description(int code){
 			return "PARTIAL CONTENT";
 		case HTTP_MULTI_STATUS:
 			return "MULTI STATUS";
+			
+		case HTTP_SWITCH_PROTOCOL:
+			return "SWITCHING PROTOCOLS";
 			
 		case HTTP_MOVED:
 			return "MOVED";

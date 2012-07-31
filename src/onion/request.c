@@ -32,6 +32,7 @@
 #include "sessions.h"
 #include "block.h"
 #include "listen_point.h"
+#include "websocket.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 
@@ -132,13 +133,11 @@ void onion_request_free(onion_request *req){
   }
 	if (req->data)
 		onion_block_free(req->data);
-	
-	if (req->parser_data)
-    onion_request_parser_data_free(req->parser_data);
-	
 	if (req->connection.cli_info)
 		free(req->connection.cli_info);
 	
+	if (req->websocket)
+		onion_websocket_free(req->websocket);
 	free(req);
 }
 
