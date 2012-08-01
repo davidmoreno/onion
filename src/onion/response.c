@@ -411,3 +411,13 @@ void onion_response_set_writer(onion_response *res, onion_write write, void *soc
 	res->write=write;
 	res->socket=socket;
 }
+
+/**
+ * @short Returns the headers dictionary, so user can add repeated headers
+ * 
+ * Only simple use case is to add several coockies; using normal set_header is not possible, 
+ * but accessing the dictionary user can add repeated headers without problem.
+ */
+onion_dict *onion_response_get_headers(onion_response *res){
+	return res->headers;
+}
