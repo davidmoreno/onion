@@ -17,6 +17,8 @@ namespace Onion{
     Url(Onion &o) {
       ptr=onion_root_url(o.c_handler());
     }
+
+    onion_url *c_ptr(){ return ptr;  }
     
     bool add(const std::string &url, Handler *h){
       return onion_url_add_handler(ptr,url.c_str(),h->c_handler());
