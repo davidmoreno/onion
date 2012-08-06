@@ -138,6 +138,10 @@ void onion_request_free(onion_request *req){
 	
 	if (req->websocket)
 		onion_websocket_free(req->websocket);
+	
+	if (req->parser_data){
+		free(req->parser_data);
+	}
 	free(req);
 }
 

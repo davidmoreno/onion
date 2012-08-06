@@ -72,15 +72,10 @@ onion_websocket* onion_websocket_new(onion_request* req, onion_response *res)
 		return NULL;
 	}
 	if (atoi(ws_version)!=13){
-		ONION_ERROR("Websocket version not supported. Currenty only support version 13, asked %d", ws_version);
+		ONION_ERROR("Websocket version not supported. Currenty only support version 13, asked %s", ws_version);
 		return NULL;
 	}
 	
-	//if (req->server->flags&O_POLL){
-		ONION_WARNING("Websocket support does not support polling mode yet. It will block the thread that calls the websockets. (bad in POOL, very BAD in POLL)");
-	//}
-	
-
 	int length=strlen(ws_key);
 	char *tmp=alloca(length+websocket_magic_13_length+1);
 	strcpy(tmp,ws_key);

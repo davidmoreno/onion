@@ -72,7 +72,6 @@ static void onion_https_free_user_data(onion_listen_point *op);
 onion_listen_point *onion_https_new(){
 	onion_listen_point *op=onion_listen_point_new();
 	op->request_init=onion_https_request_init;
-	op->user_data=calloc(1,sizeof(onion_https));
 	op->free_user_data=onion_https_free_user_data;
 	op->listen_stop=onion_https_listen_stop;
 	op->read=onion_https_read;
@@ -80,6 +79,7 @@ onion_listen_point *onion_https_new(){
 	op->close=onion_https_close;
 	op->read_ready=onion_http_read_ready;
 	
+	op->user_data=calloc(1,sizeof(onion_https));
 	onion_https *https=(onion_https*)op->user_data;
 	
 #ifdef HAVE_PTHREADS
@@ -91,8 +91,39 @@ onion_listen_point *onion_https_new(){
 	
 	gnutls_global_init ();
 	gnutls_certificate_allocate_credentials (&https->x509_cred);
-	gnutls_dh_params_init (&https->dh_params);
-	gnutls_dh_params_generate2 (https->dh_params, 1024);
+	
+	// set cert here??
+	//onion_https_set_certificate(op,O_SSL_CERTIFICATE_KEY, "mycert.pem","mycert.pem");
+	int e;
+	int bits = gnutls_sec_param_to_pk_bits (GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LOW);
+	e=gnutls_dh_params_init (&https->dh_params);
+	if (e<0){
+		ONION_ERROR("Error initializing HTTPS: %s", gnutls_strerror(e));
+		gnutls_certificate_free_credentials (https->x509_cred);
+		op->free_user_data=NULL;
+		onion_listen_point_free(op);
+		free(https);
+		return NULL;
+	}
+	e=gnutls_dh_params_generate2 (https->dh_params, bits);
+	if (e<0){
+		ONION_ERROR("Error initializing HTTPS: %s", gnutls_strerror(e));
+		gnutls_certificate_free_credentials (https->x509_cred);
+		op->free_user_data=NULL;
+		onion_listen_point_free(op);
+		free(https);
+		return NULL;
+	}
+	e=gnutls_priority_init (&https->priority_cache, "PERFORMANCE:%SAFE_RENEGOTIATION:-VERS-TLS1.0", NULL);
+	if (e<0){
+		ONION_ERROR("Error initializing HTTPS: %s", gnutls_strerror(e));
+		gnutls_certificate_free_credentials (https->x509_cred);
+		gnutls_dh_params_deinit(https->dh_params);
+		op->free_user_data=NULL;
+		onion_listen_point_free(op);
+		free(https);
+		return NULL;
+	}
 	gnutls_certificate_set_dh_params (https->x509_cred, https->dh_params);
 	gnutls_priority_init (&https->priority_cache, "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:%COMPAT", NULL); // PERFORMANCE:%SAFE_RENEGOTIATION:-VERS-TLS1.0:%COMPAT"
 	
@@ -147,7 +178,7 @@ static int onion_https_request_init(onion_request *req){
 	onion_listen_point_request_init_from_socket(req);
 	onion_https *https=(onion_https*)req->connection.listen_point->user_data;
 	
-	ONION_DEBUG("Socket fd %d",req->connection.fd);
+	ONION_DEBUG("Accept new request, fd %d",req->connection.fd);
 	
 	gnutls_session_t session;
 
@@ -277,7 +308,7 @@ int onion_https_set_certificate_argv(onion_listen_point *ol, onion_ssl_certifica
 		{
 			//va_arg(va, const char *); // Ignore first.
 			const char *keyfile=va_arg(va, const char *);
-			ONION_DEBUG("Setting certificate %s, key %s", filename, keyfile);
+			ONION_DEBUG("Setting certificate to %p: cert %s, key %s", ol, filename, keyfile);
 			r=gnutls_certificate_set_x509_key_file(https->x509_cred, filename, keyfile, 
 																									(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
 		}

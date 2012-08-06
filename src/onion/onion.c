@@ -259,6 +259,7 @@ void onion_free(onion *onion){
 	if (onion->threads)
 		free(onion->threads);
 #endif
+	free(onion);
 }
 
 /**
@@ -452,6 +453,24 @@ int onion_add_listen_point(onion* server, const char* hostname, const char* port
 	return 0;
 }
 
+/**
+ * @short Returns the listen point n.
+ * 
+ * 
+ * @param server The onion server
+ * @param nlisten_point Listen point index.
+ * @returns The listen point, or NULL if not that many listen points.
+ */
+onion_listen_point *onion_get_listen_point(onion *server, int nlisten_point){
+	onion_listen_point **next=server->listen_points;
+	while(next){ // I have to go one by one, as NULL is the stop marker.
+		if (nlisten_point==0)
+			return *next;
+		nlisten_point--;
+		next++;
+	}
+	return NULL;
+}
 
 /**
  * @short Sets the timeout, in milliseconds

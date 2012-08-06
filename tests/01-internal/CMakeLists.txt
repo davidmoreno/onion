@@ -48,3 +48,6 @@ add_custom_command(
    )
 target_link_libraries(13-otemplates onion)
 endif (OTEMPLATE)
+
+add_executable(14-websockets 14-websockets.c buffer_listen_point.c)
+target_link_libraries(14-websockets onion)

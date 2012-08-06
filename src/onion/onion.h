@@ -63,6 +63,9 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 /// Adds a listen point, a listening address and port with a given protocol.
 int onion_add_listen_point(onion *server, const char *hostname, const char *port, onion_listen_point *protocol);
 
+/// Gets a single listen point, or NULL if not that many.
+onion_listen_point *onion_get_listen_point(onion *server, int nlisten_point);
+
 /// Gets the current flags, for example to check SSL support.
 int onion_flags(onion *onion);
 
