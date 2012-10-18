@@ -48,3 +48,6 @@ add_custom_command(
    )
 target_link_libraries(13-otemplates onion)
 endif (OTEMPLATE)
+
+add_executable(15-post-no-type 15-post-no-type.c)
+target_link_libraries(15-post-no-type onion)
