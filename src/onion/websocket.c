@@ -145,7 +145,10 @@ void onion_websocket_free(onion_websocket *ws){
 int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 {
 	int len=_len; // I need it singed here
-	char mask[4];
+	union{
+		char s[4];
+		int32_t i;
+	}mask;
 	//ONION_DEBUG("Write %d bytes",len);
 	{
 		char header[16];
@@ -170,12 +173,12 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 			}
 			hlen+=8;
 		}
-		*((int32_t*)mask)=rand();
+		mask.i=rand();
 		
-		header[hlen++]=mask[0];
-		header[hlen++]=mask[1];
-		header[hlen++]=mask[2];
-		header[hlen++]=mask[3];
+		header[hlen++]=mask.s[0];
+		header[hlen++]=mask.s[1];
+		header[hlen++]=mask.s[2];
+		header[hlen++]=mask.s[3];
 		
 		/*
 		int i;
@@ -193,13 +196,13 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 	for(i=0;i<len-1024;i+=1024){
 		for (j=0;j<sizeof(tout);j++){
 			//ONION_DEBUG("At %d, %02X ^ %02X = %02X", (i+j)&1023, buffer[i+j]&0x0FF, mask[j&3]&0x0FF, (buffer[i]^mask[j&3])&0x0FF);
-			tout[j]=buffer[i+j]^mask[j&3];
+			tout[j]=buffer[i+j]^mask.s[j&3];
 		}
 		ret+=ws->req->connection.listen_point->write(ws->req, tout, sizeof(tout));
 	}
 	for(;i<len;i++){
 		//ONION_DEBUG("At %d, %02X ^ %02X = %02X", i&1023, buffer[i]&0x0FF, mask[i&3]&0x0FF, (buffer[i]^mask[i&3])&0x0FF);
-		tout[i&1023]=buffer[i]^mask[i&3];
+		tout[i&1023]=buffer[i]^mask.s[i&3];
 	}
 	
 	return ret+ws->req->connection.listen_point->write(ws->req, tout, len&1023);

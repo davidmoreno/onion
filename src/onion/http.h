@@ -19,7 +19,7 @@
 #ifndef __ONION_HTTP_H__
 #define __ONION_HTTP_H__
 
-#include <onion/types.h>
+#include "types.h"
 
 onion_listen_point *onion_http_new();
 

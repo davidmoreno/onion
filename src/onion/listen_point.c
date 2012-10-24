@@ -245,11 +245,21 @@ int onion_listen_point_request_init_from_socket(onion_request *req){
 	
 	req->connection.cli_len = sizeof(req->connection.cli_addr);
 
-	int clientfd=accept4(listenfd, (struct sockaddr *) &req->connection.cli_addr, &req->connection.cli_len, SOCK_CLOEXEC);
+	int set_cloexec=SOCK_CLOEXEC == 0;
+	int clientfd=accept4(listenfd, (struct sockaddr *) &req->connection.cli_addr, 
+				&req->connection.cli_len, SOCK_CLOEXEC);
 	if (clientfd<0){
-		ONION_ERROR("Error accepting connection: %s",strerror(errno));
-		onion_listen_point_request_close_socket(req);
-		return -1;
+		ONION_DEBUG("Second try? errno %d, clientfd %d", errno, clientfd);
+		if (errno==ENOSYS){
+			clientfd=accept(listenfd, (struct sockaddr *) &req->connection.cli_addr, 
+					&req->connection.cli_len);
+		}
+		ONION_DEBUG("How was it? errno %d, clientfd %d", errno, clientfd);
+		if (clientfd<0){
+			ONION_ERROR("Error accepting connection: %s",strerror(errno),errno);
+			onion_listen_point_request_close_socket(req);
+			return -1;
+		}
 	}
 	req->connection.fd=clientfd;
 	
@@ -262,7 +272,7 @@ int onion_listen_point_request_init_from_socket(onion_request *req){
 		setsockopt(clientfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
 	}
 	
-	if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
+	if(set_cloexec) { // Good compiler know how to cut this out
 		int flags=fcntl(clientfd, F_GETFD);
 		if (flags==-1){
 			ONION_ERROR("Retrieving flags from connection");
