@@ -450,6 +450,9 @@ void onion_poller_stop(onion_poller *p){
   ONION_DEBUG0("Stopping poller");
   p->stop=1;
   char data[8]={0,0,0,0, 0,0,0,1};
-  write(p->eventfd,data,8);
+  int w=write(p->eventfd,data,8);
+  if (w<0){
+    ONION_ERROR("Error signaling poller to stop!");
+  }
 }
 
