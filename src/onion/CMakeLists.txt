@@ -42,7 +42,7 @@ if (${PNG_ENABLED})
 add_subdirectory(extras)
 endif (${PNG_ENABLED})
 
-SET(INCLUDES_ONION onion.h dict.h request.h response.h codecs.h handler.h server.h log.h sessions.h types.h shortcuts.h url.h block.h)
+SET(INCLUDES_ONION onion.h dict.h request.h response.h codecs.h handler.h server.h log.h sessions.h types.h shortcuts.h url.h block.h mime.h)
 MESSAGE("Found include files ${INCLUDES_ONION}")
 
 install(FILES ${INCLUDES_ONION} DESTINATION ${INCLUDEDIR})
