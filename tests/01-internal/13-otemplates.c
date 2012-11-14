@@ -24,6 +24,7 @@
 #include <onion/types_internal.h>
 
 onion_connection_status _13_otemplate_html_handler_page(onion_dict *context, onion_request *req, onion_response *res);
+onion_connection_status AGPL_txt_handler_page(onion_dict *context, onion_request *req, onion_response *res);
 
 struct tests_call_otemplate{
   char ok_title;
@@ -116,6 +117,41 @@ void t01_call_otemplate(){
   
   END_LOCAL();
 }
+
+ssize_t count_bytes(onion_request *req, const char *data, size_t length){
+	int *count=req->connection.user_data;
+	*count+=length;
+	return length;
+}
+
+void t02_long_template(){
+	INIT_LOCAL();
+	int count=0;
+	
+	onion *s=onion_new(0);
+  
+	onion_set_root_handler(s, onion_handler_new((void*)AGPL_txt_handler_page, NULL, NULL));
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	onion_add_listen_point(s,NULL,NULL,lp);
+	lp->write=count_bytes;
+	
+  
+	onion_request *req=onion_request_new(lp);
+	req->connection.listen_point->close(req);
+	req->connection.user_data=&count;
+	req->connection.listen_point->close=NULL;
+	
+	
+  FAIL_IF_NOT_EQUAL_INT(onion_request_write0(req, "GET /\n\n"), OCS_CLOSE_CONNECTION);
+	
+	FAIL_IF(count<30000);
+
+	onion_request_free(req);
+	onion_free(s);
+	
+	END_LOCAL();
+}
+
 
 int main(int argc, char **argv){
   START();
