@@ -5,6 +5,7 @@
 #include <onion/dict.h>
 
 onion_connection_status _13_otemplate_html_handler_page(onion_dict *context, onion_request *req, onion_response *res);
+onion_connection_status AGPL_txt_handler_page(onion_dict *context, onion_request *req, onion_response *res);
 
 struct tests_call_otemplate{
   char ok_title;
@@ -90,10 +91,37 @@ void t01_call_otemplate(){
   END_LOCAL();
 }
 
+int count_bytes(int *count, const char *data, unsigned int length){
+	*count+=length;
+	return length;
+}
+
+void t02_long_template(){
+	INIT_LOCAL();
+	int count=0;
+	
+	onion_server *s=onion_server_new();
+  
+	onion_server_set_root_handler(s, onion_handler_new((void*)AGPL_txt_handler_page, NULL, NULL));
+  onion_server_set_write(s, (void*)count_bytes);
+	
+  
+  onion_request *req=onion_request_new(s, &count, "localtest");
+  FAIL_IF_NOT_EQUAL_INT(onion_request_write0(req, "GET /\n\n"), OCS_CLOSE_CONNECTION);
+	
+	FAIL_IF(count<30000);
+
+  onion_request_free(req);
+  onion_server_free(s);
+  
+  END_LOCAL();
+}
+
 int main(int argc, char **argv){
   START();
   
   t01_call_otemplate();
-  
+  t02_long_template();
+	
   END();
 }

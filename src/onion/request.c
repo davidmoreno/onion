@@ -67,11 +67,11 @@ onion_request *onion_request_new(onion_server *server, void *socket, const char 
 	req->headers=onion_dict_new();
   onion_dict_set_flags(req->headers, OD_ICASE);
 	req->socket=socket;
+  req->client_info=NULL;
   if (client_info){
     req->client_info=strdup(client_info);
   }
   req->client_len=0;
-  req->client_info=NULL;
 
   ONION_DEBUG0("Create request %p", req);
 	return req;

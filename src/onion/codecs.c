@@ -292,8 +292,10 @@ char *onion_c_quote_new(const char *str){
 	int l=3; // The quotes + \0
 	const unsigned char *p=(const unsigned char *)str;
 	while( *p != '\0'){ 
-		if (*p=='\n' || *p=='\r' || *p=='"' || *p=='\\' || *p=='\t')
+		if (*p=='\r' || *p=='"' || *p=='\\' || *p=='\t')
 			l++;
+		else if (*p=='\n')
+			l+=4; // \n"[real newline]"
 		else if(*p>127)
 			l+=4;
 		l++; p++;
@@ -314,6 +316,12 @@ char *onion_c_quote(const char *str, char *ret, int l){
 			*r='\\'; 
 			r++; 
 			*r='n'; 
+			r++; 
+			*r='"'; 
+			r++; 
+			*r='\n'; 
+			r++; 
+			*r='"'; 
 		} 
 		else if (*p=='\r'){
 			*r='\\'; 
