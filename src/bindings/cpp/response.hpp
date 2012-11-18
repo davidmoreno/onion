@@ -61,6 +61,10 @@ namespace Onion{
       onion_response_set_code(ptr,code);
     }
     
+    void writeHeaders(){
+			onion_response_write_headers(ptr);
+		}
+    
     onion_response *c_handler(){
 			return ptr;
 		}
