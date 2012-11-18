@@ -732,8 +732,11 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
   ONION_DEBUG0("Got %d at KEY",res);
   
 	if ( res == NEW_LINE ){
-		if ((req->flags&OR_METHODS)==OR_POST)
-			return prepare_POST(req);
+		if ((req->flags&OR_METHODS)==OR_POST){
+			const char *content_type=onion_request_get_header(req, "Content-Type");
+			if (!content_type || (strstr(content_type,"application/x-www-form-urlencoded") || strstr(content_type, "boundary")))
+				return prepare_POST(req);
+		}
 		if ((req->flags&OR_METHODS)==OR_PUT)
 			return prepare_PUT(req);
 		if (onion_request_get_header(req, "Content-Length")){ // Soem length, not POST, get data.

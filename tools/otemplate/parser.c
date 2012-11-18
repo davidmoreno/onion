@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <malloc.h>
+#include <string.h>
 
 #include <onion/codecs.h>
 #include <onion/block.h>
@@ -35,8 +36,8 @@ static void set_mode(parser_status *status, int mode);
  */
 void parse_template(parser_status *status){
 	int c;
-	while ( (status->c=fgetc(status->in)) != EOF){
-		c=status->c;
+	while ( (c=fgetc(status->in)) != EOF){
+		status->c=c;
 		if (c=='\n')
 			status->line++;
 		switch(status->mode){
@@ -109,9 +110,35 @@ void write_block(parser_status *st, onion_block *b){
 		{
 			int oldl;
 			if ( (oldl=onion_block_size(b)) ){
-				char *safe=onion_c_quote_new(onion_block_data(b));
-				function_add_code(st, "  onion_response_write(res, %s, %d);\n", safe, oldl);
-				free(safe);
+				if (oldl>0){ // Not Just \0
+					int use_orig_line_numbers_bak=use_orig_line_numbers;
+					use_orig_line_numbers=0;
+					char *safe=onion_c_quote_new(onion_block_data(b));
+					function_add_code(st, "  onion_response_write(res, ");
+					int pos=0;
+					int size=strlen(safe);
+					char *s=safe;
+					ONION_DEBUG("------- pos %d, size %d",pos,size);
+					while (pos<size){
+						ONION_DEBUG("pos %d, size %d",pos,size);
+						char *e=strstr(s, "\n");
+						if (!e)
+							break;
+						*e='\0';
+						if (pos==0)
+							function_add_code(st, "%s\n", s);
+						else
+							function_add_code(st, "      %s\n", s);
+						pos+=(e-s)+1;
+						s=e+1;
+					}
+					if (pos==0)
+						function_add_code(st, "%s, %d);\n", s, oldl);
+					else
+						function_add_code(st, "      %s, %d);\n", s, oldl);
+					use_orig_line_numbers=use_orig_line_numbers_bak;
+					free(safe);
+				}
 			}
 		}
 			break;

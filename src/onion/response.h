@@ -90,6 +90,8 @@ void onion_response_set_header(onion_response *res, const char *key, const char 
 void onion_response_set_length(onion_response *res, size_t length);
 /// Sets the return code
 void onion_response_set_code(onion_response *res, int code);
+/// Gets the headers dictionary
+onion_dict *onion_response_get_headers(onion_response *res);
 
 /// @{ @name Write functions 
 /// Writes all the header to the given fd
