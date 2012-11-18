@@ -70,7 +70,7 @@ namespace Onion{
       onion_dict_add(ptr,k.c_str(),v.c_str(),flags);
     }
     void add(const std::string &k, Dict &v, int flags=OD_DUP_ALL){
-      onion_dict_add(ptr,k.c_str(),v.c_handle(),flags|OD_DICT);
+      onion_dict_add(ptr,k.c_str(),v.c_handler(),flags|OD_DICT);
     }
     
     /// Sets the autodelete on delete flag. Use with care.
@@ -82,7 +82,7 @@ namespace Onion{
 			return onion_dict_count(ptr);
 		}
     
-    onion_dict *c_handle(){
+    onion_dict *c_handler(){
       return ptr;
     }
   };
