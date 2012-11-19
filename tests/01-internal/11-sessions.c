@@ -291,9 +291,9 @@ void t04_lot_of_sessionid(){
   snprintf(tmp,sizeof(tmp)," sessionid=xx%sxx;",lastsessionid);
   strcpy(tmp2,"Cookie:");
   for(i=0;i<64;i++)
-    strncat(tmp2, tmp, sizeof(tmp2));
+    strncat(tmp2, tmp, sizeof(tmp));
   snprintf(tmp,sizeof(tmp)," sessionid=%s\n",lastsessionid);
-  strncat(tmp2, tmp, sizeof(tmp2));
+  strncat(tmp2, tmp, sizeof(tmp));
   ONION_DEBUG("Set cookies (%d bytes): %s",strlen(tmp2),tmp2);
   strcpy(tmp,"GET /\n");
   onion_request_write(req,tmp,strlen(tmp)); // Here is the problem, at parsing too long headers
