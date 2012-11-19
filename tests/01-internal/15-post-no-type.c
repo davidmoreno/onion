@@ -75,7 +75,8 @@ onion_block *connect_and_send(const char *ip, const char *port, const char *msg)
 		freeaddrinfo(server);
 	}
 
-	write(fd, msg, strlen(msg));
+	int ret=write(fd, msg, strlen(msg));
+	FAIL_IF(ret<0);
 	onion_block *bl=onion_block_new();
 	char tmp[256];
 	int r=0;
