@@ -22,6 +22,7 @@
 #include <onion/types.h>
 #include <string>
 #include <onion/dict.h>
+#include <onion/log.h>
 
 namespace Onion{
   class Dict{
@@ -64,6 +65,29 @@ namespace Onion{
       if (!r)
         return def;
       return r;
+    }
+    
+    void add(const char *k, const char *v){
+			onion_dict_add(ptr, k, v, 0);
+		}
+    void add(const char *k, char *v){
+			onion_dict_add(ptr, k, v, OD_DUP_VALUE);
+		}
+    void add(char *k, const char *v){
+			onion_dict_add(ptr, k, v, OD_DUP_KEY);
+		}
+    void add(char *k, char *v){
+			onion_dict_add(ptr, k, v, OD_DUP_ALL);
+		}
+
+    void add(const char *k, const Dict &v){
+      onion_dict_add(ptr,k,((Dict*)&v)->c_handler(),OD_DICT);
+    }
+    void add(const char *k, Dict &v){
+      onion_dict_add(ptr,k,v.c_handler(),OD_DUP_VALUE|OD_DICT);
+    }	
+    void add(char *k, Dict &v){
+      onion_dict_add(ptr,k,v.c_handler(),OD_DUP_ALL|OD_DICT);
     }
     
     void add(const std::string &k, const std::string &v, int flags=OD_DUP_ALL){
