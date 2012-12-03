@@ -651,17 +651,19 @@ void t13_dict_rget(){
 }
 
 void t14_dict_case_insensitive(){
-  INIT_LOCAL();
-  
-  onion_dict *d=onion_dict_new();
-  
-  onion_dict_add(d,"Test","OK", 0);
-  FAIL_IF_NOT_EQUAL(onion_dict_get(d,"test"),NULL);
-  
-  onion_dict_set_flags(d,OD_ICASE);
-  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(d,"test"),"OK");
-  
-  END_LOCAL();
+	INIT_LOCAL();
+	
+	onion_dict *d=onion_dict_new();
+	
+	onion_dict_add(d,"Test","OK", 0);
+	FAIL_IF_NOT_EQUAL(onion_dict_get(d,"test"),NULL);
+	
+	onion_dict_set_flags(d,OD_ICASE);
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(d,"test"),"OK");
+
+	
+	onion_dict_free(d);
+	END_LOCAL();
 }
 
 int main(int argc, char **argv){
