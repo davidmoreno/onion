@@ -32,3 +32,6 @@ add_custom_command(
 
 add_executable(01-test 01-test.c test_html.c external_html.c extended_html.c base_html.c)
 target_link_libraries(01-test onion_static onion_handlers)
+
+add_executable(02-test 02-test.cpp test_html.c external_html.c extended_html.c base_html.c)
+target_link_libraries(02-test onion_static onion_handlers onioncpp)

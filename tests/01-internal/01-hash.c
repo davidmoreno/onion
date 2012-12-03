@@ -516,7 +516,12 @@ void t10_tojson(){
 }
 
 void cmpdict(onion_dict *d, const char *key, const char *value, int flags){
-	FAIL_IF_NOT_EQUAL_STR(value, onion_dict_get(d, key));
+	if (flags&OD_DICT){
+		onion_dict_preorder((onion_dict*)value, cmpdict, onion_dict_get_dict(d, key));
+		onion_dict_preorder(onion_dict_get_dict(d, key), cmpdict, (onion_dict*)value);
+	}
+	else
+		FAIL_IF_NOT_EQUAL_STR(value, onion_dict_get(d, key));
 }
 
 void t11_hard_dup(){
@@ -666,8 +671,70 @@ void t14_dict_case_insensitive(){
 	END_LOCAL();
 }
 
+void t15_hard_dup_dict_in_dict(){
+	INIT_LOCAL();
+	
+	onion_dict *orig=onion_dict_new();
+	
+	char tmp[9];
+	int i;
+	for (i=0;i<256;i++){
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(orig, tmp, tmp, OD_DUP_ALL);
+	}
+	onion_dict_add(orig, "0", "no frees", 0);
+	
+	onion_dict *subdict=onion_dict_new();
+	onion_dict_add(subdict,"subdict","test",0);
+	onion_dict_add(orig, "subdict", subdict, OD_DICT|OD_FREE_VALUE);
+	
+	onion_dict *dest=onion_dict_hard_dup(orig);
+	
+	FAIL_IF(orig==dest);
+	/// Check they have exactly the same keys.
+	onion_dict_preorder(orig, cmpdict, dest);
+	onion_dict_preorder(dest, cmpdict, orig);
+	
+	onion_dict_free(orig);
+	onion_dict_free(dest);
+	
+	END_LOCAL();
+}
+
+void t16_soft_dup_dict_in_dict(){
+	INIT_LOCAL();
+	
+	onion_dict *orig=onion_dict_new();
+	
+	char tmp[9];
+	int i;
+	for (i=0;i<256;i++){
+		sprintf(tmp,"%08X",rand());
+		onion_dict_add(orig, tmp, tmp, OD_DUP_ALL);
+	}
+	onion_dict_add(orig, "0", "no frees", 0);
+	
+	onion_dict *subdict=onion_dict_new();
+	onion_dict_add(subdict,"subdict","test",0);
+	onion_dict_add(orig, "subdict", subdict, OD_DICT|OD_FREE_VALUE);
+	
+	onion_dict *dest=onion_dict_dup(orig);
+	
+	FAIL_IF_NOT(orig==dest);
+	
+	/// Check they have exactly the same keys.
+	onion_dict_preorder(orig, cmpdict, dest);
+	onion_dict_preorder(dest, cmpdict, orig);
+	
+	onion_dict_free(orig);
+	onion_dict_free(dest);
+	
+	END_LOCAL();
+}
+
+
 int main(int argc, char **argv){
-  START();
+  START();/*
 	t01_create_add_free();
 	t01_create_add_free_10();
 	t02_create_and_free_a_lot(100);
@@ -684,7 +751,10 @@ int main(int argc, char **argv){
 	t11_hard_dup();
 	t12_dict_in_dict();
 	t13_dict_rget();
-  t14_dict_case_insensitive();
+  t14_dict_case_insensitive();*/
+	t15_hard_dup_dict_in_dict();
+	t16_soft_dup_dict_in_dict();
+	
 	
 	END();
 }
