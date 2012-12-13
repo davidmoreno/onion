@@ -22,5 +22,6 @@
 
 onion_listen_point *onion_buffer_listen_point_new();
 const char *onion_buffer_listen_point_get_buffer_data(onion_request *req);
+onion_block* onion_buffer_listen_point_get_buffer(onion_request* req);
 
 #endif

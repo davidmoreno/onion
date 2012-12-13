@@ -24,59 +24,19 @@
 #include <malloc.h>
 #include <stdio.h>
 
-#include <onion/server.h>
+#include <onion/onion.h>
 #include <onion/request.h>
 #include <onion/response.h>
 #include <onion/handler.h>
 #include <onion/log.h>
 #include <onion/dict.h>
+#include <onion/block.h>
 
 #include "../ctest.h"
+#include "../01-internal/buffer_listen_point.h"
 #include <regex.h>
 
-onion_server *server;
-
-/**
- * @{ @name Buffer type. 
- * 
- * Its just a in memory buffer properly handled
- */
-typedef struct{
-	char *data;
-	size_t size;
-	off_t pos;
-}buffer;
-
-/// Just appends to the handler. Must be big enought or segfault.. Just for tests.
-int buffer_append(buffer *handler, const char *data, unsigned int length){
-	ONION_DEBUG0("Appending %d bytes",length);
-	int l=length;
-	if (handler->pos+length>handler->size){
-		l=handler->size-handler->pos;
-	}
-	memcpy(handler->data+handler->pos,data,l);
-	handler->pos+=l;
-	return l;
-}
-
-buffer *buffer_new(size_t size){
-	buffer *b=malloc(sizeof(buffer));
-	b->data=malloc(size);
-	b->pos=0;
-	b->size=size;
-	return b;
-}
-
-void buffer_clean(buffer *b){
-	b->pos=0;
-	memset(b->data,0,b->size);
-}
-
-void buffer_free(buffer *b){
-	free(b->data);
-	free(b);
-}
-/// @}
+onion *server;
 
 typedef struct{
 	onion_response *res;
@@ -98,8 +58,7 @@ void allinfo_query(allinfo_dict_print_t *aid, const char *key, const char *value
 /**
  * @short Handler that just echoes all data, writing what was a header, what the method...
  */
-onion_connection_status allinfo_handler(void *data, onion_request *req){
-	onion_response *res=onion_response_new(req);
+onion_connection_status allinfo_handler(void *data, onion_request *req, onion_response *res){
 	onion_response_write_headers(res);
 	
 	int f=onion_request_get_flags(req);
@@ -118,7 +77,7 @@ onion_connection_status allinfo_handler(void *data, onion_request *req){
 	aid.part="FILE";
 	onion_dict_preorder(onion_request_get_file_dict(req),allinfo_query, &aid);
 	
-	return onion_response_free(res);;
+	return OCS_PROCESSED;
 }
 
 /**
@@ -164,8 +123,9 @@ void prerecorded(const char *oscript, int do_r){
 	}
 	const char *script=basename((char*)oscript);
 	
-	buffer *buffer=buffer_new(1024*1024);
-	onion_request *req=onion_request_new(server, buffer, "test");
+	onion_listen_point *listen_point=onion_get_listen_point(server,0);
+	onion_request *req=onion_request_new(listen_point);
+	onion_block *buffer=onion_buffer_listen_point_get_buffer(req);
 	
 	ssize_t r;
 	const size_t LINE_SIZE=1024;
@@ -196,7 +156,6 @@ void prerecorded(const char *oscript, int do_r){
 			len=LINE_SIZE;
 		}
 		if (r<0){
-			buffer_free(buffer);
 			fclose(fd);
 			onion_request_free(req);
 			free(line);
@@ -206,7 +165,6 @@ void prerecorded(const char *oscript, int do_r){
 		
 		if (r==0){
 			FAIL_IF("Found end of file before end of request");
-			buffer_free(buffer);
 			fclose(fd);
 			onion_request_free(req);
 			free(line);
@@ -215,12 +173,11 @@ void prerecorded(const char *oscript, int do_r){
 		}
 		
 		// Check response
-		buffer->data[buffer->pos]='\0';
-		if (buffer->pos==0){
+		if (onion_block_size(buffer)==0){
 			ONION_DEBUG("Empty response");
 		}
 		else{
-			ONION_DEBUG0("Response: %s",buffer->data);
+			ONION_DEBUG0("Response: %s",onion_block_data(buffer));
 		}
 
 		while ( (r=getline(&line, &len, fd)) != -1 ){
@@ -266,7 +223,7 @@ void prerecorded(const char *oscript, int do_r){
 					FAIL(line);
 				}
 				else{
-					int _match=regexec_multiline(&re, buffer->data, 1, match, 0);
+					int _match=regexec_multiline(&re, onion_block_data(buffer), 1, match, 0);
 					if ( (_not && _match==0) || (!_not && _match!=0) ){
 						ONION_ERROR("%s:%d cant find %s",script, linen, line);
 						FAIL(line);
@@ -282,7 +239,7 @@ void prerecorded(const char *oscript, int do_r){
 		}
 
 		
-		buffer_clean(buffer);
+		onion_block_clear(buffer);
 		onion_request_clean(req);
 	}
 	
@@ -290,7 +247,7 @@ void prerecorded(const char *oscript, int do_r){
 	
 	onion_request_free(req);
 	
-	buffer_free(buffer);
+	onion_block_free(buffer);
 	
 	fclose(fd);
 	END_LOCAL();
@@ -302,9 +259,11 @@ void prerecorded(const char *oscript, int do_r){
  * Optionally a -r sets the new lines to \r\n. It takes care of not changing content types.
  */
 int main(int argc, char **argv){
-	server=onion_server_new();
-	onion_server_set_root_handler(server,onion_handler_new((void*)allinfo_handler,NULL,NULL));
-	onion_server_set_write(server,(void*)buffer_append);
+	START();
+	server=onion_new(O_ONE);
+	onion_listen_point *listen_point=onion_buffer_listen_point_new();
+	onion_set_root_handler(server,onion_handler_new(allinfo_handler,NULL,NULL));
+	onion_add_listen_point(server,NULL,NULL, listen_point);
 	
 	int i;
 	int do_r=0;
@@ -319,6 +278,6 @@ int main(int argc, char **argv){
 		}
 	}
 	
-	onion_server_free(server);
+	onion_free(server);
 	END();
 }

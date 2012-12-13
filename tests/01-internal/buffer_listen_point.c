@@ -53,6 +53,11 @@ const char* onion_buffer_listen_point_get_buffer_data(onion_request* req)
 		return onion_block_data(req->connection.user_data);
 }
 
+onion_block* onion_buffer_listen_point_get_buffer(onion_request* req)
+{
+		return req->connection.user_data;
+}
+
 onion_listen_point* onion_buffer_listen_point_new()
 {
 	onion_listen_point *lp=onion_http_new();

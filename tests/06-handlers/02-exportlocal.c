@@ -17,22 +17,20 @@
 	*/
 
 #include <onion/onion.h>
-#include <onion/server.h>
 #include <onion/handlers/exportlocal.h>
 #include <onion/log.h>
+#include <onion/block.h>
 
 #include <string.h>
 #include <unistd.h>
 
 #include "../ctest.h"
-#include "buffer.h"
+#include </home/dmoreno/src/onion/tests/01-internal/buffer_listen_point.h>
 
-onion_server *server;
-buffer *server_buffer;
+onion *server;
 
 int GET(onion_request *req, const char *url){
 	onion_request_clean(req);
-	buffer_clear(server_buffer);
 	char tmp[1024];
 	snprintf(tmp, sizeof(tmp), "GET %s HTTP/1.1\n\n", url);
 	ONION_DEBUG("Request: %s",tmp);
@@ -46,21 +44,22 @@ void t01_exportdir(){
 	int code;
 	
 	onion_handler *handler=onion_handler_export_local_new(".");
-	onion_server_set_root_handler(server, handler);
+	onion_set_root_handler(server, handler);
 	
-	onion_request *req=onion_request_new(server, server_buffer, "TEST");
+	onion_request *req=onion_request_new(onion_get_listen_point(server, 0));
 	code=GET(req, "/02-exportlocal");
 	FAIL_IF_NOT_EQUAL_INT(code, OCS_KEEP_ALIVE);
+	onion_block *block=onion_buffer_listen_point_get_buffer(req);
 	FAIL_IF_EQUAL_INT((int)server_buffer->pos, 0);
-	int olds=server_buffer->pos;
+	int olds=onion_block_size(block);
 
 	code=GET(req, "/");
 	FAIL_IF_EQUAL_INT(code, 0);
-	FAIL_IF_EQUAL_INT((int)server_buffer->pos, olds);
+	FAIL_IF_EQUAL_INT(onion_block_size(block), olds);
 
 	onion_request_free(req);
 	onion_handler_free(handler);
-	onion_server_set_root_handler(server, NULL);
+	onion_set_root_handler(server, NULL);
 	
 	END_TEST();
 }
@@ -91,14 +90,12 @@ void t02_exportfile(){
 }
 
 void init(){
-	server=onion_server_new();
-	server_buffer=buffer_new(4096*1024);
-	onion_server_set_write(server, (void*)&buffer_append);
+	server=onion_new(0);
+	onion_add_listen_point(server, onion_buffer_listen_point_new());
 }
 
 void end(){
-	buffer_free(server_buffer);
-	onion_server_free(server);
+	onion_free(server);
 }
 
 int main(int argc, char **argv){
