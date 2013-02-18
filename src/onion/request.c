@@ -552,9 +552,13 @@ void onion_request_polish(onion_request *req){
 const char *onion_request_get_client_description(onion_request *req){
   if (!req->connection.cli_info && req->connection.cli_len){
     char tmp[256];
-    getnameinfo((struct sockaddr *)&req->connection.cli_addr, req->connection.cli_len, tmp, sizeof(tmp),
-          NULL, 0, NI_NUMERICHOST);
-    req->connection.cli_info=strdup(tmp);
+    if (getnameinfo((struct sockaddr *)&req->connection.cli_addr, req->connection.cli_len, tmp, sizeof(tmp)-1,
+          NULL, 0, NI_NUMERICHOST) == 0){
+      tmp[sizeof(tmp)-1]='\0';
+      req->connection.cli_info=strdup(tmp);
+    }
+    else
+      req->connection.cli_info=NULL;
   }
   return req->connection.cli_info;
 }

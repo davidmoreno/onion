@@ -404,6 +404,80 @@ exit:
 	END_LOCAL();
 }
 
+void t09_very_long_header(){
+	INIT_LOCAL();
+	
+	onion_request *req;
+	int ok;
+	
+	onion_set_max_post_size(server, 1024);
+	req=onion_request_new(custom_io);
+	FAIL_IF_EQUAL(req,NULL);
+	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
+	
+	{
+		const char *query_t="GET / HTTP/1.0\n"
+											"Content-Type: application/x-www-form-urlencoded\n"
+											"Host: 127.0.0.1\n\r"
+											"Content-Length: 24\n"
+											"Accept-Language: en\n"
+											"Content-Type: ";
+		const int longsize=strlen(query_t)+16;
+		char *query=malloc(longsize); // 1MB enought?
+		strcpy(query, query_t);
+		int i;
+		for (i=strlen(query); i<longsize -2; i++) // fill with crap
+			query[i]='a'+(i%30);
+		query[longsize-3]='\n';
+		query[longsize-2]='\n';
+		query[longsize-1]=0;
+		
+		FAIL_IF_NOT_EQUAL_INT(strlen(query), longsize-1);
+		
+		ok=onion_request_write(req, query, longsize);
+		free(query);
+	}
+	FAIL_IF_EQUAL_INT(ok,OCS_INTERNAL_ERROR);
+	
+	onion_request_free(req);
+	
+	END_LOCAL();
+}
+
+void t10_repeated_header(){
+	INIT_LOCAL();
+	
+	onion_request *req;
+	int ok;
+	
+	onion_set_max_post_size(server, 1024);
+	req=onion_request_new(custom_io);
+	FAIL_IF_EQUAL(req,NULL);
+	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
+	
+	{
+		const char *query="GET / HTTP/1.0\n"
+											"Content-Type: application/x-www-form-urlencoded\n"
+											"Host: 127.0.0.1\n\r"
+											"Content-Length: 24\n"
+											"Accept-Language: en\n"
+											"Content-Type: application/x-www-form-urlencoded-bis\n\n";
+		
+		ok=onion_request_write(req,query,strlen(query));
+	}
+	FAIL_IF_EQUAL(ok,OCS_INTERNAL_ERROR);
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"Host"),"127.0.0.1");
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"Content-Length"),"24");
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"Content-Type"),"application/x-www-form-urlencoded");
+
+	
+	onion_request_free(req);
+	
+	
+	END_LOCAL();
+}
+
+
 int main(int argc, char **argv){
   START();
   
@@ -416,6 +490,8 @@ int main(int argc, char **argv){
 	t06_create_add_free_POST_toobig();
 	t07_multiline_headers();
   t08_sockaddr_storage();
+	t09_very_long_header();
+	t10_repeated_header();
 	teardown();
 	END();
 }
