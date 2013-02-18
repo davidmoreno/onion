@@ -525,9 +525,11 @@ void onion_request_polish(onion_request *req){
 const char *onion_request_get_client_description(onion_request *req){
   if (!req->client_info){
     char tmp[256];
-    getnameinfo((struct sockaddr *)&req->client_addr, req->client_len, tmp, sizeof(tmp),
-          NULL, 0, NI_NUMERICHOST);
-    req->client_info=strdup(tmp);
+    if (getnameinfo((struct sockaddr *)&req->client_addr, req->client_len, tmp, sizeof(tmp)-1,
+          NULL, 0, NI_NUMERICHOST) == 0)
+			req->client_info=strdup(tmp);
+		else
+			req->client_info=NULL;
   }
   return req->client_info;
 }
