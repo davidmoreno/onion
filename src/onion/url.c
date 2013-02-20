@@ -82,8 +82,9 @@ int onion_url_handler(onion_url_data **dd, onion_request *request, onion_respons
 			for (i=1;i<16;i++){
 				regmatch_t *rm=&match[i];
 				if (rm->rm_so!=-1){
-					char *tmp=malloc(rm->rm_eo-rm->rm_so);
+					char *tmp=malloc(rm->rm_eo-rm->rm_so+1);
 					memcpy(tmp, &path[rm->rm_so], rm->rm_eo-rm->rm_so);
+					tmp[rm->rm_eo-rm->rm_so]='\0'; // proper finish string
 					char tmpn[4];
 					snprintf(tmpn,sizeof(tmpn),"%d",i);
 					onion_dict_add(reqheader, tmpn, tmp, OD_DUP_KEY|OD_FREE_VALUE);
