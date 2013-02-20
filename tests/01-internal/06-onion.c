@@ -282,7 +282,7 @@ void t04_server_timeout_threaded(){
   int fd=connect_to("localhost","8082");
   sleep(3);
   // Should have closed the connection
-  write(fd,"GET /\n\n",7);
+  FAIL_IF(write(fd,"GET /\n\n",7)==-1);
   char data[256];
   FAIL_IF(read(fd, data,sizeof(data))>0);
   close(fd);
@@ -308,7 +308,7 @@ void t05_server_timeout_threaded_ssl(){
   int fd=connect_to("localhost","8081");
   sleep(4);
   // Should have closed the connection
-  write(fd,"GET /\n\n",7);
+  FAIL_IF(write(fd,"GET /\n\n",7)==-1);
   char data[256];
   FAIL_IF(read(fd, data,sizeof(data))>0);
   close(fd);
