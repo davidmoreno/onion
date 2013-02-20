@@ -53,34 +53,6 @@
  * Handlers have always a next handler that is the handler that will be called if current handler do not want 
  * to process current petition.
  * 
- * This way you can have this tree like structure:
- * 
-@verbatim
- + [servername=libonion.coralbits.com] +- /login/ -- Auth -- set session -- redirect /
- |                                     +- / -- custom handler index.html, depend on session data.
- |                                     +- /favicon.ico -- return file contents.
- + static content 404 not found.
-@endverbatim
- * 
- * The way to create this structure would be something like:
- * 
- * @code
- * onion_url *urls=onion_url_new();
- * 
- * onion_url_add_handler(urls, "^login$", 
- *                            onion_handler_auth_pam("libonion real,","libonion",
- *                                        onion_handler_redirect("/")
- *                            )
- *                       );
- * onion_url_add_handler(urls, "^$", custom_handler());
- * onion_url_add_handler(urls, "^favicon\\.ico$", onion_handler_static_file("/favicon.ico","favicon.ico"));
- * onion_handler *root=onion_handler_servername("libonion.coralbits.com", onion_url_to_handler(urls));
- * onion_handler_add(root, onion_handler_static("<h1>404 - not found</h1>",404));
- * @endcode
- *
- * As you can see its not as easy as some configuration files, but the point its as powerfull as you need it
- * to be.
- * 
  * Normally for simple servers its much easier, as in the upper example.
  * 
  * @subsection Custom_handlers Create your custom handlers

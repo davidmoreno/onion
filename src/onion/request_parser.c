@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Lesser General Public
@@ -101,7 +101,10 @@ int token_read_STRING(onion_token *token, onion_buffer *data){
 		if (data->pos>=data->size)
 			return OCS_NEED_MORE_DATA;
 		if (token->pos>=(sizeof(token->str)-1)){
-			ONION_ERROR("Token too long to parse it. Part read is %s (%d bytes)",token->str,token->pos);
+			char tmp[16];
+			strncpy(tmp, token->str, 16);
+			tmp[15]='\0';
+			ONION_ERROR("Token too long to parse it. Part read start as %s (%d bytes)",tmp,token->pos);
 			return OCS_INTERNAL_ERROR;
 		}
 		c=data->data[data->pos++];
@@ -181,15 +184,21 @@ int token_read_LINE(onion_token *token, onion_buffer *data){
 	char c=data->data[data->pos++];
 	int ignore_to_end=0;
 	while (c!='\n'){
+		if (!ignore_to_end && (token->pos>=(sizeof(token->str)-1))){
+			ONION_WARNING("Token too long to parse it. Ignoring remaining. "); 
+#ifdef __DEBUG__
+				char tmp[16];
+				strncpy(tmp, token->str, 16);
+				tmp[15]='\0';
+				ONION_DEBUG("Long token starts with: %s...",tmp);
+#endif
+			ignore_to_end=1;
+		}
 		if (!ignore_to_end)
 			token->str[token->pos++]=c;
 		if (data->pos>=data->size)
 			return OCS_NEED_MORE_DATA;
-		if (!ignore_to_end && (token->pos>=(sizeof(token->str)-1))){
-			ONION_WARNING("Token too long to parse it. Ignoring remaining. "); 
-      ONION_DEBUG("Long token starts with: %16s...",token->str);
-			ignore_to_end=1;
-		}
+		
 		c=data->data[data->pos++];
 	}
 	if (token->str[token->pos-1]=='\r')

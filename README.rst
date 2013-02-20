@@ -20,6 +20,8 @@ information on how to start and internal workings.
 
 API documentation is at http://coralbits.com/staticc/libonion/html/.
 
+There is a mailing list at https://groups.google.com/a/coralbits.com/forum/?fromgroups=#!forum/onion-dev
+
 Colaborate!
 -----------
 

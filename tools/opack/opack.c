@@ -126,7 +126,7 @@ void parse_file(const char *prefix, const char *filename, FILE *outfd){
 	buffer[4096]=0;
 	
 	fprintf(stderr, "Parsing: %s to 'onion_connection_status %s(void *_, onion_request *req, onion_response *res);'.\n",filename, fname);
-	fprintf(outfd,"onion_connection_status %s(void *_, onion_request *req, onion_response *res){\n  char data[]={\n",fname);
+	fprintf(outfd,"onion_connection_status %s(void *_, onion_request *req, onion_response *res){\n  static const char data[]={\n",fname);
 	int r, i, l=0;
 	while ( (r=fread(buffer,1,sizeof(buffer)-1,fd)) !=0 ){
 		for (i=0;i<r;i++){
