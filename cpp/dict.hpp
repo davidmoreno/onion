@@ -23,6 +23,7 @@
 #include <string>
 #include <onion/dict.h>
 #include <onion/log.h>
+#include <onion/block.h>
 
 namespace Onion{
   class Dict{
@@ -97,6 +98,10 @@ namespace Onion{
       onion_dict_add(ptr,k.c_str(),v.c_handler(),flags|OD_DICT);
     }
     
+    void remove(const std::string &k){
+			onion_dict_remove(ptr, k.c_str());
+		}
+    
     /// Sets the autodelete on delete flag. Use with care.
     void setAutodelete(bool s){
 			autodelete=s;
@@ -104,6 +109,13 @@ namespace Onion{
 		
 		size_t count() const{
 			return onion_dict_count(ptr);
+		}
+		
+		std::string toJSON() const{
+			onion_block *bl=onion_dict_to_json(ptr);
+			std::string str=onion_block_data(bl);
+			onion_block_free(bl);
+			return str;
 		}
     
     onion_dict *c_handler(){
