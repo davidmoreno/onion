@@ -48,7 +48,7 @@ namespace Onion{
     const Dict query() const{
       return Dict(onion_request_get_query_dict(ptr));
     }
-    const Dict session() const{
+    Dict session() const{
 			onion_dict *d=onion_request_get_session_dict(ptr);
 			if (d)
 				return Dict(d);
