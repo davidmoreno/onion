@@ -825,9 +825,6 @@ static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd){
   gnutls_init (&session, GNUTLS_SERVER);
   gnutls_priority_set (session, o->priority_cache);
   gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, o->x509_cred);
-  /* request client certificate if any.
-   */
-  gnutls_certificate_server_set_request (session, GNUTLS_CERT_REQUEST);
   /* Set maximum compatibility mode. This is only suggested on public webservers
    * that need to trade security for compatibility
    */
