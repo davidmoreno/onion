@@ -173,7 +173,7 @@ static const onion_dict_node *onion_dict_find_node(const onion_dict *d, const on
 	if (!current){
 		return NULL;
 	}
-	signed char cmp=d->cmp(key, current->data.key);
+	int cmp=d->cmp(key, current->data.key);
 	//ONION_DEBUG0("%s cmp %s = %d",key, current->data.key, cmp);
 	if (cmp==0)
 		return current;
