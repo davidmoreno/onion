@@ -185,9 +185,6 @@ static int onion_https_request_init(onion_request *req){
   gnutls_init (&session, GNUTLS_SERVER);
   gnutls_priority_set (session, https->priority_cache);
   gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, https->x509_cred);
-  /* request client certificate if any.
-   */
-  gnutls_certificate_server_set_request (session, GNUTLS_CERT_REQUEST);
   /* Set maximum compatibility mode. This is only suggested on public webservers
    * that need to trade security for compatibility
    */
