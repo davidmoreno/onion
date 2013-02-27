@@ -29,7 +29,7 @@
 #endif
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <assert.h>
 
 #include "log.h"
 #include "types.h"
@@ -462,6 +462,7 @@ void onion_poller_stop(onion_poller *p){
   ONION_DEBUG("Stopping poller");
   p->stop=1;
   char data[8]={0,0,0,0, 0,0,0,1};
-  write(p->eventfd,data,8);
+  int w=write(p->eventfd,data,8);
+  assert(w==8);
 }
 

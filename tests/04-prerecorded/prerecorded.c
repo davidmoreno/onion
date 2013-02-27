@@ -220,13 +220,13 @@ void prerecorded(const char *oscript, int do_r){
 					char error[1024];
 					regerror(r, &re, error, sizeof(error));
 					ONION_ERROR("%s:%d Error compiling regular expression %s: %s",script, linen, line, error);
-					FAIL(line);
+					FAIL("%s",line);
 				}
 				else{
 					int _match=regexec_multiline(&re, onion_block_data(buffer), 1, match, 0);
 					if ( (_not && _match==0) || (!_not && _match!=0) ){
 						ONION_ERROR("%s:%d cant find %s",script, linen, line);
-						FAIL(line);
+						FAIL("%s",line);
 					}
 					else{
 						ONION_DEBUG0("Found at %d-%d",match[0].rm_so, match[0].rm_eo);

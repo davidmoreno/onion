@@ -150,7 +150,8 @@ int checkfds(){
 				ONION_ERROR("Hey, one fd I dont know about!");
 				char tmp[256];
 				snprintf(tmp, sizeof(tmp), "ls --color -l /proc/%d/fd/%s", getpid(), de->d_name);
-				system(tmp);
+				int ok=system(tmp);
+				FAIL_IF_NOT_EQUAL_INT(ok,0);
 				nfd++;
 			}
 		}
