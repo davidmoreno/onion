@@ -22,6 +22,9 @@
 #include <onion/types.h>
 #include <string>
 #include <onion/dict.h>
+#include <onion/log.h>
+#include <onion/block.h>
+
 
 namespace Onion{
   class Dict{
@@ -66,19 +69,57 @@ namespace Onion{
       return r;
     }
     
+    void add(const char *k, const char *v){
+			onion_dict_add(ptr, k, v, 0);
+		}
+    void add(const char *k, char *v){
+			onion_dict_add(ptr, k, v, OD_DUP_VALUE);
+		}
+    void add(char *k, const char *v){
+			onion_dict_add(ptr, k, v, OD_DUP_KEY);
+		}
+    void add(char *k, char *v){
+			onion_dict_add(ptr, k, v, OD_DUP_ALL);
+		}
+
+    void add(const char *k, const Dict &v){
+      onion_dict_add(ptr,k,((Dict*)&v)->c_handler(),OD_DICT);
+    }
+    void add(const char *k, Dict &v){
+      onion_dict_add(ptr,k,v.c_handler(),OD_DUP_VALUE|OD_DICT);
+    }	
+    void add(char *k, Dict &v){
+      onion_dict_add(ptr,k,v.c_handler(),OD_DUP_ALL|OD_DICT);
+    }
+    
     void add(const std::string &k, const std::string &v, int flags=OD_DUP_ALL){
       onion_dict_add(ptr,k.c_str(),v.c_str(),flags);
     }
     void add(const std::string &k, Dict &v, int flags=OD_DUP_ALL){
-      onion_dict_add(ptr,k.c_str(),v.c_handle(),flags|OD_DICT);
+      onion_dict_add(ptr,k.c_str(),v.c_handler(),flags|OD_DICT);
     }
+    
+    void remove(const std::string &k){
+			onion_dict_remove(ptr, k.c_str());
+		}
     
     /// Sets the autodelete on delete flag. Use with care.
     void setAutodelete(bool s){
 			autodelete=s;
 		}
     
-    onion_dict *c_handle(){
+		size_t count() const{
+			return onion_dict_count(ptr);
+		}
+		
+		std::string toJSON() const{
+			onion_block *bl=onion_dict_to_json(ptr);
+			std::string str=onion_block_data(bl);
+			onion_block_free(bl);
+			return str;
+		}
+    
+    onion_dict *c_handler(){
       return ptr;
     }
   };
