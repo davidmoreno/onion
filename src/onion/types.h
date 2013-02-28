@@ -19,6 +19,12 @@
 #ifndef __ONION_TYPES__
 #define __ONION_TYPES__
 
+#include <sys/types.h>
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 /**
  * @struct onion_dict_t
  * @short A 'char *' to 'char *' dictionary.
@@ -118,31 +124,36 @@ typedef struct onion_poller_slot_t onion_poller_slot;
 
 
 /**
- * @short Prototype for the writing on the socket function.
+ * @short Stored common data for each listen point: address, port, protocol status data...
+ * @struct onion_listen_point_t
+ * @memberof onion_listen_point_t
  *
- * It can safely be just fwrite, with handler the FILE*, or write with the handler the fd.
- * But its useful its like this so we can use another more complex to support, for example,
- * SSL.
+ * Stored information about the listen points; where they are listenting, and how to handle
+ * a new connection. Each listen point can understand a protocol and associated data.
+ * 
+ * A protocol is HTTP, HTTPS, SPDY... each may do the request parsing in adiferent way, and the 
+ * response write too.
+ * 
+ * A listen point A can be HTTPS with one certificate, and B with another, with C using SPDY.
+ * 
  */
-typedef int (*onion_write)(void *handler, const char *data, unsigned int length);
+struct onion_listen_point_t;
+typedef struct onion_listen_point_t onion_listen_point;
+
 
 /**
- * @short Prototype for the reading on the socket function.
- *
- * It can safely be just fread, with handler the FILE*, or write with the handler the fd.
- * But its useful its like this so we can use another more complex to support, for example,
- * SSL.
+ * @short Websocket data type, as returned by onion_websocket_new
+ * @memberof onion_websocket_t
+ * @struct onion_websocket_t
+ * 
+ * FIXME: Some websocket description on how to use.
+ * 
+ * Ping requests (client->server) are handled internally. pong answers are not (server->client).
+ * 
+ * When a ping request is received, callback may be called with length=0, and no data waiting to be read.
  */
-typedef int (*onion_read)(void *handler, char *data, unsigned int length);
-
-/**
- * @short Prototype for the closing the socket.
- *
- * It can safely be just fclose, with handler the FILE*, or write with the handler the fd.
- * But its useful its like this so we can use another more complex to support, for example,
- * SSL.
- */
-typedef void (*onion_close)(void *handler);
+struct onion_websocket_t;
+typedef struct onion_websocket_t onion_websocket;
 
 /// Flags for the mode of operation of the onion server.
 enum onion_mode_e{
@@ -177,6 +188,26 @@ enum onion_mode_e{
 
 typedef enum onion_mode_e onion_mode;
 
+/**
+ * @short The desired connection state of the connection.
+ * 
+ * If <0 it means close connection. May mean also to show something to the client.
+ */
+enum onion_connection_status_e{
+	OCS_NOT_PROCESSED=0,
+	OCS_NEED_MORE_DATA=1,
+	OCS_PROCESSED=2,
+	OCS_CLOSE_CONNECTION=-2,
+	OCS_KEEP_ALIVE=3,
+	OCS_WEBSOCKET=4,
+	OCS_INTERNAL_ERROR=-500,
+	OCS_NOT_IMPLEMENTED=-501,
+  OCS_FORBIDDEN=-502,
+};
+
+typedef enum onion_connection_status_e onion_connection_status;
+
+
 /// Flags for the SSL connection.
 enum onion_ssl_flags_e{
 	O_USE_DEV_RANDOM=0x0100,
@@ -186,6 +217,7 @@ typedef enum onion_ssl_flags_e onion_ssl_flags;
 
 /// Types of certificate onionssl knows: key, cert and intermediate
 enum onion_ssl_certificate_type_e{
+	O_SSL_NONE=0,								///< When actually nothing to set at onion_https_new.
 	O_SSL_CERTIFICATE_KEY=1,		///< The certfile, and the key file. 
 	O_SSL_CERTIFICATE_CRL=2,		///< Certificate revocation list
 	O_SSL_CERTIFICATE_TRUST=3,	///< The list of trusted CAs, also known as intermediaries.
@@ -198,22 +230,18 @@ enum onion_ssl_certificate_type_e{
 typedef enum onion_ssl_certificate_type_e onion_ssl_certificate_type;
 
 /**
- * @short The desired connection state of the connection.
- * 
- * If <0 it means close connection. May mean also to show something to the client.
+ * @short Types of fragments that websockets support
+ * @memberof onion_websocket_t
  */
-enum onion_connection_status_e{
-	OCS_NOT_PROCESSED=0,
-	OCS_NEED_MORE_DATA=1,
-	OCS_PROCESSED=2,
-	OCS_CLOSE_CONNECTION=-2,
-	OCS_KEEP_ALIVE=3,
-	OCS_INTERNAL_ERROR=-500,
-	OCS_NOT_IMPLEMENTED=-501,
-  OCS_FORBIDDEN=-502,
+enum onion_websocket_opcode_e{
+	OWS_TEXT=1,
+	OWS_BINARY=2,
+	OWS_CONNECTION_CLOSE=8,
+	OWS_PING=0x0a,
+	OWS_PONG=0x0b
 };
 
-typedef enum onion_connection_status_e onion_connection_status;
+typedef enum onion_websocket_opcode_e onion_websocket_opcode;
 
 
 /// Signature of request handlers.
@@ -221,6 +249,29 @@ typedef onion_connection_status (*onion_handler_handler)(void *privdata, onion_r
 /// Signature of free function of private data of request handlers
 typedef void (*onion_handler_private_data_free)(void *privdata);
 
+/**
+ * @short Prototype for websocket callbacks
+ * @memberof onion_websocket_t
+ * 
+ * The callbacks are the functions to be called when new data is available on websockets.
+ * 
+ * They are not mandatory, but when used they can be changed from the callback itself, using
+ * onion_websocket_set_callback. If data is left for read after a callback call, next callback is 
+ * called with that data. If same callback stays, and no data has been consumed, it will not 
+ * be called until new data is available. 
+ * 
+ * The privte data is that of the original request handler.
+ * 
+ * This chaining of callbacks allows easy creation of state machines. 
+ * 
+ * @returns OCS_INTERNAL_ERROR | OCS_CLOSE_CONNECTION | OCS_NEED_MORE_DATA. Other returns result in OCS_INTERNAL_ERROR.
+ */
+typedef onion_connection_status (*onion_websocket_callback_t)(void *privdata, onion_websocket *ws, size_t data_ready_length);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

@@ -27,6 +27,7 @@
 #include "handler.h"
 #include "response.h"
 #include "types_internal.h"
+#include "websocket.h"
 
 /**
  * @short Tryes to handle the petition with that handler.
@@ -42,15 +43,24 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
 	onion_connection_status res;
 	while (handler){
 		if (handler->handler){
-#ifdef __DEBUG__
+#ifdef __DEBUG0__
 			char **bs=backtrace_symbols((void * const *)&handler->handler, 1);
 			ONION_DEBUG0("Calling handler: %s",bs[0]);
 			free(bs);
 #endif
 			res=handler->handler(handler->priv_data, request, response);
 			ONION_DEBUG0("Result: %d",res);
-			if (res)
+			if (res){
+				if (res==OCS_WEBSOCKET){
+					if (request->websocket)
+						return onion_websocket_call(request->websocket);
+					else{
+						ONION_ERROR("Handler did set the OCS_WEBSOCKET, but did not initialize the websocket on this request.");
+						return OCS_INTERNAL_ERROR;
+					}
+				}
 				return res;
+			}
 		}
 		handler=handler->next;
 	}

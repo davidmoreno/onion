@@ -660,7 +660,9 @@ void t14_dict_case_insensitive(){
   
   onion_dict_set_flags(d,OD_ICASE);
   FAIL_IF_NOT_EQUAL_STR(onion_dict_get(d,"test"),"OK");
-  
+
+	onion_dict_free(d);
+	
   END_LOCAL();
 }
 

@@ -26,7 +26,6 @@
 #include <onion/request.h>
 #include <onion/response.h>
 #include <onion/handler.h>
-#include <onion/server.h>
 #include <onion/log.h>
 #include <onion/block.h>
 #include <onion/onion.h>

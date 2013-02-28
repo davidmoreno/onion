@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2011 David Moreno Montero
+	Copyright (C) 2010 David Moreno Montero
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU Affero General Public License as
@@ -15,23 +15,13 @@
 	You should have received a copy of the GNU Affero General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
+#ifndef __BUFFER_LISTEN_POINT_H__
+#define __BUFFER_LISTEN_POINT_H__
 
-#ifndef __BUFFER__
-#define __BUFFER__
+#include <onion/types.h>
 
-/**
- * @short Basic buffer type for using on onion tests
- */
-typedef struct{
-	char *data;
-	size_t size;
-	off_t pos;
-}buffer;
-
-
-int buffer_append(buffer *handler, const char *data, unsigned int length);
-buffer *buffer_new(size_t size);
-void buffer_clear(buffer *b);
-void buffer_free(buffer *b);
+onion_listen_point *onion_buffer_listen_point_new();
+const char *onion_buffer_listen_point_get_buffer_data(onion_request *req);
+onion_block* onion_buffer_listen_point_get_buffer(onion_request* req);
 
 #endif

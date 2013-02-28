@@ -20,8 +20,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <onion/onion.h>
 #include <onion/dict.h>
-#include <onion/server.h>
 #include <onion/request.h>
 #include <onion/response.h>
 #include <onion/handler.h>
@@ -31,32 +31,32 @@
 #include <onion/handlers/path.h>
 
 #include "../ctest.h"
+#include "buffer_listen_point.h"
 #include <onion/url.h>
-#include <onion/block.h>
 
 #define FILL(a,b) onion_request_write(a,b,strlen(b))
 
 void t01_handle_static_request(){
 	INIT_LOCAL();
 
-	onion_block *block=onion_block_new();
 	char ok;
-	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (onion_write)onion_block_add_data);
+	onion *server=onion_new(0);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	onion_add_listen_point(server, NULL, NULL, lp);
 	
-	onion_request *request=onion_request_new(server, block, NULL);
+	onion_request *request=onion_request_new(lp);
 	FILL(request,"GET / HTTP/1.1\n");
 	
 	onion_handler *handler=onion_handler_static("Not ready",302);
 	FAIL_IF_NOT(handler);
-	onion_server_set_root_handler(server, handler);
+	onion_set_root_handler(server, handler);
 	
 	onion_response *response=onion_response_new(request);
 	ok=onion_handler_handle(handler, request, response);
 	FAIL_IF_NOT_EQUAL(ok, OCS_PROCESSED);
 	onion_response_free(response);
 
-	const char *buffer=onion_block_data(block);
+	const char *buffer=onion_buffer_listen_point_get_buffer_data(request);
 	FAIL_IF_EQUAL_STR(buffer,"");
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 302 REDIRECT\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\nContent-Length: 9\r\n");
@@ -66,8 +66,7 @@ void t01_handle_static_request(){
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nNot ready");
 	
 	onion_request_free(request);
-	onion_server_free(server);
-	onion_block_free(block);
+	onion_free(server);
 	
 	END_LOCAL();
 }
@@ -75,9 +74,9 @@ void t01_handle_static_request(){
 void t02_handle_generic_request(){
 	INIT_LOCAL();
 
-	onion_block *block=onion_block_new();
-	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (onion_write)onion_block_add_data);
+	onion *server=onion_new(0);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	onion_add_listen_point(server, NULL, NULL, lp);
 	
 	onion_url *url=onion_url_new();
 	int error;
@@ -90,43 +89,40 @@ void t02_handle_generic_request(){
 	error=onion_url_add_static(url, "^.*", "Internal error", 500);
 	FAIL_IF(error);
 
-	onion_server_set_root_handler(server, onion_url_to_handler(url));
+	onion_set_root_handler(server, onion_url_to_handler(url));
 	
 	onion_request *request;
 
 
-	request=onion_request_new(server, block, NULL);
+	request=onion_request_new(lp);
 	FILL(request,"GET / HTTP/1.1\n");
-	onion_server_handle_request(server, request);
-	const char *buffer=onion_block_data(block);
+	onion_request_process(request);
+	const char *buffer=onion_buffer_listen_point_get_buffer_data(request);
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 302 REDIRECT\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "Content-Length: 9\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nNot ready");
 	onion_request_free(request);
 	
 	// gives error, as such url does not exist.
-	onion_block_clear(block);
-	request=onion_request_new(server, block, "localhost");
+	request=onion_request_new(lp);
 	FILL(request,"GET /error HTTP/1.1\n");
-	onion_server_handle_request(server, request);
-	buffer=onion_block_data(block);
+	onion_request_process(request);
+	buffer=onion_buffer_listen_point_get_buffer_data(request);
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 500 INTERNAL ERROR\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "Content-Length: 14\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nInternal error");
 	onion_request_free(request);
 
-	onion_block_clear(block);
-	request=onion_request_new(server, block, "127.0.0.1");
+	request=onion_request_new(lp);
 	FILL(request,"GET /any HTTP/1.1\n");
-	onion_server_handle_request(server, request);
-	buffer=onion_block_data(block);
+	onion_request_process(request);
+	buffer=onion_buffer_listen_point_get_buffer_data(request);
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 200 OK\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "Content-Length: 3\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nany");
 	onion_request_free(request);
 
-	onion_server_free(server);
-	onion_block_free(block);
+	onion_free(server);
 
 	END_LOCAL();
 }
@@ -134,9 +130,9 @@ void t02_handle_generic_request(){
 void t03_handle_path_request(){
 	INIT_LOCAL();
 
-	onion_block *block=onion_block_new();
-	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (onion_write)onion_block_add_data);
+	onion *server=onion_new(0);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	onion_add_listen_point(server, NULL, NULL, lp);
 
 	onion_url *urls=onion_url_new();
 	
@@ -147,52 +143,49 @@ void t03_handle_path_request(){
 	onion_handler *path=onion_url_to_handler(pathu);
 	onion_url_add_url(pathu, "^test/", urls);
 	onion_handler_add(path, onion_handler_static("Internal error", 500 ) );
-	onion_server_set_root_handler(server, path);
+	onion_set_root_handler(server, path);
 	
 	onion_request *request;
 	onion_response *response;
 	
-	request=onion_request_new(server, block, NULL);
+	request=onion_request_new(lp);
 	FILL(request,"GET / HTTP/1.1\n");
   onion_request_polish(request);
 	response=onion_response_new(request);
 	onion_handler_handle(path, request, response);
 	onion_response_free(response);
-	const char *buffer=onion_block_data(block);
+	const char *buffer=onion_buffer_listen_point_get_buffer_data(request);
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 500 INTERNAL ERROR\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "Content-Length: 14\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nInternal error");
 	onion_request_free(request);
 	
 	// gives error, as such url does not exist.
-	onion_block_clear(block);
-	request=onion_request_new(server, block, NULL);
+	request=onion_request_new(lp);
 	FILL(request,"GET /test/ HTTP/1.1\n");
   onion_request_polish(request);
 	response=onion_response_new(request);
 	onion_handler_handle(path, request, response);
 	onion_response_free(response);
-	buffer=onion_block_data(block);
+	buffer=onion_buffer_listen_point_get_buffer_data(request);
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 200 OK\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "Content-Length: 11\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nTest index\n");
 	onion_request_free(request);
 
-	onion_block_clear(block);
-	request=onion_request_new(server, block, NULL);
+	request=onion_request_new(lp);
 	FILL(request,"GET /test/index.html HTTP/1.1\n");
   onion_request_polish(request);
 	response=onion_response_new(request);
 	onion_handler_handle(path, request, response);
 	onion_response_free(response);
-	buffer=onion_block_data(block);
+	buffer=onion_buffer_listen_point_get_buffer_data(request);
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 200 OK\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "Content-Length: 10\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nIndex test");
 	onion_request_free(request);
 
-	onion_server_free(server);
-	onion_block_free(block);
+	onion_free(server);
 
 	END_LOCAL();
 }

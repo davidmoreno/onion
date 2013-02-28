@@ -43,7 +43,8 @@
 #include <onion/dict.h>
 #include <onion/shortcuts.h>
 
-onion_connection_status opack_static(void *_, onion_request *req, onion_response *res);
+#include <assets.h>
+//onion_connection_status opack_static(void *_, onion_request *req, onion_response *res);
 
 onion *o=NULL;
 

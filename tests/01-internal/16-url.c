@@ -20,40 +20,37 @@
 #include <sys/types.h>
 
 #include <onion/onion.h>
-#include <onion/server.h>
 #include <onion/url.h>
 #include <onion/log.h>
 
-#include "buffer.h"
 #include "../ctest.h"
-
-buffer *server_buffer;
+#include "../01-internal/buffer_listen_point.h"
 
 int handler_called=0;
 char *urltxt;
 
-int handler1(void *p, onion_request *r){
+int handler1(void *p, onion_request *r, onion_response *res){
 	ONION_DEBUG("1");
 	handler_called=1;
 	urltxt=strdup(onion_request_get_path(r));
 	return OCS_PROCESSED;
 }
 
-int handler2(void *p, onion_request *r){
+int handler2(void *p, onion_request *r, onion_response *res){
 	ONION_DEBUG("2");
 	handler_called=2;
 	urltxt=strdup(onion_request_get_path(r));
 	return OCS_PROCESSED;
 }
 
-int handler3(void *p, onion_request *r){
+int handler3(void *p, onion_request *r, onion_response *res){
 	ONION_DEBUG("3");
 	handler_called=3;
 	urltxt=strdup(onion_request_get_path(r));
 	return OCS_PROCESSED;
 }
 
-onion_server *server;
+onion *server;
 
 void t01_url(){
 	INIT_LOCAL();
@@ -63,9 +60,9 @@ void t01_url(){
 	onion_url_add(url, "handler2/", handler2);
 	onion_url_add_with_data(url, "^handler(3|4)/", handler3, NULL, NULL);
 	
-	onion_server_set_root_handler(server, onion_url_to_handler(url));
+	onion_set_root_handler(server, onion_url_to_handler(url));
 	
-	onion_request *req=onion_request_new(server, server_buffer, "test");
+	onion_request *req=onion_request_new(onion_get_listen_point(server, 0));
 	
 #define R "GET /handler1/ HTTP/1.1\n\n"
 	onion_request_write(req,R,sizeof(R));
@@ -99,20 +96,18 @@ void t01_url(){
 
 	onion_request_free(req);
 	onion_url_free(url);
-	onion_server_set_root_handler(server, NULL);
+	onion_set_root_handler(server, NULL);
 	
 	END_LOCAL();
 }
 
 void init(){
-	server=onion_server_new();
-	server_buffer=buffer_new(4096);
-	onion_server_set_write(server, (void*)&buffer_append);
+	server=onion_new(0);
+	onion_add_listen_point(server, NULL, NULL, onion_buffer_listen_point_new());
 }
 
 void end(){
-	buffer_free(server_buffer);
-	onion_server_free(server);
+	onion_free(server);
 }
 
 int main(int argc, char **argv){

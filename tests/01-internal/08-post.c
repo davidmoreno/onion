@@ -22,48 +22,19 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <onion/onion.h>
 #include <onion/request.h>
 #include <onion/response.h>
 #include <onion/handler.h>
-#include <onion/server.h>
 #include <onion/log.h>
 
 #include "../ctest.h"
+#include "buffer_listen_point.h"
 #include <fcntl.h>
 
 // Just a file that is always there, and should be big enought to be several packages
 #define BIG_FILE "/etc/services"
 #define BIG_FILE_BASE "services"
-
-typedef struct{
-	char *data;
-	size_t size;
-	off_t pos;
-}buffer;
-
-/// Just appends to the handler. Must be big enought or segfault.. Just for tests.
-int buffer_append(buffer *handler, const char *data, unsigned int length){
-	int l=length;
-	if (handler->pos+length>handler->size){
-		l=handler->size-handler->pos;
-	}
-	memcpy(handler->data+handler->pos,data,l);
-	handler->pos+=l;
-	return l;
-}
-
-buffer *buffer_new(size_t size){
-	buffer *b=malloc(sizeof(buffer));
-	b->data=malloc(size);
-	b->pos=0;
-	b->size=size;
-	return b;
-}
-
-void buffer_free(buffer *b){
-	free(b->data);
-	free(b);
-}
 
 typedef struct{
 	const char *filename;
@@ -113,20 +84,19 @@ onion_connection_status post_check(expected_post *post, onion_request *req){
 }
 
 void t01_post_empty_file(){
-	INIT_LOCAL();
-	buffer *b=buffer_new(1024);
-	
+	INIT_LOCAL();	
 	expected_post post={};
 	post.filename="file.dat";
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
 	post.size=0;
 	
-	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (void*)&buffer_append);
-	onion_server_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
+	onion *server=onion_new(0);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	onion_add_listen_point(server,NULL,NULL,lp);
+	onion_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
 	
-	onion_request *req=onion_request_new(server,b,"test");
+	onion_request *req=onion_request_new(lp);
 
 #define POST_EMPTY "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length:80\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\n\n\n--end--"
 	onion_request_write(req,POST_EMPTY,sizeof(POST_EMPTY));
@@ -151,8 +121,7 @@ void t01_post_empty_file(){
 	if (post.tmplink)
 		free(post.tmplink);
 	
-	onion_server_free(server);
-	buffer_free(b);
+	onion_free(server);
 	END_LOCAL();
 }
 
@@ -160,19 +129,18 @@ void t01_post_empty_file(){
 void t02_post_new_lines_file(){
 	INIT_LOCAL();
 	
-	buffer *b=buffer_new(1024);
-	
 	expected_post post={};;
 	post.filename="file.dat";
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
 	post.size=1;
 	
-	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (void*)&buffer_append);
-	onion_server_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
+	onion *server=onion_new(0);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	onion_add_listen_point(server,NULL,NULL,lp);
+	onion_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
 	
-	onion_request *req=onion_request_new(server,b,"test");
+	onion_request *req=onion_request_new(lp);
 
 #define POST_EMPTY "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length:81\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\n\n\n\n--end--"
 	onion_request_write(req,POST_EMPTY,sizeof(POST_EMPTY));
@@ -197,8 +165,7 @@ void t02_post_new_lines_file(){
 	if (post.tmplink)
 		free(post.tmplink);
 	
-	onion_server_free(server);
-	buffer_free(b);
+	onion_free(server);
 	END_LOCAL();
 }
 
@@ -207,19 +174,18 @@ void t02_post_new_lines_file(){
 void t03_post_carriage_return_new_lines_file(){
 	INIT_LOCAL();
 	
-	buffer *b=buffer_new(1024);
-	
 	expected_post post={};;
 	post.filename="file.dat";
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
 	post.size=3;
 	
-	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (void*)&buffer_append);
-	onion_server_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
+	onion *server=onion_new(0);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	onion_add_listen_point(server,NULL,NULL,lp);
+	onion_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
 	
-	onion_request *req=onion_request_new(server,b,"test");
+	onion_request *req=onion_request_new(lp);
 
 #define POST_EMPTY "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length:81\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\n\n\n\r\n\n--end--"
 	//ONION_DEBUG("%s",POST_EMPTY);
@@ -245,8 +211,7 @@ void t03_post_carriage_return_new_lines_file(){
 	if (post.tmplink)
 		free(post.tmplink);
 	
-	onion_server_free(server);
-	buffer_free(b);
+	onion_free(server);
 	END_LOCAL();
 }
 
@@ -258,18 +223,18 @@ void t04_post_largefile(){
 	off_t filesize=lseek(postfd, 0, SEEK_END);
 	lseek(postfd, 0, SEEK_SET);
 	
-	buffer *b=buffer_new(1024);
 	expected_post post={};;
 	post.filename=BIG_FILE_BASE;
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
 	post.size=filesize;
 	
-	onion_server *server=onion_server_new();
-	onion_server_set_write(server, (void*)&buffer_append);
-	onion_server_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
+	onion *server=onion_new(0);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	onion_add_listen_point(server,NULL,NULL,lp);
+	onion_set_root_handler(server, onion_handler_new((void*)&post_check,&post,NULL));
 	
-	onion_request *req=onion_request_new(server,b,"test");
+	onion_request *req=onion_request_new(lp);
 
 #define POST_HEADER "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length: %d\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"" BIG_FILE_BASE "\"\n\n"
 	char tmp[1024];
@@ -329,8 +294,7 @@ void t04_post_largefile(){
 		FAIL_IF_EQUAL(stat(post.tmpfilename,&st), 0); // Should not exist
 	}
 	
-	onion_server_free(server);
-	buffer_free(b);
+	onion_free(server);
 	if (post.tmpfilename)
 		free(post.tmpfilename);
 	if (post.tmplink)
@@ -342,6 +306,8 @@ void t04_post_largefile(){
 
 
 int main(int argc, char **argv){
+	START();
+	
 	t01_post_empty_file();
 	t02_post_new_lines_file();
 	t03_post_carriage_return_new_lines_file();

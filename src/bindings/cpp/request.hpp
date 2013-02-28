@@ -48,12 +48,22 @@ namespace Onion{
     const Dict query() const{
       return Dict(onion_request_get_query_dict(ptr));
     }
-    const Dict session() const{
+    Dict session() const{
 			onion_dict *d=onion_request_get_session_dict(ptr);
 			if (d)
 				return Dict(d);
 			else
 				return Dict();
+    }
+    const Dict files() const{
+      const onion_dict *d=onion_request_get_file_dict(ptr);
+      if (d)
+        return Dict(d);
+      else
+        return Dict();
+    }
+    bool hasFiles() const{
+      return (onion_request_get_file_dict(ptr)) ? true : false;
     }
     std::string path() const{
 			return onion_request_get_path(ptr);

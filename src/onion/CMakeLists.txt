@@ -4,8 +4,9 @@ if (SYSTEMD_ENABLED)
 set(SYSTEMD_C sd-daemon.c)
 endif(SYSTEMD_ENABLED)
 
-set(SOURCES onion.c codecs.c dict.c request.c request_parser.c response.c handler.c 
-                        server.c log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} poller.c)
+set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
+                        log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} poller.c
+                        listen_point.c request_parser.c http.c https.c websocket.c)
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(

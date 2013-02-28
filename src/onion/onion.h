@@ -46,6 +46,9 @@ void onion_free(onion *onion);
 void onion_set_root_handler(onion *server, onion_handler *handler);
 
 /// Sets the root handler
+onion_handler *onion_get_root_handler(onion *server);
+
+/// Sets the root handler
 void onion_set_internal_error_handler(onion *server, onion_handler *handler);
 
 /// Sets the port to listen
@@ -56,6 +59,12 @@ void onion_set_hostname(onion *server, const char *hostname);
 
 /// Set a certificate for use in the connection
 int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...);
+
+/// Adds a listen point, a listening address and port with a given protocol.
+int onion_add_listen_point(onion *server, const char *hostname, const char *port, onion_listen_point *protocol);
+
+/// Gets a single listen point, or NULL if not that many.
+onion_listen_point *onion_get_listen_point(onion *server, int nlisten_point);
 
 /// Gets the current flags, for example to check SSL support.
 int onion_flags(onion *onion);
@@ -74,6 +83,9 @@ onion_url *onion_root_url(onion *server);
 
 /// If on poller mode, returns the poller, if not, returns NULL
 onion_poller *onion_get_poller(onion *server);
+
+/// Set the maximum post size
+void onion_set_max_post_size(onion *server, size_t max_size);
 
 #ifdef __cplusplus
 }
