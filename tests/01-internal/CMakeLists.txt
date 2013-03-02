@@ -14,7 +14,17 @@ add_executable(05-server 05-server.c buffer_listen_point.c)
 target_link_libraries(05-server onion_handlers onion)
 
 IF (CURL)
-add_executable(06-onion 06-onion.c)
+add_custom_command(
+   OUTPUT mycert.pem
+   COMMAND 
+		certtool --generate-privkey --outfile mycert.key &&
+		certtool --generate-self-signed --load-privkey mycert.key --outfile mycert.crt --template ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg  &&
+		cat mycert.crt mycert.key > mycert.pem
+   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg
+   )
+
+
+add_executable(06-onion 06-onion.c mycert.pem)
 target_link_libraries(06-onion onion_handlers onion curl)
 ENDIF (CURL)
 
