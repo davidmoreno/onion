@@ -80,5 +80,7 @@ int main(int argc, char **argv){
 	
 	onion_listen(server);
 	
+	onion_free(server);
+	
 	return 0;
 }

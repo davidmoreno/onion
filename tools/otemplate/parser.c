@@ -118,9 +118,9 @@ void write_block(parser_status *st, onion_block *b){
 					int pos=0;
 					int size=strlen(safe);
 					char *s=safe;
-					ONION_DEBUG("------- pos %d, size %d",pos,size);
+					//ONION_DEBUG("------- pos %d, size %d",pos,size);
 					while (pos<size){
-						ONION_DEBUG("pos %d, size %d",pos,size);
+						//ONION_DEBUG("pos %d, size %d",pos,size);
 						char *e=strstr(s, "\n");
 						if (!e)
 							break;

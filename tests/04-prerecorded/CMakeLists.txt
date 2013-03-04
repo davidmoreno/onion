@@ -1,6 +1,6 @@
 
 include_directories (${CMAKE_SOURCE_DIR}/src/) 
 
-add_executable(prerecorded prerecorded.c)
+add_executable(prerecorded prerecorded.c ../01-internal/buffer_listen_point.c)
 target_link_libraries(prerecorded onion_handlers onion_static)
 

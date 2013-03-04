@@ -99,7 +99,7 @@ void onion_handler_export_local_header_default(onion_response *res, const char *
 
 	onion_response_printf(res,"<h1>Listing of directory %s</h1>\n",dirname);
 	
-	if (dirname[1]!='\0') // It will be 0, when showpath is "/"
+	if (dirname[0]!='\0' && dirname[1]!='\0') // It will be 0, when showpath is "/"
 		onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
 }
 

@@ -37,7 +37,9 @@ static int onion_log_flags=0;
 #ifdef HAVE_PTHREADS
 static pthread_mutex_t onion_log_mutex=PTHREAD_MUTEX_INITIALIZER;
 #endif
-
+#ifdef __DEBUG__
+static const char *debug0=NULL;
+#endif
 
 void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
 void onion_log_stderr(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
@@ -106,12 +108,14 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 				return;
 			}
 		}
+#ifdef __DEBUG__
+		debug0=getenv("ONION_DEBUG0");
+#endif
 	}
 	
 	filename=basename((char*)filename);
 	
 #ifdef __DEBUG__
-	const char *debug0=getenv("ONION_DEBUG0");
 	if ( (level==O_DEBUG0) && (!debug0 || !strstr(debug0, filename)) ){
 		#ifdef HAVE_PTHREADS
 			pthread_mutex_unlock(&onion_log_mutex);

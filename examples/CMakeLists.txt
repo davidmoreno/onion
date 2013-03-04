@@ -1,3 +1,4 @@
+include_directories (${CMAKE_SOURCE_DIR}/src/) 
 
 if (PAM_ENABLED)
 	if (OPACK)
@@ -40,4 +41,5 @@ else (${CAIRO_ENABLED})
 endif (${CAIRO_ENABLED})
 
 
-
+add_subdirectory(multiport)
+add_subdirectory(websockets)

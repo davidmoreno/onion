@@ -58,6 +58,9 @@ void onion_server_set_max_file_size(onion_server *server, size_t max_file_size);
 /// Writes some data to a specific request.
 onion_connection_status onion_server_write_to_request(onion_server *server, onion_request *request, const char *data, size_t len);
 
+/// Returns the onion struct for this server, if any
+onion *onion_server_get_onion(onion_server *o);
+
 #ifdef __cplusplus
 }
 #endif

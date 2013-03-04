@@ -21,6 +21,10 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
+#ifdef HAVE_GNUTLS
+#include <gnutls/gnutls.h>
+#include <gnutls/crypto.h>
+#endif
 
 #include "log.h"
 #include "codecs.h"
@@ -371,4 +375,16 @@ char *onion_c_quote(const char *str, char *ret, int l){
 	*r++='\0';
 	
 	return ret;
+}
+
+/**
+ * @short Calculates the SHA1 checksum of a given data
+ */
+void onion_sha1(const char *data, int length, char *result){
+#ifndef HAVE_GNUTLS
+	ONION_ERROR("Cant calculate SHA1 if gnutls is not compiled in! Aborting now");
+	exit(1);
+#else
+	gnutls_hash_fast(GNUTLS_DIG_SHA1, data, length, result); 
+#endif
 }

@@ -19,15 +19,19 @@
 #include <malloc.h>
 #include <string.h>
 
+#include <onion/log.h>
 #include <onion/dict.h>
-#include <onion/server.h>
 #include <onion/request.h>
 #include <onion/response.h>
 #include <onion/types_internal.h>
+#include <onion/onion.h>
+#include <onion/http.h>
 
 #include "../ctest.h"
+#include "buffer_listen_point.h"
 
 #define FILL(a,b) onion_request_write(a,b,strlen(b))
+
 
 void t01_create_add_free(){
 	INIT_LOCAL();
@@ -48,8 +52,9 @@ void t01_create_add_free(){
 }
 
 /// Just appends to the handler. Must be big enought or segfault.. Just for tests.
-int write_append(void *handler, const char *data, unsigned int length){
-	char *str=handler;
+int write_append(onion_request *req, const char *data, unsigned int length){
+	char *str=req->connection.user_data;
+	ONION_DEBUG("char data %p", str);
 	int p=strlen(str);
 	strncat(str,data,length);
 	str[p+length]=0;
@@ -60,13 +65,13 @@ int write_append(void *handler, const char *data, unsigned int length){
 void t02_full_cycle_http10(){
 	INIT_LOCAL();
 	
-	onion_server *server=onion_server_new();
-	onion_server_set_write(server, write_append);
+	onion *server=onion_new(0);
+	onion_add_listen_point(server,NULL,NULL,onion_buffer_listen_point_new());
 	onion_request *request;
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	request=onion_request_new(server, buffer, NULL);
+	request=onion_request_new(server->listen_points[0]);
 	
 	onion_response *response=onion_response_new(request);
 	
@@ -79,8 +84,9 @@ void t02_full_cycle_http10(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer));
 	onion_request_free(request);
-	onion_server_free(server);
+	onion_free(server);
 	
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.0 200 OK\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "Connection: Keep-Alive\r\n");
@@ -95,13 +101,13 @@ void t02_full_cycle_http10(){
 void t03_full_cycle_http11(){
 	INIT_LOCAL();
 	
-	onion_server *server=onion_server_new();
-	onion_server_set_write(server, write_append);
+	onion *server=onion_new(0);
+	onion_add_listen_point(server, NULL,NULL,onion_buffer_listen_point_new());
 	onion_request *request;
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	
-	request=onion_request_new(server, buffer, NULL);
+	request=onion_request_new(server->listen_points[0]);
 	FILL(request,"GET / HTTP/1.1\n");
 	
 	onion_response *response=onion_response_new(request);
@@ -115,8 +121,9 @@ void t03_full_cycle_http11(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer));
 	onion_request_free(request);
-	onion_server_free(server);
+	onion_free(server);
 	
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 200 OK\r\n");
 	FAIL_IF_STRSTR(buffer, "Connection: Keep-Alive\r\n");
@@ -131,6 +138,8 @@ void t03_full_cycle_http11(){
 }
 
 int main(int argc, char **argv){
+	START();
+	
 	t01_create_add_free();
 	t02_full_cycle_http10();
 	t03_full_cycle_http11();

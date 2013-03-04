@@ -32,7 +32,16 @@
  * 
  * A basic example of a server with authentication, SSL support that serves a static directory is:
  * 
- * @include examples/basic/basic.c
+ * @include examples/basic/basic.c/// Sets the port to listen
+void onion_set_port(onion *server, const char *port);
+
+/// Sets the hostname on which to listen
+void onion_set_hostname(onion *server, const char *hostname);
+
+/// Set a certificate for use in the connection
+int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename);
+
+
  * 
  * To be compiled as
  * 
@@ -115,84 +124,31 @@
  * 
  */
 
-// To have accept4
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <malloc.h>
 #include <stdio.h>
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdarg.h>
-#include <poll.h>
-#include <arpa/inet.h>
 #include <signal.h>
+#include <string.h>
 
-#ifdef HAVE_GNUTLS
-#include <gcrypt.h>		/* for gcry_control */
-#include <gnutls/gnutls.h>
-#endif
+//#define HAVE_PTHREADS
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
 #endif
 
-#ifdef HAVE_GNUTLS
-#ifdef HAVE_PTHREADS
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
-#endif
-#endif
-
 #include "onion.h"
 #include "handler.h"
-#include "server.h"
 #include "types_internal.h"
 #include "log.h"
 #include "poller.h"
-#include <netdb.h>
-#include <fcntl.h>
-#include <pwd.h>
-#include <grp.h>
+#include "listen_point.h"
+#include "sessions.h"
+#include "mime.h"
+#include "http.h"
+#include "https.h"
 
-#ifdef HAVE_SYSTEMD
-#include "sd-daemon.h"
-#endif
-
-#ifndef SOCK_CLOEXEC
-#define SOCK_CLOEXEC 0
-#define accept4(a,b,c,d) accept(a,b,c);
-#endif
-
-#ifdef HAVE_GNUTLS
-static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd);
-static void onion_enable_tls(onion *o);
-#endif
-
-#ifdef HAVE_PTHREADS
-
-/// Internal data as needed by onion_request_thread
-struct onion_request_thread_data_t{
-	onion *o;
-	int clientfd;
-  struct sockaddr_storage client_addr;
-  socklen_t client_len;
-	pthread_t thread_handle;
-};
-
-typedef struct onion_request_thread_data_t onion_request_thread_data;
-
-static void *onion_request_thread(void*);
-#endif
-
-/// Internal processor of just one request.
-static void onion_process_request(onion *o, int clientfd, struct sockaddr_storage *client_addr, socklen_t client_len);
-
-/// Accepts a request.
-static int onion_accept_request(onion *o);
+static int onion_default_error(void *handler, onion_request *req, onion_response *res);
+// Import it here as I need it to know if we have a HTTP port.
+ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
+ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
@@ -223,28 +179,20 @@ onion *onion_new(int flags){
 		ONION_WARNING("There is no support for SOCK_CLOEXEC compiled in libonion. This may be a SECURITY PROBLEM as connections may leak into executed programs.");
 	}
 	
-	onion *o=malloc(sizeof(onion));
-	o->flags=flags&0x0FF;
-	o->listenfd=0;
-	o->server=onion_server_new();
+	onion *o=calloc(1,sizeof(onion));
+	o->flags=(flags&0x0FF)|O_SSL_AVAILABLE;
 	o->timeout=5000; // 5 seconds of timeout, default.
-	o->port=strdup("8080");
-	o->hostname=strdup("::");
-	o->username=NULL;
-#ifdef HAVE_GNUTLS
-	o->flags|=O_SSL_AVAILABLE;
-#endif
+	o->poller=onion_poller_new(15);
+	o->sessions=onion_sessions_new();
+	o->internal_error_handler=onion_handler_new((onion_handler_handler)onion_default_error, NULL, NULL);
+	o->max_post_size=1024*1024; // 1MB
+	o->max_file_size=1024*1024*1024; // 1GB
 #ifdef HAVE_PTHREADS
 	o->flags|=O_THREADS_AVALIABLE;
-	o->max_threads=15;
-	if (o->flags&O_THREADED){
+	o->nthreads=8;
+	if (o->flags&O_THREADED)
 		o->flags|=O_THREADS_ENABLED;
-		sem_init(&o->thread_count, 0, o->max_threads);
-		pthread_mutex_init(&o->mutex, NULL);
-	}
 #endif
-	o->poller=NULL;
-	
 	return o;
 }
 
@@ -255,131 +203,35 @@ onion *onion_new(int flags){
  */
 void onion_free(onion *onion){
 	ONION_DEBUG("Onion free");
-#ifdef HAVE_PTHREADS
-	if (onion->flags&O_THREADS_ENABLED){
-		int ntries=5;
-		int c;
-		for(;ntries--;){
-			sem_getvalue(&onion->thread_count,&c);
-			if (c==onion->max_threads){
-				break;
-			}
-			ONION_INFO("Still some petitions on process (%d). Wait a little bit (%d).",c,ntries);
-			sleep(1);
-		}
-	}
-#endif
-	close(onion->listenfd);
-
+	onion_listen_stop(onion);
+	
 	if (onion->poller)
 		onion_poller_free(onion->poller);
 	
 	if (onion->username)
 		free(onion->username);
 	
-#ifdef HAVE_GNUTLS
-	if (onion->flags&O_SSL_ENABLED){
-		gnutls_certificate_free_credentials (onion->x509_cred);
-		gnutls_dh_params_deinit(onion->dh_params);
-		gnutls_priority_deinit (onion->priority_cache);
-		if (!(onion->flags&O_SSL_NO_DEINIT))
-			gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
+	if (onion->listen_points){
+		onion_listen_point **p=onion->listen_points;
+		while(*p!=NULL){
+			ONION_DEBUG("Free %p listen_point", *p);
+			onion_listen_point_free(*p++);
+		}
+		free(onion->listen_points);
 	}
-#endif
-	if (onion->port)
-		free(onion->port);
-	if (onion->hostname)
-		free(onion->hostname);
-	onion_server_free(onion->server);
-	free(onion);
-}
-
-/**
- * @short Basic direct to socket write method.
- * @memberof onion_t
- */
-int onion_write_to_socket(int *fd, const char *data, unsigned int len){
-	return write((long int)fd, data, len);
-}
-
-/**
- * @short Basic direct from socket read method.
- * @memberof onion_t
- */
-int onion_read_from_socket(int *fd, char *data, unsigned int len){
-	return read((long int)fd, data, len);
-}
-
-void onion_close_socket(int *socket){
-	long int fd=(long int)socket;
-	// Make it send the FIN packet.
-	shutdown(fd, SHUT_RDWR);
+	if (onion->root_handler)
+		onion_handler_free(onion->root_handler);
+	if (onion->internal_error_handler)
+		onion_handler_free(onion->internal_error_handler);
+	onion_mime_set(NULL);
+	if (onion->sessions)
+		onion_sessions_free(onion->sessions);
 	
-	if (0!=close(fd)){
-		ONION_ERROR("Error closing connection %d", fd);
-	}
-}
-
-#ifdef HAVE_GNUTLS
-static void onion_ssl_close(gnutls_session_t s){
-	int fd=(long int)gnutls_transport_get_ptr(s);
-	gnutls_bye (s, GNUTLS_SHUT_WR);
-	gnutls_deinit (s);
-	onion_close_socket((void*)(long int)fd);
-}
-#endif
-
 #ifdef HAVE_PTHREADS
-/// Simple adaptor to call from pool threads the poller.
-static __attribute__((unused)) void *onion_poller_adaptor(void *o){
-	onion_poller_poll(((onion*)o)->poller);
-	ONION_DEBUG("Stopped poll");
-	return NULL;
-}
+	if (onion->threads)
+		free(onion->threads);
 #endif
-
-/**
- * @short Internal function to accept one connection. 
- * 
- * It performs timeout setting, CLOEXEC as needed by accept4/accept, and get client info.
- * 
- * @param o onion object.
- * @param cli_info char pointer to where to store the client info.
- * @param info_len size available at cli_info.
- * 
- * @returns new connection socket file descriptor
- */
-static int onion_accept(onion *o, struct sockaddr_storage *cli_addr, socklen_t *clilen){
-  *clilen = sizeof(*cli_addr);
-
-  int clientfd=accept4(o->listenfd, (struct sockaddr *) cli_addr, clilen, SOCK_CLOEXEC);
-  if (clientfd<0){
-    ONION_ERROR("Error accepting connection: %s",strerror(errno));
-    return -1;
-  }
-  
-  /// Thanks to Andrew Victor for pointing that without this client may block HTTPS connection. It could lead to DoS if occupies all connections.
-  {
-    struct timeval t;
-    t.tv_sec = o->timeout / 1000;
-    t.tv_usec = ( o->timeout % 1000 ) * 1000;
-
-    setsockopt(clientfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
-   }
-  
-  if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
-    int flags=fcntl(clientfd, F_GETFD);
-    if (flags==-1){
-      ONION_ERROR("Retrieving flags from connection");
-    }
-    flags|=FD_CLOEXEC;
-    if (fcntl(clientfd, F_SETFD, flags)==-1){
-      ONION_ERROR("Setting FD_CLOEXEC to connection");
-    }
-  }
-  
-  ONION_DEBUG("Accepted connection");
-  return clientfd;
+	free(onion);
 }
 
 /**
@@ -387,188 +239,95 @@ static int onion_accept(onion *o, struct sockaddr_storage *cli_addr, socklen_t *
  * @memberof onion_t
  *
  * This is the main loop for the onion server.
+ * 
+ * It initiates the listening on all the selected ports and addresses.
  *
  * @returns !=0 if there is any error. It returns actualy errno from the network operations. See socket for more information.
  */
 int onion_listen(onion *o){
 #ifdef HAVE_PTHREADS
-	if (o->flags&O_DETACH_LISTEN && !(o->flags&O_DETACHED)){ // On first call it sets the variable, and then call again, this time detached.
+	if (!(o->flags&O_DETACHED) && (o->flags&O_DETACH_LISTEN)){ // Must detach and return
 		o->flags|=O_DETACHED;
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
-		pthread_t listen_thread;
-		pthread_create(&listen_thread, &attr,(void*(*)(void*)) onion_listen, o);
-		pthread_attr_destroy(&attr);
+		pthread_create(&o->listen_thread,NULL, (void*)onion_listen, o);
 		return 0;
 	}
 #endif
 	
-	int sockfd=0;
-#ifdef HAVE_SYSTEMD
-	if (o->flags&O_SYSTEMD){
-		int n=sd_listen_fds(0);
-		ONION_DEBUG("Checking if have systemd sockets: %d",n);
-		if (n>0){ // If 0, normal startup. Else use the first LISTEN_FDS.
-			ONION_DEBUG("Using systemd sockets");
-			if (n>1){
-				ONION_WARNING("Get more than one systemd socket descriptor. Using only the first.");
-			}
-			sockfd=SD_LISTEN_FDS_START+0;
-		}
+	if (!o->listen_points){
+		onion_add_listen_point(o,NULL,NULL,onion_http_new());
+		ONION_DEBUG("Created default HTTP listen port");
 	}
-#endif
-	if (sockfd==0){
-		struct addrinfo hints;
-		struct addrinfo *result, *rp;
-		
-		memset(&hints,0, sizeof(struct addrinfo));
-		hints.ai_canonname=NULL;
-		hints.ai_addr=NULL;
-		hints.ai_next=NULL;
-		hints.ai_socktype=SOCK_STREAM;
-		hints.ai_family=AF_UNSPEC;
-		hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
-		
-		if (getaddrinfo(o->hostname, o->port, &hints, &result) !=0 ){
-			ONION_ERROR("Error getting local address and port: %s", strerror(errno));
-			return errno;
+
+	/// Start listening
+	onion_listen_point **lp=o->listen_points;
+	while (*lp){
+		onion_listen_point_listen(*lp);
+		lp++;
+	}	
+
+	
+	if (o->flags&O_ONE){
+		onion_listen_point **listen_points=o->listen_points;
+		if (listen_points[1]!=NULL){
+			ONION_WARNING("Trying to use non-poll and non-thread mode with several listen points. Only the first will be listened");
 		}
-		
-		int optval=1;
-		for(rp=result;rp!=NULL;rp=rp->ai_next){
-			sockfd=socket(rp->ai_family, rp->ai_socktype | SOCK_CLOEXEC, rp->ai_protocol);
-			if(SOCK_CLOEXEC == 0) { // Good compiler know how to cut this out
-				int flags=fcntl(sockfd, F_GETFD);
-				if (flags==-1){
-					ONION_ERROR("Retrieving flags from listen socket");
-				}
-				flags|=FD_CLOEXEC;
-				if (fcntl(sockfd, F_SETFD, flags)==-1){
-					ONION_ERROR("Setting O_CLOEXEC to listen socket");
-				}
-			}
-			if (sockfd<0) // not valid
+		onion_listen_point *op=listen_points[0];
+		do{
+			onion_request *req=onion_request_new(op);
+			if (!req)
 				continue;
-			if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) < 0){
-				ONION_ERROR("Could not set socket options: %s",strerror(errno));
-			}
-			if (bind(sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
-				break; // Success
-			close(sockfd);
-		}
-		if (rp==NULL){
-			ONION_ERROR("Could not find any suitable address to bind to.");
-			return errno;
+			ONION_DEBUG("Accepted request %p", req);
+			onion_request_set_no_keep_alive(req);
+			int ret;
+			do{
+				ret=req->connection.listen_point->read_ready(req);
+			}while(ret>=0);
+			ONION_DEBUG("End of request %p", req);
+			onion_request_free(req);
+			//req->connection.listen_point->close(req);
+		}while(((o->flags&O_ONE_LOOP) == O_ONE_LOOP) && op->listenfd>0);
+	}
+	else{
+		onion_listen_point **listen_points=o->listen_points;
+		while (*listen_points){
+			onion_listen_point *p=*listen_points;
+			ONION_DEBUG("Adding %d to poller", p->listenfd);
+			onion_poller_slot *slot=onion_poller_slot_new(p->listenfd, (void*)onion_listen_point_accept, p);
+			onion_poller_slot_set_type(slot, O_POLL_ALL);
+			onion_poller_add(o->poller, slot);
+			listen_points++;
 		}
 
-#ifdef __DEBUG__
-		char address[64];
-		getnameinfo(rp->ai_addr, rp->ai_addrlen, address, 32,
-								&address[32], 32, NI_NUMERICHOST | NI_NUMERICSERV);
-		ONION_DEBUG("Listening to %s:%s",address,&address[32]);
-#endif
-		freeaddrinfo(result);
-		listen(sockfd,5); // queue of only 5.
-	}
-	o->listenfd=sockfd;
-	// Drops priviledges as it has binded.
-	if (o->username){
-		struct passwd *pw;
-		pw=getpwnam(o->username);
-		int error;
-		if (!pw){
-			ONION_ERROR("Cant find user to drop priviledges: %s", o->username);
-			return errno;
-		}
-		else{
-			error=initgroups(o->username, pw->pw_gid);
-			error|=setgid(pw->pw_gid);
-			error|=setuid(pw->pw_uid);
-		}
-		if (error){
-			ONION_ERROR("Cant set the uid/gid for user %s", o->username);
-			return errno;
-		}
-	}
-
-	if (o->flags&O_POLL){
 #ifdef HAVE_PTHREADS
-		o->poller=onion_poller_new(o->max_threads+1);
-#else
-		o->poller=onion_poller_new(8);
-#endif
-		onion_poller_add(o->poller, onion_poller_slot_new(o->listenfd, (void*)onion_accept_request, o));
-		// O_POLL && O_THREADED == O_POOL. Create several threads to poll.
-#ifdef HAVE_PTHREADS
+		ONION_DEBUG("Start polling / listening %p, %p, %p", o->listen_points, *o->listen_points, *(o->listen_points+1));
 		if (o->flags&O_THREADED){
-			ONION_WARNING("Pool mode is experimental. %d threads.", o->max_threads);
-			pthread_t *thread=(pthread_t*)malloc(sizeof(pthread_t)*(o->max_threads-1));
+			o->threads=malloc(sizeof(pthread_t)*(o->nthreads-1));
 			int i;
-			for(i=0;i<o->max_threads-1;i++){
-				pthread_create(&thread[i], NULL, onion_poller_adaptor, o);
+			for (i=0;i<o->nthreads-1;i++){
+				pthread_create(&o->threads[i],NULL,(void*)onion_poller_poll, o->poller);
 			}
+			
+			// Here is where it waits.. but eventually it will exit at onion_listen_stop
 			onion_poller_poll(o->poller);
-			ONION_DEBUG("Stopped poll");
-			for(i=0;i<o->max_threads-1;i++){
-				//pthread_cancel(thread[i]); // Cancel is WRONG! It left sometimes mutex without unlock, wich made deadlocks. For example.
-				pthread_join(thread[i], NULL);
+			ONION_DEBUG("Closing onion_listen");
+			
+			for (i=0;i<o->nthreads-1;i++){
+				pthread_join(o->threads[i],NULL);
 			}
-			free(thread);
 		}
 		else
 #endif
-		{
-			ONION_WARNING("Poller mode is experimental.");
 			onion_poller_poll(o->poller);
-		}
-	}
-	else if (o->flags&O_ONE){
-		if ((o->flags&O_ONE_LOOP) == O_ONE_LOOP){
-			while(o->listenfd>0){ // Loop while listening
-				onion_accept_request(o);
-			}
-		}
-		else{
-      ONION_DEBUG("Listening just one connection");
-			onion_accept_request(o);
-		}
-	}
-#ifdef HAVE_PTHREADS
-	else if (o->flags&O_THREADS_ENABLED){
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); // It do not need to pthread_join. No leak here.
-		
-		while(1){
-      struct sockaddr_storage cli_addr;
-      socklen_t cli_len;
-      int clientfd=onion_accept(o, &cli_addr, &cli_len);
-      
-      if (clientfd<0)
-        return errno;
-			// If more than allowed processes, it waits here blocking socket, as it should be.
-			// __DEBUG__
-#if 0 
-			int nt;
-			sem_getvalue(&o->thread_count, &nt); 
-			ONION_DEBUG("%d threads working, %d max threads", o->max_threads-nt, o->max_threads);
-#endif
-			sem_wait(&o->thread_count); 
 
-			// Has to be malloc'd. If not it wil be overwritten on next petition. The threads frees it
-			onion_request_thread_data *data=malloc(sizeof(onion_request_thread_data)); 
-			data->o=o;
-			data->clientfd=clientfd;
-			data->client_addr=cli_addr;
-      data->client_len=cli_len;
-			
-			pthread_create(&data->thread_handle, &attr, onion_request_thread, data);
+		listen_points=o->listen_points;
+		while (*listen_points){
+			onion_listen_point *p=*listen_points;
+			ONION_DEBUG("Removing %d from poller", p->listenfd);
+			if (p->listenfd>0)
+				onion_poller_remove(o->poller, p->listenfd);
+			listen_points++;
 		}
-		pthread_attr_destroy(&attr);
 	}
-#endif
-	close(o->listenfd);
 	return 0;
 }
 
@@ -581,16 +340,18 @@ int onion_listen(onion *o){
  * If there is any pending connection, it can finish if onion not freed before.
  */
 void onion_listen_stop(onion* server){
+	/// Start listening
+	onion_listen_point **lp=server->listen_points;
+	while (*lp){
+		onion_listen_point_listen_stop(*lp);
+		lp++;
+	}	
 	ONION_DEBUG("Stop listening");
-	int fd=server->listenfd;
-	server->listenfd=-1;
-	if (server->poller && fd>0){
-		onion_poller_remove(server->poller, fd);
-	}
-	if (fd>0){
-    shutdown(fd,SHUT_RDWR); // If no shutdown, listen blocks. 
-		close(fd);
-  }
+	onion_poller_stop(server->poller);
+#ifdef HAVE_PTHREADS
+	if (server->flags&O_DETACHED)
+		pthread_join(server->listen_thread, NULL);
+#endif
 }
 
 
@@ -599,48 +360,88 @@ void onion_listen_stop(onion* server){
  * @memberof onion_t
  */
 void onion_set_root_handler(onion *onion, onion_handler *handler){
-	onion_server_set_root_handler(onion->server, handler);
+	onion->root_handler=handler;
 }
+
+/**
+ * @short Returns current root handler. 
+ * @memberof onion_t
+ * 
+ * For example when changing root handler, the old one is not deleted (as oposed that when deleting the onion*
+ * object it is). So user may use onion_handler_free(onion_get_root_handler(o));
+ * 
+ * @param server The onion server
+ * @returns onion_handler currently at root.
+ */
+onion_handler *onion_get_root_handler(onion *server){
+	return server->root_handler;
+}
+
 
 /**
  * @short  Sets the internal error handler
  * @memberof onion_t
  */
 void onion_set_internal_error_handler(onion* server, onion_handler* handler){
-	onion_server_set_internal_error_handler(server->server, handler);
+	server->internal_error_handler=handler;
 }
 
 /**
  * @short Sets the port to listen to.
  * @memberof onion_t
  * 
- * Default listen port is 8080.
+ * Default listen point is HTTP at localhost:8080.
  * 
  * @param server The onion server to act on.
  * @param port The number of port to listen to, or service name, as string always.
  */
-void onion_set_port(onion *server, const char *port){
-	if (server->port)
-		free(server->port);
-	server->port=strdup(port);
+int onion_add_listen_point(onion* server, const char* hostname, const char* port, onion_listen_point* protocol){
+	if (protocol==NULL){
+		ONION_ERROR("Trying to add an invalid entry point. Ignoring.");
+		return -1;
+	}
+	
+	protocol->server=server;
+	if (hostname)
+		protocol->hostname=strdup(hostname);
+	if (port)
+		protocol->port=strdup(port);
+	
+	if (server->listen_points){
+		onion_listen_point **p=server->listen_points;
+		int protcount=0;
+		while (*p++) protcount++;
+		server->listen_points=realloc(server->listen_points, (protcount+2)*sizeof(onion_listen_point));
+		server->listen_points[protcount]=protocol;
+		server->listen_points[protcount+1]=NULL;
+	}
+	else{
+		server->listen_points=malloc(sizeof(onion_listen_point*)*2);
+		server->listen_points[0]=protocol;
+		server->listen_points[1]=NULL;
+	}
+	
+	ONION_DEBUG("add %p listen_point (%p, %p, %p)", protocol, server->listen_points, *server->listen_points, *(server->listen_points+1));
+	return 0;
 }
 
 /**
- * @short Sets the hostname to listen to
- * @memberof onion_t
+ * @short Returns the listen point n.
  * 
- * Default listen hostname is NULL, which means all.
  * 
- * @param server The onion server to act on.
- * @param hostname The numeric ip/ipv6 address or hostname. NULL if listen to all interfaces.
+ * @param server The onion server
+ * @param nlisten_point Listen point index.
+ * @returns The listen point, or NULL if not that many listen points.
  */
-void onion_set_hostname(onion *server, const char *hostname){
-	if (server->hostname)
-		free(server->hostname);
-	if (hostname)
-		server->hostname=strdup(hostname);
-	else
-		server->hostname=NULL;
+onion_listen_point *onion_get_listen_point(onion *server, int nlisten_point){
+	onion_listen_point **next=server->listen_points;
+	while(next){ // I have to go one by one, as NULL is the stop marker.
+		if (nlisten_point==0)
+			return *next;
+		nlisten_point--;
+		next++;
+	}
+	return NULL;
 }
 
 /**
@@ -666,146 +467,9 @@ void onion_set_timeout(onion *onion, int timeout){
  */
 void onion_set_max_threads(onion *onion, int max_threads){
 #ifdef HAVE_PTHREADS
-	onion->max_threads=max_threads;
-	sem_init(&onion->thread_count, 0, max_threads);
+	onion->nthreads=max_threads;
+	//sem_init(&onion->thread_count, 0, max_threads);
 #endif
-}
-
-static onion_request *onion_connection_start(onion *o, int clientfd, struct sockaddr_storage *cli_addr, socklen_t cli_len);
-static onion_connection_status onion_connection_read(onion_request *req);
-static void onion_connection_shutdown(onion_request *req);
-
-/**
- * @short Internal accept of just one request. 
- * 
- * It might be called straight from listen, or from the epoller.
- * 
- * @returns 0 if ok, <0 if error.
- */
-static int onion_accept_request(onion *o){
-  struct sockaddr_storage cli_addr;
-  socklen_t cli_len;
-  int clientfd=onion_accept(o, &cli_addr, &cli_len);
-  
-  if (clientfd<0)
-    return -1;
-  
-	if (o->flags&O_POLL){
-		onion_request *req=onion_connection_start(o, clientfd, &cli_addr, cli_len);
-		if (!req){
-      shutdown(clientfd,SHUT_RDWR); // Socket must be destroyed.
-      close(clientfd);
-			return 0;
-		}
-		onion_poller_slot *slot=onion_poller_slot_new(clientfd, (void*)onion_connection_read, req);
-		onion_poller_slot_set_shutdown(slot, (void*)onion_connection_shutdown, req);
-		onion_poller_slot_set_timeout(slot, o->timeout);
-		
-		onion_poller_add(o->poller, slot);
-	}
-	else{
-		onion_process_request(o, clientfd, &cli_addr, cli_len);
-	}
-	return 0;
-}
-
-/// Initializes the connection, create request, sets up the SSL...
-static onion_request *onion_connection_start(onion *o, int clientfd, struct sockaddr_storage *cli_addr, socklen_t cli_len){
-  signal(SIGPIPE, SIG_IGN); // FIXME. remove the thread better. Now it will try to write and fail on it.
-  
-	// sorry all the ifdefs, but here is the worst case where i would need it.. and both are almost the same.
-#ifdef HAVE_GNUTLS
-	gnutls_session_t session=NULL;
-	if (o->flags&O_SSL_ENABLED){
-		session=onion_prepare_gnutls_session(o, clientfd);
-		if (session==NULL){
-			ONION_ERROR("Could not create session");
-			return NULL;
-		}
-	}
-#endif
-
-	onion_request *req;
-#ifdef HAVE_GNUTLS
-	if (o->flags&O_SSL_ENABLED){
-		onion_server_set_write(o->server, (onion_write)gnutls_record_send); // Im lucky, has the same signature.
-		onion_server_set_read(o->server, (onion_read)gnutls_record_recv); // Im lucky, has the same signature.
-		onion_server_set_close(o->server, (onion_close)onion_ssl_close);
-		req=onion_request_new_from_socket(o->server, session, cli_addr, cli_len);
-	}
-	else
-#endif
-	{
-		onion_server_set_write(o->server, (onion_write)onion_write_to_socket);
-		onion_server_set_read(o->server, (onion_read)onion_read_from_socket);
-		onion_server_set_close(o->server, (onion_close)onion_close_socket);
-		req=onion_request_new_from_socket(o->server, (void*)(long int)clientfd, cli_addr, cli_len);
-	}
-	req->fd=clientfd;
-	if (!( (o->flags&O_THREADED) || (o->flags&O_POLL) ))
-		onion_request_set_no_keep_alive(req);
-	
-	return req;
-}
-
-/// Reads a packet of data, and passes it to the request parser
-static onion_connection_status onion_connection_read(onion_request *req){
-	int r;
-	char buffer[1500];
-	errno=0;
-	r = req->server->read(req->socket, buffer, sizeof(buffer));
-	if (r<=0){ // error reading.
-		ONION_DEBUG0("Read %d bytes, errno %d %s", r, errno, strerror(errno));
-		if (errno==ECONNRESET)
-			ONION_DEBUG("Connection reset by peer."); // Ok, this is more or less normal.
-		else if (errno==EAGAIN){
-			return OCS_NEED_MORE_DATA;
-		}
-		else if (errno!=0)
-			ONION_ERROR("Error reading data: %s (%d)", strerror(errno), errno);
-		return OCS_INTERNAL_ERROR;
-	}
-	return onion_server_write_to_request(req->server, req, buffer, r);
-}
-
-
-/// Closes a connection
-static void onion_connection_shutdown(onion_request *req){
-	req->server->close(req->socket);
-	onion_request_free(req);
-}
-
-/**
- * @short Internal processor of just one request.
- * @memberof onion_t
- *
- * It can be used on one processing, on threaded, on one_loop...
- * 
- * It reads all the input passes it to the request, until onion_request_writes returns that the 
- * connection must be closed. This function do no close the connection, but the caller must 
- * close it when it returns.
- * 
- * It also do all the SSL startup when appropiate.
- * 
- * @param o Onion struct.
- * @param clientfd is the POSIX file descriptor of the connection.
- */
-static void onion_process_request(onion *o, int clientfd, struct sockaddr_storage *client_addr, socklen_t client_len){
-	ONION_DEBUG0("Processing request");
-	onion_request *req=onion_connection_start(o, clientfd, client_addr, client_len);
-  if (!req){
-    close(clientfd);
-    return;
-  }
-	onion_connection_status cs=OCS_KEEP_ALIVE;
-	struct pollfd pfd;
-	pfd.events=POLLIN;
-	pfd.fd=clientfd;
-	while ((cs>=0) && (poll(&pfd,1, o->timeout)>0)){
-		cs=onion_connection_read(req);
-	}
-	ONION_DEBUG0("Shutdown connection");
-	onion_connection_shutdown(req);
 }
 
 /**
@@ -815,144 +479,6 @@ static void onion_process_request(onion *o, int clientfd, struct sockaddr_storag
 int onion_flags(onion *onion){
 	return onion->flags;
 }
-
-
-#ifdef HAVE_GNUTLS
-/// Initializes GNUTLS session on the given socket.
-static gnutls_session_t onion_prepare_gnutls_session(onion *o, int clientfd){
-	gnutls_session_t session;
-
-  gnutls_init (&session, GNUTLS_SERVER);
-  gnutls_priority_set (session, o->priority_cache);
-  gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, o->x509_cred);
-  /* Set maximum compatibility mode. This is only suggested on public webservers
-   * that need to trade security for compatibility
-   */
-  gnutls_session_enable_compatibility_mode (session);
-
-	gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)(long) clientfd);
-	int ret;
-	int n_tries=0;
-	do{
-		ret = gnutls_handshake (session);
-		if (n_tries++>10) // Ok, dont abuse the system. Maybe trying to DoS me?
-			break;
-	}while (ret<0 && gnutls_error_is_fatal(ret)==0);
-	if (ret<0){ // could not handshake. assume an error.
-	  ONION_ERROR("Handshake has failed (%s)", gnutls_strerror (ret));
-		gnutls_deinit (session);
-		return NULL;
-	}
-	return session;
-}
-
-/// Enables TLS on the given server.
-static void onion_enable_tls(onion *o){
-#ifdef HAVE_PTHREADS
-	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-#endif
-	if (!(o->flags&O_USE_DEV_RANDOM)){
-		gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-	}
-	gnutls_global_init ();
-  gnutls_certificate_allocate_credentials (&o->x509_cred);
-
-	gnutls_dh_params_init (&o->dh_params);
-  gnutls_dh_params_generate2 (o->dh_params, 1024);
-  gnutls_certificate_set_dh_params (o->x509_cred, o->dh_params);
-  gnutls_priority_init (&o->priority_cache, "NORMAL", NULL);
-	
-	o->flags|=O_SSL_ENABLED;
-}
-#endif
-
-
-/**
- * @short Set a certificate for use in the connection
- * @memberof onion_t
- *
- * There are several certificate types available, described at onion_ssl_certificate_type_e.
- * 
- * @returns the error code. If 0, no error.
- * 
- * Most basic and normal use is something like:
- * 
- * @code
- * 
- * onion *o=onion_new(O_THREADED);
- * onion_set_certificate(o, O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
- * onion_set_root_handler(o, onion_handler_directory("."));
- * onion_listen(o);
- * 
- * @endcode
- * 
- * @param onion The onion structure
- * @param type Type of certificate to set
- * @param filename Filenames of certificate files
- * 
- * @see onion_ssl_certificate_type_e
- */
-int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
-#ifdef HAVE_GNUTLS
-	if (!(onion->flags&O_SSL_ENABLED))
-		onion_enable_tls(onion);
-	int r=-1;
-	switch(type&0x0FF){
-		case O_SSL_CERTIFICATE_CRL:
-			r=gnutls_certificate_set_x509_crl_file(onion->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
-			break;
-		case O_SSL_CERTIFICATE_KEY:
-		{
-			va_list va;
-			va_start(va, filename);
-			r=gnutls_certificate_set_x509_key_file(onion->x509_cred, filename, va_arg(va, const char *), 
-																									(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
-			va_end(va);
-		}
-			break;
-		case O_SSL_CERTIFICATE_TRUST:
-			r=gnutls_certificate_set_x509_trust_file(onion->x509_cred, filename, (type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM);
-			break;
-		case O_SSL_CERTIFICATE_PKCS12:
-		{
-			va_list va;
-			va_start(va, filename);
-			r=gnutls_certificate_set_x509_simple_pkcs12_file(onion->x509_cred, filename,
-																														(type&O_SSL_DER) ? GNUTLS_X509_FMT_DER : GNUTLS_X509_FMT_PEM,
-																														va_arg(va, const char *));
-			va_end(va);
-		}
-			break;
-		default:
-			ONION_ERROR("Set unknown type of certificate: %d",type);
-	}
-	if (r<0){
-	  ONION_ERROR("Error setting the certificate (%s)", gnutls_strerror (r));
-	}
-	return r;
-#else
-	return -1; /// Support not available
-#endif
-}
-
-
-#ifdef HAVE_PTHREADS
-/// Interfaces between the pthread_create and the process request. Actually just calls it with the proper parameters.
-static void *onion_request_thread(void *d){
-	onion_request_thread_data *td=(onion_request_thread_data*)d;
-	onion *o=td->o;
-	
-	//ONION_DEBUG0("Open connection %d",td->clientfd);
-	onion_process_request(o,td->clientfd, &td->client_addr, td->client_len);
-		
-	//ONION_DEBUG0("Closed connection %d",td->clientfd);
-	free(td);
-	
-	sem_post(&o->thread_count);
-	return NULL;
-}
-
-#endif
 
 /**
  * @short User to which drop priviledges when listening
@@ -976,13 +502,13 @@ void onion_url_free_data(onion_url_data **d);
  * It can also check if the current root handler is a url handler, and if it is, returns it. Else returns NULL.
  */
 onion_url *onion_root_url(onion *server){
-	if (server->server->root_handler){
-		if (server->server->root_handler->priv_data_free==(void*)onion_url_free_data) // Only available check
-			return (onion_url*)server->server->root_handler;
+	if (server->root_handler){
+		if (server->root_handler->priv_data_free==(void*)onion_url_free_data) // Only available check
+			return (onion_url*)server->root_handler;
 		return NULL;
 	}
 	onion_url *url=onion_url_new();
-	onion_set_root_handler(server, (onion_handler*)url);
+	server->root_handler=(onion_handler*)url;
 	return url;
 }
 
@@ -991,4 +517,122 @@ onion_url *onion_root_url(onion *server){
  */
 onion_poller *onion_get_poller(onion *server){
 	return server->poller;
+}
+
+#define ERROR_500 "<h1>500 - Internal error</h1> Check server logs or contact administrator."
+#define ERROR_403 "<h1>403 - Forbidden</h1>"
+#define ERROR_404 "<h1>404 - Not found</h1>"
+#define ERROR_505 "<h1>505 - Not implemented</h1>"
+
+/**
+ * @short Default error printer. 
+ * @memberof onion_server_t
+ * 
+ * Ugly errors, that can be reimplemented setting a handler with onion_server_set_internal_error_handler.
+ */
+static int onion_default_error(void *handler, onion_request *req, onion_response *res){
+	const char *msg;
+	int l;
+	int code;
+	switch(req->flags&0x0F000){
+		case OR_INTERNAL_ERROR:
+			msg=ERROR_500;
+			l=sizeof(ERROR_500)-1;
+			code=HTTP_INTERNAL_ERROR;
+			break;
+		case OR_NOT_IMPLEMENTED:
+			msg=ERROR_505;
+			l=sizeof(ERROR_505)-1;
+			code=HTTP_NOT_IMPLEMENTED;
+			break;
+    case OR_FORBIDDEN:
+      msg=ERROR_403;
+      l=sizeof(ERROR_403)-1;
+      code=HTTP_FORBIDDEN;
+      break;
+		default:
+			msg=ERROR_404;
+			l=sizeof(ERROR_404)-1;
+			code=HTTP_NOT_FOUND;
+			break;
+	}
+
+	ONION_DEBUG0("Internally managed error: %s, code %d.", msg, code);
+
+	onion_response_set_code(res,code);
+	onion_response_set_length(res, l);
+	onion_response_write_headers(res);
+
+	onion_response_write(res,msg,l);
+	return OCS_PROCESSED;
+}
+
+/// Sets the port to listen
+void onion_set_port(onion *server, const char *port){
+	if (server->listen_points){
+		free(server->listen_points[0]->port);
+		server->listen_points[0]->port=strdup(port);
+	}
+	else{
+		onion_add_listen_point(server, NULL, port, onion_http_new());
+	}
+}
+
+/// Sets the hostname on which to listen
+void onion_set_hostname(onion *server, const char *hostname){
+	if (server->listen_points){
+		free(server->listen_points[0]->hostname);
+		server->listen_points[0]->hostname=strdup(hostname);
+	}
+	else{
+		onion_add_listen_point(server, hostname, NULL, onion_http_new());
+	}
+}
+
+/// Set a certificate for use in the connection
+int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename,...){
+	if (!onion->listen_points){
+		onion_add_listen_point(onion,NULL,NULL,onion_https_new());
+	}
+	else{
+		onion_listen_point *first_listen_point=onion->listen_points[0];
+		if (first_listen_point->write!=onion_https_write){
+			if (first_listen_point->write!=onion_http_write){
+				ONION_ERROR("First listen point is not HTTP not HTTPS. Refusing to promote it to HTTPS. Use proper onion_https_new.");
+				return -1;
+			}
+			ONION_DEBUG("Promoting from HTTP to HTTPS");
+			char *port=first_listen_point->port ? strdup(first_listen_point->port) : NULL;
+			char *hostname=first_listen_point->hostname ? strdup(first_listen_point->hostname) : NULL;
+			onion_listen_point_free(first_listen_point);
+			onion_listen_point *https=onion_https_new();
+			if (NULL==https){
+				ONION_ERROR("Could not promote from HTTP to HTTPS. Certificate not set.");
+			}
+			https->port=port;
+			https->hostname=hostname;
+			onion->listen_points[0]=https;
+			first_listen_point=https;
+		}
+	}
+	va_list va;
+	va_start(va, filename);
+	int r=onion_https_set_certificate_argv(onion->listen_points[0], type, filename,va);
+	va_end(va);
+
+	return r;
+}
+
+
+/**
+ * @short Set the maximum POST size on requests
+ * 
+ * By default its 1MB of post data. This data has to be chossen carefully as this
+ * data is stored in memory, and can be abused.
+ * 
+ * @param server The onion server
+ * @param max_size The maximum desired size in bytes, by default 1MB.
+ */
+void onion_set_max_post_size(onion *server, size_t max_size){
+	server->max_post_size=max_size;
 }

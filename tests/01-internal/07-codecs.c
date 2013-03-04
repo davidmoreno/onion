@@ -175,6 +175,8 @@ void t06_codecs_c_unicode(){
 
 
 int main(int argc, char **argv){
+	START();
+	
 	t01_codecs_base64_decode();
 	t02_codecs_base64_encode();
 	t03_codecs_base64_encode_decode_10();
