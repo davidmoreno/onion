@@ -18,7 +18,7 @@ some functionality. With libonion you have the functionality and add the webserv
 There is a wiki available at https://github.com/davidmoreno/onion/wiki, with many useful 
 information on how to start and internal workings.
 
-API documentation is at http://coralbits.com/staticc/libonion/html/.
+API documentation is at http://coralbits.com/static/onion/.
 
 There is a mailing list at https://groups.google.com/a/coralbits.com/forum/?fromgroups=#!forum/onion-dev
 
