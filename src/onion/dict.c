@@ -299,6 +299,10 @@ static onion_dict_node  *onion_dict_node_add(onion_dict *d, onion_dict_node *nod
  * Adds a value in the tree.
  */
 void onion_dict_add(onion_dict *dict, const char *key, const void *value, int flags){
+	if (!key){
+		ONION_ERROR("Error, trying to add an empty key to a dictionary. There is a underliying bug here! Not adding anything.");
+		return;
+	}
 	dict->root=onion_dict_node_add(dict, dict->root, onion_dict_node_new(key, value, flags));
 }
 
