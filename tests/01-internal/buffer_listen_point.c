@@ -31,7 +31,7 @@ static void oblp_onion_request_close(onion_request *req){
 	onion_block_free(req->connection.user_data);
 }
 
-static ssize_t oblp_write_append(onion_request *a, const char *b, size_t size){
+ssize_t oblp_write_append(onion_request *a, const char *b, size_t size){
 	ONION_DEBUG("Write %d bytes.",size);
 	onion_block_add_data(a->connection.user_data,b,size);
 	return size;

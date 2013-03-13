@@ -346,8 +346,10 @@ void onion_listen_stop(onion* server){
 		onion_listen_point_listen_stop(*lp);
 		lp++;
 	}	
-	ONION_DEBUG("Stop listening");
-	onion_poller_stop(server->poller);
+	if (server->poller){
+		ONION_DEBUG("Stop listening");
+		onion_poller_stop(server->poller);
+	}
 #ifdef HAVE_PTHREADS
 	if (server->flags&O_DETACHED)
 		pthread_join(server->listen_thread, NULL);
