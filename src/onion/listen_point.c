@@ -53,7 +53,7 @@ static int onion_listen_point_read_ready(onion_request *req);
 
 /**
  * @short Creates an empty listen point.
- * @struct onion_listen_point_t
+ * @memberof onion_listen_point_t
  * 
  * Called by real listen points to ease the creation.
  * 
@@ -66,7 +66,7 @@ onion_listen_point *onion_listen_point_new(){
 
 /**
  * @short Free and closes the listen point
- * @struct onion_listen_point_t
+ * @memberof onion_listen_point_t
  * 
  * Calls the custom listen_stop mathod, and frees all common structures.
  * 
@@ -87,6 +87,7 @@ void onion_listen_point_free(onion_listen_point *op){
 
 /**
  * @short Called when a new connection appears on the listenfd
+ * @memberof onion_listen_point_t
  * 
  * When the new conneciton appears, creates the request and adds it to the pollers.
  * 
@@ -114,6 +115,7 @@ int onion_listen_point_accept(onion_listen_point *op){
 
 /**
  * @short Stops listening the listen point
+ * @memberof onion_listen_point_t
  * 
  * Calls the op->listen_stop if any, and if not just closes the listenfd.
  * 
@@ -133,6 +135,7 @@ void onion_listen_point_listen_stop(onion_listen_point *op){
 
 /**
  * @short Starts the listening phase for this listen point for sockets.
+ * @memberof onion_listen_point_t
  * 
  * Default listen implementation that listens on sockets. Opens sockets and setup everything properly.
  * 
@@ -221,6 +224,7 @@ int onion_listen_point_listen(onion_listen_point *op){
 
 /**
  * @short This listen point has data ready to read; calls the listen_point read_ready
+ * @memberof onion_listen_point_t
  * 
  * @param req The request with data ready
  * @returns <0 in case of error and request connection should be closed.
@@ -239,6 +243,7 @@ static int onion_listen_point_read_ready(onion_request *req){
 
 /**
  * @short Default implementation that initializes the request from a socket
+ * @memberof onion_listen_point_t
  * 
  * Accepts the connection and initializes it.
  * 
@@ -296,6 +301,7 @@ int onion_listen_point_request_init_from_socket(onion_request *req){
 
 /**
  * @short Default implementation that just closes the connection
+ * @memberof onion_listen_point_t
  * 
  * @param oc The request
  */

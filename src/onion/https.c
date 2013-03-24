@@ -43,6 +43,8 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 /**
  * @short Stores some data about the connection
+ * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * It has the main data for the connection; the setup certificate and such.
  */
@@ -65,7 +67,7 @@ static void onion_https_free_user_data(onion_listen_point *op);
 
 /**
  * @short Creates a new listen point with HTTPS powers.
- * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * Creates the HTTPS listen point.
  * 
@@ -141,7 +143,7 @@ onion_listen_point *onion_https_new(){
 
 /**
  * @short Stop the listening.
- * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * Just closes the listen port.
  * 
@@ -156,7 +158,7 @@ static void onion_https_listen_stop(onion_listen_point *op){
 
 /**
  * @short Frees the user data
- * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * @param op
  */
@@ -174,7 +176,7 @@ static void onion_https_free_user_data(onion_listen_point *op){
 
 /**
  * @short Initializes a connection on a request
- * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * Do the accept of the request, and the SSL handshake.
  * 
@@ -216,7 +218,7 @@ static int onion_https_request_init(onion_request *req){
 
 /**
  * @short Method to read some HTTPS data.
- * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * @param req to get data from
  * @param data where to store unencrypted data
@@ -235,7 +237,7 @@ static ssize_t onion_https_read(onion_request *req, char *data, size_t len){
 
 /**
  * @short Writes some data to the HTTPS client.
- * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * @param req to where write the data
  * @param data to write
@@ -250,7 +252,7 @@ ssize_t onion_https_write(onion_request *req, const char *data, size_t len){
 
 /**
  * @short Closes the https connection
- * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * It frees local data and closes the socket.
  * 
@@ -270,7 +272,7 @@ static void onion_https_close(onion_request *req){
 
 /**
  * @short Set new certificate elements
- * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * @param ol Listen point
  * @param type Type of certificate to add
@@ -288,7 +290,7 @@ int onion_https_set_certificate(onion_listen_point *ol, onion_ssl_certificate_ty
 
 /**
  * @short Same as onion_https_set_certificate, but with a va_list
- * @struct onion_https_t
+ * @memberof onion_https_t
  * 
  * This allows to manage va_lists more easily.
  * 

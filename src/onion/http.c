@@ -37,6 +37,17 @@ static ssize_t onion_http_read(onion_request *req, char *data, size_t len);
 ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
 int onion_http_read_ready(onion_request *req);
 
+/**
+ * @struct onion_http_t
+ * @memberof onion_http_t
+ */
+struct onion_http_t{
+};
+
+/**
+ * @short Creates an HTTP listen point 
+ * @memberof onion_http_t
+ */
 onion_listen_point* onion_http_new()
 {
 	onion_listen_point *ret=onion_listen_point_new();
@@ -49,10 +60,18 @@ onion_listen_point* onion_http_new()
 	return ret;
 }
 
+/**
+ * @short Reads data from the http connection
+ * @memberof onion_http_t
+ */
 static ssize_t onion_http_read(onion_request *con, char *data, size_t len){
 	return read(con->connection.fd, data, len);
 }
 
+/**
+ * @short HTTP client has data ready to be readen
+ * @memberof onion_http_t
+ */
 int onion_http_read_ready(onion_request *con){
 	char buffer[1500];
 	ssize_t len=con->connection.listen_point->read(con, buffer, sizeof(buffer));
@@ -69,6 +88,10 @@ int onion_http_read_ready(onion_request *con){
 	return OCS_PROCESSED;
 }
 
+/**
+ * @short Write dat to the HTTP client
+ * @memberof onion_http_t
+ */
 ssize_t onion_http_write(onion_request *con, const char *data, size_t len){
 	return write(con->connection.fd, data, len);
 }
