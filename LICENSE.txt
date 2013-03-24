@@ -1,2 +1,2 @@
-Contents of the src folder (the Library) is licensed under LGPLv3. See LGPLv3.txt file for more details.
+Contents of the src folder (the Library) is licensed under both GPLv2+ and LGPLv3+. See LGPLv3.txt and GPLv2.txt files for more details.
 All the rest of the code is AGPLv3. See AGPL.txt file for details.
