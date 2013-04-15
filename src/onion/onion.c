@@ -155,7 +155,9 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 static int onion_default_error(void *handler, onion_request *req, onion_response *res);
 // Import it here as I need it to know if we have a HTTP port.
 ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
+#ifdef HAVE_GNUTLS
 ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
+#endif
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
@@ -600,6 +602,7 @@ void onion_set_hostname(onion *server, const char *hostname){
 
 /// Set a certificate for use in the connection
 int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename,...){
+#ifdef HAVE_GNUTLS
 	if (!onion->listen_points){
 		onion_add_listen_point(onion,NULL,NULL,onion_https_new());
 	}
@@ -630,6 +633,10 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 	va_end(va);
 
 	return r;
+#else
+	ONION_ERROR("GNUTLS is not enabled. Recompile onion with GNUTLS support");
+	return -1;
+#endif
 }
 
 

@@ -1,12 +1,16 @@
 # the lib itself. Two versions, static and shared.
 
 if (SYSTEMD_ENABLED)
-set(SYSTEMD_C sd-daemon.c)
+	set(SYSTEMD_C sd-daemon.c)
 endif(SYSTEMD_ENABLED)
+# library dependencies
+if (GNUTLS_ENABLED)
+	set(HTTPS_C https.c)
+endif(GNUTLS_ENABLED)
 
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
                         log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} poller.c
-                        listen_point.c request_parser.c http.c https.c websocket.c)
+                        listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c)
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(
@@ -35,6 +39,8 @@ if (SYSTEMD_ENABLED)
 	target_link_libraries(onion ${RT_LIB})
 	target_link_libraries(onion_static ${RT_LIB})
 endif(SYSTEMD_ENABLED)
+
+
 
 add_subdirectory(handlers)
 
