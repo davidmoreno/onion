@@ -24,8 +24,8 @@ ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
 
 # library dependencies
 if (GNUTLS_ENABLED)
-	target_link_libraries(onion gnutls gcrypt)
-	target_link_libraries(onion_static gnutls gcrypt)
+	target_link_libraries(onion ${GNUTLS_LIB} gcrypt)
+	target_link_libraries(onion_static ${GNUTLS_LIB} gcrypt)
 endif(GNUTLS_ENABLED)
 if (PTHREADS)
 	target_link_libraries(onion pthread)
