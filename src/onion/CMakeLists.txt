@@ -11,7 +11,11 @@ endif(GNUTLS_ENABLED)
 if (LIBEVENT_ENABLED)
 	set(POLLER_C poller_libevent.c)
 else (LIBEVENT_ENABLED)
-	set(POLLER_C poller.c)
+	if (LIBEV_ENABLED)
+		set(POLLER_C poller_libev.c)
+	else (LIBEV_ENABLED)
+		set(POLLER_C poller.c)
+	endif (LIBEV_ENABLED)
 endif (LIBEVENT_ENABLED)
 
 
@@ -47,9 +51,13 @@ if (SYSTEMD_ENABLED)
 	target_link_libraries(onion_static ${RT_LIB})
 endif(SYSTEMD_ENABLED)
 if (LIBEVENT_ENABLED)
-	target_link_libraries(onion event_core)
-	target_link_libraries(onion_static event_core)
+	target_link_libraries(onion event_core event_pthreads)
+	target_link_libraries(onion_static event_core event_pthreads)
 endif (LIBEVENT_ENABLED)
+if (LIBEV_ENABLED)
+	target_link_libraries(onion ev)
+	target_link_libraries(onion_static ev)
+endif (LIBEV_ENABLED)
 
 
 
