@@ -8,8 +8,15 @@ if (GNUTLS_ENABLED)
 	set(HTTPS_C https.c)
 endif(GNUTLS_ENABLED)
 
+if (LIBEVENT_ENABLED)
+	set(POLLER_C poller_libevent.c)
+else (LIBEVENT_ENABLED)
+	set(POLLER_C poller.c)
+endif (LIBEVENT_ENABLED)
+
+
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
-                        log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} poller.c
+                        log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} ${POLLER_C}
                         listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c)
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
@@ -39,6 +46,10 @@ if (SYSTEMD_ENABLED)
 	target_link_libraries(onion ${RT_LIB})
 	target_link_libraries(onion_static ${RT_LIB})
 endif(SYSTEMD_ENABLED)
+if (LIBEVENT_ENABLED)
+	target_link_libraries(onion event_core)
+	target_link_libraries(onion_static event_core)
+endif (LIBEVENT_ENABLED)
 
 
 
