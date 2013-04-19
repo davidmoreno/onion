@@ -111,6 +111,8 @@ void end(){
 }
 
 int main(int argc, char **argv){
+	START();
+	
 	init();
 	t01_url();
 	

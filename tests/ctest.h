@@ -73,7 +73,7 @@ static const char * __attribute__((unused)) __BASENAME__="please set the START()
                     catch(...){ FAIL("An exeption was catched, execution of this test aborted"); } \
                     { INFO("%s ends: %d succeses / %d failures",__FUNCTION__,local_successes,local_failures); failures+=local_failures; successes+=local_successes; }
 #else
-#define INIT_LOCAL() { local_failures=local_successes=0; LOG("start %s",__FUNCTION__); }
+#define INIT_LOCAL() { local_failures=local_successes=0; INFO("Test %s",__FUNCTION__); LOG("start %s",__FUNCTION__); }
 #define END_LOCAL() { INFO("%s ends: %d succeses / %d failures\n",__FUNCTION__,local_successes,local_failures); failures+=local_failures; successes+=local_successes; }
 #endif
 
