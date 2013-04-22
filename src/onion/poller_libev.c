@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <libev/ev.h>
-#include <malloc.h>
+#include <ev.h>
+#include <stdlib.h>
 
 #include "poller.h"
 #include "log.h"
@@ -44,8 +44,6 @@ struct onion_poller_slot_t{
 	void (*shutdown)(void*);
 	onion_poller *poller;
 };
-
-typedef struct onion_poller_slot_t onion_poller_slot;
 
 /// Create a new slot for the poller
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){

@@ -23,7 +23,6 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -337,7 +336,7 @@ void onion_request_guess_session_id(onion_request *req){
   const char *v=ov;
 	ONION_DEBUG("Session ID, maybe from %s",v);
 	char *r=NULL;
-	onion_dict *session;
+	onion_dict *session=NULL;
 	
 	do{ // Check all possible sessions
 		if (r){

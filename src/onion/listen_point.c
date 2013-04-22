@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <netdb.h>
 #include <errno.h>
 #include <fcntl.h>

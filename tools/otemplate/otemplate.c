@@ -21,7 +21,7 @@
 #include <ctype.h>
 #include <libgen.h>
 #include <stdarg.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include "onion/log.h"
 #include "onion/block.h"
@@ -55,9 +55,9 @@ int main(int argc, char **argv){
 				help("Missing templatedir name");
 				return 3;
 			}
-			snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", strdupa(argv[i]));
+			snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", argv[i]);
 			ONION_DEBUG("Added templatedir %s", tmp);
-			list_add(plugin_search_path, strdupa(tmp)); // dupa is ok, as im at main.
+			list_add(plugin_search_path, strdup(tmp)); // dup, remember to free later.
 		}
 		else if ((strcmp(argv[i], "--no-orig-lines")==0) || (strcmp(argv[i], "-n")==0)){
 			use_orig_line_numbers=0;
@@ -88,19 +88,24 @@ int main(int argc, char **argv){
 		infilename="";
 	}
 	else{
-		snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(strdupa(argv[1])));
-		list_add(plugin_search_path, strdupa(tmp));
-		snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(strdupa(argv[1])));
-		list_add(plugin_search_path, strdupa(tmp));
+		snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(argv[1]));
+		list_add(plugin_search_path, strdup(tmp));
+		char tmp2[256];
+		strncpy(tmp2, argv[1], sizeof(tmp2)-1);
+		snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(tmp2));
+		list_add(plugin_search_path, strdup(tmp));
 	}
 
 	// Default template dirs
 	list_add(plugin_search_path, "lib%s.so");
 	list_add(plugin_search_path, "templatetags/lib%s.so");
-	snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(strdupa(argv[0])));
-	list_add(plugin_search_path, strdupa(tmp)); // dupa is ok, as im at main.
-	snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(strdupa(argv[0])));
-	list_add(plugin_search_path, strdupa(tmp)); // dupa is ok, as im at main.
+	char tmp2[256];
+	strncpy(tmp2, argv[0], sizeof(tmp2)-1);
+	snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(tmp2));
+	list_add(plugin_search_path, strdup(tmp)); // dupa is ok, as im at main.
+	strncpy(tmp2, argv[0], sizeof(tmp2)-1);
+	snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(tmp2));
+	list_add(plugin_search_path, strdup(tmp)); // dupa is ok, as im at main.
 	list_add(plugin_search_path, "/usr/local/lib/otemplate/templatetags/lib%s.so");
 	list_add(plugin_search_path, "/usr/lib/otemplate/templatetags/lib%s.so");
 
@@ -152,7 +157,9 @@ int work(const char *infilename, const char *outfilename){
 	status.line=1;
 	status.rawblock=onion_block_new();
 	status.infilename=infilename;
-	const char *tname=basename(strdupa(infilename));
+	char tmp2[256];
+	strncpy(tmp2, infilename, sizeof(tmp2)-1);
+	const char *tname=basename(tmp2);
   ONION_DEBUG("Create init function on top, tname %s",tname);
 	status.blocks_init=function_new(&status, "%s_blocks_init", tname);
 	status.blocks_init->signature="onion_dict *context";

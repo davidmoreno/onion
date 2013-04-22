@@ -16,10 +16,11 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <onion/log.h>
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "updateassets.h"
 

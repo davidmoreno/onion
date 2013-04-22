@@ -26,6 +26,7 @@
 #include <curl/curl.h>
 #include "../ctest.h"
 #include <fcntl.h>
+#include <signal.h>
 
 int checkfds();
 int handler(const char *me, onion_request *req, onion_response *res);

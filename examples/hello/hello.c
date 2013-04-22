@@ -27,7 +27,7 @@ int main(int argc, char **argv){
 	
 	o=onion_new(O_POLL);
 	onion_set_timeout(o, 5000);
-	//onion_set_hostname(o,"0.0.0.0");
+	onion_set_hostname(o,"0.0.0.0");
 	onion_url *urls=onion_root_url(o);
 	
 	onion_url_add_static(urls, "static", "Hello static world", HTTP_OK);

@@ -22,7 +22,9 @@
 	License and the GNU General Public License along with this 
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
+#ifdef __linux__
 #define USE_SENDFILE
+#endif
 
 #include <string.h>
 #include <stdarg.h>

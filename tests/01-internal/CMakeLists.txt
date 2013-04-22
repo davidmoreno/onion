@@ -13,6 +13,7 @@ target_link_libraries(04-handler onion_handlers onion)
 add_executable(05-server 05-server.c buffer_listen_point.c)
 target_link_libraries(05-server onion_handlers onion)
 
+if (GNUTLS)
 IF (CURL)
 add_custom_command(
    OUTPUT mycert.pem
@@ -27,6 +28,7 @@ add_custom_command(
 add_executable(06-onion 06-onion.c mycert.pem)
 target_link_libraries(06-onion onion_handlers onion curl)
 ENDIF (CURL)
+endif(GNUTLS)
 
 add_executable(07-codecs 07-codecs.c)
 target_link_libraries(07-codecs onion_handlers onion)
