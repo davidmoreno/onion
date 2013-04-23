@@ -192,6 +192,10 @@ onion *onion_new(int flags){
 	o->flags=(flags&0x0FF)|O_SSL_AVAILABLE;
 	o->timeout=5000; // 5 seconds of timeout, default.
 	o->poller=onion_poller_new(15);
+	if (!o->poller){
+		free(o);
+		return NULL;
+	}
 	o->sessions=onion_sessions_new();
 	o->internal_error_handler=onion_handler_new((onion_handler_handler)onion_default_error, NULL, NULL);
 	o->max_post_size=1024*1024; // 1MB
