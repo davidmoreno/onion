@@ -26,12 +26,15 @@
 #include <event2/event.h>
 #include <event2/thread.h>
 #include <malloc.h>
+#include <semaphore.h>
 
 #include "poller.h"
 #include "log.h"
 
 struct onion_poller_t{
 	struct event_base *base;
+	sem_t sem;
+	volatile int stop;
 };
 
 struct onion_poller_slot_t{
@@ -85,12 +88,11 @@ void onion_poller_slot_set_type(onion_poller_slot *el, int type){
 
 /// Create a new poller
 onion_poller *onion_poller_new(int aprox_n){
-#ifdef HAVE_PTHREADS
 	evthread_use_pthreads();
-#endif
 	
 	onion_poller *ret=calloc(1,sizeof(onion_poller));
 	ret->base=event_base_new();
+	sem_init(&ret->sem, 0, 1);
 	return ret;
 }
 
@@ -131,9 +133,15 @@ int onion_poller_remove(onion_poller *poller, int fd){
 
 /// Do the polling. If on several threads, this is done in every thread.
 void onion_poller_poll(onion_poller *poller){
-	event_base_loop(poller->base,0);
+	poller->stop=0;
+	while(!poller->stop){
+		sem_wait(&poller->sem);
+		event_base_loop(poller->base,EVLOOP_ONCE);
+		sem_post(&poller->sem);
+	}
 }
 /// Stops the polling. This only marks the flag, and should be cancelled with pthread_cancel.
 void onion_poller_stop(onion_poller *poller){
+	poller->stop=1;
 	event_base_loopbreak(poller->base);
 }

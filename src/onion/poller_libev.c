@@ -25,12 +25,15 @@
 
 #include <ev.h>
 #include <stdlib.h>
+#include <semaphore.h>
 
 #include "poller.h"
 #include "log.h"
 
 struct onion_poller_t{
 	struct ev_loop *loop;
+	sem_t sem;
+	volatile int stop;
 };
 
 struct onion_poller_slot_t{
@@ -85,6 +88,7 @@ void onion_poller_slot_set_type(onion_poller_slot *el, int type){
 onion_poller *onion_poller_new(int aprox_n){
 	onion_poller *ret=calloc(1,sizeof(onion_poller));
 	ret->loop=ev_default_loop(0);
+	sem_init(&ret->sem, 0, 1);
 	return ret;
 }
 
@@ -124,9 +128,18 @@ int onion_poller_remove(onion_poller *poller, int fd){
 
 /// Do the polling. If on several threads, this is done in every thread.
 void onion_poller_poll(onion_poller *poller){
-	ev_run(poller->loop,0);
+	ev_default_fork();
+	ev_loop_fork(poller->loop);
+
+	poller->stop=0;
+	while(!poller->stop){
+		sem_wait(&poller->sem);
+		ev_run(poller->loop,EVLOOP_ONESHOT);
+		sem_post(&poller->sem);
+	}
 }
 /// Stops the polling. This only marks the flag, and should be cancelled with pthread_cancel.
 void onion_poller_stop(onion_poller *poller){
+	poller->stop=1;
 	ev_break(poller->loop, EVBREAK_ALL);
 }
