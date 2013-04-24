@@ -139,7 +139,7 @@ int onion_png_response(unsigned char *image, int Bpp, int width, int height, oni
 	png_uint_32 k;
 	png_bytep row_pointers[height];
 
-	if (height > PNG_UINT_32_MAX/png_sizeof(png_bytep))
+	if (height > PNG_UINT_32_MAX/sizeof(png_bytep))
 		png_error (png_ptr, "Image is too tall to process in memory");
 
 	for (k = 0; k < height; k++)
