@@ -1,0 +1,15 @@
+CMakeFiles
+Makefile
+*.cmake
+*/CMakeFiles
+*/Makefile
+*/*.cmake
+*/*/CMakeFiles
+*/*/Makefile
+*/*/*.cmake
+CMakeCache.txt
+src/bindings/cpp/libonioncpp.so
+src/onion/handlers/libonion_handlers.so
+src/onion/handlers/libonion_handlers_static.a
+src/onion/libonion.so
+src/onion/libonion_static.a
