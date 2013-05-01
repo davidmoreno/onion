@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 42c48ab..34aa80f 100644
+index 1caa457..183b5e4 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -3,16 +3,16 @@ cmake_policy(VERSION 2.8)
+@@ -3,18 +3,18 @@ cmake_policy(VERSION 2.8)
  project(libonion)
  
  # Some tweak parameters
@@ -12,13 +12,18 @@ index 42c48ab..34aa80f 100644
 -SET(ONION_USE_PNG true)
 -SET(ONION_USE_XML2 true)
 -SET(ONION_USE_SYSTEMD true)
+-SET(ONION_USE_TESTS true)
+-SET(ONION_USE_BINDINGS_CPP true)
+-SET(ONION_VERSION 0.4.0)
 +# SET(ONION_USE_SSL true)
 +# SET(ONION_USE_PAM true)
 +# SET(ONION_USE_PTHREADS true)
 +# SET(ONION_USE_PNG true)
 +# SET(ONION_USE_XML2 true)
 +# SET(ONION_USE_SYSTEMD true)
- SET(ONION_VERSION 0.4.0)
++# SET(ONION_USE_TESTS true)
++# SET(ONION_USE_BINDINGS_CPP true)
++# SET(ONION_VERSION 0.4.0)
  ########
  
 -SET(LIBPATH /usr/lib /usr/local/lib)
@@ -26,7 +31,7 @@ index 42c48ab..34aa80f 100644
  
  IF (NOT DEFINED BINDIR)
  SET(BINDIR bin)
-@@ -131,12 +131,15 @@ if (SYSTEMD_ENABLED)
+@@ -133,12 +133,14 @@ if (SYSTEMD_ENABLED)
  endif (SYSTEMD_ENABLED)
  
  ##
@@ -42,31 +47,8 @@ index 42c48ab..34aa80f 100644
 +# ELSE (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 +# 	SET(CMAKE_C_FLAGS "-Wall -Werror -O2 -fPIC")
 +# ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
-+
 +SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror")
 +SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
  
  
  project (onion)
-@@ -153,6 +156,8 @@ else (CROSS_COMPILING)
- 	SET(OPACK opack)
- endif (CROSS_COMPILING)
- 
--add_subdirectory(examples)
--add_subdirectory(tests)
-+# add_subdirectory(examples)
-+if (${ONION_USE_TESTS})
-+    add_subdirectory(tests)
-+endif(${ONION_USE_TESTS})
- 
-diff --git a/src/bindings/CMakeLists.txt b/src/bindings/CMakeLists.txt
-index da8ed95..96f6ca0 100644
---- a/src/bindings/CMakeLists.txt
-+++ b/src/bindings/CMakeLists.txt
-@@ -1 +1,3 @@
--add_subdirectory(cpp)
-\ No newline at end of file
-+if (${ONION_USE_BINDINGS_CPP})
-+    add_subdirectory(cpp)
-+endif (${ONION_USE_BINDINGS_CPP})
-\ No newline at end of file

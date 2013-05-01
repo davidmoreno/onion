@@ -31,7 +31,7 @@ src_unpack() {
 }
 
 src_prepare() {
-    epatch "${FILESDIR}"/cmake_lists.patch
+    epatch "${FILESDIR}"/root-cmakelists.patch
 }
 
 src_configure() {
