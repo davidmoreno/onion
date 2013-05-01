@@ -32,7 +32,6 @@ src_unpack() {
 
 src_prepare() {
     epatch "${FILESDIR}"/cmake_lists.patch
-    epatch "${FILESDIR}"/new-libpng.patch
 }
 
 src_configure() {
