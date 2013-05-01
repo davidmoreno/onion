@@ -285,7 +285,7 @@ void t03_server_https(){
 
 void t04_server_timeout_threaded(){
   INIT_LOCAL();
-  CURL *curl=prepare_curl("http://localhost:8080");
+  CURL *curl=prepare_curl("http://localhost:8082");
   
   o=onion_new(O_THREADED | O_DETACH_LISTEN);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
@@ -313,7 +313,7 @@ void t04_server_timeout_threaded(){
 
 void t05_server_timeout_threaded_ssl(){
   INIT_LOCAL();
-  CURL *curl=prepare_curl("http://localhost:8080");
+  CURL *curl=prepare_curl("http://localhost:8081");
 	
   ONION_DEBUG("%s",__FUNCTION__);
   o=onion_new(O_THREADED | O_DETACH_LISTEN);
