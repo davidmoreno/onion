@@ -157,7 +157,6 @@ endif (CROSS_COMPILING)
 
 if (${ONION_USE_TESTS})
 	enable_testing()
-	add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --verbose)
 	add_subdirectory(examples)
 	add_subdirectory(tests)
 endif(${ONION_USE_TESTS})

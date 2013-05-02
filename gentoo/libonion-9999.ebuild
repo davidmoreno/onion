@@ -23,6 +23,7 @@ RDEPEND="
     png? ( || ( media-libs/libpng x11-libs/cairo ) )
     xml? ( dev-libs/libxml2 )
     systemd? ( sys-apps/systemd )
+    test? ( net-analyzer/netcat )
     "
 DEPEND="${RDEPEND}"
 
