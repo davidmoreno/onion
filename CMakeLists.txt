@@ -9,6 +9,8 @@ SET(ONION_USE_PTHREADS true)
 SET(ONION_USE_PNG true)
 SET(ONION_USE_XML2 true)
 SET(ONION_USE_SYSTEMD true)
+SET(ONION_USE_TESTS true)
+SET(ONION_USE_BINDINGS_CPP true)
 SET(ONION_VERSION 0.4.0)
 ########
 
@@ -148,11 +150,13 @@ add_subdirectory(src)
 
 if (CROSS_COMPILING)
 else (CROSS_COMPILING)
-  add_subdirectory(tools)
+	add_subdirectory(tools)
 	SET(OTEMPLATE otemplate)
 	SET(OPACK opack)
 endif (CROSS_COMPILING)
 
-add_subdirectory(examples)
-add_subdirectory(tests)
-
+if (${ONION_USE_TESTS})
+	enable_testing()
+	add_subdirectory(examples)
+	add_subdirectory(tests)
+endif(${ONION_USE_TESTS})
