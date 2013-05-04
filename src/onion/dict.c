@@ -64,8 +64,7 @@ static onion_dict_node *onion_dict_node_new(const char *key, const void *value, 
  * Initializes the basic tree with all the structure in place, but empty.
  */
 onion_dict *onion_dict_new(){
-	onion_dict *dict=malloc(sizeof(onion_dict));
-	memset(dict,0,sizeof(onion_dict));
+	onion_dict *dict=calloc(1, sizeof(onion_dict));
 #ifdef HAVE_PTHREADS
 	pthread_rwlock_init(&dict->lock, NULL);
 	pthread_mutex_init(&dict->refmutex, NULL);

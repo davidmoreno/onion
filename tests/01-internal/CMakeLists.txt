@@ -90,3 +90,6 @@ add_executable(16-url 16-url.c buffer_listen_point.c)
 target_link_libraries(16-url onion)
 add_test(internal-url 16-url)
 
+add_executable(17-permissions 17-permissions.c)
+target_link_libraries(17-permissions onion)
+add_test(internal-permissions 17-permissions)
