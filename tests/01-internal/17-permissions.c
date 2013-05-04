@@ -31,9 +31,8 @@ static size_t t01_errors_count;
 static bool t01_failed;
 
 void t01_listen_port_error_handler(onion_log_level level, const char *filename, int lineno, const char *fmt, ...) {
-	if (level == O_ERROR && errno == EBADF){
-		t01_errors_count++;
-		if (!t01_failed && t01_errors_count > 2) {
+	if (level == O_ERROR && (errno == EBADF || errno == EDOTDOT)){
+		if (!t01_failed) {
 			t01_failed = true;
 			onion_listen_stop(t01_server);
 		}

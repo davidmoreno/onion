@@ -202,6 +202,9 @@ int onion_listen_point_listen(onion_listen_point *op){
 		}
 		if (bind(sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
 			break; // Success
+		else {
+			ONION_ERROR("Could not bind to socket: %s",strerror(errno));
+		}
 		close(sockfd);
 	}
 	if (rp==NULL){
