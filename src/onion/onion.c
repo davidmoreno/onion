@@ -135,6 +135,7 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <errno.h>
 
 //#define HAVE_PTHREADS
 #ifdef HAVE_PTHREADS
@@ -272,11 +273,19 @@ int onion_listen(onion *o){
 	}
 
 	/// Start listening
+	size_t successful_listened_points=0;
 	onion_listen_point **lp=o->listen_points;
 	while (*lp){
-		onion_listen_point_listen(*lp);
+		int listen_result=onion_listen_point_listen(*lp);
+		if (!listen_result) {
+			successful_listened_points++;
+		}
 		lp++;
-	}	
+	}
+	if (!successful_listened_points){
+		ONION_ERROR("There are no available listen points");
+		return 1;
+	}
 
 	
 	if (o->flags&O_ONE){
