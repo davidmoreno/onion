@@ -65,8 +65,7 @@ const char *onion_request_methods[16]={
  */
 onion_request *onion_request_new(onion_listen_point *op){
 	onion_request *req;
-	req=malloc(sizeof(onion_request));
-	memset(req,0,sizeof(onion_request));
+	req=calloc(1, sizeof(onion_request));
 	
 	req->connection.listen_point=op;
 	req->connection.fd=-1;

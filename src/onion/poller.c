@@ -102,8 +102,7 @@ struct onion_poller_slot_t{
  * @returns A new poller slot, ready to be added (onion_poller_add) or modified (onion_poller_slot_set_shutdown, onion_poller_slot_set_timeout).
  */
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
-	onion_poller_slot *el=(onion_poller_slot*)malloc(sizeof(onion_poller_slot));
-	memset(el,0,sizeof(*el));
+	onion_poller_slot *el=(onion_poller_slot*)calloc(1, sizeof(onion_poller_slot));
 	el->fd=fd;
 	el->f=f;
 	el->data=data;

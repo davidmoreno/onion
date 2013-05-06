@@ -1,4 +1,4 @@
-include_directories (${CMAKE_SOURCE_DIR}/src/) 
+include_directories (${PROJECT_SOURCE_DIR}/src/) 
 find_program(HAVE_MSGFMT msgfmt)
 
 add_custom_command(
