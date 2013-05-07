@@ -305,11 +305,7 @@ int onion_response_flush(onion_response *res){
 		res->buffer_pos=0;
 		
 		onion_response_write_headers(res);
-		onion_response_flush(res);
-		
-		res->buffer_pos=tmpp;
-		memcpy(res->buffer, tmpb, res->buffer_pos);
-		res->sent_bytes=res->buffer_pos;
+		onion_response_write( res, tmpb, tmpp );
 	}
 	if (res->flags&OR_SKIP_CONTENT) // HEAD request
 		return 0;
