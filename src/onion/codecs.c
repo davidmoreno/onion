@@ -395,3 +395,70 @@ void onion_sha1(const char *data, int length, char *result){
 	gnutls_hash_fast(GNUTLS_DIG_SHA1, data, length, result); 
 #endif
 }
+
+/// At p inserts the proper encoding of c, and returns the new string cursor (end of inserted symbols).
+char *onion_html_add_enc(char c, char *p){
+	switch(c){
+		case '<':
+			*p++='&';
+			*p++='l';
+			*p++='t';
+			*p++=';';
+			break;
+		case '>':
+			*p++='&';
+			*p++='g';
+			*p++='t';
+			*p++=';';
+			break;
+		case '"':
+			*p++='&';
+			*p++='q';
+			*p++='u';
+			*p++='o';
+			*p++='t';
+			*p++=';';
+			break;
+		default:
+			*p++=c;
+	}
+	return p;
+}
+
+/// Returns the encoding for minimal set
+int onion_html_encoding_size(char c){
+	switch(c){
+		case '<':
+			return 4;
+		case '>':
+			return 4;
+		case '"':
+			return 6;
+	}
+	return 1;
+}
+
+/**
+ * @short Calculates the HTML encoding of a given string
+ * 
+ * It return a new allocated string
+ */
+char *onion_html_quote(const char *str){
+	/// first calculate size
+	int size=0;
+	const char *p=str;
+	while( (*p) ){
+		size+=onion_html_encoding_size(*p);
+		p++;
+	}
+	char *ret=calloc(1,size+1);
+	p=str;
+	char *t=ret;
+	while( (*p) ){
+		t=onion_html_add_enc(*p, t);
+		p++;
+	}
+	*t='\0';
+	return ret;
+}
+
