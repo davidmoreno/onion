@@ -34,6 +34,7 @@
 #include "response.h"
 #include "types_internal.h"
 #include "log.h"
+#include "codecs.h"
 
 const char *onion_response_code_description(int code);
 static int onion_response_write_buffer(onion_response *res);
@@ -326,6 +327,23 @@ static int onion_response_write_buffer(onion_response *res){
 ssize_t onion_response_write0(onion_response *res, const char *data){
 	return onion_response_write(res, data, strlen(data));
 }
+
+/**
+ * @short Writes the given string to the res, but encodes the data using html entities
+ * 
+ * The encoding mens that <code><html> whould become &lt;html&gt;</code>
+ */
+ssize_t onion_response_write_html_safe(onion_response *res, const char *data){
+	char *tmp=onion_html_quote(data);
+	if (tmp){
+		int r=onion_response_write0(res, tmp);
+		free(tmp);
+		return r;
+	}
+	else
+		return onion_response_write0(res, data);
+}
+
 
 /**
  * @short Writes some data to the response. Using sprintf format strings. Max final string size: 1024

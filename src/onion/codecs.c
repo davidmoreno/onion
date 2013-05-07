@@ -441,7 +441,7 @@ int onion_html_encoding_size(char c){
 /**
  * @short Calculates the HTML encoding of a given string
  * 
- * It return a new allocated string
+ * If needs encoding returns a new string that should be deallocated, if not, returns NULL.
  */
 char *onion_html_quote(const char *str){
 	/// first calculate size
@@ -451,6 +451,8 @@ char *onion_html_quote(const char *str){
 		size+=onion_html_encoding_size(*p);
 		p++;
 	}
+	if (size==(p-str))
+		return NULL;
 	char *ret=calloc(1,size+1);
 	p=str;
 	char *t=ret;
