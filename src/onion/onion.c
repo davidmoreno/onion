@@ -313,7 +313,7 @@ int onion_listen(onion *o){
 		onion_listen_point **listen_points=o->listen_points;
 		while (*listen_points){
 			onion_listen_point *p=*listen_points;
-			ONION_DEBUG("Adding %d to poller", p->listenfd);
+			ONION_DEBUG("Adding listen point fd %d to poller", p->listenfd);
 			onion_poller_slot *slot=onion_poller_slot_new(p->listenfd, (void*)onion_listen_point_accept, p);
 			onion_poller_slot_set_type(slot, O_POLL_ALL);
 			onion_poller_add(o->poller, slot);
@@ -344,9 +344,10 @@ int onion_listen(onion *o){
 		listen_points=o->listen_points;
 		while (*listen_points){
 			onion_listen_point *p=*listen_points;
-			ONION_DEBUG("Removing %d from poller", p->listenfd);
-			if (p->listenfd>0)
+			if (p->listenfd>0){
+				ONION_DEBUG("Removing %d from poller", p->listenfd);
 				onion_poller_remove(o->poller, p->listenfd);
+			}
 			listen_points++;
 		}
 	}

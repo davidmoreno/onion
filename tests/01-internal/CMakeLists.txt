@@ -93,3 +93,7 @@ add_test(internal-url 16-url)
 add_executable(17-permissions 17-permissions.c)
 target_link_libraries(17-permissions onion)
 add_test(internal-permissions 17-permissions)
+
+add_executable(18-listen_stop 18-listen_stop.c)
+target_link_libraries(18-listen_stop onion)
+add_test(listen_stop 18-listen_stop)
