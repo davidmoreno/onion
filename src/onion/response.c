@@ -34,9 +34,9 @@
 #include "response.h"
 #include "types_internal.h"
 #include "log.h"
+#include "codecs.h"
 
 const char *onion_response_code_description(int code);
-static int onion_response_write_buffer(onion_response *res);
 
 /**
  * @short Generates a new response object
@@ -89,7 +89,10 @@ onion_response *onion_response_new(onion_request *req){
  */
 onion_connection_status onion_response_free(onion_response *res){
 	// write pending data.
-	onion_response_write_buffer(res);
+	if (res->buffer_pos<sizeof(res->buffer))
+		onion_response_set_length(res, res->buffer_pos);
+	
+	onion_response_flush(res);
 	onion_request *req=res->request;
 	
 	if (res->flags&OR_CHUNKED){ // Set the chunked data end.
@@ -219,12 +222,12 @@ int onion_response_write_headers(onion_response *res){
 	res->sent_bytes=0; // the header size is not counted here.
 	
 	if ((res->request->flags&OR_METHODS)==OR_HEAD){
-		onion_response_write_buffer(res);
+		onion_response_flush(res);
 		res->flags|=OR_SKIP_CONTENT;
 		return OR_SKIP_CONTENT;
 	}
 	if (chunked){
-		onion_response_write_buffer(res);
+		onion_response_flush(res);
 		res->flags|=OR_CHUNKED;
 	}
 	
@@ -248,15 +251,15 @@ int onion_response_write_headers(onion_response *res){
  * @returns The bytes written, normally just length. On error returns OCS_CLOSE_CONNECTION.
  */
 ssize_t onion_response_write(onion_response *res, const char *data, size_t length){
-	if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
-		onion_response_write_headers(res);
-	}
 	if (res->flags&OR_SKIP_CONTENT){
+		if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
+			onion_response_write_headers(res);
+		}
 		ONION_DEBUG("Skipping content as we are in HEAD mode");
 		return OCS_CLOSE_CONNECTION;
 	}
 	if (length==0){
-		onion_response_write_buffer(res);
+		onion_response_flush(res);
 		return 0;
 	}
 	res->sent_bytes+=length;
@@ -269,7 +272,7 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
 		memcpy(&res->buffer[res->buffer_pos], data, wb);
 		
 		res->buffer_pos=sizeof(res->buffer);
-		if (onion_response_write_buffer(res)<0)
+		if (onion_response_flush(res)<0)
 			return w;
 		
 		l-=wb;
@@ -284,11 +287,29 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
 	return w;
 }
 
-/// Writes all buffered output waiting for sending.
-static int onion_response_write_buffer(onion_response *res){
-	if (res->flags&OR_SKIP_CONTENT || res->buffer_pos==0)
+/**
+ * @short Writes all buffered output waiting for sending.
+ * 
+ * If header has not been sent yet (delayed), it uses a temporary buffer to send it now. This
+ * way header can use the buffer_size information to send the proper content-length, even when it
+ * wasnt properly set by programmer. Whith this information its possib to keep alive the connection
+ * on more cases.
+ */
+int onion_response_flush(onion_response *res){
+	if(res->buffer_pos==0) // Not used.
 		return 0;
-	
+	if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
+		char tmpb[sizeof(res->buffer)];
+		int tmpp=res->buffer_pos;
+		memcpy(tmpb, res->buffer, res->buffer_pos);
+		res->buffer_pos=0;
+		
+		onion_response_write_headers(res);
+		onion_response_write( res, tmpb, tmpp );
+	}
+	if (res->flags&OR_SKIP_CONTENT) // HEAD request
+		return 0;
+
 	onion_request *req=res->request;
 	ssize_t (*write)(onion_request *, const char *data, size_t len);
 	write=req->connection.listen_point->write;
@@ -326,6 +347,23 @@ static int onion_response_write_buffer(onion_response *res){
 ssize_t onion_response_write0(onion_response *res, const char *data){
 	return onion_response_write(res, data, strlen(data));
 }
+
+/**
+ * @short Writes the given string to the res, but encodes the data using html entities
+ * 
+ * The encoding mens that <code><html> whould become &lt;html&gt;</code>
+ */
+ssize_t onion_response_write_html_safe(onion_response *res, const char *data){
+	char *tmp=onion_html_quote(data);
+	if (tmp){
+		int r=onion_response_write0(res, tmp);
+		free(tmp);
+		return r;
+	}
+	else
+		return onion_response_write0(res, data);
+}
+
 
 /**
  * @short Writes some data to the response. Using sprintf format strings. Max final string size: 1024

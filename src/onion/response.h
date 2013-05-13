@@ -111,8 +111,12 @@ int onion_response_write_headers(onion_response *res);
 ssize_t onion_response_write(onion_response *res, const char *data, size_t length);
 /// Writes some data to the response. \0 ended string
 ssize_t onion_response_write0(onion_response *res, const char *data);
+/// Writes some data to the response. \0 ended string, and encodes it if necesary into html entities to make it safe
+ssize_t onion_response_write_html_safe(onion_response *res, const char *data);
 /// Writes some data to the response. Using sprintf format strings.
 ssize_t onion_response_printf(onion_response *res, const char *fmt, ...);
+/// Flushes remaining data on the buffer to the listen point.
+int onion_response_flush(onion_response *res);
 /// @}
 
 #ifdef __cplusplus

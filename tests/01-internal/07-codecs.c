@@ -173,6 +173,15 @@ void t06_codecs_c_unicode(){
 	END_LOCAL();
 }
 
+void t07_codecs_html(){
+	INIT_LOCAL();
+	
+	char *encoded=onion_html_quote("<\"Hello\">");
+	FAIL_IF_NOT_EQUAL_STR( encoded, "&lt;&quot;Hello&quot;&gt;");
+	free(encoded);
+	
+	END_LOCAL();
+}
 
 int main(int argc, char **argv){
 	START();
@@ -183,6 +192,7 @@ int main(int argc, char **argv){
 	t04_codecs_base64_encode_decode();
 	t05_codecs_base64_decode_trash();
 	t06_codecs_c_unicode();
+	t07_codecs_html();
 	
 	END();
 }

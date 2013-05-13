@@ -249,8 +249,7 @@ process *oterm_new(oterm_data *data, oterm_session *session, const char *usernam
     ONION_DEBUG("New UUID for this terminal is %s", oterm->uuid);
   }
   
-	oterm->buffer=malloc(BUFFER_SIZE);
-	memset(oterm->buffer, 0, BUFFER_SIZE);
+	oterm->buffer=calloc(1, BUFFER_SIZE);
 	oterm->buffer_pos=0;
 	pthread_mutex_init(&oterm->mutex, NULL);
 	pthread_cond_init(&oterm->dataReady, NULL);

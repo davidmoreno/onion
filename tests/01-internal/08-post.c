@@ -252,8 +252,10 @@ void t04_post_largefile(){
 	onion_request_write(req,"\n--end--",8);
 	FAIL_IF_NOT_EQUAL_INT(post.test_ok,1);
 #undef POST_HEADER
+	onion_request_clean(req);
 
-	post.test_ok=0; // Not ok as not called processor yet
+
+	//post.test_ok=0; // Not ok as not called processor yet
 
 	lseek(postfd, 0, SEEK_SET);
 
@@ -284,8 +286,6 @@ void t04_post_largefile(){
 	
 	close(difffd);
 	close(postfd);
-
-	onion_request_clean(req);
 
 	onion_request_free(req);
 

@@ -135,6 +135,7 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <errno.h>
 
 //#define HAVE_PTHREADS
 #ifdef HAVE_PTHREADS
@@ -192,6 +193,10 @@ onion *onion_new(int flags){
 	o->flags=(flags&0x0FF)|O_SSL_AVAILABLE;
 	o->timeout=5000; // 5 seconds of timeout, default.
 	o->poller=onion_poller_new(15);
+	if (!o->poller){
+		free(o);
+		return NULL;
+	}
 	o->sessions=onion_sessions_new();
 	o->internal_error_handler=onion_handler_new((onion_handler_handler)onion_default_error, NULL, NULL);
 	o->max_post_size=1024*1024; // 1MB
@@ -268,11 +273,19 @@ int onion_listen(onion *o){
 	}
 
 	/// Start listening
+	size_t successful_listened_points=0;
 	onion_listen_point **lp=o->listen_points;
 	while (*lp){
-		onion_listen_point_listen(*lp);
+		int listen_result=onion_listen_point_listen(*lp);
+		if (!listen_result) {
+			successful_listened_points++;
+		}
 		lp++;
-	}	
+	}
+	if (!successful_listened_points){
+		ONION_ERROR("There are no available listen points");
+		return 1;
+	}
 
 	
 	if (o->flags&O_ONE){
@@ -300,7 +313,7 @@ int onion_listen(onion *o){
 		onion_listen_point **listen_points=o->listen_points;
 		while (*listen_points){
 			onion_listen_point *p=*listen_points;
-			ONION_DEBUG("Adding %d to poller", p->listenfd);
+			ONION_DEBUG("Adding listen point fd %d to poller", p->listenfd);
 			onion_poller_slot *slot=onion_poller_slot_new(p->listenfd, (void*)onion_listen_point_accept, p);
 			onion_poller_slot_set_type(slot, O_POLL_ALL);
 			onion_poller_add(o->poller, slot);
@@ -331,9 +344,10 @@ int onion_listen(onion *o){
 		listen_points=o->listen_points;
 		while (*listen_points){
 			onion_listen_point *p=*listen_points;
-			ONION_DEBUG("Removing %d from poller", p->listenfd);
-			if (p->listenfd>0)
+			if (p->listenfd>0){
+				ONION_DEBUG("Removing %d from poller", p->listenfd);
 				onion_poller_remove(o->poller, p->listenfd);
+			}
 			listen_points++;
 		}
 	}

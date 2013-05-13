@@ -32,9 +32,11 @@ struct tests_call_otemplate{
   char ok_list;
   char ok_hello;
   char ok_title_title;
+	char ok_encoding;
 };
 
 void check_tests(onion_block *data, struct tests_call_otemplate *test){
+	memset(test, 0, sizeof(*test));
 	const char *tmp=onion_block_data(data);
 	test->ok_title=test->ok_list=test->ok_hello=test->ok_title_title=0;
   if (strstr(tmp, "TITLE"))
@@ -45,6 +47,8 @@ void check_tests(onion_block *data, struct tests_call_otemplate *test){
     test->ok_hello=1;
   if (strstr(tmp,"TITLE TITLE"))
     test->ok_title_title=1;
+  if (strstr(tmp,"&lt;&quot;Hello&gt;"))
+    test->ok_encoding=1;
 }
 
 static int onion_request_write0(onion_request *req, const char *str){
@@ -75,22 +79,26 @@ void t01_call_otemplate(){
   FAIL_IF_NOT_EQUAL_INT(tests.ok_list,0);
   FAIL_IF_NOT_EQUAL_INT(tests.ok_title,0);
   FAIL_IF_NOT_EQUAL_INT(tests.ok_title_title,0);
+  FAIL_IF_NOT_EQUAL_INT(tests.ok_encoding,0);
 
   
   onion_dict *d=onion_dict_new();
   onion_dict_add(d, "title", "TITLE",0);
   onion_dict_add(d, "hello", "SHOULD NOT APPEAR",0);
-  
+	onion_dict_add(d, "quoted", "<\"Hello>",0);
+
   onion_request_clean(req);
 	onion_handler_free(onion_get_root_handler(s));
   onion_set_root_handler(s, onion_handler_new((void*)_13_otemplate_html_handler_page, d, NULL));
   FAIL_IF_NOT_EQUAL_INT(onion_request_write0(req, "GET /\n\n"), OCS_CLOSE_CONNECTION);
+  ONION_INFO("Got %s",onion_buffer_listen_point_get_buffer_data(req));
   check_tests(onion_buffer_listen_point_get_buffer(req), &tests);
   
   FAIL_IF_NOT_EQUAL_INT(tests.ok_hello,1);
   FAIL_IF_NOT_EQUAL_INT(tests.ok_list,0);
   FAIL_IF_NOT_EQUAL_INT(tests.ok_title,1);
   FAIL_IF_NOT_EQUAL_INT(tests.ok_title_title,1);
+  FAIL_IF_NOT_EQUAL_INT(tests.ok_encoding,1);
 
   
   onion_dict *d2=onion_dict_new();

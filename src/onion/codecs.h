@@ -55,6 +55,10 @@ char *onion_c_quote(const char *str, char *ret, int l);
 /// Calculates the sha1 checksum
 void onion_sha1(const char *data, int length, char *result);
 
+/// Calculates the HTML encoding of a string. Returned value must be freed. If no encoding needed, returns NULL.
+char *onion_html_quote(const char *str);
+
+
 #ifdef __cplusplus
 }
 #endif
