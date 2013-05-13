@@ -8,15 +8,17 @@ if (GNUTLS_ENABLED)
 	set(HTTPS_C https.c)
 endif(GNUTLS_ENABLED)
 
-if (LIBEVENT_ENABLED)
+if (${ONION_POLLER} STREQUAL libevent)
 	set(POLLER_C poller_libevent.c)
-else (LIBEVENT_ENABLED)
-	if (LIBEV_ENABLED)
-		set(POLLER_C poller_libev.c)
-	else (LIBEV_ENABLED)
-		set(POLLER_C poller.c)
-	endif (LIBEV_ENABLED)
-endif (LIBEVENT_ENABLED)
+endif (${ONION_POLLER} STREQUAL libevent)
+
+if (${ONION_POLLER} STREQUAL libev)
+	set(POLLER_C poller_libev.c)
+endif (${ONION_POLLER} STREQUAL libev)
+
+if (${ONION_POLLER} STREQUAL epoll)
+	set(POLLER_C poller.c)
+endif (${ONION_POLLER} STREQUAL epoll)
 
 
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
@@ -50,14 +52,14 @@ if (SYSTEMD_ENABLED)
 	target_link_libraries(onion ${RT_LIB})
 	target_link_libraries(onion_static ${RT_LIB})
 endif(SYSTEMD_ENABLED)
-if (LIBEVENT_ENABLED)
+if (${ONION_POLLER} STREQUAL libevent)
 	target_link_libraries(onion event_core event_pthreads)
 	target_link_libraries(onion_static event_core event_pthreads)
-endif (LIBEVENT_ENABLED)
-if (LIBEV_ENABLED)
+endif (${ONION_POLLER} STREQUAL libevent)
+if (${ONION_POLLER} STREQUAL libev)
 	target_link_libraries(onion ev)
 	target_link_libraries(onion_static ev)
-endif (LIBEV_ENABLED)
+endif (${ONION_POLLER} STREQUAL libev)
 
 
 
@@ -68,7 +70,7 @@ if (${PNG_ENABLED})
 add_subdirectory(extras)
 endif (${PNG_ENABLED})
 
-SET(INCLUDES_ONION onion.h dict.h request.h response.h codecs.h handler.h server.h log.h sessions.h types.h shortcuts.h url.h block.h mime.h)
+SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h sd-daemon.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h)
 MESSAGE("Found include files ${INCLUDES_ONION}")
 
 install(FILES ${INCLUDES_ONION} DESTINATION ${INCLUDEDIR})

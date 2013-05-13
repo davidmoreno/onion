@@ -1,4 +1,4 @@
-include_directories (${CMAKE_SOURCE_DIR}/src/) 
+include_directories (${PROJECT_SOURCE_DIR}/src/) 
 
 add_subdirectory(01-internal)
 
@@ -25,3 +25,5 @@ ADD_CUSTOM_TARGET(onion.ini ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/onion.ini
 	)
 
 add_subdirectory(08-cpp)
+
+add_subdirectory(09-orm)

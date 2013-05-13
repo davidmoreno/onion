@@ -108,7 +108,26 @@ static void event_callback(struct ev_loop *loop, ev_io *w, int revents){
 /// Adds a slot to the poller
 int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 	el->poller=poller;
-	ev_io_init(&el->ev, event_callback, el->fd, el->type);
+
+	// normally would use ev_io_init bellow, but gcc on F18+ give a 
+	// "dereferencing type-punned pointer will break strict-aliasing rules" error
+	// So the macro must be expanded and this is what we get. In the future this may
+	// give bugs on libevent if this changes.
+	
+	//ev_io_init(&el->ev, event_callback, el->fd, el->type);
+	// expands to ev_init + ev_io_set. ev_init expand more or less as bellow
+
+	//ev_init(&el->ev, event_callback);
+	{
+		ev_watcher *ew=(void *)(&el->ev); // ew must exit to prevent the before mentioned error.
+		ew->active  = 0;
+		ew->pending = 0;	
+		ew->priority = 0;
+		el->ev.cb = event_callback;
+	}
+	
+	ev_io_set(&el->ev, el->fd, el->type);
+	
 	el->ev.data=el;
 // 	if (el->timeout>0){
 // 		event_add(el->ev, &tv);

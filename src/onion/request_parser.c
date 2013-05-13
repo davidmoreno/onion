@@ -863,14 +863,10 @@ static onion_connection_status parse_headers_GET(onion_request *req, onion_buffe
  * @see onion_connection_status
  */
 onion_connection_status onion_request_write(onion_request *req, const char *data, size_t size){
-	onion_token *token;
 	if (!req->parser_data){
-		token=req->parser_data=malloc(sizeof(onion_token));
-		memset(token,0,sizeof(onion_token));
+		req->parser_data=calloc(1, sizeof(onion_token));
 		req->parser=parse_headers_GET;
 	}
-	else
-		token=req->parser_data;
 	
 	onion_connection_status (*parse)(onion_request *req, onion_buffer *data);
 	parse=req->parser;

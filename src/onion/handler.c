@@ -83,8 +83,7 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
  *
  */
 onion_handler *onion_handler_new(onion_handler_handler handler, void *priv_data, onion_handler_private_data_free priv_data_free){
-	onion_handler *phandler=malloc(sizeof(onion_handler));
-	memset(phandler,0,sizeof(onion_handler));
+	onion_handler *phandler=calloc(1, sizeof(onion_handler));
 	phandler->handler=handler;
 	phandler->priv_data=priv_data;
 	phandler->priv_data_free=priv_data_free;

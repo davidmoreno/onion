@@ -1,0 +1,54 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1caa457..183b5e4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,18 +3,18 @@ cmake_policy(VERSION 2.8)
+ project(libonion)
+ 
+ # Some tweak parameters
+-SET(ONION_USE_SSL true)
+-SET(ONION_USE_PAM true)
+-SET(ONION_USE_PTHREADS true)
+-SET(ONION_USE_PNG true)
+-SET(ONION_USE_XML2 true)
+-SET(ONION_USE_SYSTEMD true)
+-SET(ONION_USE_TESTS true)
+-SET(ONION_USE_BINDINGS_CPP true)
+-SET(ONION_VERSION 0.4.0)
++# SET(ONION_USE_SSL true)
++# SET(ONION_USE_PAM true)
++# SET(ONION_USE_PTHREADS true)
++# SET(ONION_USE_PNG true)
++# SET(ONION_USE_XML2 true)
++# SET(ONION_USE_SYSTEMD true)
++# SET(ONION_USE_TESTS true)
++# SET(ONION_USE_BINDINGS_CPP true)
++# SET(ONION_VERSION 0.4.0)
+ ########
+ 
+-SET(LIBPATH /usr/lib /usr/local/lib)
++# SET(LIBPATH /usr/lib /usr/local/lib)
+ 
+ IF (NOT DEFINED BINDIR)
+ SET(BINDIR bin)
+@@ -133,12 +133,14 @@ if (SYSTEMD_ENABLED)
+ endif (SYSTEMD_ENABLED)
+ 
+ ##
+-IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+-	add_definitions(-D__DEBUG__)
+-	SET(CMAKE_C_FLAGS "-Wall -Werror -O0 -fPIC")
+-ELSE (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+-	SET(CMAKE_C_FLAGS "-Wall -Werror -O2 -fPIC")
+-ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
++# IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
++# 	add_definitions(-D__DEBUG__)
++# 	SET(CMAKE_C_FLAGS "-Wall -Werror -O0 -fPIC")
++# ELSE (${CMAKE_BUILD_TYPE} MATCHES "Debug")
++# 	SET(CMAKE_C_FLAGS "-Wall -Werror -O2 -fPIC")
++# ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
++SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror")
++SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+ 
+ 
+ project (onion)
