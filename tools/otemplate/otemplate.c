@@ -88,9 +88,10 @@ int main(int argc, char **argv){
 		infilename="";
 	}
 	else{
-		snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(argv[1]));
-		list_add(plugin_search_path, strdup(tmp));
 		char tmp2[256];
+		strncpy(tmp2, argv[1], sizeof(tmp2)-1);
+		snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(tmp2));
+		list_add(plugin_search_path, strdup(tmp));
 		strncpy(tmp2, argv[1], sizeof(tmp2)-1);
 		snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(tmp2));
 		list_add(plugin_search_path, strdup(tmp));

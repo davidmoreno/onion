@@ -43,6 +43,7 @@ void functions_write_declarations(parser_status *st){
 
 /// Writes the desired function to st->out
 static void function_write(parser_status *st, function_data *d){
+	ONION_DEBUG("Write function %s", d->id);
 	if (d->code){
 		if (use_orig_line_numbers)
 			fprintf(st->out, "#line 1\n");
