@@ -8,6 +8,8 @@ add_executable(otemplate otemplate.c parser.c tags.c variables.c list.c function
 
 if (CMAKE_SYSTEM_NAME  STREQUAL "Linux")
   target_link_libraries(otemplate dl)
+else (CMAKE_SYSTEM_NAME  STREQUAL "Linux")
+  SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--export-dynamic")
 endif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
 install(TARGETS otemplate DESTINATION bin)
