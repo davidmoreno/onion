@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <assert.h>
 
 #include <onion/log.h>
 #include <onion/block.h>
@@ -53,26 +54,28 @@ static void function_write(parser_status *st, function_data *d){
 "void %s(%s){\n", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res"
 					);
 		
+		const char *data=onion_block_data(d->code);
+		int ldata=onion_block_size(d->code);
 		if (use_orig_line_numbers){
 			fprintf(st->out, "#line 1\n");
 		
 			// Write code, but change \n\n to \n
-			const char *data=onion_block_data(d->code);
-			int ldata=onion_block_size(d->code);
-			int i=0, li=0;
+			int i=0, li=0, diff;
 			char lc=0;
 			for (i=0;i<ldata;i++){
 				if (data[i]=='\n' && lc=='\n'){ // Two in a row
-					fwrite(&data[li], 1, i-li-1, st->out);
+					diff = i-li-1;
+					assert(fwrite(&data[li], 1, diff, st->out)==diff);
 					li=i;
 				}
 				lc=data[i];
 			}
-			fwrite(&data[li], 1, i-li, st->out);
+			diff=i-li;
+			assert(fwrite(&data[li], 1, diff, st->out)==diff);
 			fprintf(st->out, "#line 1\n");
 		}
 		else{
-			fwrite(onion_block_data(d->code), 1, onion_block_size(d->code), st->out);
+			assert(fwrite(data, 1, ldata, st->out)==ldata);
 		}
 
 		fprintf(st->out,"}\n");

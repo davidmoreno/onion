@@ -105,10 +105,12 @@ int onion_assets_file_free(onion_assets_file *f){
 	fseek(f->file, 0, SEEK_SET);
 	
 	int i;
+    size_t length;
 	for (i=0;i<f->lines_count;i++){
 		ONION_DEBUG("Write: %s", f->lines[i]);
-		fwrite(f->lines[i], 1, strlen(f->lines[i]), f->file);
-		fwrite("\n",1, 1, f->file);
+		length=strlen(f->lines[i]);
+		assert(fwrite(f->lines[i], 1, length, f->file)==length);
+		assert(fwrite("\n",1, 1, f->file)==1);
 		free(f->lines[i]);
 	}
 	free(f->lines);
