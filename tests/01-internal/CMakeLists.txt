@@ -19,11 +19,14 @@ target_link_libraries(05-server onion_handlers onion)
 add_test(internal-server 05-server)
 
 IF (CURL)
+FIND_PROGRAM(CERTTOOL certtool)
+IF (CERTTOOL)
+message(STATUS "Found certool compiling all tests")
 add_custom_command(
    OUTPUT mycert.pem
    COMMAND 
-		certtool --generate-privkey --outfile mycert.key &&
-		certtool --generate-self-signed --load-privkey mycert.key --outfile mycert.crt --template ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg  &&
+		${CERTTOOL} --generate-privkey --outfile mycert.key &&
+		${CERTTOOL} --generate-self-signed --load-privkey mycert.key --outfile mycert.crt --template ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg  &&
 		cat mycert.crt mycert.key > mycert.pem
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg
    )
@@ -32,6 +35,9 @@ add_custom_command(
 add_executable(06-onion 06-onion.c mycert.pem)
 target_link_libraries(06-onion onion_handlers onion curl)
 add_test(internal-onion 06-onion)
+ELSE(CERTTOOL)
+message(STATUS "Not found certool not compiling 06-server")
+ENDIF (CERTTOOL)
 ENDIF (CURL)
 
 add_executable(07-codecs 07-codecs.c)
