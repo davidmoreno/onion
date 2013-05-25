@@ -648,7 +648,7 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
 	}
 	if ((ret==0) && strncmp(base, file, strlen(base))!=0){
 		ret=1;
-		ONION_ERROR("Base %s is not for file %s (%p)", base, file, strncmp(base, file, sizeof(base)));
+		ONION_ERROR("Base %s is not for file %s (%p)", base, file, strncmp(base, file, strlen(base)));
 	}
 	
 	if (base)
