@@ -89,7 +89,7 @@ void onion_listen_point_free(onion_listen_point *op){
  * @short Called when a new connection appears on the listenfd
  * @memberof onion_listen_point_t
  * 
- * When the new conneciton appears, creates the request and adds it to the pollers.
+ * When the new connection appears, creates the request and adds it to the pollers.
  * 
  * It returns always 1 as any <0 would detach from the poller and close the listen point, 
  * and not accepting a request does not mean the connection point is corrupted. If a 
@@ -102,13 +102,19 @@ void onion_listen_point_free(onion_listen_point *op){
 int onion_listen_point_accept(onion_listen_point *op){
 	onion_request *req=onion_request_new(op);
 	if (req){
-		onion_poller_slot *slot=onion_poller_slot_new(req->connection.fd, (void*)onion_listen_point_read_ready, req);
-		onion_poller_slot_set_timeout(slot, req->connection.listen_point->server->timeout);
-		onion_poller_slot_set_shutdown(slot, (void*)onion_request_free, req);
-		onion_poller_add(req->connection.listen_point->server->poller, slot);
-		return 1;
+		if (req->connection.fd>0){
+			onion_poller_slot *slot=onion_poller_slot_new(req->connection.fd, (void*)onion_listen_point_read_ready, req);
+			if (!slot)
+				return 1;
+			onion_poller_slot_set_timeout(slot, req->connection.listen_point->server->timeout);
+			onion_poller_slot_set_shutdown(slot, (void*)onion_request_free, req);
+			onion_poller_add(req->connection.listen_point->server->poller, slot);
+			return 1;
+		}
+		if (req->connection.fd<0)
+			ONION_ERROR("Error creating connection");
+		// else, no need for fd... no use case yet.
 	}
-	ONION_ERROR("Error creating connection");
 
 	return 1;
 }
@@ -256,6 +262,11 @@ static int onion_listen_point_read_ready(onion_request *req){
 int onion_listen_point_request_init_from_socket(onion_request *req){
 	onion_listen_point *op=req->connection.listen_point;
 	int listenfd=op->listenfd;
+	if (listenfd<0){
+		ONION_DEBUG("Listen point closed, no request allowed");
+		return -1;
+	}
+	
 	/// Follows default socket implementation. If your protocol is socket based, just use it.
 	
 	req->connection.cli_len = sizeof(req->connection.cli_addr);

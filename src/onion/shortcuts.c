@@ -208,7 +208,7 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
     close(fd);
     return OCS_PROCESSED;
   }
-
+	onion_response_write_headers(res);
 	if ((onion_request_get_flags(request)&OR_HEAD) == OR_HEAD){ // Just head.
 		length=0;
 	}
