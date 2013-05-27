@@ -62,20 +62,33 @@ static void function_write(parser_status *st, function_data *d){
 			// Write code, but change \n\n to \n
 			int i=0, li=0, diff;
 			char lc=0;
+			ssize_t r;
 			for (i=0;i<ldata;i++){
 				if (data[i]=='\n' && lc=='\n'){ // Two in a row
 					diff = i-li-1;
-					assert(fwrite(&data[li], 1, diff, st->out)==diff);
+					r=fwrite(&data[li], 1, diff, st->out);
+					if (r!=diff){
+						ONION_ERROR("Could not write all data");
+						abort();
+					}
 					li=i;
 				}
 				lc=data[i];
 			}
 			diff=i-li;
-			assert(fwrite(&data[li], 1, diff, st->out)==diff);
+			r=fwrite(&data[li], 1, diff, st->out);
+			if (r!=diff){
+					ONION_ERROR("Could not write all data");
+					abort();
+			}
 			fprintf(st->out, "#line 1\n");
 		}
 		else{
-			assert(fwrite(data, 1, ldata, st->out)==ldata);
+			ssize_t r=fwrite(data, 1, ldata, st->out);
+			if (r!=ldata){
+					ONION_ERROR("Could not write all data");
+					abort();
+			}
 		}
 
 		fprintf(st->out,"}\n");
