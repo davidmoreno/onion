@@ -39,15 +39,18 @@ There is also a blog to keep everybody informed about news on onion at http://bl
 Compile and Install
 -------------------
 
-     git clone git@github.com:davidmoreno/onion.git
-     cd onion
-     mkdir build
-     cd build
-     cmake ..
-     make
-     sudo make install
-     
+Manual compile and install:
 
+    ::
+
+     $ git clone git@github.com:davidmoreno/onion.git
+     $ cd onion
+     $ mkdir build
+     $ cd build
+     $ cmake ..
+     $ make
+     $ sudo make install
+     
 
 SSL Support
 -----------
