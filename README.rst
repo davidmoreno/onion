@@ -36,6 +36,22 @@ to ask your questions and comment on your success using onion.
 
 There is also a blog to keep everybody informed about news on onion at http://blog.coralbits.com/.
 
+Compile and Install
+-------------------
+
+Manual compile and install:
+
+    ::
+
+     $ git clone git@github.com:davidmoreno/onion.git
+     $ cd onion
+     $ mkdir build
+     $ cd build
+     $ cmake ..
+     $ make
+     $ sudo make install
+     
+
 SSL Support
 -----------
 
