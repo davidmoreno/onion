@@ -56,7 +56,7 @@ namespace Onion{
       return add(url,new HandlerMethod<T>(o,fn));
     }
     bool add(const std::string &url, const std::string &s, int http_code=200){
-      onion_url_add_static(ptr,url.c_str(),s.c_str(),http_code);
+      return onion_url_add_static(ptr,url.c_str(),s.c_str(),http_code);
     }
   };
 }

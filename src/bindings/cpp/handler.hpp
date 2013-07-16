@@ -55,7 +55,7 @@ namespace Onion{
   public:
     HandlerMethod(T *_obj, fn_t _fn) : obj(_obj), fn(_fn) {} ;
     virtual onion_connection_status operator()(Onion::Request &req, Onion::Response &res){
-      (obj->*fn)(req, res);
+      return (obj->*fn)(req, res);
     }
   };
   
@@ -67,7 +67,7 @@ namespace Onion{
   public:
     HandlerFunction(fn_t _fn) : fn(_fn){}
     virtual onion_connection_status operator()(Onion::Request &req, Onion::Response &res){
-      fn(req, res);
+      return fn(req, res);
     }
   };
 	
