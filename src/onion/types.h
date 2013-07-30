@@ -115,6 +115,15 @@ struct onion_block_t;
 typedef struct onion_block_t onion_block;
 
 /**
+ * @struct onion_rw_block_t
+ * @short Data type to store some raw data, and read it later.
+ * 
+ * Expands an onion_block to also add a read pointer, and read inline functions to read bytes until end.
+ */
+struct onion_rw_block_t;
+typedef struct onion_rw_block_t onion_rw_block;
+
+/**
  * @struct onion_poller_t
  * @short Manages the polling on a set of file descriptors
  */

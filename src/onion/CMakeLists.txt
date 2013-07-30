@@ -10,7 +10,7 @@ endif(GNUTLS_ENABLED)
 
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
                         log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} poller.c
-                        listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c)
+                        listen_point.c http_parser.c http.c ${HTTPS_C} websocket.c)
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(

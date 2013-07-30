@@ -49,6 +49,7 @@
 
 
 static int onion_listen_point_read_ready(onion_request *req);
+onion_connection_status onion_http_parse(onion_request *req, onion_rw_block *block);
 
 
 /**
@@ -308,6 +309,10 @@ int onion_listen_point_request_init_from_socket(onion_request *req){
 			ONION_ERROR("Setting FD_CLOEXEC to connection");
 		}
 	}
+	
+	req->parser.parse=onion_http_parse;
+	req->parser.data=NULL;
+	req->parser.free=NULL;
 	
 	ONION_DEBUG0("New connection, socket %d",clientfd);
 	return 0;
