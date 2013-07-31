@@ -49,7 +49,7 @@
 
 
 static int onion_listen_point_read_ready(onion_request *req);
-onion_connection_status onion_http_parse(onion_request *req, onion_rw_block *block);
+onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *block);
 
 
 /**

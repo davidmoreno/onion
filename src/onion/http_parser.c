@@ -25,9 +25,9 @@
 
 #include "types.h"
 #include "log.h"
-#include "rw_block.h"
+#include "ro_block.h"
 
-onion_connection_status onion_http_parse(onion_request *req, onion_rw_block *block){
-	ONION_DEBUG("Parse: %s", onion_rw_block_get(block));
+onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *block){
+	ONION_DEBUG("Parse: %s", onion_ro_block_get(block));
 	return OCS_INTERNAL_ERROR;
 }

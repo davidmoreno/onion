@@ -32,7 +32,7 @@
 #include "listen_point.h"
 #include "request.h"
 #include "log.h"
-#include "rw_block.h"
+#include "ro_block.h"
 
 static ssize_t onion_http_read(onion_request *req, char *data, size_t len);
 ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
@@ -80,10 +80,10 @@ int onion_http_read_ready(onion_request *con){
 	if (len<=0)
 		return OCS_CLOSE_CONNECTION;
 	
-	onion_rw_block rwbuffer;
-	onion_rw_block_init(&rwbuffer, buffer, len);
+	onion_ro_block robuffer;
+	onion_ro_block_init(&robuffer, buffer, len);
 	
-	onion_connection_status st=con->parser.parse(con, &rwbuffer);
+	onion_connection_status st=con->parser.parse(con, &robuffer);
 	if (st!=OCS_NEED_MORE_DATA){
 		if (st<0)
 			return st;

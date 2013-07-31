@@ -115,13 +115,13 @@ struct onion_block_t;
 typedef struct onion_block_t onion_block;
 
 /**
- * @struct onion_rw_block_t
+ * @struct onion_ro_block_t
  * @short Data type to store some raw data, and read it later.
  * 
- * Expands an onion_block to also add a read pointer, and read inline functions to read bytes until end.
+ * All methods are inline as this is jsut a fast wrapper for raw data from requests.
  */
-struct onion_rw_block_t;
-typedef struct onion_rw_block_t onion_rw_block;
+struct onion_ro_block_t;
+typedef struct onion_ro_block_t onion_ro_block;
 
 /**
  * @struct onion_poller_t

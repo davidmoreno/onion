@@ -23,34 +23,34 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_RW_BLOCK__
-#define __ONION_RW_BLOCK__
+#ifndef __ONION_RO_BLOCK__
+#define __ONION_RO_BLOCK__
 
 #include "types.h"
 #include <stdlib.h>
 
-struct onion_rw_block_t{
+struct onion_ro_block_t{
 	const char *start;
 	const char *end;
 	const char *p;
 };
 
-static inline void onion_rw_block_init(onion_rw_block *bl, const char *data, size_t size){
+static inline void onion_ro_block_init(onion_ro_block *bl, const char *data, size_t size){
 	bl->start=data;
 	bl->end=data+size;
 	bl->p=data;
 }
 
-static inline char onion_rw_block_get_char(onion_rw_block *bl){
+static inline char onion_ro_block_get_char(onion_ro_block *bl){
 	return *bl->p++;
 }
-static inline const char *onion_rw_block_get(onion_rw_block *bl){
+static inline const char *onion_ro_block_get(onion_ro_block *bl){
 	return bl->p;
 }
-static inline int onion_rw_block_eof(onion_rw_block *bl){
+static inline int onion_ro_block_eof(onion_ro_block *bl){
 	return bl->p>=bl->end;
 }
-static inline size_t onion_rw_block_remaining(onion_rw_block *bl){
+static inline size_t onion_ro_block_remaining(onion_ro_block *bl){
 	return bl->end-bl->p;
 }
 
