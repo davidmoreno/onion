@@ -30,12 +30,12 @@
 #include <stdlib.h>
 
 struct onion_ro_block_t{
-	const char *start;
-	const char *end;
-	const char *p;
+	char *start;
+	char *end;
+	char *p;
 };
 
-static inline void onion_ro_block_init(onion_ro_block *bl, const char *data, size_t size){
+static inline void onion_ro_block_init(onion_ro_block *bl, char *data, size_t size){
 	bl->start=data;
 	bl->end=data+size;
 	bl->p=data;
@@ -44,7 +44,7 @@ static inline void onion_ro_block_init(onion_ro_block *bl, const char *data, siz
 static inline char onion_ro_block_get_char(onion_ro_block *bl){
 	return *bl->p++;
 }
-static inline const char *onion_ro_block_get(onion_ro_block *bl){
+static inline char *onion_ro_block_get(onion_ro_block *bl){
 	return bl->p;
 }
 static inline int onion_ro_block_eof(onion_ro_block *bl){
@@ -52,6 +52,16 @@ static inline int onion_ro_block_eof(onion_ro_block *bl){
 }
 static inline size_t onion_ro_block_remaining(onion_ro_block *bl){
 	return bl->end-bl->p;
+}
+static inline char *onion_ro_block_get_token(onion_ro_block *bl, char delimiter){
+	char *token=bl->p;
+	do{
+		bl->p++;
+	}while(*bl->p!=delimiter && !onion_ro_block_eof(bl));
+	
+	*bl->p=0;
+	bl->p++;
+	return token;
 }
 
 #endif

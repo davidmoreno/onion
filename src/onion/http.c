@@ -73,9 +73,9 @@ static ssize_t onion_http_read(onion_request *con, char *data, size_t len){
  * @short HTTP client has data ready to be readen
  * @memberof onion_http_t
  */
-int onion_http_read_ready(onion_request *con){
+int onion_http_read_ready(onion_request *req){
 	char buffer[1500];
-	ssize_t len=con->connection.listen_point->read(con, buffer, sizeof(buffer));
+	ssize_t len=req->connection.listen_point->read(req, buffer, sizeof(buffer));
 	
 	if (len<=0)
 		return OCS_CLOSE_CONNECTION;
@@ -83,13 +83,16 @@ int onion_http_read_ready(onion_request *con){
 	onion_ro_block robuffer;
 	onion_ro_block_init(&robuffer, buffer, len);
 	
-	onion_connection_status st=con->parser.parse(con, &robuffer);
+	onion_connection_status st=req->parser.parse(req, &robuffer);
 	if (st!=OCS_NEED_MORE_DATA){
 		if (st<0)
 			return st;
 	}
+	if (st==OCS_REQUEST_READY){
+		st=onion_request_process(req);
+	}
 	
-	return OCS_PROCESSED;
+	return st;
 }
 
 /**
