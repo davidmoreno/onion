@@ -28,6 +28,7 @@
 
 #include "types.h"
 #include <stdlib.h>
+#include <ctype.h>
 
 struct onion_ro_block_t{
 	char *start;
@@ -64,6 +65,23 @@ static inline char *onion_ro_block_get_token(onion_ro_block *bl, char delimiter)
 	*bl->p=0;
 	bl->p++;
 	return token;
+}
+
+static inline char *onion_ro_block_get_token_nl(onion_ro_block *bl){
+	char *r=onion_ro_block_get_token(bl, '\n');
+
+	if (r && ( (bl->p-r) > 2) && bl->p[-2]=='\r') // remove \r if there is something that has data, and last char is \r.
+		bl->p[-2]='\0';
+
+	return r;
+}
+
+static inline char *onion_ro_strip(char *s){
+	while (*s && isspace(*s))
+		s++;
+	char *r=s;
+	
+	return r;
 }
 
 #endif

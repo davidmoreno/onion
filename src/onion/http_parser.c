@@ -159,9 +159,9 @@ onion_connection_status onion_http_parse_petition(onion_request *req, onion_ro_b
 	req->fullpath=strdup(url);
 	onion_request_parse_query(req);
 	
-	const char *http_version=onion_ro_block_get_token(block, '\n');
+	const char *http_version=onion_ro_block_get_token_nl(block);
 	ONION_DEBUG("Version is %s", http_version);
-	if (strncmp(http_version,"HTTP/1.1",8)==0)
+	if (http_version && strcmp(http_version,"HTTP/1.1")==0)
 		req->flags|=OR_HTTP11;
 	else
 		ONION_DEBUG("http version <%s>",http_version);
@@ -176,8 +176,9 @@ onion_connection_status onion_http_parse_headers(onion_request *req, onion_ro_bl
 	char *key, *value;
 	while( !onion_ro_block_eof(block) ){
 		key = onion_ro_block_get_token(block, ':');
-		value=onion_ro_block_get_token(block, '\n');
+		value=onion_ro_block_get_token_nl(block);
 		if (key && value){
+			value=onion_ro_strip(value);
 			ONION_DEBUG("Got header: %s=%s", key, value);
 			onion_dict_add(req->headers, key, value, 0);
 		}
