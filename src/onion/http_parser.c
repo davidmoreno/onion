@@ -128,11 +128,14 @@ onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *blo
 	
 	onion_connection_status res;
 	res=onion_http_parse_petition(req, block);
-	if (res!=OCS_REQUEST_READY)
+	if (res!=OCS_NEED_MORE_DATA)
 		return res;
+	
+	req->parser.parse=onion_http_parse_headers;
 	res=onion_http_parse_headers(req, block);
 	if (res!=OCS_REQUEST_READY)
 		return res;
+	req->parser.parse=NULL;
 	
 	return OCS_REQUEST_READY;
 }
@@ -154,10 +157,16 @@ onion_connection_status onion_http_parse_petition(onion_request *req, onion_ro_b
 		}
 	}
 	
-	const char *url=onion_ro_block_get_token(block, ' ');
+	char c=0;
+	const char *url=onion_ro_block_get_token2(block, " \n", &c);
 	ONION_DEBUG("URL is %s", url);
 	req->fullpath=strdup(url);
 	onion_request_parse_query(req);
+	if (!req->GET)
+		req->GET=onion_dict_new();
+
+	if (c=='\n')
+		return OCS_NEED_MORE_DATA;
 	
 	const char *http_version=onion_ro_block_get_token_nl(block);
 	ONION_DEBUG("Version is %s", http_version);
@@ -166,16 +175,17 @@ onion_connection_status onion_http_parse_petition(onion_request *req, onion_ro_b
 	else
 		ONION_DEBUG("http version <%s>",http_version);
 
-	if (!req->GET)
-		req->GET=onion_dict_new();
 
-	return OCS_REQUEST_READY;
+	return OCS_NEED_MORE_DATA;
 }
 
 onion_connection_status onion_http_parse_headers(onion_request *req, onion_ro_block *block){
 	char *key, *value;
 	while( !onion_ro_block_eof(block) ){
-		key = onion_ro_block_get_token(block, ':');
+		char c=0;
+		key = onion_ro_block_get_token2(block, ":\n",&c);
+		if (c=='\n')
+			return OCS_REQUEST_READY;
 		value=onion_ro_block_get_token_nl(block);
 		if (key && value){
 			value=onion_ro_strip(value);

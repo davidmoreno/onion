@@ -49,7 +49,6 @@
 
 
 static int onion_listen_point_read_ready(onion_request *req);
-onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *block);
 
 
 /**
@@ -310,7 +309,7 @@ int onion_listen_point_request_init_from_socket(onion_request *req){
 		}
 	}
 	
-	req->parser.parse=onion_http_parse;
+	req->parser.parse=NULL;
 	req->parser.data=NULL;
 	req->parser.free=NULL;
 	

@@ -31,13 +31,11 @@
 #include <ctype.h>
 
 struct onion_ro_block_t{
-	char *start;
 	char *end;
 	char *p;
 };
 
 static inline void onion_ro_block_init(onion_ro_block *bl, char *data, size_t size){
-	bl->start=data;
 	bl->end=data+size;
 	bl->p=data;
 }
@@ -58,10 +56,25 @@ static inline char *onion_ro_block_get_token(onion_ro_block *bl, char delimiter)
 	if (onion_ro_block_eof(bl))
 		return NULL;
 	char *token=bl->p;
-	do{
+	while(*bl->p!=delimiter && !onion_ro_block_eof(bl)){
 		bl->p++;
-	}while(*bl->p!=delimiter && !onion_ro_block_eof(bl));
+	}
 	
+	*bl->p=0;
+	bl->p++;
+	return token;
+}
+static inline char *onion_ro_block_get_token2(onion_ro_block *bl, char *delimiter, char *rc){
+	if (onion_ro_block_eof(bl))
+		return NULL;
+	char *token=bl->p;
+	char c=*bl->p;
+	while(c!=delimiter[0] && c!=delimiter[1] && !onion_ro_block_eof(bl)){
+		bl->p++;
+		c=*bl->p;
+	}
+	if (rc)
+		*rc=c;
 	*bl->p=0;
 	bl->p++;
 	return token;

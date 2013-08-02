@@ -37,6 +37,7 @@
 static ssize_t onion_http_read(onion_request *req, char *data, size_t len);
 ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
 int onion_http_read_ready(onion_request *req);
+onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *block);
 
 /**
  * @struct onion_http_t
@@ -83,20 +84,34 @@ int onion_http_read_ready(onion_request *req){
 	onion_ro_block robuffer;
 	onion_ro_block_init(&robuffer, buffer, len);
 	
-	onion_connection_status st=req->parser.parse(req, &robuffer);
-	if (st!=OCS_NEED_MORE_DATA){
+	if (!req->parser.parse)
+		req->parser.parse=onion_http_parse;
+	
+	onion_connection_status st=OCS_INTERNAL_ERROR;
+	while (req->parser.parse && !onion_ro_block_eof(&robuffer)){
+		size_t len=onion_ro_block_remaining(&robuffer);
+		st=req->parser.parse(req, &robuffer);
+		if (len == onion_ro_block_remaining(&robuffer)){
+			ONION_ERROR("Parser did not consume data. Bogus parser, aborting petition.");
+			return OCS_INTERNAL_ERROR;
+		}
+		ONION_DEBUG("%d bytes left", onion_ro_block_remaining(&robuffer));
 		if (st<0)
 			return st;
-	}
-	if (st==OCS_REQUEST_READY){
-		st=onion_request_process(req);
+		if (st==OCS_REQUEST_READY){
+			st=onion_request_process(req);
+			if (!req->parser.parse){
+				ONION_DEBUG("Setting again http parser for this request: %d bytes left", onion_ro_block_remaining(&robuffer));
+				req->parser.parse=onion_http_parse;
+			}
+		}
 	}
 	
 	return st;
 }
 
 /**
- * @short Write dat to the HTTP client
+ * @short Write data to the HTTP client
  * @memberof onion_http_t
  */
 ssize_t onion_http_write(onion_request *con, const char *data, size_t len){
