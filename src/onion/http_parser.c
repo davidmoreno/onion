@@ -111,9 +111,10 @@ int onion_request_parse_query(onion_request *req){
 	}
 	*p='\0';
 	onion_unquote_inplace(req->fullpath);
+	req->GET=onion_dict_new();
+
 	if (have_query){ // There are querys.
 		p++;
-		req->GET=onion_dict_new();
 		onion_request_parse_query_to_dict(req->GET, p);
 	}
 	return 1;
@@ -162,8 +163,6 @@ onion_connection_status onion_http_parse_petition(onion_request *req, onion_ro_b
 	ONION_DEBUG("URL is %s", url);
 	req->fullpath=strdup(url);
 	onion_request_parse_query(req);
-	if (!req->GET)
-		req->GET=onion_dict_new();
 
 	if (c=='\n')
 		return OCS_NEED_MORE_DATA;
