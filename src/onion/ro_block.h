@@ -54,6 +54,8 @@ static inline size_t onion_ro_block_remaining(onion_ro_block *bl){
 	return bl->end-bl->p;
 }
 static inline char *onion_ro_block_get_token(onion_ro_block *bl, char delimiter){
+	if (onion_ro_block_eof(bl))
+		return NULL;
 	char *token=bl->p;
 	do{
 		bl->p++;

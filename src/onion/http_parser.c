@@ -34,12 +34,15 @@
 
 extern const char *onion_request_methods[16];
 
+onion_connection_status onion_http_parse_petition(onion_request *req, onion_ro_block *block);
+onion_connection_status onion_http_parse_headers(onion_request *req, onion_ro_block *block);
+
 /**
  * @short Parses the query part to a given dictionary.
  * 
  * The data is overwriten as necessary. It is NOT dupped, so if you free this char *p, please free the tree too.
  */
-static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
+void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 	ONION_DEBUG0("Query to dict %s",p);
 	char *key=NULL, *value=NULL;
 	int state=0;  // 0 key, 1 value
@@ -91,7 +94,7 @@ static void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 /**
  * @short Parses the query to unquote the path and get the query.
  */
-static int onion_request_parse_query(onion_request *req){
+int onion_request_parse_query(onion_request *req){
 	if (!req->fullpath)
 		return 0;
 	if (req->GET) // already done
@@ -122,6 +125,19 @@ onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *blo
 		ONION_ERROR("Petition too small to be valid. Not even looking into it");
 		return OCS_INTERNAL_ERROR;
 	}
+	
+	onion_connection_status res;
+	res=onion_http_parse_petition(req, block);
+	if (res!=OCS_REQUEST_READY)
+		return res;
+	res=onion_http_parse_headers(req, block);
+	if (res!=OCS_REQUEST_READY)
+		return res;
+	
+	return OCS_REQUEST_READY;
+}
+
+onion_connection_status onion_http_parse_petition(onion_request *req, onion_ro_block *block){
 	const char *method=onion_ro_block_get_token(block,' ');
 	
 	ONION_DEBUG("Method %s",method);
@@ -145,11 +161,27 @@ onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *blo
 	
 	const char *http_version=onion_ro_block_get_token(block, '\n');
 	ONION_DEBUG("Version is %s", http_version);
-	if (strcmp(http_version,"HTTP/1.1")==0)
+	if (strncmp(http_version,"HTTP/1.1",8)==0)
 		req->flags|=OR_HTTP11;
+	else
+		ONION_DEBUG("http version <%s>",http_version);
 
 	if (!req->GET)
 		req->GET=onion_dict_new();
+
+	return OCS_REQUEST_READY;
+}
+
+onion_connection_status onion_http_parse_headers(onion_request *req, onion_ro_block *block){
+	char *key, *value;
+	while( !onion_ro_block_eof(block) ){
+		key = onion_ro_block_get_token(block, ':');
+		value=onion_ro_block_get_token(block, '\n');
+		if (key && value){
+			ONION_DEBUG("Got header: %s=%s", key, value);
+			onion_dict_add(req->headers, key, value, 0);
+		}
+	}
 	
 	return OCS_REQUEST_READY;
 }
