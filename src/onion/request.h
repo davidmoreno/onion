@@ -167,6 +167,12 @@ const char *onion_request_get_client_description(onion_request *req);
 /// Get the sockaddr_storage from the client, if any.
 struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, socklen_t *client_len);
 
+/// Parses the request GET query and sets the dict.
+int onion_request_parse_query(onion_request *req);
+
+/// Reads a query data, and insert it into the given dict.
+void onion_request_parse_query_to_dict(onion_dict *dict, char *query);
+
 #ifdef __cplusplus
 }
 #endif

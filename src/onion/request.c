@@ -40,6 +40,7 @@
 #include "block.h"
 #include "listen_point.h"
 #include "websocket.h"
+#include "codecs.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 
@@ -585,3 +586,85 @@ struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, s
   return &req->connection.cli_addr;
 }
 
+/**
+ * @short Parses the query part to a given dictionary.
+ * 
+ * The data is overwriten as necessary. It is NOT dupped, so if you free this char *p, please free the tree too.
+ */
+void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
+	ONION_DEBUG0("Query to dict %s",p);
+	char *key=NULL, *value=NULL;
+	int state=0;  // 0 key, 1 value
+	key=p;
+	while(*p){
+		if (state==0){
+			if (*p=='='){
+				*p='\0';
+				value=p+1;
+				state=1;
+			}
+			else if (*p=='&'){
+				*p='\0';
+				onion_unquote_inplace(key);
+				ONION_DEBUG0("Adding key %s",key);
+				onion_dict_add(dict, key, "", 0);
+				key=p+1;
+				state=0;
+			}
+		}
+		else{
+			if (*p=='&'){
+				*p='\0';
+				onion_unquote_inplace(key);
+				onion_unquote_inplace(value);
+				ONION_DEBUG0("Adding key %s=%-16s",key,value);
+				onion_dict_add(dict, key, value, 0);
+				key=p+1;
+				state=0;
+			}
+		}
+		p++;
+	}
+	if (state==0){
+		if (key[0]!='\0'){
+			onion_unquote_inplace(key);
+			ONION_DEBUG0("Adding key %s",key);
+			onion_dict_add(dict, key, "", 0);
+		}
+	}
+	else{
+		onion_unquote_inplace(key);
+		onion_unquote_inplace(value);
+		ONION_DEBUG0("Adding key %s=%-16s",key,value);
+		onion_dict_add(dict, key, value, 0);
+	}
+}
+
+/**
+ * @short Parses the query to unquote the path and get the query.
+ */
+int onion_request_parse_query(onion_request *req){
+	if (!req->fullpath)
+		return 0;
+	if (req->GET) // already done
+		return 1;
+
+	char *p=req->fullpath;
+	char have_query=0;
+	while(*p){
+		if (*p=='?'){
+			have_query=1;
+			break;
+		}
+		p++;
+	}
+	*p='\0';
+	onion_unquote_inplace(req->fullpath);
+	req->GET=onion_dict_new();
+
+	if (have_query){ // There are querys.
+		p++;
+		onion_request_parse_query_to_dict(req->GET, p);
+	}
+	return 1;
+}

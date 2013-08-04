@@ -95,7 +95,7 @@ int onion_http_read_ready(onion_request *req){
 			ONION_ERROR("Parser did not consume data. Bogus parser, aborting petition.");
 			return OCS_INTERNAL_ERROR;
 		}
-		ONION_DEBUG("%d bytes left", onion_ro_block_remaining(&robuffer));
+		ONION_DEBUG0("%d bytes left", onion_ro_block_remaining(&robuffer));
 		if (st<0)
 			return st;
 		if (st==OCS_REQUEST_READY){

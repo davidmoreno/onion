@@ -54,8 +54,11 @@ static inline size_t onion_ro_block_remaining(onion_ro_block *bl){
 }
 
 char *onion_ro_block_get_token(onion_ro_block *bl, char delimiter);
-char *onion_ro_block_get_token_nl(onion_ro_block *bl);
+char *onion_ro_block_get_to_nl(onion_ro_block *bl);
 char *onion_ro_block_get_token2(onion_ro_block *bl, char *delimiter, char *rc);
-char *onion_ro_strip(char *s);
+
+char *onion_str_get_token(char **str, char delimiter);
+char *onion_str_get_token2(char **str, char *delimiter, char *rc);
+char *onion_str_strip(char *str);
 
 #endif

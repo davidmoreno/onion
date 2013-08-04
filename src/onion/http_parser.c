@@ -34,117 +34,42 @@
 
 extern const char *onion_request_methods[16];
 
-onion_connection_status onion_http_parse_petition(onion_request *req, onion_ro_block *block);
-onion_connection_status onion_http_parse_headers(onion_request *req, onion_ro_block *block);
+onion_connection_status onion_http_parse_petition(onion_request *req, char *line);
+onion_connection_status onion_http_parse_headers(onion_request *req, char *line);
+onion_connection_status onion_http_parse_POST_urlencoded(onion_request *req, char *line);
 
-/**
- * @short Parses the query part to a given dictionary.
- * 
- * The data is overwriten as necessary. It is NOT dupped, so if you free this char *p, please free the tree too.
- */
-void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
-	ONION_DEBUG0("Query to dict %s",p);
-	char *key=NULL, *value=NULL;
-	int state=0;  // 0 key, 1 value
-	key=p;
-	while(*p){
-		if (state==0){
-			if (*p=='='){
-				*p='\0';
-				value=p+1;
-				state=1;
-			}
-			else if (*p=='&'){
-				*p='\0';
-				onion_unquote_inplace(key);
-				ONION_DEBUG0("Adding key %s",key);
-				onion_dict_add(dict, key, "", 0);
-				key=p+1;
-				state=0;
-			}
-		}
-		else{
-			if (*p=='&'){
-				*p='\0';
-				onion_unquote_inplace(key);
-				onion_unquote_inplace(value);
-				ONION_DEBUG0("Adding key %s=%-16s",key,value);
-				onion_dict_add(dict, key, value, 0);
-				key=p+1;
-				state=0;
-			}
-		}
-		p++;
-	}
-	if (state==0){
-		if (key[0]!='\0'){
-			onion_unquote_inplace(key);
-			ONION_DEBUG0("Adding key %s",key);
-			onion_dict_add(dict, key, "", 0);
-		}
-	}
-	else{
-		onion_unquote_inplace(key);
-		onion_unquote_inplace(value);
-		ONION_DEBUG0("Adding key %s=%-16s",key,value);
-		onion_dict_add(dict, key, value, 0);
-	}
-}
+typedef struct{
+	onion_connection_status (*parser)(onion_request *req, char *line);
+}http_parser_data;
 
-/**
- * @short Parses the query to unquote the path and get the query.
- */
-int onion_request_parse_query(onion_request *req){
-	if (!req->fullpath)
-		return 0;
-	if (req->GET) // already done
-		return 1;
-
-	char *p=req->fullpath;
-	char have_query=0;
-	while(*p){
-		if (*p=='?'){
-			have_query=1;
-			break;
-		}
-		p++;
-	}
-	*p='\0';
-	onion_unquote_inplace(req->fullpath);
-	req->GET=onion_dict_new();
-
-	if (have_query){ // There are querys.
-		p++;
-		onion_request_parse_query_to_dict(req->GET, p);
-	}
-	return 1;
-}
 
 onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *block){
-	ONION_DEBUG("Parse: %s", onion_ro_block_get(block));
-	if (onion_ro_block_remaining(block)<7){
+	if (!req->parser.data){
+		req->parser.data=malloc(sizeof(http_parser_data));
+		http_parser_data *pd=(http_parser_data*)req->parser.data;
+		pd->parser=onion_http_parse_petition;
+	}
+	char *line;
+	onion_connection_status ret=OCS_NEED_MORE_DATA;
+	http_parser_data *pd=(http_parser_data*)req->parser.data;
+	while ( (ret==OCS_NEED_MORE_DATA) && ( (line=onion_ro_block_get_to_nl(block)) != NULL ) ){
+		//ONION_DEBUG("Got line: %s", line);
+		ret=pd->parser(req, line);
+	}
+	
+	ONION_DEBUG0("Return %d (%d is OCS_REQUEST_READY)", ret, OCS_REQUEST_READY);
+	return ret;
+}
+
+onion_connection_status onion_http_parse_petition(onion_request *req, char *line){
+	if (strlen(line)<7){
 		ONION_ERROR("Petition too small to be valid. Not even looking into it");
 		return OCS_INTERNAL_ERROR;
 	}
-	
-	onion_connection_status res;
-	res=onion_http_parse_petition(req, block);
-	if (res!=OCS_NEED_MORE_DATA)
-		return res;
-	
-	req->parser.parse=onion_http_parse_headers;
-	res=onion_http_parse_headers(req, block);
-	if (res!=OCS_REQUEST_READY)
-		return res;
-	req->parser.parse=NULL;
-	
-	return OCS_REQUEST_READY;
-}
 
-onion_connection_status onion_http_parse_petition(onion_request *req, onion_ro_block *block){
-	const char *method=onion_ro_block_get_token(block,' ');
+	const char *method=onion_str_get_token(&line,' ');
 	
-	ONION_DEBUG("Method %s",method);
+	ONION_DEBUG0("Method %s",method);
 	int i;
 	for (i=0;i<16;i++){
 		if (!onion_request_methods[i]){
@@ -159,39 +84,61 @@ onion_connection_status onion_http_parse_petition(onion_request *req, onion_ro_b
 	}
 	
 	char c=0;
-	const char *url=onion_ro_block_get_token2(block, " \n", &c);
-	ONION_DEBUG("URL is %s", url);
+	const char *url=onion_str_get_token2(&line, " \n", &c);
+	ONION_DEBUG0("URL is %s", url);
 	req->fullpath=strdup(url);
 	onion_request_parse_query(req);
 
 	if (c=='\n')
 		return OCS_NEED_MORE_DATA;
 	
-	const char *http_version=onion_ro_block_get_token_nl(block);
-	ONION_DEBUG("Version is %s", http_version);
+	const char *http_version=line;
+	ONION_DEBUG0("HTTP Version is %s", http_version);
 	if (http_version && strcmp(http_version,"HTTP/1.1")==0)
 		req->flags|=OR_HTTP11;
 	else
-		ONION_DEBUG("http version <%s>",http_version);
+		ONION_DEBUG0("http version <%s>",http_version);
 
-
+	
+	http_parser_data *pd=(http_parser_data*)req->parser.data;
+	pd->parser=onion_http_parse_headers;
 	return OCS_NEED_MORE_DATA;
 }
 
-onion_connection_status onion_http_parse_headers(onion_request *req, onion_ro_block *block){
+onion_connection_status onion_http_parse_headers(onion_request *req, char *line){
+	ONION_DEBUG0("Check line <%s>", line);
 	char *key, *value;
-	while( !onion_ro_block_eof(block) ){
-		char c=0;
-		key = onion_ro_block_get_token2(block, ":\n",&c);
-		if (c=='\n')
-			return OCS_REQUEST_READY;
-		value=onion_ro_block_get_token_nl(block);
-		if (key && value){
-			value=onion_ro_strip(value);
-			ONION_DEBUG("Got header: %s=%s", key, value);
-			onion_dict_add(req->headers, key, value, 0);
+	
+	key = onion_str_get_token(&line, ':');
+	
+	// End of headers
+	if (!key){ 
+		http_parser_data *pd=(http_parser_data*)req->parser.data;
+		if ( (req->flags & OR_METHODS) == OR_POST ){
+			pd->parser=onion_http_parse_POST_urlencoded;
+			return OCS_NEED_MORE_DATA;
 		}
+		else
+			pd->parser=NULL;
+
+		ONION_DEBUG0("Done");
+		return OCS_REQUEST_READY;
 	}
 	
+	// Another header
+	value=line;
+	if (key && value){
+		value=onion_str_strip(value);
+		ONION_DEBUG0("Got header: %s=%s", key, value);
+		onion_dict_add(req->headers, key, value, 0);
+	}
+	
+	return OCS_NEED_MORE_DATA;
+}
+
+onion_connection_status onion_http_parse_POST_urlencoded(onion_request *req, char *line){
+	if (!req->POST)
+		req->POST=onion_dict_new();
+	onion_request_parse_query_to_dict(req->POST, line);
 	return OCS_REQUEST_READY;
 }

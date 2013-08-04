@@ -53,16 +53,48 @@ char *onion_ro_block_get_token2(onion_ro_block *bl, char *delimiter, char *rc){
 	return token;
 }
 
-char *onion_ro_block_get_token_nl(onion_ro_block *bl){
+char *onion_ro_block_get_to_nl(onion_ro_block *bl){
 	char *r=onion_ro_block_get_token(bl, '\n');
 
-	if (r && ( (bl->p-r) > 2) && bl->p[-2]=='\r') // remove \r if there is something that has data, and last char is \r.
+	if (r && ( (bl->p-r) > 1) && bl->p[-2]=='\r') // remove \r if there is something that has data, and last char is \r.
 		bl->p[-2]='\0';
 
 	return r;
 }
 
-char *onion_ro_strip(char *s){
+char *onion_str_get_token(char **str, char delimiter){
+	char *s=*str;
+	if (!*s)
+		return NULL;
+	char *token=s;
+	while(*s!=delimiter && *s){
+		s++;
+	}
+	if (!*s)
+		return NULL;
+	*s=0;
+	*str=s+1;
+	return token;
+}
+char *onion_str_get_token2(char **str, char *delimiter, char *rc){
+	char *s=*str;
+	if (!*s)
+		return NULL;
+	char *token=s;
+	char c=*s;
+	while(c!=delimiter[0] && c!=delimiter[1] && *s){
+		s++;
+		c=*s;
+	}
+	if (!*s)
+		return NULL;
+	
+	*s=0;
+	*str=s+1;
+	return token;
+}
+
+char *onion_str_strip(char *s){
 	while (*s && isspace(*s))
 		s++;
 	char *r=s;
