@@ -88,6 +88,8 @@ char *onion_str_get_token2(char **str, char *delimiter, char *rc){
 		s++;
 		c=*s;
 	}
+	if (rc)
+		*rc=*s;
 	if (*s){
 		*s=0;
 		*str=s+1;
