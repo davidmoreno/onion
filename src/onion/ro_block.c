@@ -70,10 +70,12 @@ char *onion_str_get_token(char **str, char delimiter){
 	while(*s!=delimiter && *s){
 		s++;
 	}
-	if (!*s)
-		return NULL;
-	*s=0;
-	*str=s+1;
+	if (*s){
+		*s=0;
+		*str=s+1;
+	}
+	else 
+		*str=s;
 	return token;
 }
 char *onion_str_get_token2(char **str, char *delimiter, char *rc){
@@ -86,11 +88,12 @@ char *onion_str_get_token2(char **str, char *delimiter, char *rc){
 		s++;
 		c=*s;
 	}
-	if (!*s)
-		return NULL;
-	
-	*s=0;
-	*str=s+1;
+	if (*s){
+		*s=0;
+		*str=s+1;
+	}
+	else 
+		*str=s;
 	return token;
 }
 

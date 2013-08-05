@@ -48,13 +48,19 @@ onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *blo
 		req->parser.data=malloc(sizeof(http_parser_data));
 		http_parser_data *pd=(http_parser_data*)req->parser.data;
 		pd->parser=onion_http_parse_petition;
+		req->parser.free=free;
 	}
 	char *line;
 	onion_connection_status ret=OCS_NEED_MORE_DATA;
 	http_parser_data *pd=(http_parser_data*)req->parser.data;
 	while ( (ret==OCS_NEED_MORE_DATA) && ( (line=onion_ro_block_get_to_nl(block)) != NULL ) ){
-		//ONION_DEBUG("Got line: %s", line);
 		ret=pd->parser(req, line);
+		ONION_DEBUG0("Line: <%s>, response %d", line, ret);
+	}
+	
+	if (ret == OCS_REQUEST_READY){ // restarting the parser
+		ONION_DEBUG0("Process request.");
+		pd->parser=onion_http_parse_petition;
 	}
 	
 	ONION_DEBUG0("Return %d (%d is OCS_REQUEST_READY)", ret, OCS_REQUEST_READY);
@@ -62,12 +68,9 @@ onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *blo
 }
 
 onion_connection_status onion_http_parse_petition(onion_request *req, char *line){
-	if (strlen(line)<7){
-		ONION_ERROR("Petition too small to be valid. Not even looking into it");
-		return OCS_INTERNAL_ERROR;
-	}
-
 	const char *method=onion_str_get_token(&line,' ');
+	if (!method)
+		return OCS_INTERNAL_ERROR;
 	
 	ONION_DEBUG0("Method %s",method);
 	int i;
@@ -83,15 +86,18 @@ onion_connection_status onion_http_parse_petition(onion_request *req, char *line
 		}
 	}
 	
-	char c=0;
-	const char *url=onion_str_get_token2(&line, " \n", &c);
+	const char *url=onion_str_get_token(&line, ' ');
+
 	ONION_DEBUG0("URL is %s", url);
 	req->fullpath=strdup(url);
 	onion_request_parse_query(req);
 
-	if (c=='\n')
+	http_parser_data *pd=(http_parser_data*)req->parser.data;
+	if (!*line){
+		ONION_DEBUG0("Request without HTTP version");
+		pd->parser=onion_http_parse_headers;
 		return OCS_NEED_MORE_DATA;
-	
+	}
 	const char *http_version=line;
 	ONION_DEBUG0("HTTP Version is %s", http_version);
 	if (http_version && strcmp(http_version,"HTTP/1.1")==0)
@@ -100,7 +106,6 @@ onion_connection_status onion_http_parse_petition(onion_request *req, char *line
 		ONION_DEBUG0("http version <%s>",http_version);
 
 	
-	http_parser_data *pd=(http_parser_data*)req->parser.data;
 	pd->parser=onion_http_parse_headers;
 	return OCS_NEED_MORE_DATA;
 }
