@@ -24,6 +24,7 @@
 	*/
 
 #include "ro_block.h"
+#include <string.h>
 
 char *onion_ro_block_get_token(onion_ro_block *bl, char delimiter){
 	if (onion_ro_block_eof(bl))
@@ -105,4 +106,12 @@ char *onion_str_strip(char *s){
 	char *r=s;
 	
 	return r;
+}
+char* onion_str_unquote(char* str)
+{
+	if (*str=='"'){
+		str++;
+		str[strlen(str)-1]='\0';
+	}
+	return str;
 }

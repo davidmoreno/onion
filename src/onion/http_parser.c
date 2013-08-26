@@ -23,6 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
+#define _GNU_SOURCE
+
 #include "types.h"
 #include "types_internal.h"
 #include "log.h"
@@ -33,6 +35,7 @@
 #include "block.h"
 #include <string.h>
 #include <execinfo.h>
+#include <fcntl.h>
 
 extern const char *onion_request_methods[16];
 
@@ -44,21 +47,25 @@ onion_connection_status onion_http_parse_POST_urlencoded(onion_request *req, cha
 onion_connection_status onion_http_parse_POST_multipart(onion_request *req, char *line);
 onion_connection_status onion_http_parse_POST_multipart_header(onion_request *req, char *line);
 onion_connection_status onion_http_parse_POST_multipart_data(onion_request *req, char *line);
+onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req, onion_ro_block *block);
 
 typedef struct{
 	onion_connection_status (*parser)(onion_request *req, char *line);
+	onion_connection_status (*parser_block)(onion_request *req, onion_ro_block *line);
 	struct{
 		char *marker;
 		int marker_size;
 		char *current_name;
 		onion_block *data;
+		int fd;
+		size_t filesize;
 	}multipart;
 }http_parser_data;
 
 
 onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *block){
 	if (!req->parser.data){
-		req->parser.data=malloc(sizeof(http_parser_data));
+		req->parser.data=calloc(1, sizeof(http_parser_data));
 		req->parser.free=free;
 		http_parser_data *pd=(http_parser_data*)req->parser.data;
 		pd->parser=onion_http_parse_petition;
@@ -67,14 +74,19 @@ onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *blo
 	char *line;
 	onion_connection_status ret=OCS_NEED_MORE_DATA;
 	http_parser_data *pd=(http_parser_data*)req->parser.data;
-	while ( (ret==OCS_NEED_MORE_DATA) && ( (line=onion_ro_block_get_to_nl(block)) != NULL ) ){
-#ifdef __DEBUG__
-		char **bs=backtrace_symbols((void * const *)&pd->parser, 1);
-		ONION_DEBUG0("Line: <%s>, parser <%s>", line, bs[0]);
-		free(bs);
-#endif
+	if (pd->parser_block){
+		ret=pd->parser_block(req, block);
+	}
+	else{
+		while ( (ret==OCS_NEED_MORE_DATA) && pd->parser && ( (line=onion_ro_block_get_to_nl(block)) != NULL ) ){
+	#ifdef __DEBUG__0
+			char **bs=backtrace_symbols((void * const *)&pd->parser, 1);
+			ONION_DEBUG0("Line: <%s>, parser <%s>", line, bs[0]);
+			free(bs);
+	#endif
 
-		ret=pd->parser(req, line);
+			ret=pd->parser(req, line);
+		}
 	}
 	
 	if (ret == OCS_REQUEST_READY){ // restarting the parser
@@ -228,37 +240,64 @@ onion_connection_status onion_http_parse_POST_multipart(onion_request *req, char
 onion_connection_status onion_http_parse_POST_multipart_header(onion_request *req, char *line){
 	http_parser_data *pd=(http_parser_data*)req->parser.data;
 	if (!*line){ // No more headers
-		pd->parser=onion_http_parse_POST_multipart_data;
+		if (pd->parser_block)
+			pd->parser=NULL;
+		else
+			pd->parser=onion_http_parse_POST_multipart_data;
 		return OCS_NEED_MORE_DATA;
 	}
 	char *key=onion_str_get_token(&line,':');
 	
+	ONION_DEBUG0("multipart header: %s", line);
 	ONION_DEBUG0("Content disposition <%s> %d", key, strcasecmp(key,"content-disposition")==0);
 	if (key && strcasecmp(key,"content-disposition")==0){
 		char c;
 		while ( (key=onion_str_get_token2(&line, ";=", &c)) ){
 			key=onion_str_strip(key);
 			ONION_DEBUG0("subkey <%s>", key);
-			if (c=='=' && strcasecmp(key, "name")==0){
-				char *v=onion_str_get_token2(&line, ";=", &c);
-				if (*v=='"'){
-					pd->multipart.current_name=strdup(v+1);
-					pd->multipart.current_name[strlen(v)-2]=0;
-				}
-				else
+			if (c=='='){
+				if (strcasecmp(key, "name")==0){
+					char *v=onion_str_unquote(onion_str_get_token2(&line, ";=", &c));
+					if (pd->multipart.current_name)
+						free(pd->multipart.current_name);
 					pd->multipart.current_name=strdup(v);
-				ONION_DEBUG("Current name is <%s>", pd->multipart.current_name);
+					ONION_DEBUG("Current name is <%s>", pd->multipart.current_name);
+				}
+				if (strcasecmp(key, "filename")==0){
+					char *v=onion_str_unquote(onion_str_get_token2(&line, ";=", &c));
+					if (pd->multipart.current_name)
+						onion_dict_add(req->POST, pd->multipart.current_name,
+													v, OD_DUP_ALL);
+					else{
+						ONION_WARNING("Error in post request, no name for filename field, not adding filename to POST dict");
+					}
+					ONION_DEBUG("Current filename is <%s>", v);
+					if (!req->FILES)
+						req->FILES=onion_dict_new();
+					
+					char tmpfilename[]="/tmp/onion-XXXXXX";
+					if (mkstemp(tmpfilename)<0){
+						ONION_WARNING("Could not create temporal file");
+						return OCS_INTERNAL_ERROR;
+					}
+					pd->multipart.fd=open(tmpfilename, O_CREAT|O_WRONLY, 0600);
+					if (pd->multipart.fd<0){
+						ONION_WARNING("Could not create temporal file");
+						return OCS_INTERNAL_ERROR;
+					}
+					
+					pd->parser_block=onion_http_parse_POST_multipart_file;
+				}
 			}
 		}
 	}
 	
-	ONION_DEBUG("multipart header: %s", line);
 	return OCS_NEED_MORE_DATA;
 }
 
 onion_connection_status onion_http_parse_POST_multipart_data(onion_request *req, char *line){
 	http_parser_data *pd=(http_parser_data*)req->parser.data;
-	ONION_DEBUG0("Data <%s>", line);
+	//ONION_DEBUG0("Data <%s>", line);
 	char *eop=strstr(line, pd->multipart.marker);
 	if (eop){
 		// maybe add some data before marker
@@ -283,4 +322,38 @@ onion_connection_status onion_http_parse_POST_multipart_data(onion_request *req,
 		onion_block_add_str(pd->multipart.data,line);
 	}
 	return OCS_NEED_MORE_DATA;
+}
+
+onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req, onion_ro_block *block){
+	http_parser_data *pd=(http_parser_data*)req->parser.data;
+	//ONION_DEBUG0("Data <%s>", line);
+	char *data=onion_ro_block_get(block);
+	size_t data_len=onion_ro_block_remaining(block);
+	char *eop=memmem(data, data_len,
+									 pd->multipart.marker, pd->multipart.marker_size);
+	if (eop){
+		data_len=eop-data;
+	}
+	ssize_t ret=write(pd->multipart.fd, data, data_len);
+	onion_ro_block_advance(block, data_len);
+	pd->multipart.filesize+=ret;
+	ONION_DEBUG0("Wrote %ld bytes, total %ld", ret, pd->multipart.filesize);
+	if (ret!=data_len)
+		return OCS_INTERNAL_ERROR;
+	if (eop){
+		ONION_DEBUG0("Done");
+		close(pd->multipart.fd);
+		pd->multipart.fd=-1;
+		
+		onion_ro_block_advance(block, pd->multipart.marker_size);
+		pd->parser_block=NULL;
+		pd->parser=onion_http_parse_POST_multipart_header;
+		
+		if (eop[pd->multipart.marker_size]=='-' &&
+			eop[pd->multipart.marker_size+1]=='-'){
+			onion_ro_block_get_to_nl(block);
+			return OCS_REQUEST_READY;
+		}
+	}
+	return OCS_REQUEST_READY;
 }
