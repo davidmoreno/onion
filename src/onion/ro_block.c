@@ -94,10 +94,14 @@ char *onion_str_get_token2(char **str, char *delimiter, char *rc){
 	}
 	else 
 		*str=s;
+	if (rc)
+		*rc=c;
 	return token;
 }
 
 char *onion_str_strip(char *s){
+	if (!s)
+		return s;
 	while (*s && isspace(*s))
 		s++;
 	char *r=s;
