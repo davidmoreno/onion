@@ -111,8 +111,10 @@ int onion_listen_point_accept(onion_listen_point *op){
 			onion_poller_add(req->connection.listen_point->server->poller, slot);
 			return 1;
 		}
-		if (req->connection.fd<0)
+		if (req->connection.fd<0){
 			ONION_ERROR("Error creating connection");
+			onion_request_free(req);
+		}
 		// else, no need for fd... no use case yet.
 	}
 

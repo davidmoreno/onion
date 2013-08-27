@@ -37,7 +37,8 @@
 static ssize_t onion_http_read(onion_request *req, char *data, size_t len);
 ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
 int onion_http_read_ready(onion_request *req);
-onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *block);
+
+void onion_http_parser_init(onion_request *req);
 
 /**
  * @struct onion_http_t
@@ -85,7 +86,7 @@ int onion_http_read_ready(onion_request *req){
 	onion_ro_block_init(&robuffer, buffer, len);
 	
 	if (!req->parser.parse)
-		req->parser.parse=onion_http_parse;
+		onion_http_parser_init(req);
 	
 	onion_connection_status st=OCS_INTERNAL_ERROR;
 	while (req->parser.parse && !onion_ro_block_eof(&robuffer)){
@@ -102,7 +103,7 @@ int onion_http_read_ready(onion_request *req){
 			st=onion_request_process(req);
 			if (!req->parser.parse){
 				ONION_DEBUG("Setting again http parser for this request: %d bytes left", onion_ro_block_remaining(&robuffer));
-				req->parser.parse=onion_http_parse;
+				onion_http_parser_init(req);
 			}
 		}
 	}
