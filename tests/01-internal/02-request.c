@@ -39,7 +39,7 @@ void setup(){
 	onion_add_listen_point(server, NULL, NULL, custom_io);
 }
 
-#define REQ_WRITE(req, txt) onion_request_write(req, txt, strlen(txt));
+#define REQ_WRITE(req, txt) onion_request_write_const(req, txt, strlen(txt));
 
 void teardown(){
 	onion_free(server);
@@ -82,19 +82,19 @@ void t02_create_add_free_overflow(){
 	
 	sprintf(get,"%s %s %s",of,of,of);
 	ok=REQ_WRITE(req,get);
-	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); 
+	FAIL_IF_NOT_EQUAL_INT(ok,OCS_INTERNAL_ERROR); 
 	onion_request_clean(req);
 	
 	sprintf(get,"%s %s %s\n",of,of,of);
 	ok=REQ_WRITE(req,get);
-	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); 
+	FAIL_IF_NOT_EQUAL_INT(ok,OCS_INTERNAL_ERROR); 
 	onion_request_clean(req);
 
 	
 	sprintf(get,"GET %s %s\n",of,of);
 	ok=REQ_WRITE(req,get);
 	printf("%d\n",ok);
-	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); 
+	FAIL_IF_NOT_EQUAL_INT(ok, OCS_NEED_MORE_DATA); //  OCS_INTERNAL_ERROR);  old parser gave error because of too long line. Now more permisive.
 	
 	onion_request_free(req);
 	
@@ -308,7 +308,7 @@ void t07_multiline_headers(){
 											"Extra-Other-Header: My header is very long and with several\n \n lines\n"
 											"My-Other-Header: My header is very long and with several\n\tlines\n\n";
 		
-		ok=onion_request_write(req,query,strlen(query));
+		ok=onion_request_write_const(req,query,strlen(query));
 	}
 	FAIL_IF_EQUAL(ok,OCS_INTERNAL_ERROR);
 	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"other-header"),"My header is very long and with several lines");
@@ -322,7 +322,7 @@ void t07_multiline_headers(){
 											"Other-Header: My header is very long and with several\n lines\n"
 											"My-Other-Header: My header is very long and with several\nlines\n\n";
 		
-		ok=onion_request_write(req,query,strlen(query));
+		ok=onion_request_write_const(req,query,strlen(query));
 	}
 	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); // No \t at my-other-header
 	
@@ -463,7 +463,7 @@ void t10_repeated_header(){
 											"Accept-Language: en\n"
 											"Content-Type: application/x-www-form-urlencoded-bis\n\n";
 		
-		ok=onion_request_write(req,query,strlen(query));
+		ok=onion_request_write_const(req,query,strlen(query));
 	}
 	FAIL_IF_EQUAL(ok,OCS_INTERNAL_ERROR);
 	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"Host"),"127.0.0.1");

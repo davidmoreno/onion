@@ -30,8 +30,9 @@ char *onion_ro_block_get_token(onion_ro_block *bl, char delimiter){
 	if (onion_ro_block_eof(bl))
 		return NULL;
 	char *token=bl->p;
-	while(*bl->p!=delimiter && !onion_ro_block_eof(bl)){
-		bl->p++;
+	for(;bl->p < bl->end; bl->p++){
+		if (*bl->p==delimiter)
+			break;
 	}
 	
 	*bl->p=0;

@@ -29,5 +29,6 @@
 #include "types.h"
 
 onion_listen_point *onion_http_new();
+void onion_http_parser_init(onion_request *req);
 
 #endif

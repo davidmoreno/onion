@@ -82,12 +82,6 @@ onion_request *onion_request_new_from_socket(onion_listen_point *con, int fd, st
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req);
 
-// Partially fills a request. One line each time. DEPRECATED
-//int onion_request_fill(onion_request *req, const char *data);
-
-/// Reads some data from the input (net, file...) and performs the onion_request_fill
-onion_connection_status onion_request_write(onion_request *req, const char *data, size_t length);
-
 /// Gets the current path
 const char *onion_request_get_path(onion_request *req);
 
@@ -173,6 +167,11 @@ int onion_request_parse_query(onion_request *req);
 /// Reads a query data, and insert it into the given dict.
 void onion_request_parse_query_to_dict(onion_dict *dict, char *query);
 
+/// Simple write data to a request
+onion_connection_status onion_request_write_const(onion_request *req, const char *data, size_t len);
+
+/// Simple write data to a request
+onion_connection_status onion_request_write(onion_request *req, char *data, size_t len);
 #ifdef __cplusplus
 }
 #endif

@@ -43,8 +43,9 @@ static void oblp_listen(onion_listen_point *lp){
 }
 
 static int oblp_onion_request_init(onion_request *req){
-	ONION_DEBUG("Empty init.");
+	ONION_DEBUG("Init buffer request");
 	req->connection.user_data=onion_block_new();
+	onion_http_parser_init(req);
 	return 0;
 }
 

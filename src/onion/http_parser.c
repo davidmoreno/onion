@@ -65,6 +65,7 @@ typedef struct{
 }http_parser_data;
 
 void onion_http_parser_init(onion_request *req){
+	ONION_DEBUG("Init http parser");
 	if (req->parser.data && req->parser.free)
 		req->parser.free(req->parser.data);
 	req->parser.parse=onion_http_parse;
@@ -119,7 +120,7 @@ onion_connection_status onion_http_parse_petition(onion_request *req, char *line
 	for (i=0;i<16;i++){
 		if (!onion_request_methods[i]){
 			ONION_ERROR("Unknown method '%s' (%d known methods)",method, i);
-			return OCS_NOT_IMPLEMENTED;
+			return OCS_INTERNAL_ERROR;
 		}
 		if (strcmp(onion_request_methods[i], method)==0){
 			ONION_DEBUG0("Method is %s", method);

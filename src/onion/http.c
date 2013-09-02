@@ -38,8 +38,6 @@ static ssize_t onion_http_read(onion_request *req, char *data, size_t len);
 ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
 int onion_http_read_ready(onion_request *req);
 
-void onion_http_parser_init(onion_request *req);
-
 /**
  * @struct onion_http_t
  * @memberof onion_http_t
@@ -84,9 +82,6 @@ int onion_http_read_ready(onion_request *req){
 	
 	onion_ro_block robuffer;
 	onion_ro_block_init(&robuffer, buffer, len);
-	
-	if (!req->parser.parse)
-		onion_http_parser_init(req);
 	
 	onion_connection_status st=OCS_INTERNAL_ERROR;
 	while (req->parser.parse && !onion_ro_block_eof(&robuffer)){

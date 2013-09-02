@@ -251,7 +251,6 @@ static int onion_listen_point_read_ready(onion_request *req){
 	return req->connection.listen_point->read_ready(req);
 }
 
-
 /**
  * @short Default implementation that initializes the request from a socket
  * @memberof onion_listen_point_t
