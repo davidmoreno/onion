@@ -79,6 +79,10 @@ onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *blo
 	char *line;
 	onion_connection_status ret=OCS_NEED_MORE_DATA;
 	http_parser_data *pd=(http_parser_data*)req->parser.data;
+	if (!pd){
+		ONION_ERROR("Bad formed http parser data");
+		return OCS_INTERNAL_ERROR;
+	}
 	while ( (ret==OCS_NEED_MORE_DATA) && pd->parser && ( (line=onion_ro_block_get_to_nl(block)) != NULL ) ){
 	#ifdef __DEBUG__0
 		char **bs=backtrace_symbols((void * const *)&pd->parser, 1);

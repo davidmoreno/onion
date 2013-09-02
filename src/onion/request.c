@@ -161,11 +161,6 @@ void onion_request_clean(onion_request* req){
   req->headers=onion_dict_new();
   onion_dict_set_flags(req->headers, OD_ICASE);
   req->flags&=OR_NO_KEEP_ALIVE; // I keep keep alive.
-  if (req->parser.data){
-		if (req->parser.free)
-			req->parser.free(req->parser.data);
-    req->parser.data=NULL;
-  }
   if (req->fullpath){
     free(req->fullpath);
     req->path=req->fullpath=NULL;
@@ -193,10 +188,6 @@ void onion_request_clean(onion_request* req){
       free(req->session_id);
       req->session_id=NULL;
     }
-  }
-  if (req->data){
-    onion_block_free(req->data);
-    req->data=NULL;
   }
 	if (req->connection.cli_info){
 		free(req->connection.cli_info);
