@@ -223,8 +223,8 @@ int onion_response_write_headers(onion_response *res){
   
 	onion_response_write(res,"\r\n",2);
 	
-	ONION_DEBUG0("Wrote headers");
-	res->sent_bytes=0; // the header size is not counted here.
+	ONION_DEBUG0("Headers written");
+	res->sent_bytes=-res->buffer_pos; // the header size is not counted here. It will add again so start negative.
 	
 	if ((res->request->flags&OR_METHODS)==OR_HEAD){
 		onion_response_flush(res);
@@ -302,7 +302,6 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
 int onion_response_flush(onion_response *res){
 	res->sent_bytes+=res->buffer_pos;
 	res->sent_bytes_total+=res->buffer_pos;
-	ONION_DEBUG0("Flush %d bytes", res->buffer_pos);
 	if(res->buffer_pos==0) // Not used.
 		return 0;
 	if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
@@ -311,14 +310,14 @@ int onion_response_flush(onion_response *res){
 		int tmpp=res->buffer_pos;
 		memcpy(tmpb, res->buffer, res->buffer_pos);
 		res->buffer_pos=0;
-		res->sent_bytes=0;
-		res->sent_bytes_total=0;
 		
 		onion_response_write_headers(res);
 		onion_response_write( res, tmpb, tmpp );
+ 		return 0;
 	}
 	if (res->flags&OR_SKIP_CONTENT) // HEAD request
 		return 0;
+	ONION_DEBUG0("Flush %d bytes", res->buffer_pos);
 
 	onion_request *req=res->request;
 	ssize_t (*write)(onion_request *, const char *data, size_t len);

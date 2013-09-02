@@ -531,6 +531,8 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	onion_response_set_header(res, "Content-Type", "text/xml; charset=\"utf-8\"");
 	onion_response_set_length(res, onion_block_size(block));
 	onion_response_set_code(res, HTTP_MULTI_STATUS);
+	onion_response_write_headers(res);
+	onion_response_flush(res);
 	
 	onion_response_write(res, onion_block_data(block), onion_block_size(block));
 	
