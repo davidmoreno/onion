@@ -43,3 +43,4 @@ endif (${CAIRO_ENABLED})
 
 add_subdirectory(multiport)
 add_subdirectory(websockets)
+add_subdirectory(methods)
