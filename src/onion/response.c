@@ -89,7 +89,7 @@ onion_response *onion_response_new(onion_request *req){
  */
 onion_connection_status onion_response_free(onion_response *res){
 	// write pending data.
-	if (res->buffer_pos<sizeof(res->buffer))
+	if (!(res->flags&OR_HEADER_SENT) && res->buffer_pos<sizeof(res->buffer))
 		onion_response_set_length(res, res->buffer_pos);
 	
 	onion_response_flush(res);
@@ -104,9 +104,9 @@ onion_connection_status onion_response_free(onion_response *res){
 	// it is a rare ocassion that there is no request, but although unlikely, it may happend
 	if (req){
 		// keep alive only on HTTP/1.1.
-		//ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d || [chunked] %d)", 
-		//						onion_request_keep_alive(req),
-		//						res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes, res->flags&OR_CHUNKED);
+		ONION_DEBUG0("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d==%d || [chunked] %d)", 
+								onion_request_keep_alive(req),
+								res->flags&OR_SKIP_CONTENT,res->length, res->sent_bytes, res->flags&OR_CHUNKED);
 		if ( onion_request_keep_alive(req) && 
 				 ( res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes || res->flags&OR_CHUNKED ) 
 			 )
@@ -139,6 +139,10 @@ void onion_response_set_header(onion_response *res, const char *key, const char 
  * @memberof onion_response_t
  */
 void onion_response_set_length(onion_response *res, size_t len){
+	if (len!=res->sent_bytes && res->flags&OR_HEADER_SENT){
+		ONION_WARNING("Trying to set length after headers sent. Undefined onion behaviour.");
+		return;
+	}
 	char tmp[16];
 	sprintf(tmp,"%lu",(unsigned long)len);
 	onion_response_set_header(res, "Content-Length", tmp);
@@ -219,6 +223,7 @@ int onion_response_write_headers(onion_response *res){
   
 	onion_response_write(res,"\r\n",2);
 	
+	ONION_DEBUG0("Wrote headers");
 	res->sent_bytes=0; // the header size is not counted here.
 	
 	if ((res->request->flags&OR_METHODS)==OR_HEAD){
@@ -262,8 +267,7 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
 		onion_response_flush(res);
 		return 0;
 	}
-	res->sent_bytes+=length;
-	res->sent_bytes_total+=length;
+	//ONION_DEBUG0("Write %d bytes [%d total] (%p)", length, res->sent_bytes, res);
 
 	int l=length;
 	int w=0;
@@ -296,13 +300,19 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
  * on more cases.
  */
 int onion_response_flush(onion_response *res){
+	res->sent_bytes+=res->buffer_pos;
+	res->sent_bytes_total+=res->buffer_pos;
+	ONION_DEBUG0("Flush %d bytes", res->buffer_pos);
 	if(res->buffer_pos==0) // Not used.
 		return 0;
 	if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
+		ONION_DEBUG0("Doing fast header hack: store current buffer, send current headers. Resend buffer.");
 		char tmpb[sizeof(res->buffer)];
 		int tmpp=res->buffer_pos;
 		memcpy(tmpb, res->buffer, res->buffer_pos);
 		res->buffer_pos=0;
+		res->sent_bytes=0;
+		res->sent_bytes_total=0;
 		
 		onion_response_write_headers(res);
 		onion_response_write( res, tmpb, tmpp );
@@ -320,10 +330,11 @@ int onion_response_flush(onion_response *res){
 	if (res->flags&OR_CHUNKED){
 		char tmp[16];
 		snprintf(tmp,sizeof(tmp),"%X\r\n",(unsigned int)res->buffer_pos);
-		if (write(req, tmp, strlen(tmp))<=0){
+		if ( (w=write(req, tmp, strlen(tmp)))<=0){
 			ONION_WARNING("Error writing chunk encoding length. Aborting write.");
 			return OCS_CLOSE_CONNECTION;
 		}
+		ONION_DEBUG0("Write %d-%d bytes",res->buffer_pos,w);
 	}
 	while ( (w=write(req, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0 || res->buffer_pos<0){

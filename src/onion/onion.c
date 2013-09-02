@@ -530,8 +530,10 @@ onion_url *onion_root_url(onion *server){
 	if (server->root_handler){
 		if (server->root_handler->priv_data_free==(void*)onion_url_free_data) // Only available check
 			return (onion_url*)server->root_handler;
+		ONION_WARNING("Could not get root url handler, as there is another non url handler at root.");
 		return NULL;
 	}
+	ONION_DEBUG("New root url handler");
 	onion_url *url=onion_url_new();
 	server->root_handler=(onion_handler*)url;
 	return url;
