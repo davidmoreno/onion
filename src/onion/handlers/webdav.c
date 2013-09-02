@@ -330,7 +330,7 @@ static int onion_webdav_parse_propfind(const onion_block *block){
  * 
  * @return 0 is ok, 1 if could not stat file.
  */
-int onion_webdav_write_props(xmlTextWriterPtr writer, 
+int onion_webdav_write_props(xmlTextWriterPtr writer, const char *basepath, 
 														 const char *realpath, const char *urlpath, const char *filename, 
 														 int props){
 	ONION_DEBUG("Info for path '%s', urlpath '%s', file '%s'", realpath, urlpath, filename);
@@ -348,19 +348,20 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
 
 	if (filename){
 		if (urlpath[0]==0)
-			snprintf(tmp, sizeof(tmp), "/%s", filename);
+			snprintf(tmp, sizeof(tmp), "%s/%s", basepath, filename);
 		else
-			snprintf(tmp, sizeof(tmp), "/%s/%s", urlpath, filename);
+			snprintf(tmp, sizeof(tmp), "%s/%s/%s", basepath, urlpath, filename);
 	}
 	else{
 		if (urlpath[0]==0)
-			snprintf(tmp, sizeof(tmp), "/");
+			snprintf(tmp, sizeof(tmp), "%s/", basepath);
 		else{
-			snprintf(tmp, sizeof(tmp), "/%s", urlpath);
+			snprintf(tmp, sizeof(tmp), "%s/%s", basepath, urlpath);
 		}
 	}
-	if (S_ISDIR(st.st_mode))
+	if (S_ISDIR(st.st_mode) && urlpath[0]!=0)
 		strncat(tmp,"/", sizeof(tmp));
+	ONION_DEBUG0("Props for %s", tmp);
 	
 	xmlTextWriterStartElement(writer, BAD_CAST "D:response");
 	xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:lp1" ,BAD_CAST "DAV:");
@@ -445,7 +446,7 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
  * 
  * @returns An onion_block with the XML data.
  */
-onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpath, int depth, 
+onion_block *onion_webdav_write_propfind(const char *basepath, const char *realpath, const char *urlpath, int depth, 
 																				 int props){
 	onion_block *data=onion_block_new();
 	xmlTextWriterPtr writer;
@@ -464,7 +465,7 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
 	xmlTextWriterStartDocument(writer, NULL, "utf-8", NULL);
 	xmlTextWriterStartElement(writer, BAD_CAST "D:multistatus");
 		xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:D" ,BAD_CAST "DAV:");
-			error=onion_webdav_write_props(writer, realpath, urlpath, NULL, props);
+			error=onion_webdav_write_props(writer, basepath, realpath, urlpath, NULL, props);
 			if (depth>0){
 				ONION_DEBUG("Get also all files");
 				DIR *dir=opendir(realpath);
@@ -475,7 +476,7 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
 					struct dirent *de;
 					while ( (de=readdir(dir)) ){
 						if (de->d_name[0]!='.')
-							onion_webdav_write_props(writer, realpath, urlpath, de->d_name, props);
+							onion_webdav_write_props(writer, basepath, realpath, urlpath, de->d_name, props);
 					}
 					closedir(dir);
 				}
@@ -503,6 +504,20 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
  * @param path the shared path.
  */
 onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav *wd, onion_request* req, onion_response* res){
+	// Prepare the basepath, necesary for props.
+	char *basepath=NULL;
+	int pathlen=0;
+	const char *current_path=onion_request_get_path(req);
+	const char *fullpath=onion_request_get_fullpath(req);
+	pathlen=(current_path-fullpath);
+	basepath=alloca(pathlen+1);
+	memcpy(basepath, fullpath, pathlen);
+	if (basepath[pathlen-1]=='/')
+		basepath[pathlen-1]=0;
+	else
+		basepath[pathlen]=0;
+
+				 
 	ONION_DEBUG0("PROPFIND");
 	int depth;
 	{
@@ -521,7 +536,7 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	int props=onion_webdav_parse_propfind(onion_request_get_data(req));
 	ONION_DEBUG("Asking for props %08X, depth %d", props, depth);
 	
-	onion_block *block=onion_webdav_write_propfind(filename, onion_request_get_path(req), depth, props);
+	onion_block *block=onion_webdav_write_propfind(basepath, filename, onion_request_get_path(req), depth, props);
 	
 	if (!block) // No block, resource does not exist
 		return onion_shortcut_response("Not found", HTTP_NOT_FOUND, req, res);
