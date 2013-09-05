@@ -333,7 +333,7 @@ static int onion_webdav_parse_propfind(const onion_block *block){
 int onion_webdav_write_props(xmlTextWriterPtr writer, const char *basepath, 
 														 const char *realpath, const char *urlpath, const char *filename, 
 														 int props){
-	ONION_DEBUG("Info for path '%s', urlpath '%s', file '%s'", realpath, urlpath, filename);
+	ONION_DEBUG("Info for path '%s', urlpath '%s', file '%s', basepath '%s'", realpath, urlpath, filename, basepath);
 	// Stat the thing itself
 	char tmp[512];
 	if (filename)
@@ -345,6 +345,8 @@ int onion_webdav_write_props(xmlTextWriterPtr writer, const char *basepath,
 		ONION_ERROR("Error on %s: %s", tmp, strerror(errno));
 		return 1;
 	}
+	while (*urlpath=='/') // No / at the begining.
+		urlpath++;
 
 	if (filename){
 		if (urlpath[0]==0)
@@ -511,14 +513,13 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	const char *fullpath=onion_request_get_fullpath(req);
 	pathlen=(current_path-fullpath);
 	basepath=alloca(pathlen+1);
-	memcpy(basepath, fullpath, pathlen);
-	if (basepath[pathlen-1]=='/')
-		basepath[pathlen-1]=0;
-	else
-		basepath[pathlen]=0;
-
+	memcpy(basepath, fullpath, pathlen+1);
+	ONION_DEBUG0("Pathbase initial <%s> %d", basepath, pathlen); 
+	while(basepath[pathlen]=='/')
+		pathlen--;
+	basepath[pathlen+1]=0;
 				 
-	ONION_DEBUG0("PROPFIND");
+	ONION_DEBUG0("PROPFIND; pathbase %s", basepath);
 	int depth;
 	{
 		const char *depths=onion_request_get_header(req, "Depth");
