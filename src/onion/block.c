@@ -27,7 +27,7 @@
 #include "block.h"
 #include "log.h"
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define ONION_BLOCK_GROW_MIN_BLOCK 16

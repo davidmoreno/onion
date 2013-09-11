@@ -18,7 +18,6 @@
 
 #include <stdio.h>
 #include <fcntl.h>
-#include <malloc.h>
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>

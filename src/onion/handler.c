@@ -25,10 +25,12 @@
 
 #include "log.h"
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
-#ifdef __DEBUG__
+#ifdef __DEBUG__ 
+#ifdef __EXECINFO__
 #include <execinfo.h>
+#endif
 #endif
 
 #include "handler.h"
