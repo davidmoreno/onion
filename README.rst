@@ -131,6 +131,13 @@ Systemd is integrated. If want to use it, just pass the flag O_SYSTEMD to the on
 
 Oterm has example socket and service files for oterm support.
 
+FreeBSD
+-------
+
+Since september 2013 there is support for FreeBSD using libev or libevent. This work is not as tested 
+as the Linux version, but if some compilation error arises, please send the bug report and we will fix
+it ASAP.
+
 Binary compatibility breaks
 ---------------------------
 
