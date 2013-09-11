@@ -108,6 +108,7 @@ void t02_handle_generic_request(){
 	FILL(request,"GET /error HTTP/1.1\n");
 	onion_request_process(request);
 	buffer=onion_buffer_listen_point_get_buffer_data(request);
+	ONION_DEBUG("<%s>", buffer);
 	FAIL_IF_NOT_STRSTR(buffer, "HTTP/1.1 500 INTERNAL ERROR\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "Content-Length: 14\r\n");
 	FAIL_IF_NOT_STRSTR(buffer, "\r\n\r\nInternal error");
