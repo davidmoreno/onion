@@ -58,6 +58,7 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
 			res=handler->handler(handler->priv_data, request, response);
 			ONION_DEBUG0("Result: %d",res);
 			if (res){
+				onion_response_flush(response);
 				if (res==OCS_WEBSOCKET){
 					if (request->websocket)
 						return onion_websocket_call(request->websocket);
