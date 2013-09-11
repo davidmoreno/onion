@@ -35,7 +35,7 @@
 #include <netdb.h>
 #include <pthread.h>
 
-onion_response_codes process_request(void *_, onion_request *req, onion_response *res){
+onion_connection_status process_request(void *_, onion_request *req, onion_response *res){
   onion_response_write0(res, "Done");
   
 	const onion_block *data=onion_request_get_data(req);

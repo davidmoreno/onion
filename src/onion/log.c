@@ -190,7 +190,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
 	char pri[]={LOG_DEBUG, LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR};
 
-	if (level>sizeof(pri) || level <0)
+	if (level>sizeof(pri))
 		return;
 	
 	va_list ap;
