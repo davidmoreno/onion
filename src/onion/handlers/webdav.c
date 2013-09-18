@@ -123,7 +123,7 @@ onion_connection_status onion_webdav_handler(onion_webdav *wd, onion_request *re
 	onion_response_set_code(res, HTTP_NOT_IMPLEMENTED);
 	onion_response_write0(res, "<h1>Work in progress...</h1>\n");
 	
-	return HTTP_OK;
+	return (onion_connection_status) HTTP_OK;
 }
 
 /**
@@ -362,7 +362,7 @@ int onion_webdav_write_props(xmlTextWriterPtr writer, const char *basepath,
 		}
 	}
 	if (S_ISDIR(st.st_mode) && urlpath[0]!=0)
-		strncat(tmp,"/", sizeof(tmp));
+		strncat(tmp,"/", sizeof(tmp) - 1);
 	ONION_DEBUG0("Props for %s", tmp);
 	
 	xmlTextWriterStartElement(writer, BAD_CAST "D:response");
