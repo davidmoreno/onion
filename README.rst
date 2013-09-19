@@ -99,11 +99,13 @@ ARM Support
 -----------
 
 It can be cross compiled for ARM directly from cmake. Just do:
-
-		$ mkdir arm
-		$ cd arm
-		$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
-		$ make
+    
+    	::
+    	
+	$ mkdir arm
+	$ cd arm
+	$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
+	$ make
 
 It needs the current system opack and otemplate to compile some examples, so if you want to use
 the examples on your instalation, compile and install libonion for the current system first.
