@@ -123,7 +123,7 @@ onion_connection_status onion_webdav_handler(onion_webdav *wd, onion_request *re
 	onion_response_set_code(res, HTTP_NOT_IMPLEMENTED);
 	onion_response_write0(res, "<h1>Work in progress...</h1>\n");
 	
-	return (onion_connection_status) HTTP_OK;
+	return OCS_PROCESSED;
 }
 
 /**
