@@ -42,7 +42,7 @@
 #include "listen_point.h"
 #include "websocket.h"
 #include "codecs.h"
-#include "ro_block.h"
+#include "parser_block.h"
 #include "http.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
@@ -680,8 +680,8 @@ onion_connection_status onion_request_write_const(onion_request *req, const char
 
 onion_connection_status onion_request_write(onion_request* req, char* data, size_t len){
 	assert(req->parser.parse != NULL);
-	onion_ro_block block;
-	onion_ro_block_init(&block, data, len);
+	onion_parser_block block;
+	onion_parser_block_init(&block, data, len);
 	return req->parser.parse(req, &block);
 }
 

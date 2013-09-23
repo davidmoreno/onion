@@ -167,10 +167,10 @@ int onion_request_parse_query(onion_request *req);
 /// Reads a query data, and insert it into the given dict.
 void onion_request_parse_query_to_dict(onion_dict *dict, char *query);
 
-/// Simple write data to a request
+/// Simple write data to a request. const version. Does a copy as it modifies buffers.
 onion_connection_status onion_request_write_const(onion_request *req, const char *data, size_t len);
 
-/// Simple write data to a request
+/// Simple write data to a request. Modifies the data buffer.
 onion_connection_status onion_request_write(onion_request *req, char *data, size_t len);
 #ifdef __cplusplus
 }

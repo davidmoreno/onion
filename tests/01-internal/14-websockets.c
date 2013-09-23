@@ -56,7 +56,7 @@ onion *websocket_server_new(){
 }
 
 int onion_request_write0(onion_request *req, const char *data){
-	return onion_request_write(req,data,strlen(data));
+	return onion_request_write_const(req,data,strlen(data));
 }
 
 void t01_websocket_server_no_ws(){

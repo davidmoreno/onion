@@ -34,7 +34,7 @@
 #include "buffer_listen_point.h"
 #include <onion/url.h>
 
-#define FILL(a,b) onion_request_write(a,b,strlen(b))
+#define FILL(a,b) onion_request_write_const(a,b,strlen(b))
 
 void t01_handle_static_request(){
 	INIT_LOCAL();

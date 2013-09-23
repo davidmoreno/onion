@@ -23,28 +23,28 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#include "ro_block.h"
+#include "parser_block.h"
 #include <string.h>
 
-char *onion_ro_block_get_token(onion_ro_block *bl, char delimiter){
-	if (onion_ro_block_eof(bl))
+char *onion_parser_block_get_token(onion_parser_block *bl, char delimiter){
+	if (onion_parser_block_eof(bl))
 		return NULL;
 	char *token=bl->p;
 	for(;bl->p < bl->end; bl->p++){
 		if (*bl->p==delimiter)
 			break;
 	}
-	
-	*bl->p=0;
+	if (bl->p < bl->end)
+		*bl->p=0;
 	bl->p++;
 	return token;
 }
-char *onion_ro_block_get_token2(onion_ro_block *bl, char *delimiter, char *rc){
-	if (onion_ro_block_eof(bl))
+char *onion_parser_block_get_token2(onion_parser_block *bl, char *delimiter, char *rc){
+	if (onion_parser_block_eof(bl))
 		return NULL;
 	char *token=bl->p;
 	char c=*bl->p;
-	while(c!=delimiter[0] && c!=delimiter[1] && !onion_ro_block_eof(bl)){
+	while(c!=delimiter[0] && c!=delimiter[1] && !onion_parser_block_eof(bl)){
 		bl->p++;
 		c=*bl->p;
 	}
@@ -55,8 +55,8 @@ char *onion_ro_block_get_token2(onion_ro_block *bl, char *delimiter, char *rc){
 	return token;
 }
 
-char *onion_ro_block_get_to_nl(onion_ro_block *bl){
-	char *r=onion_ro_block_get_token(bl, '\n');
+char *onion_parser_block_get_to_nl(onion_parser_block *bl){
+	char *r=onion_parser_block_get_token(bl, '\n');
 
 	if (r && ( (bl->p-r) > 1) && bl->p[-2]=='\r') // remove \r if there is something that has data, and last char is \r.
 		bl->p[-2]='\0';

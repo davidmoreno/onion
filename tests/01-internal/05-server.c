@@ -138,7 +138,7 @@ void t03_server_no_overflow(){
 	}
 	
 	onion_request *req=onion_request_new(lp);
-	onion_request_write(req, onion_block_data(long_req),onion_block_size(long_req)); // send it all, but the final 0.
+	onion_request_write_const(req, onion_block_data(long_req),onion_block_size(long_req)); // send it all, but the final 0. I know i make it rw with the cast.
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
@@ -172,7 +172,7 @@ void t04_server_overflow(){
 		onion_block_add_str(long_req,"Header-1: This is header1 Header-2: This is header 2 ");
 	}
 	onion_request *req=onion_request_new(lp);
-	onion_request_write(req, onion_block_data(long_req),onion_block_size(long_req)-1); // send it all, but the final 0.
+	onion_request_write_const(req, onion_block_data(long_req),onion_block_size(long_req)-1); // send it all, but the final 0.
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
 	onion_request_write(req, "\n\n",2); // finish this request. no \n\n before to check possible bugs.
