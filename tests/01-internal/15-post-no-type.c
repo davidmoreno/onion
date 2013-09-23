@@ -16,7 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -35,7 +35,11 @@
 #include <netdb.h>
 #include <pthread.h>
 
-onion_response_codes process_request(void *_, onion_request *req, onion_response *res){
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC 0
+#endif
+
+onion_connection_status process_request(void *_, onion_request *req, onion_response *res){
   onion_response_write0(res, "Done");
   
 	const onion_block *data=onion_request_get_data(req);

@@ -23,7 +23,6 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
 #include <string.h>
 #include <stdlib.h>
 #include <libgen.h>

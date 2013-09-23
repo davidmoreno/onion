@@ -16,7 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <onion/log.h>
@@ -80,7 +80,7 @@ void t02_full_cycle_http10(){
 	onion_response_write_headers(response);
 	
 	onion_response_write0(response,"123456789012345678901234567890");
-	
+	onion_response_flush(response);
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
@@ -117,6 +117,7 @@ void t03_full_cycle_http11(){
 	onion_response_write_headers(response);
 	
 	onion_response_write0(response,"123456789012345678901234567890");
+	onion_response_flush(response);
 	
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	

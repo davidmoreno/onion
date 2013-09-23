@@ -26,9 +26,11 @@ public:
   MyHandler(){ n=rand(); }
   onion_connection_status index(Onion::Request &req, Onion::Response &res){
     res<<"index "<<n<<std::endl;
+		return OCS_PROCESSED;
   }
   onion_connection_status error(Onion::Request &req, Onion::Response &res){
     res<<"error "<<n<<std::endl;
+		return OCS_PROCESSED;
   }
 };
 

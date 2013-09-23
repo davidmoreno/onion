@@ -21,7 +21,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include <onion/onion.h>
