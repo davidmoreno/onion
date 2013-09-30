@@ -63,7 +63,7 @@ void show_help(){
 								 "\n");
 }
 
-void free_onion(){
+void free_onion(int unused){
 	static int already_closing=0;
 	if (!already_closing){
 		ONION_INFO("Closing connections.");
