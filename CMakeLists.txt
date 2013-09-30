@@ -147,6 +147,8 @@ endif(XML2_ENABLED)
 if (SYSTEMD_ENABLED)
 	add_definitions(-DHAVE_SYSTEMD)
 endif (SYSTEMD_ENABLED)
+add_definitions(-D_BSD_SOURCE)
+add_definitions(-D_XOPEN_SOURCE=500)
 
 ##
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
