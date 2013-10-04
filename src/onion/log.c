@@ -40,7 +40,7 @@
 
 #include "log.h"
 
-static int onion_log_flags=0;
+int onion_log_flags=0;
 #ifdef HAVE_PTHREADS
 static pthread_mutex_t onion_log_mutex=PTHREAD_MUTEX_INITIALIZER;
 #endif
@@ -65,14 +65,6 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
  * @param fmt printf-like format string and parameters.
  */
 void (*onion_log)(onion_log_level level, const char *filename, int lineno, const char *fmt, ...)=onion_log_stderr;
-
-enum onion_log_flags_e{
-	OF_INIT=1,
-	OF_NOCOLOR=2,
-	OF_SYSLOGINIT=8,
-	OF_NOINFO=16,
-	OF_NODEBUG=32,
-};
 
 /**
  * @short Logs to stderr.

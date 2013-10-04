@@ -50,7 +50,17 @@ enum onion_log_level_e{
 	O_ERROR=4,
 };
 
+enum onion_log_flags_e{
+	OF_INIT=1,
+	OF_NOCOLOR=2,
+	OF_SYSLOGINIT=8,
+	OF_NOINFO=16,
+	OF_NODEBUG=32,
+};
+
+
 typedef enum onion_log_level_e onion_log_level;
+extern int onion_log_flags; // For some speedups, as not getting client info if not going to save it.
 
 /// This function can be overwritten with whatever onion_log facility you want to use, same signature
 extern void (*onion_log)(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
