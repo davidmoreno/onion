@@ -27,7 +27,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <time.h>
 #include <stdarg.h>
+#include <assert.h>
+
+#ifdef HAVE_PTHREAD
+# include <pthread.h>
+#endif
 
 #include "dict.h"
 #include "request.h"
@@ -37,6 +43,17 @@
 #include "codecs.h"
 
 const char *onion_response_code_description(int code);
+
+// DONT_USE_DATE_HEADER is not defined anywhere, but here just in case needed in the future.
+
+#ifndef DONT_USE_DATE_HEADER
+static volatile time_t onion_response_last_time=0;
+static char *onion_response_last_date_header=NULL;
+#ifdef HAVE_PTHREAD
+pthread_rwlock_t onion_response_date_lock=PTHREAD_RWLOCK_INITIALIZER;
+#endif
+#endif
+
 
 /**
  * @short Generates a new response object
@@ -69,7 +86,53 @@ onion_response *onion_response_new(onion_request *req){
 	res->sent_bytes_total=res->length=res->sent_bytes=0;
 	res->buffer_pos=0;
 	
-	// Sorry for the publicity.
+#ifndef DONT_USE_DATE_HEADER
+	{
+		time_t t;
+		struct tm *tmp;
+
+		t = time(NULL);
+		
+		// onion_response_last_date_header is set to t later. It should be more or less atomic. 
+		// If not no big deal, as we will just use slightly more CPU on those "ephemeral" moments.
+		
+		if (t!=onion_response_last_time){
+			ONION_DEBUG("Recalculating date header");
+			char current_datetime[200];
+			
+			tmp = localtime(&t);
+			if (tmp == NULL) {
+					perror("localtime");
+					exit(EXIT_FAILURE);
+			}
+
+			if (strftime(current_datetime, sizeof(current_datetime), "%a, %d %b %Y %H:%M:%S %Z", tmp) == 0) {
+					fprintf(stderr, "strftime returned 0");
+					exit(EXIT_FAILURE);
+			}
+			// Risky, not using mutex...
+#ifdef HAVE_PTHREAD
+			pthread_rwlock_wrlock(&onion_response_date_lock);
+#endif
+			onion_response_last_time=t; 
+			if (onion_response_last_date_header)
+				free(onion_response_last_date_header);
+			onion_response_last_date_header=strdup(current_datetime);
+#ifdef HAVE_PTHREAD
+			pthread_rwlock_unlock(&onion_response_date_lock);
+#endif
+		}
+	}
+#ifdef HAVE_PTHREAD
+	pthread_rwlock_rdlock(&onion_response_date_lock);
+#endif
+	assert(onion_response_last_date_header);
+	onion_dict_add(res->headers, "Date", onion_response_last_date_header, OD_DUP_VALUE);
+#ifdef HAVE_PTHREAD
+	pthread_rwlock_unlock(&onion_response_date_lock);
+#endif
+#endif // USE_DATE_HEADER
+	// Sorry for the advertisment.
 	onion_dict_add(res->headers, "Server", "libonion v0.5 - coralbits.com", 0);
 	onion_dict_add(res->headers, "Content-Type", "text/html", 0); // Maybe not the best guess, but really useful.
 	//time_t t=time(NULL);
