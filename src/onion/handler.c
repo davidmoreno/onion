@@ -60,6 +60,9 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
 			res=handler->handler(handler->priv_data, request, response);
 			ONION_DEBUG0("Result: %d",res);
 			if (res){
+				// write pending data.
+				if (!(response->flags&OR_HEADER_SENT) && response->buffer_pos<sizeof(response->buffer))
+					onion_response_set_length(response, response->buffer_pos);
 				onion_response_flush(response);
 				if (res==OCS_WEBSOCKET){
 					if (request->websocket)
