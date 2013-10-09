@@ -26,6 +26,7 @@
 
 #include "list.h"
 #include "parser.h"
+#include "../common/updateassets.h"
 #include <ctype.h>
 
 int use_orig_line_numbers=1;
@@ -38,6 +39,20 @@ void functions_write_declarations(parser_status *st){
 		if (d->is_static)
 			fprintf(st->out, "static ");
 		fprintf(st->out, "void %s(%s);\n", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res");
+		it=it->next;
+	}
+}
+
+/// Writes to st->out the declarations of the functions for this template
+void functions_write_declarations_assets(parser_status *st, onion_assets_file *assets){
+	list_item *it=st->functions->head;
+	char line[1024];
+	while (it){
+		function_data *d=it->data;
+		if (!d->is_static && !d->signature && strstr(d->id, "__block")==NULL ){
+			snprintf(line, sizeof(line), "void %s(%s);", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res");
+			onion_assets_file_update(assets, line);
+		}
 		it=it->next;
 	}
 }

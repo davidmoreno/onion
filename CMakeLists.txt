@@ -165,13 +165,10 @@ INCLUDE(CPackConfig.cmake)
 INCLUDE(CPack)
 
 add_subdirectory(src)
+add_subdirectory(tools)
 
-if (CROSS_COMPILING)
-else (CROSS_COMPILING)
-	add_subdirectory(tools)
-	SET(OTEMPLATE otemplate)
-	SET(OPACK opack)
-endif (CROSS_COMPILING)
+SET(OTEMPLATE otemplate)
+SET(OPACK opack)
 
 if (${ONION_USE_TESTS})
 	enable_testing()

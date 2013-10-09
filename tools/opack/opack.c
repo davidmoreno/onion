@@ -131,8 +131,9 @@ char *funcname(const char *prefix, const char *filename){
 void parse_file(const char *prefix, const char *filename, FILE *outfd, onion_assets_file *assets){
 	FILE *fd=fopen(filename, "r");
 	if (!fd){
-		fprintf(stderr,"ERROR: Cant open file %s",filename);
+		fprintf(stderr,"ERROR: Cant open file %s: ",filename);
 		perror("");
+		onion_assets_file_free(assets);
 		exit(3);
 	}
 	char *fname=funcname(prefix, basename((char*)filename));
