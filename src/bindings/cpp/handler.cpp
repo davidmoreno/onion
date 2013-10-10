@@ -59,3 +59,6 @@ Onion::Handler::~Handler()
 
 }
 
+onion_connection_status Onion::HandlerCFunction::operator()(Onion::Request &req, Onion::Response &res){
+	return fn(NULL, req.c_handler(), res.c_handler());
+}

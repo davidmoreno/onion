@@ -58,6 +58,9 @@ namespace Onion{
     bool add(const std::string &url, const std::string &s, int http_code=200){
       return onion_url_add_static(ptr,url.c_str(),s.c_str(),http_code);
     }
+    bool add(const std::string &url, onion_handler_handler handler){
+			return add(url, new HandlerCFunction(handler));
+		}
   };
 }
 

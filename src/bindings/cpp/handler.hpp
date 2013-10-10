@@ -71,6 +71,14 @@ namespace Onion{
     }
   };
 	
+  class HandlerCFunction : public Handler{
+  private:
+    onion_handler_handler fn;
+  public:
+    HandlerCFunction(onion_handler_handler _fn) : fn(_fn){}
+    virtual onion_connection_status operator()(Onion::Request &req, Onion::Response &res);
+  };
+	
 	class HttpException : public std::exception{
 		std::string str;
 	public:
