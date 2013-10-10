@@ -48,6 +48,9 @@ namespace Onion{
     bool add(const std::string &url, Handler *h){
       return onion_url_add_handler(ptr,url.c_str(),h->c_handler());
     }
+    bool add(const std::string &url, onion_handler *h){
+      return onion_url_add_handler(ptr,url.c_str(), h);
+    }
     bool add(const std::string &url, HandlerFunction::fn_t fn){
       return add(url,new HandlerFunction(fn));
     }
