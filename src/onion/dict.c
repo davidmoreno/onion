@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <strings.h>
 
 #include "log.h"
 #include "dict.h"

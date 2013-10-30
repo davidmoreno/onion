@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <netdb.h>
+#include <strings.h>
 
 #include "dict.h"
 #include "request.h"
