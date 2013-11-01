@@ -24,6 +24,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
+#define	DT_DIR		 4
+
 #include "../common/updateassets.h"
 
 void print_help();

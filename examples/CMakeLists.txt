@@ -29,7 +29,7 @@ add_subdirectory(hello)
 
 
 if (OTEMPLATE)
-	add_subdirectory(ofileserver)
+	#add_subdirectory(ofileserver)
 	if (${PNG_ENABLED})
 		add_subdirectory(mandelbrot)
 	else (${PNG_ENABLED})
