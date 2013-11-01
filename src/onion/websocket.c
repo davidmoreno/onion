@@ -33,8 +33,10 @@
 #include <poll.h>
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <alloca.h>
 
 enum onion_websocket_flags_e{
 	WS_FIN=1,

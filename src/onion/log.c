@@ -143,11 +143,11 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 		level=(sizeof(levelstr)/sizeof(levelstr[0]))-1;
 
 #ifdef HAVE_PTHREADS
-  int pid=(unsigned int)pthread_self();
+  unsigned long int pid = (unsigned long int)pthread_self();
   if (!(onion_log_flags&OF_NOCOLOR))
-    fprintf(stderr, "\033[%dm[%06d]%s ",30 + (pid%7)+1, pid, levelcolor[level]);
+    fprintf(stderr, "\033[%ldm[%06ld]%s ",30 + (pid%7)+1, pid, levelcolor[level]);
   else
-    fprintf(stderr, "[%06d] ", pid);
+    fprintf(stderr, "[%06ld] ", pid);
 #else
   if (!(onion_log_flags&OF_NOCOLOR))
     fprintf(stderr,"%s",levelcolor[level]);
@@ -187,6 +187,6 @@ void onion_log_syslog(onion_log_level level, const char *filename, int lineno, c
 	
 	va_list ap;
 	va_start(ap, fmt);
-	vsyslog(pri[level], fmt, ap);
+	//vsyslog(pri[level], fmt, ap);
 	va_end(ap);
 }

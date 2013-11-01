@@ -25,6 +25,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <alloca.h>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/xmlwriter.h>
@@ -39,7 +40,9 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifndef __APPLE__
 #include <malloc.h>
+#endif
 #include <libgen.h>
 #include <ctype.h>
 
