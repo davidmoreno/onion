@@ -148,7 +148,6 @@ if (SYSTEMD_ENABLED)
 	add_definitions(-DHAVE_SYSTEMD)
 endif (SYSTEMD_ENABLED)
 add_definitions(-D_BSD_SOURCE)
-add_definitions(-D_XOPEN_SOURCE=500)
 add_definitions(-D_POSIX_C_SOURCE=200112L)
 
 ##
