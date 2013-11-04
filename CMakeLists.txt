@@ -149,6 +149,7 @@ if (SYSTEMD_ENABLED)
 endif (SYSTEMD_ENABLED)
 add_definitions(-D_BSD_SOURCE)
 add_definitions(-D_XOPEN_SOURCE=500)
+add_definitions(-D_POSIX_C_SOURCE=200112L)
 
 ##
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
