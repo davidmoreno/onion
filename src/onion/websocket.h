@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __WEBSOCKETS_H__
-#define __WEBSOCKETS_H__
+#ifndef ONION_WEBSOCKETS_H
+#define ONION_WEBSOCKETS_H
 
 
 #ifdef __cplusplus

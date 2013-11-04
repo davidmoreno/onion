@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_REQUEST__
-#define __ONION_REQUEST__
+#ifndef ONION_REQUEST_H
+#define ONION_REQUEST_H
 
 #include <sys/types.h>
 #include <sys/socket.h>

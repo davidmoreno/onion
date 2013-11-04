@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_SESSIONS_H__
-#define __ONION_SESSIONS_H__
+#ifndef ONION_SESSIONS_H
+#define ONION_SESSIONS_H
 
 #include "types.h"
 

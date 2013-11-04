@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_LOG__
-#define __ONION_LOG__
+#ifndef ONION_LOG_H
+#define ONION_LOG_H
 
 #ifdef __DEBUG__
 #define ONION_DEBUG(...) onion_log(O_DEBUG, __FILE__, __LINE__, __VA_ARGS__)

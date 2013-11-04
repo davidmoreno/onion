@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_POLLER_H__
-#define __ONION_POLLER_H__
+#ifndef ONION_POLLER_H
+#define ONION_POLLER_H
 
 #include "types.h"
 

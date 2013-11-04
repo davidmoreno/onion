@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __URL_HPP__
-#define __URL_HPP__
+#ifndef ONION_URL_HPP
+#define ONION_URL_HPP
 
 #include "onion.hpp"
 #include "handler.hpp"

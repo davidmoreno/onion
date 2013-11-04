@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_MIME_H__
-#define __ONION_MIME_H__
+#ifndef ONION_MIME_H
+#define ONION_MIME_H
 
 #ifdef __cplusplus
 extern "C"{

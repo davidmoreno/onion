@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __RESPONSE_HPP__
-#define __RESPONSE_HPP__
+#ifndef ONION_RESPONSE_HPP
+#define ONION_RESPONSE_HPP
 
 #include <onion/log.h>
 #include <onion/response.h>

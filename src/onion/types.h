@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_TYPES__
-#define __ONION_TYPES__
+#ifndef ONION_TYPES_H
+#define ONION_TYPES_H
 
 #include <sys/types.h>
 

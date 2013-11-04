@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_SHORTCUTS__
-#define __ONION_SHORTCUTS__
+#ifndef ONION_SHORTCUTS_H
+#define ONION_SHORTCUTS_H
 
 #ifdef __cplusplus
 extern "C"{

@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __DICT_HPP__
-#define __DICT_HPP__
+#ifndef ONION_DICT_HPP
+#define ONION_DICT_HPP
 
 #include <onion/types.h>
 #include <string>

@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __REQUEST_HPP__
-#define __REQUEST_HPP__
+#ifndef ONION_REQUEST_HPP
+#define ONION_REQUEST_HPP
 
 #include "dict.hpp"
 

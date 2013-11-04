@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __HANDLER_HPP__
-#define __HANDLER_HPP__
+#ifndef ONION_HANDLER_HPP
+#define ONION_HANDLER_HPP
 
 #include <onion/handler.h>
 #include <exception>
