@@ -71,7 +71,9 @@ void onion_handler_opack_delete(onion_handler_opack_data *data){
  */
 onion_handler *onion_handler_opack(const char *path, onion_opack_renderer render, unsigned int length){
 	onion_handler_opack_data *priv_data=malloc(sizeof(onion_handler_opack_data));
-
+	if (!priv_data)
+		return NULL;
+	
 	priv_data->path=strdup(path);
 	priv_data->length=length;
 	priv_data->render=render;

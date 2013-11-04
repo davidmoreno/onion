@@ -71,7 +71,9 @@ void onion_handler_path_delete(void *data){
  */
 onion_handler *onion_handler_path(const char *path, onion_handler *inside_level){
 	onion_handler_path_data *priv_data=malloc(sizeof(onion_handler_path_data));
-
+	if (!priv_data)
+		return NULL;
+	
 	priv_data->inside=inside_level;
 	
 	// Path is a little bit more complicated, its an regexp.

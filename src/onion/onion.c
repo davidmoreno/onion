@@ -269,7 +269,9 @@ int onion_listen(onion *o){
 #ifdef HAVE_PTHREADS
 	if (!(o->flags&O_DETACHED) && (o->flags&O_DETACH_LISTEN)){ // Must detach and return
 		o->flags|=O_DETACHED;
-		pthread_create(&o->listen_thread,NULL, (void*)onion_listen, o);
+		int errcode=pthread_create(&o->listen_thread,NULL, (void*)onion_listen, o);
+		if (errcode!=0)
+			return errcode;
 		return 0;
 	}
 #endif

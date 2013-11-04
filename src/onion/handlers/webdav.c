@@ -698,10 +698,13 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
  * @returns The onion handler.
  */
 onion_handler *onion_handler_webdav(const char *path, onion_webdav_permissions_check perm){
+	onion_webdav *wd=malloc(sizeof(onion_webdav));
+	if (!wd)
+		return NULL;
+	
 	xmlInitParser();
 	LIBXML_TEST_VERSION
 
-	onion_webdav *wd=malloc(sizeof(onion_webdav));
 	wd->path=strdup(path);
 	
 	if (perm)
