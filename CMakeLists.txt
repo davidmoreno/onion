@@ -17,6 +17,7 @@ SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | 
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
   SET(ONION_USE_PAM false)
+  SET(ONION_USE_SYSTEMD false)
 endif (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
 
 SET(LIBPATH /usr/lib /usr/local/lib)
@@ -130,6 +131,14 @@ if (${ONION_USE_SYSTEMD})
 	endif(RT_LIB)
 endif(${ONION_USE_SYSTEMD})
 
+find_library(GETTEXT_LIB NAMES gettext PATH ${LIBPATH})
+if (GETTEXT_LIB)
+	set(GETTEXT_ENABLED true)
+	message(STATUS "gettext found. gettext support is compiled in otemplate.")
+else (GETTEXT_LIB)
+	message("gettext not found. No gettext support.")
+endif (GETTEXT_LIB)
+
 
 # defines
 if (GNUTLS_ENABLED)
@@ -147,8 +156,9 @@ endif(XML2_ENABLED)
 if (SYSTEMD_ENABLED)
 	add_definitions(-DHAVE_SYSTEMD)
 endif (SYSTEMD_ENABLED)
-add_definitions(-D_BSD_SOURCE)
-add_definitions(-D_POSIX_C_SOURCE=200112L)
+if (GETTEXT_ENABLED)
+	add_definitions(-DHAVE_GETTEXT)
+endif(GETTEXT_ENABLED)
 
 ##
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")

@@ -23,7 +23,10 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
+#define _WITH_DPRINTF
+#include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>

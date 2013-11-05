@@ -33,6 +33,7 @@
 #include <netdb.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/time.h>
 
 #include "types_internal.h"
 #include "log.h"
