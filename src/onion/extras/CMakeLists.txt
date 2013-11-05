@@ -15,7 +15,7 @@ if (${PNG_ENABLED})
 target_link_libraries(onion_extras ${PNG_LIB})
 endif (${PNG_ENABLED})
 
-SET(INCLUDES_EXTRAS png.h)
+SET(INCLUDES_EXTRAS ${PNG_HEADER})
 MESSAGE("Found include files ${INCLUDES_EXTRAS}")
 
 install(FILES ${INCLUDES_EXTRAS} DESTINATION ${INCLUDEDIR}/extras/)

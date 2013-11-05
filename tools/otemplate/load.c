@@ -25,7 +25,7 @@
 #include <dlfcn.h>
 #include "list.h"
 
-extern list *plugin_search_path;
+list *plugin_search_path;
 
 /**
  * @short Loads an external .so, normally at current dir, or templatetags.

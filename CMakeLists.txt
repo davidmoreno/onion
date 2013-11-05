@@ -15,10 +15,20 @@ SET(ONION_VERSION 0.6.0)
 SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | libev | libevent")
 ########
 
+MESSAGE("CMAKE_SYSTEM_NAME is ${CMAKE_SYSTEM_NAME}")
+
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+  MESSAGE("Compiling for FreeBSD")
   SET(ONION_USE_PAM false)
   SET(ONION_USE_SYSTEMD false)
 endif (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+  MESSAGE("Compiling for Darwin")
+  SET(ONION_USE_PAM false)
+  SET(ONION_USE_SYSTEMD false)
+  SET(ONION_USE_PNG false)
+endif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
@@ -95,6 +105,7 @@ endif (${ONION_USE_PAM})
 
 if (${ONION_USE_PNG})
 	find_library(PNG_LIB NAMES png PATH ${LIBPATH})
+	find_file(PNG_HEADER png.h ${INCLUDE_PATH})
 	if (PNG_LIB)
 		set(PNG_ENABLED true)
 		set(PNG_LIB ${PNG_LIB})
