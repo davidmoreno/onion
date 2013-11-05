@@ -25,7 +25,7 @@ int main(int argc, char **argv){
 	signal(SIGINT,shutdown_server);
 	signal(SIGTERM,shutdown_server);
 	
-	o=onion_new(O_POOL);
+	o=onion_new(O_THREADED);
 	onion_set_timeout(o, 5000);
 	onion_set_hostname(o,"0.0.0.0");
 	onion_url *urls=onion_root_url(o);

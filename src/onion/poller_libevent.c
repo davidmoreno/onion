@@ -25,7 +25,7 @@
 
 #include <event2/event.h>
 #include <event2/thread.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <semaphore.h>
 
 #include "poller.h"
@@ -47,8 +47,6 @@ struct onion_poller_slot_t{
 	void *shutdown_data;
 	void (*shutdown)(void*);
 };
-
-typedef struct onion_poller_slot_t onion_poller_slot;
 
 /// Create a new slot for the poller
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
