@@ -32,7 +32,9 @@ extern "C"{
 
 #include "types.h"
 
+/// Sets the mime dictionary (extension -> mime_type)
 void onion_mime_set(onion_dict *);
+/// Returns a mime type based on the file name.
 const char *onion_mime_get(const char *filename);
 
 #ifdef __cplusplus
