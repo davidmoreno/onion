@@ -33,22 +33,13 @@
  * libonion is a simple library to add HTTP functionality to your program. Be it a new program or to add HTTP
  * functionality to an exisitng program, libonion makes it as easy as possible.
  * 
- * @note Best way to navigate through this documentation is going to Files / Globals / Functions, or using the search bot on the corner.
+ * @note Best way to navigate through this documentation is going to Files / Globals / Functions, or using the search button on the corner.
  * 
  * There are many documented examples at the examples directory (https://github.com/davidmoreno/onion/tree/master/examples/).
  * 
  * A basic example of a server with authentication, SSL support that serves a static directory is:
  * 
- * @include examples/basic/basic.c/// Sets the port to listen
-void onion_set_port(onion *server, const char *port);
-
-/// Sets the hostname on which to listen
-void onion_set_hostname(onion *server, const char *hostname);
-
-/// Set a certificate for use in the connection
-int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename);
-
-
+ * @include examples/basic/basic.c
  * 
  * To be compiled as
  * 
