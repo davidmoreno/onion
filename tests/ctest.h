@@ -48,47 +48,76 @@
  * - FAIL_IF_NOT_EXCEPTION( code )
  */
 
-static int failures=0;
-static int successes=0;
+static int __ctest__failures=0;
+static int __ctest__successes=0;
 
-static int local_failures=0;
-static int local_successes=0;
-static int ctest_log=0;
+static int __ctest__local_failures=0;
+static int __ctest__local_successes=0;
+static int __ctest__ctest_log=0;
+
+static char *__ctest__one_test=NULL;
 
 #ifndef ERROR
 static const char * __attribute__((unused)) __BASENAME__="please set the START() macro at main()";
-# define USE__BASENAME
 # define ERROR(...) { fprintf(stderr, "%s:%d ERROR ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
 #endif
 #ifndef INFO
 # define INFO(...) { fprintf(stderr, "%s:%d INFO ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
 #endif
 
-#define LOG(...) { if (ctest_log) { fprintf(stderr, "CTEST %s:%d ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); } }
+#define LOG(...) { if (__ctest__ctest_log) { fprintf(stderr, "CTEST %s:%d ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); } }
+
+#define CHECK_IF_TEST { \
+	if (__ctest__one_test && strstr(__FUNCTION__,__ctest__one_test)==0){ \
+		return; \
+	} }
 
 #ifdef __cplusplus
 #include <exception>
-#define INIT_LOCAL() { local_failures=local_successes=0; LOG("start %s",__FUNCTION__); } try{
-#define END_LOCAL() } catch(const std::exception &e){ FAIL("An exeption was catched, execution of this test aborted: %s",e.what()); } \
-                    catch(...){ FAIL("An exeption was catched, execution of this test aborted"); } \
-                    { INFO("%s ends: %d succeses / %d failures",__FUNCTION__,local_successes,local_failures); failures+=local_failures; successes+=local_successes; }
+#define INIT_LOCAL() { \
+	CHECK_IF_TEST; \
+	__ctest__local_failures=__ctest__local_successes=0; \
+	LOG("start %s",__FUNCTION__); \
+	} \
+	try{
+#define END_LOCAL() \
+		} \
+	catch(const std::exception &e){ \
+		FAIL("An exeption was catched, execution of this test aborted: %s",e.what()); \
+	} \
+	catch(...){ \
+		FAIL("An exeption was catched, execution of this test aborted"); } \
+		{ INFO("%s ends: %d succeses / %d failures",__FUNCTION__,__ctest__local_successes,__ctest__local_failures); __ctest__failures+=__ctest__local_failures; __ctest__successes+=__ctest__local_successes; }
 #else
-#define INIT_LOCAL() { local_failures=local_successes=0; INFO("Test %s",__FUNCTION__); LOG("start %s",__FUNCTION__); }
-#define END_LOCAL() { INFO("%s ends: %d succeses / %d failures\n",__FUNCTION__,local_successes,local_failures); failures+=local_failures; successes+=local_successes; }
+#define INIT_LOCAL() { \
+	CHECK_IF_TEST; \
+	__ctest__local_failures=__ctest__local_successes=0; \
+	INFO("Test %s",__FUNCTION__); \
+	LOG("start %s",__FUNCTION__); \
+	}
+#define END_LOCAL() { INFO("%s ends: %d succeses / %d failures\n",__FUNCTION__,__ctest__local_successes,__ctest__local_failures); __ctest__failures+=__ctest__local_failures; __ctest__successes+=__ctest__local_successes; }
 #endif
 
 #define INIT_TEST INIT_LOCAL
 #define END_TEST END_LOCAL
 
-#ifdef USE__BASENAME
-#define START() { __BASENAME__=basename((char*)__FILE__); ctest_log=getenv("CTEST_LOG")!=NULL; }
-#else
-#define START() {  }
-#endif
-#define END() { INFO("TOTAL: %d succeses / %d failures\n",successes,failures); exit(failures); }
+#define START() { \
+	__BASENAME__=basename((char*)__FILE__); \
+	__ctest__ctest_log=getenv("CTEST_LOG")!=NULL; \
+	if (argc>1){ \
+		if (strcmp(argv[1],"--help")==0){ \
+			INFO("%s [function to test] [--help]",argv[0]); \
+			INFO("   The function to test may be specified as just a substring, and then all conforming funcitons will be tested."); \
+			INFO("   It is optional, and if not given all tests are performed. Only one argument supported."); \
+		} \
+		__ctest__one_test=argv[1]; \
+		INFO("Testing functions that match <%s> substring", __ctest__one_test); \
+	} \
+}
+#define END() { INFO("TOTAL: %d succeses / %d failures\n",__ctest__successes,__ctest__failures); exit(__ctest__failures); }
 
-#define FAIL(...) { ERROR(__VA_ARGS__); local_failures++; LOG("fail"); }
-#define SUCCESS() { local_successes++; LOG("ok"); }
+#define FAIL(...) { ERROR(__VA_ARGS__); __ctest__local_failures++; LOG("fail"); }
+#define SUCCESS() { __ctest__local_successes++; LOG("ok"); }
 
 #define FAIL_IF(v) if (v){ FAIL("FAIL IF %s",#v); } else { SUCCESS(); }
 #define FAIL_IF_NOT(v) if ( !(v) ){ FAIL("FAIL IF NOT %s",#v); } else { SUCCESS(); }
