@@ -120,6 +120,8 @@ void t03_create_add_free_full_flow(){
 	ok=REQ_WRITE(req,"Final-Header: This header do not get into headers as a result of now knowing if its finished, or if its multiline.\n");
 	FAIL_IF_NOT(ok);
 	
+	onion_dict_print_dot(req->headers);
+	
 	FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 	
 	FAIL_IF_EQUAL(req->headers, NULL);

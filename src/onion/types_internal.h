@@ -103,7 +103,7 @@ struct onion_request_t{
 	onion_block *data;    /// Some extra data from PUT, normally PROPFIND.
 	char *session_id;     /// Session id of the request, if any.
 	struct{
-		onion_connection_status (*parse)(onion_request *req, onion_ro_block *block); /// When recieving data, where to put it. Check at request_parser.c.
+		onion_connection_status (*parse)(onion_request *req, onion_parser_block *block); /// When recieving data, where to put it. Check at request_parser.c.
 		void *data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
 		void (*free)(void *data);    /// Free parser data. With luck NULL and do nothing.
 	}parser;

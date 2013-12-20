@@ -32,7 +32,7 @@
 #include "types.h"
 #include "types_internal.h"
 #include "log.h"
-#include "ro_block.h"
+#include "parser_block.h"
 #include "codecs.h"
 #include "dict.h"
 #include "request.h"
@@ -40,7 +40,7 @@
 
 extern const char *onion_request_methods[16];
 
-onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *block);
+onion_connection_status onion_http_parse(onion_request *req, onion_parser_block *block);
 onion_connection_status onion_http_parse_petition(onion_request *req, char *line);
 onion_connection_status onion_http_parse_headers(onion_request *req, char *line);
 
@@ -49,11 +49,12 @@ onion_connection_status onion_http_parse_POST_urlencoded(onion_request *req, cha
 onion_connection_status onion_http_parse_POST_multipart(onion_request *req, char *line);
 onion_connection_status onion_http_parse_POST_multipart_header(onion_request *req, char *line);
 onion_connection_status onion_http_parse_POST_multipart_data(onion_request *req, char *line);
-onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req, onion_ro_block *block);
+onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req, onion_parser_block *block);
 void onion_http_parse_free(void *data);
 
 typedef struct{
 	onion_connection_status (*parser)(onion_request *req, char *line);
+	const char *last_key;
 	struct{
 		char *marker;
 		int marker_size;
@@ -76,7 +77,7 @@ void onion_http_parser_init(onion_request *req){
 	pd->multipart.data=NULL; //onion_block_new();
 }
 
-onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *block){
+onion_connection_status onion_http_parse(onion_request *req, onion_parser_block *block){
 	char *line;
 	onion_connection_status ret=OCS_NEED_MORE_DATA;
 	http_parser_data *pd=(http_parser_data*)req->parser.data;
@@ -84,7 +85,7 @@ onion_connection_status onion_http_parse(onion_request *req, onion_ro_block *blo
 		ONION_ERROR("Bad formed http parser data");
 		return OCS_INTERNAL_ERROR;
 	}
-	while ( (ret==OCS_NEED_MORE_DATA) && pd->parser && ( (line=onion_ro_block_get_to_nl(block)) != NULL ) ){
+	while ( (ret==OCS_NEED_MORE_DATA) && pd->parser && ( (line=onion_parser_block_get_to_nl(block)) != NULL ) ){
 	#ifdef __DEBUG__0
 		char **bs=backtrace_symbols((void * const *)&pd->parser, 1);
 		ONION_DEBUG0("Line: <%s>, parser <%s>", line, bs[0]);
@@ -157,7 +158,24 @@ onion_connection_status onion_http_parse_headers(onion_request *req, char *line)
 	//ONION_DEBUG0("Check line <%s>", line);
 	char *key, *value;
 	
-	key = onion_str_get_token(&line, ':');
+	if (line[0]==' ' || line[0]=='\t'){ // multiline header
+		http_parser_data *pd=(http_parser_data*)req->parser.data;
+		ONION_DEBUG("Multiline header, last key was %s (%d/%c)", pd->last_key, line[0], line[0]);
+		char *nl=onion_str_strip(line);
+		if (!*nl) // empty multiline line
+			return OCS_NEED_MORE_DATA;
+		onion_block *bl=onion_block_new();
+		onion_block_add_str(bl, onion_dict_get(req->headers, pd->last_key));
+		onion_block_add_char(bl,' ');
+		onion_block_add_str(bl, nl);
+		char *key=strdup(pd->last_key); // redup it.. a nice game here
+		onion_dict_add(req->headers, key, onion_block_data(bl), OD_DUP_VALUE|OD_FREE_KEY|OD_REPLACE);
+		onion_block_free(bl);
+		pd->last_key=key;
+		return OCS_NEED_MORE_DATA;
+	}
+	
+	key = onion_str_strip(onion_str_get_token(&line, ':'));
 	
 	// End of headers
 	if (!key){ 
@@ -175,9 +193,15 @@ onion_connection_status onion_http_parse_headers(onion_request *req, char *line)
 	// Another header
 	value=line;
 	if (key && value){
+		http_parser_data *pd=(http_parser_data*)req->parser.data;
 		value=onion_str_strip(value);
 		ONION_DEBUG0("Got header: %s=%s", key, value);
-		onion_dict_add(req->headers, key, value, 0);
+		key=strdup(key); // I manually dup the key to use it for last_key
+		onion_dict_add(req->headers, key, value, OD_DUP_VALUE|OD_FREE_KEY);
+		pd->last_key=key;
+	}
+	else{
+		return OCS_INTERNAL_ERROR;
 	}
 	
 	return OCS_NEED_MORE_DATA;
@@ -342,18 +366,18 @@ onion_connection_status onion_http_parse_POST_multipart_data(onion_request *req,
 	return OCS_NEED_MORE_DATA;
 }
 
-onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req, onion_ro_block *block){
+onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req, onion_parser_block *block){
 	http_parser_data *pd=(http_parser_data*)req->parser.data;
 	//ONION_DEBUG0("Data <%s>", line);
-	char *data=onion_ro_block_get(block);
-	size_t data_len=onion_ro_block_remaining(block);
+	char *data=onion_parser_block_get(block);
+	size_t data_len=onion_parser_block_remaining(block);
 	char *eop=memmem(data, data_len,
 									 pd->multipart.marker, pd->multipart.marker_size);
 	if (eop){
 		data_len=eop-data;
 	}
 	ssize_t ret=write(pd->multipart.fd, data, data_len);
-	onion_ro_block_advance(block, data_len);
+	onion_parser_block_advance(block, data_len);
 	pd->multipart.filesize+=ret;
 	ONION_DEBUG0("Wrote %ld bytes, total %ld", ret, pd->multipart.filesize);
 	if (ret!=data_len)
@@ -363,7 +387,7 @@ onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req,
 		close(pd->multipart.fd);
 		pd->multipart.fd=-1;
 		
-		onion_ro_block_advance(block, pd->multipart.marker_size);
+		onion_parser_block_advance(block, pd->multipart.marker_size);
 		
 		req->parser.parse=onion_http_parse;
 		//pd->parser_block=NULL;
@@ -371,7 +395,7 @@ onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req,
 		
 		if (eop[pd->multipart.marker_size]=='-' &&
 			eop[pd->multipart.marker_size+1]=='-'){
-			onion_ro_block_get_to_nl(block);
+			onion_parser_block_get_to_nl(block);
 			return OCS_REQUEST_READY;
 		}
 	}

@@ -31,7 +31,7 @@ endif (${ONION_POLLER} STREQUAL epoll)
 
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
                         log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} ${POLLER_C}
-                        listen_point.c http_parser.c http.c ${HTTPS_C} websocket.c ro_block.c)
+                        listen_point.c http_parser.c http.c ${HTTPS_C} websocket.c parser_block.c)
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(

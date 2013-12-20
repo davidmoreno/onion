@@ -68,8 +68,13 @@ static const char * __attribute__((unused)) __BASENAME__="please set the START()
 #define LOG(...) { if (__ctest__ctest_log) { fprintf(stderr, "CTEST %s:%d ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); } }
 
 #define CHECK_IF_TEST { \
-	if (__ctest__one_test && strstr(__FUNCTION__,__ctest__one_test)==0){ \
-		return; \
+	if (__ctest__one_test){ \
+		if ( strcmp(__ctest__one_test,"--list")==0){ \
+			INFO(" * %s", __FUNCTION__); \
+			return; \
+		} \
+		if ( strstr(__FUNCTION__,__ctest__one_test)==0) \
+			return; \
 	} }
 
 #ifdef __cplusplus
@@ -105,15 +110,20 @@ static const char * __attribute__((unused)) __BASENAME__="please set the START()
 	__BASENAME__=basename((char*)__FILE__); \
 	__ctest__ctest_log=getenv("CTEST_LOG")!=NULL; \
 	if (argc>1){ \
-		if (strcmp(argv[1],"--help")==0){ \
+		__ctest__one_test=argv[1]; \
+		if (strcmp(__ctest__one_test,"--list")==0){ \
+			INFO("Listing available test functions"); \
+		}	\
+		else if (strcmp(__ctest__one_test,"--help")==0){ \
 			INFO("%s [function to test] [--help]",argv[0]); \
 			INFO("   The function to test may be specified as just a substring, and then all conforming funcitons will be tested."); \
 			INFO("   It is optional, and if not given all tests are performed. Only one argument supported."); \
 		} \
-		__ctest__one_test=argv[1]; \
-		INFO("Testing functions that match <%s> substring", __ctest__one_test); \
-	} \
+		else{ \
+			INFO("Testing functions that match <%s> substring", __ctest__one_test); \
+	} }\
 }
+
 #define END() { INFO("TOTAL: %d succeses / %d failures\n",__ctest__successes,__ctest__failures); exit(__ctest__failures); }
 
 #define FAIL(...) { ERROR(__VA_ARGS__); __ctest__local_failures++; LOG("fail"); }

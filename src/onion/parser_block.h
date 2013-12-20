@@ -30,35 +30,35 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-struct onion_ro_block_t{
+struct onion_parser_block_t{
 	char *end;
 	char *p;
 };
 
-static inline void onion_ro_block_init(onion_ro_block *bl, char *data, size_t size){
+static inline void onion_parser_block_init(onion_parser_block *bl, char *data, size_t size){
 	bl->end=data+size;
 	bl->p=data;
 }
 
-static inline char onion_ro_block_get_char(onion_ro_block *bl){
+static inline char onion_parser_block_get_char(onion_parser_block *bl){
 	return *bl->p++;
 }
-static inline char *onion_ro_block_get(onion_ro_block *bl){
+static inline char *onion_parser_block_get(onion_parser_block *bl){
 	return bl->p;
 }
-static inline int onion_ro_block_eof(onion_ro_block *bl){
+static inline int onion_parser_block_eof(onion_parser_block *bl){
 	return bl->p>=bl->end;
 }
-static inline size_t onion_ro_block_remaining(onion_ro_block *bl){
+static inline size_t onion_parser_block_remaining(onion_parser_block *bl){
 	return bl->end-bl->p;
 }
-static inline void onion_ro_block_advance(onion_ro_block *bl, ssize_t l){
+static inline void onion_parser_block_advance(onion_parser_block *bl, ssize_t l){
 	bl->p+=l;
 }
 
-char *onion_ro_block_get_token(onion_ro_block *bl, char delimiter);
-char *onion_ro_block_get_to_nl(onion_ro_block *bl);
-char *onion_ro_block_get_token2(onion_ro_block *bl, char *delimiter, char *rc);
+char *onion_parser_block_get_token(onion_parser_block *bl, char delimiter);
+char *onion_parser_block_get_to_nl(onion_parser_block *bl);
+char *onion_parser_block_get_token2(onion_parser_block *bl, char *delimiter, char *rc);
 
 char *onion_str_get_token(char **str, char delimiter);
 char *onion_str_get_token2(char **str, char *delimiter, char *rc);

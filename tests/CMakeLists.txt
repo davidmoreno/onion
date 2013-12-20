@@ -27,4 +27,3 @@ add_subdirectory(09-webdav)
 else (${XML2_ENABLED})
 message(STATUS "No 09-webdav example as no libxml2 available")
 endif (${XML2_ENABLED})
-

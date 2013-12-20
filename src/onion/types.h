@@ -115,13 +115,13 @@ struct onion_block_t;
 typedef struct onion_block_t onion_block;
 
 /**
- * @struct onion_ro_block_t
- * @short Data type to store some raw data, and read it later.
+ * @struct onion_parser_block_t
+ * @short Data type to store some raw data, and parse it later.
  * 
  * All methods are inline as this is jsut a fast wrapper for raw data from requests.
  */
-struct onion_ro_block_t;
-typedef struct onion_ro_block_t onion_ro_block;
+struct onion_parser_block_t;
+typedef struct onion_parser_block_t onion_parser_block;
 
 /**
  * @struct onion_poller_t
