@@ -25,6 +25,7 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <fcntl.h>
 
 #include "sessions.h"
 #include "types_internal.h"
@@ -61,8 +62,19 @@ char *onion_sessions_generate_id(){
  * TODO: Make it also to allow persistent storage: for example if sqlite is available.
  */
 onion_sessions *onion_sessions_new(){
-	// Just in case nobody elses do it... If somebody else do it, then no problem.
-	srand(time(NULL));
+	int fd=open("/dev/random", O_RDONLY);
+	if (fd<0){
+		ONION_WARNING("Unsecure random number generation; could not open /dev/random to feed the seed");
+		// Just in case nobody elses do it... If somebody else do it, then no problem.
+		srand(time(NULL));
+	}
+	else{
+		unsigned int sr;
+		read(fd, &sr, sizeof(sr));
+		close(fd);
+		srand(sr);
+	}
+	
 	
 	onion_sessions *ret=malloc(sizeof(onion_sessions));
 	ret->sessions=onion_dict_new();
