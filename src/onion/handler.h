@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_HANDLER__
-#define __ONION_HANDLER__
+#ifndef ONION_HANDLER_H
+#define ONION_HANDLER_H
 
 #ifdef __cplusplus
 extern "C"{

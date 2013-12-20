@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __URL_HPP__
-#define __URL_HPP__
+#ifndef ONION_URL_HPP
+#define ONION_URL_HPP
 
 #include "onion.hpp"
 #include "handler.hpp"
@@ -48,6 +48,9 @@ namespace Onion{
     bool add(const std::string &url, Handler *h){
       return onion_url_add_handler(ptr,url.c_str(),h->c_handler());
     }
+    bool add(const std::string &url, onion_handler *h){
+      return onion_url_add_handler(ptr,url.c_str(), h);
+    }
     bool add(const std::string &url, HandlerFunction::fn_t fn){
       return add(url,new HandlerFunction(fn));
     }
@@ -58,6 +61,9 @@ namespace Onion{
     bool add(const std::string &url, const std::string &s, int http_code=200){
       return onion_url_add_static(ptr,url.c_str(),s.c_str(),http_code);
     }
+    bool add(const std::string &url, onion_handler_handler handler){
+			return add(url, new HandlerCFunction(handler));
+		}
   };
 }
 

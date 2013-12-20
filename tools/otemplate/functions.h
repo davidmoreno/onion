@@ -20,6 +20,7 @@
 #define __FUNCTIONS_H__
 
 #include <onion/types.h>
+#include "../common/updateassets.h"
 
 enum function_data_flags_e{
 	F_NO_MORE_WRITE=1,
@@ -39,6 +40,7 @@ typedef struct function_data_t function_data;
 
 struct parser_status_t;
 
+void functions_write_declarations_assets(struct parser_status_t *st, onion_assets_file *assets);
 void functions_write_declarations(struct parser_status_t *st);
 void functions_write_code(struct parser_status_t *st);
 void functions_write_main_code(struct parser_status_t *st);

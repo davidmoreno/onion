@@ -24,7 +24,7 @@
 	*/
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <security/pam_appl.h>
@@ -116,6 +116,8 @@ void onion_handler_auth_pam_delete(onion_handler_auth_pam_data *d){
  */
 onion_handler *onion_handler_auth_pam(const char *realm, const char *pamname, onion_handler *inside_level){
 	onion_handler_auth_pam_data *priv_data=malloc(sizeof(onion_handler_auth_pam_data));
+	if (!priv_data)
+		return NULL;
 
 	priv_data->inside=inside_level;
 	priv_data->pamname=strdup(pamname);

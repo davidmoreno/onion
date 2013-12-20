@@ -24,7 +24,6 @@
 	*/
 
 #include <string.h>
-#include <malloc.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>

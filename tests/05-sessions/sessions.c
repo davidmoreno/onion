@@ -27,7 +27,7 @@
 
 onion *o;
 
-void free_onion(){
+void free_onion(int unused){
 	ONION_INFO("Closing connections");
 	onion_free(o);
 	exit(0);

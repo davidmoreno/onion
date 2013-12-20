@@ -23,13 +23,26 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_MIME_H__
-#define __ONION_MIME_H__
+#ifndef ONION_MIME_H
+#define ONION_MIME_H
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 #include "types.h"
 
+/// Sets the mime dictionary (extension -> mime_type)
 void onion_mime_set(onion_dict *);
+/// Returns a mime type based on the file name.
 const char *onion_mime_get(const char *filename);
+/// Updates a mime record, for that extensions set that mimetype. If mimetype==NULL, removes it.
+void onion_mime_update(const char *extension, const char *mimetype);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 
 #endif

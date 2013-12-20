@@ -16,10 +16,12 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <libgen.h>
 
 #include <onion/log.h>
@@ -204,7 +206,9 @@ void tag_block(parser_status *st, list *l){
 "      f(context, res);\n"
 "  }\n", block_name);
 
-	function_data *d=function_new(st, "%s__block_%s", basename(strdupa(st->infilename)),  block_name);
+	char tmp[256];
+	strncpy(tmp, st->infilename, sizeof(tmp));
+	function_data *d=function_new(st, "%s__block_%s", basename(tmp),  block_name);
 	function_add_code_f(st->blocks_init, 
 "  if (!onion_dict_get(context, \"__block_%s__\"))\n"
 "    onion_dict_add(context, \"__block_%s__\", %s, 0);\n", block_name, block_name, d->id);

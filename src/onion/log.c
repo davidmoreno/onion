@@ -40,7 +40,7 @@
 
 #include "log.h"
 
-static int onion_log_flags=0;
+int onion_log_flags=0;
 #ifdef HAVE_PTHREADS
 static pthread_mutex_t onion_log_mutex=PTHREAD_MUTEX_INITIALIZER;
 #endif
@@ -65,14 +65,6 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
  * @param fmt printf-like format string and parameters.
  */
 void (*onion_log)(onion_log_level level, const char *filename, int lineno, const char *fmt, ...)=onion_log_stderr;
-
-enum onion_log_flags_e{
-	OF_INIT=1,
-	OF_NOCOLOR=2,
-	OF_SYSLOGINIT=8,
-	OF_NOINFO=16,
-	OF_NODEBUG=32,
-};
 
 /**
  * @short Logs to stderr.
@@ -151,11 +143,11 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 		level=(sizeof(levelstr)/sizeof(levelstr[0]))-1;
 
 #ifdef HAVE_PTHREADS
-  int pid=(int)syscall(SYS_gettid);
+  int pid=(unsigned long long)pthread_self();
   if (!(onion_log_flags&OF_NOCOLOR))
-    fprintf(stderr, "\033[%dm[%06d]%s ",30 + (pid%7)+1, pid, levelcolor[level]);
+    fprintf(stderr, "\033[%dm[%04X]%s ",30 + (pid%7)+1, pid, levelcolor[level]);
   else
-    fprintf(stderr, "[%06d] ", pid);
+    fprintf(stderr, "[%04X] ", pid);
 #else
   if (!(onion_log_flags&OF_NOCOLOR))
     fprintf(stderr,"%s",levelcolor[level]);
@@ -190,7 +182,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
 	char pri[]={LOG_DEBUG, LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR};
 
-	if (level>sizeof(pri) || level <0)
+	if (level>sizeof(pri))
 		return;
 	
 	va_list ap;

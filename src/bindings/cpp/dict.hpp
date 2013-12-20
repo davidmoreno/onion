@@ -23,15 +23,15 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __DICT_HPP__
-#define __DICT_HPP__
+#ifndef ONION_DICT_HPP
+#define ONION_DICT_HPP
 
 #include <onion/types.h>
 #include <string>
 #include <onion/dict.h>
 #include <onion/log.h>
 #include <onion/block.h>
-
+#include <map>
 
 namespace Onion{
   class Dict{
@@ -46,6 +46,13 @@ namespace Onion{
       const char *what() const throw(){ return msg.c_str(); }
     };
     
+		// Slow but useful.
+		Dict(const std::map<std::string, std::string> &values) : ptr(onion_dict_new()), autodelete(true){
+			std::map<std::string, std::string>::const_iterator I=values.begin(), endI=values.end();
+			for(;I!=endI;++I){
+				add(I->first, I->second);
+			}
+		};
     Dict() : ptr(onion_dict_new()), autodelete(true){}
     Dict(onion_dict *_ptr, bool autodelete=false) : ptr(_ptr), autodelete(autodelete){}
     Dict(const onion_dict *_ptr) : ptr((onion_dict*)_ptr), autodelete(false){} // FIXME, loses constness

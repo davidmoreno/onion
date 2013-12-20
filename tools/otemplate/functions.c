@@ -16,7 +16,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -27,6 +26,7 @@
 
 #include "list.h"
 #include "parser.h"
+#include "../common/updateassets.h"
 #include <ctype.h>
 
 int use_orig_line_numbers=1;
@@ -43,8 +43,23 @@ void functions_write_declarations(parser_status *st){
 	}
 }
 
+/// Writes to st->out the declarations of the functions for this template
+void functions_write_declarations_assets(parser_status *st, onion_assets_file *assets){
+	list_item *it=st->functions->head;
+	char line[1024];
+	while (it){
+		function_data *d=it->data;
+		if (!d->is_static && !d->signature && strstr(d->id, "__block")==NULL ){
+			snprintf(line, sizeof(line), "void %s(%s);", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res");
+			onion_assets_file_update(assets, line);
+		}
+		it=it->next;
+	}
+}
+
 /// Writes the desired function to st->out
 static void function_write(parser_status *st, function_data *d){
+	ONION_DEBUG("Write function %s", d->id);
 	if (d->code){
 		if (use_orig_line_numbers)
 			fprintf(st->out, "#line 1\n");

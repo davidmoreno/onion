@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_HTTPS_H__
-#define __ONION_HTTPS_H__
+#ifndef ONION_HTTPS_H
+#define ONION_HTTPS_H
 
 #include <stdarg.h>
 #include "types.h"

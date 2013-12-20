@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __HANDLER_HPP__
-#define __HANDLER_HPP__
+#ifndef ONION_HANDLER_HPP
+#define ONION_HANDLER_HPP
 
 #include <onion/handler.h>
 #include <exception>
@@ -69,6 +69,14 @@ namespace Onion{
     virtual onion_connection_status operator()(Onion::Request &req, Onion::Response &res){
       return fn(req, res);
     }
+  };
+	
+  class HandlerCFunction : public Handler{
+  private:
+    onion_handler_handler fn;
+  public:
+    HandlerCFunction(onion_handler_handler _fn) : fn(_fn){}
+    virtual onion_connection_status operator()(Onion::Request &req, Onion::Response &res);
   };
 	
 	class HttpException : public std::exception{

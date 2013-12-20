@@ -21,7 +21,7 @@
 #include <string.h>
 #include <onion/block.h>
 #include <onion/codecs.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 /**
  * @short Parses a block variable and writes the code necesary.

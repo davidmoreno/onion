@@ -24,7 +24,7 @@
 	*/
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <regex.h>
 
@@ -68,6 +68,8 @@ void onion_handler_static_delete(onion_handler_static_data *d){
  */
 onion_handler *onion_handler_static(const char *text, int code){
 	onion_handler_static_data *priv_data=malloc(sizeof(onion_handler_static_data));
+	if (!priv_data)
+		return NULL;
 
 	priv_data->code=code;
 	priv_data->data=strdup(text);

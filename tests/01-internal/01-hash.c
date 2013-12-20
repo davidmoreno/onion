@@ -16,7 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <onion/dict.h>

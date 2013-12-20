@@ -16,7 +16,7 @@ target_link_libraries(onion_extras ${PNG_LIB})
 endif (${PNG_ENABLED})
 
 SET(INCLUDES_EXTRAS png.h)
-MESSAGE("Found include files ${INCLUDES_EXTRAS}")
+MESSAGE(STATUS "Found include files ${INCLUDES_EXTRAS}")
 
 install(FILES ${INCLUDES_EXTRAS} DESTINATION ${INCLUDEDIR}/extras/)
 install(TARGETS onion_extras EXPORT onion_extras DESTINATION ${LIBDIR})

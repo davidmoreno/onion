@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_DICT__
-#define __ONION_DICT__
+#ifndef ONION_DICT_H
+#define ONION_DICT_H
 
 #include "types.h"
 #include <stddef.h>

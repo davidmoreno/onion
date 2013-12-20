@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_CODECS__
-#define __ONION_CODECS__
+#ifndef ONION_CODECS_H
+#define ONION_CODECS_H
 
 
 #ifdef __cplusplus

@@ -24,7 +24,7 @@
 	*/
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -225,11 +225,12 @@ void onion_handler_export_local_set_footer(onion_handler *handler, void (*render
 }
 
 /**
- * @short Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
- *
- * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
+ * @short Creates an local filesystem handler.
  * 
- * If the localpath is a file, its returned always.
+ * Exports the given localpath and any file inside this localpath is returned.
+ * 
+ * It performs security checks, so that the returned data is saftly known to be inside 
+ * that localpath. Normal permissions apply.
  */
 onion_handler *onion_handler_export_local_new(const char *localpath){
 	char *rp=realpath(localpath, NULL);

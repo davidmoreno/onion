@@ -16,7 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -40,7 +40,7 @@ ssize_t mstrncat(char *a, const char *b, size_t l){
 	return strlen(a);
 }
 
-#define FILL(a,b) onion_request_write(a,b,strlen(b))
+#define FILL(a,b) onion_request_write_const(a,b,strlen(b))
 
 void t00_server_empty(){
 	INIT_LOCAL();
@@ -50,10 +50,10 @@ void t00_server_empty(){
   onion_add_listen_point(server,NULL,NULL,lp);
 	
 	onion_request *req=onion_request_new(lp);
-	onion_request_write(req, "GET ",4);
-	onion_request_write(req, "/",1);
-	onion_request_write(req, " HTTP/1.1\r\n",11);
-	onion_request_write(req, "\r\n",2);
+	onion_request_write_const(req, "GET ",4);
+	onion_request_write_const(req, "/",1);
+	onion_request_write_const(req, " HTTP/1.1\r\n",11);
+	onion_request_write_const(req, "\r\n",2);
 	
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	
@@ -75,11 +75,11 @@ void t01_server_min(){
 	onion_set_root_handler(server, onion_handler_static("Succedded", 200));
 	
 	onion_request *req=onion_request_new(lp);
-	onion_request_write(req, "GET ",4);
-	onion_request_write(req, "/",1);
-	onion_request_write(req, " HTTP/1.1\r\n",11);
+	onion_request_write_const(req, "GET ",4);
+	onion_request_write_const(req, "/",1);
+	onion_request_write_const(req, " HTTP/1.1\r\n",11);
 	
-	onion_request_write(req, "\r\n",2);
+	onion_request_write_const(req, "\r\n",2);
 	
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	
@@ -103,11 +103,11 @@ void t02_server_full(){
 	
 	onion_request *req=onion_request_new(lp);
 #define S "GET / HTTP/1.1\r\nHeader-1: This is header1\r\nHeader-2: This is header 2\r\n"
-	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
+	onion_request_write_const(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
 
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	
@@ -138,10 +138,10 @@ void t03_server_no_overflow(){
 	}
 	
 	onion_request *req=onion_request_new(lp);
-	onion_request_write(req, onion_block_data(long_req),onion_block_size(long_req)); // send it all, but the final 0.
+	onion_request_write_const(req, onion_block_data(long_req),onion_block_size(long_req)); // send it all, but the final 0.
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
 
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
@@ -172,10 +172,10 @@ void t04_server_overflow(){
 		onion_block_add_str(long_req,"Header-1: This is header1 Header-2: This is header 2 ");
 	}
 	onion_request *req=onion_request_new(lp);
-	onion_request_write(req, onion_block_data(long_req),onion_block_size(long_req)-1); // send it all, but the final 0.
+	onion_request_write_const(req, onion_block_data(long_req),onion_block_size(long_req)-1); // send it all, but the final 0.
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
-	onion_request_write(req, "\n\n",2); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write_const(req, "\n\n",2); // finish this request. no \n\n before to check possible bugs.
 
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
@@ -213,7 +213,7 @@ void t05_server_with_pipes(){
 	
 	onion_request *req=onion_request_new(server, &p[1], NULL);
 #define S "GET / HTTP/1.1\n\n"
-	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
+	onion_request_write_const(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
 	
 	close(p[1]);
@@ -256,12 +256,12 @@ void t06_server_with_error_500(){
 	
 	onion_request *req=onion_request_new(lp);
 #define S "GET / HTTP/1.1"
-	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
+	onion_request_write_const(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
 	
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
@@ -289,12 +289,12 @@ void t07_server_with_error_501(){
 	
 	onion_request *req=onion_request_new(lp);
 #define S "GET / HTTP/1.1"
-	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
+	onion_request_write_const(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
 	
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
@@ -317,12 +317,12 @@ void t08_server_with_error_404(){
 	
 	onion_request *req=onion_request_new(lp);
 #define S "GET / HTTP/1.1"
-	onion_request_write(req, S,sizeof(S)-1); // send it all, but the final 0.
+	onion_request_write_const(req, S,sizeof(S)-1); // send it all, but the final 0.
 #undef S
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
 	
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");

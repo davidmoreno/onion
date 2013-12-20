@@ -53,7 +53,7 @@ void check_tests(onion_block *data, struct tests_call_otemplate *test){
 
 static int onion_request_write0(onion_request *req, const char *str){
 	//ONION_DEBUG("Write %d bytes", strlen(str));
-	return onion_request_write(req,str,strlen(str));
+	return onion_request_write_const(req,str,strlen(str));
 }
 
 

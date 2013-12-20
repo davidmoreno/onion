@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __BLOCK_H__
-#define __BLOCK_H__
+#ifndef ONION_BLOCK_H
+#define ONION_BLOCK_H
 
 #ifdef __cplusplus
 extern "C"{

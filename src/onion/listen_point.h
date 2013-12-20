@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_LISTEN_POINT_H__
-#define __ONION_LISTEN_POINT_H__
+#ifndef ONION_LISTEN_POINT_H
+#define ONION_LISTEN_POINT_H
 
 #include "types.h"
 

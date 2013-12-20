@@ -23,11 +23,13 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE             /* See feature_test_macros(7) */
+#endif
 #include <sys/socket.h>
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <netdb.h>
 #include <errno.h>
 #include <fcntl.h>

@@ -23,8 +23,8 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_RESPONSE__
-#define __ONION_RESPONSE__
+#ifndef ONION_RESPONSE_H
+#define ONION_RESPONSE_H
 
 #include "types.h"
 #include <stdlib.h>
