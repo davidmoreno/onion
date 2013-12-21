@@ -29,6 +29,7 @@
 #include "types_internal.h"
 #include "request.h"
 #include "codecs.h"
+#include "random.h"
 
 #include <poll.h>
 #include <errno.h>
@@ -63,6 +64,8 @@ onion_websocket* onion_websocket_new(onion_request* req, onion_response *res)
 {
 	if (req->websocket)
 		return req->websocket;
+
+	onion_random_init();
 	
 	const char *upgrade=onion_request_get_header(req,"Upgrade");
 	if (!upgrade || strcasecmp(upgrade,"websocket")!=0)
@@ -134,7 +137,9 @@ onion_websocket* onion_websocket_new(onion_request* req, onion_response *res)
 void onion_websocket_free(onion_websocket *ws){
 	if (ws->free_user_data)
 		ws->free_user_data(ws->user_data);
-	
+
+	onion_random_free();
+
 	ws->req->websocket=NULL; // To avoid double free on stupid programs that call this directly.
 	free(ws);
 }
@@ -152,10 +157,7 @@ void onion_websocket_free(onion_websocket *ws){
 int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 {
 	int len=_len; // I need it singed here
-	union{
-		char s[4];
-		int32_t i;
-	}mask;
+	char mask[4];
 	//ONION_DEBUG("Write %d bytes",len);
 	{
 		char header[16];
@@ -180,12 +182,12 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 			}
 			hlen+=8;
 		}
-		mask.i=rand();
+		onion_random_generate(mask,4);
 		
-		header[hlen++]=mask.s[0];
-		header[hlen++]=mask.s[1];
-		header[hlen++]=mask.s[2];
-		header[hlen++]=mask.s[3];
+		header[hlen++]=mask[0];
+		header[hlen++]=mask[1];
+		header[hlen++]=mask[2];
+		header[hlen++]=mask[3];
 		
 		/*
 		int i;
@@ -203,13 +205,13 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 	for(i=0;i<len-1024;i+=1024){
 		for (j=0;j<sizeof(tout);j++){
 			//ONION_DEBUG("At %d, %02X ^ %02X = %02X", (i+j)&1023, buffer[i+j]&0x0FF, mask[j&3]&0x0FF, (buffer[i]^mask[j&3])&0x0FF);
-			tout[j]=buffer[i+j]^mask.s[j&3];
+			tout[j]=buffer[i+j]^mask[j&3];
 		}
 		ret+=ws->req->connection.listen_point->write(ws->req, tout, sizeof(tout));
 	}
 	for(;i<len;i++){
 		//ONION_DEBUG("At %d, %02X ^ %02X = %02X", i&1023, buffer[i]&0x0FF, mask[i&3]&0x0FF, (buffer[i]^mask[i&3])&0x0FF);
-		tout[i&1023]=buffer[i]^mask.s[i&3];
+		tout[i&1023]=buffer[i]^mask[i&3];
 	}
 	
 	return ret+ws->req->connection.listen_point->write(ws->req, tout, len&1023);
