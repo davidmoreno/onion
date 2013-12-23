@@ -45,12 +45,10 @@ char *onion_sessions_generate_id(){
 	char allowed_chars[]="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	
 	char *ret=malloc(33);
+	onion_random_generate(ret,32);
 	int i;
 	for (i=0;i<32;i++){
-		int c;
-		onion_random_generate(&c,sizeof(c));
-		c = c%(sizeof(allowed_chars)-1);
-		ret[i]=allowed_chars[c];
+		ret[i]=allowed_chars[ ret[i]%(sizeof(allowed_chars)-1) ];
 	}
 	ret[i]='\0';
 	return ret;
