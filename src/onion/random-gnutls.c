@@ -31,7 +31,7 @@
 #include "types_internal.h"
 #include "log.h"
 
-static unsigned onion_random_refcount=0;
+static size_t onion_random_refcount=0;
 
 /**
  * @short Initializes the global random number generator
@@ -69,6 +69,6 @@ void onion_random_free() {
  *
  * Generate size bytes of random data and put on data
  */
-void onion_random_generate(void* data, unsigned int size) {
+void onion_random_generate(void* data, size_t size) {
 	gnutls_rnd(GNUTLS_RND_NONCE,data,size);
 }

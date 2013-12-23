@@ -23,8 +23,10 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef ONION_RANDOM_H_
+#ifndef ONION_RANDOM_H
 #define ONION_RANDOM_H
+
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -37,7 +39,7 @@ void onion_random_init();
 void onion_random_free();
 
 /// Generate size bytes of random data and put on data
-void onion_random_generate(void* data, unsigned int size);
+void onion_random_generate(void* data, size_t size);
 
 #ifdef __cplusplus
 }
