@@ -55,13 +55,10 @@ static size_t onion_random_refcount=0;
 void onion_random_init() {
 	onion_random_refcount_mutex_lock();
 	onion_random_refcount++;
-	if( onion_random_refcount > 1 ) {
-		onion_random_refcount_mutex_unlock();
-		return;
+	if( onion_random_refcount == 0) {
+		gnutls_global_init();
 	}
 	onion_random_refcount_mutex_unlock();
-
-	gnutls_global_init();
 }
 
 /**
@@ -73,13 +70,10 @@ void onion_random_free() {
 	onion_random_refcount_mutex_lock();
 	assert( onion_random_refcount > 0 );
 	onion_random_refcount--;
-	if( onion_random_refcount > 0 ) {
-		onion_random_refcount_mutex_unlock();
-		return;
+	if( onion_random_refcount == 0 ) {
+		gnutls_global_deinit();
 	}
 	onion_random_refcount_mutex_unlock();
-
-	gnutls_global_deinit();
 }
 
 /**

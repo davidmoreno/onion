@@ -54,26 +54,22 @@ static size_t onion_random_refcount=0;
  */ 
 void onion_random_init() {
 	onion_random_refcount_mutex_lock();
-	onion_random_refcount++;
-	if( onion_random_refcount > 1 ) {
-		onion_random_refcount_mutex_unlock();
-		return;
+	if( onion_random_refcount == 0 ) {
+		int fd=open("/dev/random", O_RDONLY);
+		if (fd<0){
+			ONION_WARNING("Unsecure random number generation; could not open /dev/random to feed the seed");
+			// Just in case nobody elses do it... If somebody else do it, then no problem.
+			srand(time(NULL));
+		}
+		else{
+			unsigned int sr;
+			read(fd, &sr, sizeof(sr));
+			close(fd);
+			srand(sr);
+		}
 	}
 	onion_random_refcount++;
 	onion_random_refcount_mutex_unlock();
-
-	int fd=open("/dev/random", O_RDONLY);
-	if (fd<0){
-		ONION_WARNING("Unsecure random number generation; could not open /dev/random to feed the seed");
-		// Just in case nobody elses do it... If somebody else do it, then no problem.
-		srand(time(NULL));
-	}
-	else{
-		unsigned int sr;
-		read(fd, &sr, sizeof(sr));
-		close(fd);
-		srand(sr);
-	}
 }
 
 /**
