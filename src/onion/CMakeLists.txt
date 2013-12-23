@@ -6,6 +6,9 @@ endif(SYSTEMD_ENABLED)
 # library dependencies
 if (GNUTLS_ENABLED)
 	set(HTTPS_C https.c)
+	set(RANDOM_C random-gnutls.c)
+else(GNUTLS_ENABLED)
+	set(RANDOM_C random-default.c)
 endif(GNUTLS_ENABLED)
 
 if (${ONION_POLLER} STREQUAL libevent)
@@ -31,7 +34,7 @@ endif (${ONION_POLLER} STREQUAL epoll)
 
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
                         log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} ${POLLER_C}
-                        listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c)
+			listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c ${RANDOM_C})
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(
