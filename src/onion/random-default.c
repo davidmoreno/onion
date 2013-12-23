@@ -31,6 +31,16 @@
 #include "types_internal.h"
 #include "log.h"
 
+#ifdef HAVE_PTHREADS
+#include <pthread.h>
+static pthread_mutex_t onion_random_refcount_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define onion_random_refcount_mutex_lock() pthread_mutex_lock(&onion_random_refcount_mutex);
+#define onion_random_refcount_mutex_unlock() pthread_mutex_unlock(&onion_random_refcount_mutex);
+#else
+#define onion_random_refcount_mutex_lock() ;
+#define onion_random_refcount_mutex_unlock() ;
+#endif
+
 static size_t onion_random_refcount=0;
 
 /**
@@ -43,9 +53,14 @@ static size_t onion_random_refcount=0;
  * It is safe to call onion_random_init() more than once, but union_random_free() must be called the same amount of times.
  */ 
 void onion_random_init() {
+	onion_random_refcount_mutex_lock();
 	onion_random_refcount++;
-	if( onion_random_refcount > 1 )
+	if( onion_random_refcount > 1 ) {
+		onion_random_refcount_mutex_unlock();
 		return;
+	}
+	onion_random_refcount++;
+	onion_random_refcount_mutex_unlock();
 
 	int fd=open("/dev/random", O_RDONLY);
 	if (fd<0){
@@ -67,10 +82,14 @@ void onion_random_init() {
  * onion_random_free() must not be called more times than onion_random_init()
  */
 void onion_random_free() {
+	onion_random_refcount_mutex_lock();
 	assert( onion_random_refcount > 0 );
 	onion_random_refcount--;
-	if( onion_random_refcount > 0 )
+	if( onion_random_refcount > 0 ) {
+		onion_random_refcount_mutex_unlock();
 		return;
+	}
+	onion_random_refcount_mutex_unlock();
 
 	//rand() based implementatio does nothing actually, just checks if refcount is ok
 }
