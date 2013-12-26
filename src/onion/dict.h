@@ -94,6 +94,11 @@ void onion_dict_print_dot(const onion_dict *dict);
 /// Visits the full graph in preorder, calling that function on each node. void func(void *data, const char *key, const void *value, int flags).
 void onion_dict_preorder(const onion_dict *dict, void *func, void *data);
 
+typedef void (*onion_dict_iterator_cb) (void *context, const char *key, const char *value);
+
+/// Executes the callback on each element in the dictionary
+void onion_dict_each(const onion_dict *dict, onion_dict_iterator_cb iterator, void *context);
+
 /// Counts elements
 int onion_dict_count(const onion_dict *dict);
 
