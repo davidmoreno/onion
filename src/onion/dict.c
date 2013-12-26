@@ -455,6 +455,17 @@ static void onion_dict_node_preorder(const onion_dict_node *node, void *func, vo
 		onion_dict_node_preorder(node->right, func, data);
 }
 
+void onion_dict_each(const onion_dict *dict, onion_dict_iterator_cb cb, void *context) {
+	if (dict) {
+		onion_dict_node *node = dict->root;
+		if (node) {
+			do {
+				cb(context, node->data.key, node->data.value);
+			} while ((node = node->right));
+		}
+	}
+}
+
 /**
  * @short Executes a function on each element, in preorder by key.
 *  @memberof onion_dict_t
