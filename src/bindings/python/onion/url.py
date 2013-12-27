@@ -1,4 +1,4 @@
-from . import _libonion, OCS_INTERNAL_ERROR
+from . import _libonion, OCS_INTERNAL_ERROR, OCS_PROCESSED
 from .request import Request
 from .response import Response
 from ctypes import CFUNCTYPE, c_int, c_void_p, c_char_p
@@ -16,7 +16,9 @@ class Url(object):
 		def cb(ignore, request, response):
 			self.cbs # to keep cb existing, need a link to the url, although does nothing
 			try:
-				return callback(Request(c_void_p(request)), Response(c_void_p(response)))
+				rt=callback(Request(c_void_p(request)), Response(c_void_p(response)))
+				if rt is None:
+					return OCS_PROCESSED
 			except:
 				import traceback
 				traceback.print_exc()
