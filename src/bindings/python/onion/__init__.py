@@ -15,11 +15,14 @@ class Onion(object):
 		_libonion.onion_listen_stop(self._onion)
 		
 	def root_url(self):
-		from url import Url
-		return Url(_libonion.onion_root_url(self._onion))
+		from .url import Url
+		return Url(ctypes.c_void_p(_libonion.onion_root_url(self._onion)))
 		
 	def __destroy__(self):
 		_libonion.onion_free(self._onion)
+
+_libonion.onion_new.restype=ctypes.c_void_p
+_libonion.onion_root_url.restype=ctypes.c_void_p
 
 # some flags for onion
 O_ONE=1
