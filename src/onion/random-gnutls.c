@@ -54,10 +54,10 @@ static size_t onion_random_refcount=0;
  */ 
 void onion_random_init() {
 	onion_random_refcount_mutex_lock();
-	onion_random_refcount++;
 	if( onion_random_refcount == 0) {
 		gnutls_global_init();
 	}
+	onion_random_refcount++;
 	onion_random_refcount_mutex_unlock();
 }
 
