@@ -302,7 +302,11 @@ static onion_dict_node  *onion_dict_node_add(onion_dict *d, onion_dict_node *nod
 
 /**
  * @memberof onion_dict_t
- * Adds a value in the tree.
+ * @short Adds a value in the tree.
+ * 
+ * Flags are or from onion_dict_flags_e, for example OD_DUP_ALL. 
+ * 
+ * @see onion_dict_flags_e
  */
 void onion_dict_add(onion_dict *dict, const char *key, const void *value, int flags){
 	if (!key){
