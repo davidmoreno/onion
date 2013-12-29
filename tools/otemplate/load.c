@@ -21,9 +21,12 @@
 #include <string.h>
 
 #include <onion/log.h>
+#include <onion/dict.h>
 
 #include <dlfcn.h>
 #include "list.h"
+
+extern onion_dict *tags;
 
 list *plugin_search_path;
 
@@ -60,7 +63,13 @@ int load_external(const char *filename){
 	}
 	
 	ONION_DEBUG("Executing external %s/plugin_init()", tmp);
-	
+#ifdef __APPLE__
+	onion_dict **tag_dict=dlsym(dl, "tags");
+	if (tag_dict){
+		ONION_DEBUG("Exporting tag dict");
+		*tag_dict=tags;
+	}
+#endif
 	f();
 	
 	
