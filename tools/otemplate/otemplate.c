@@ -32,6 +32,14 @@
 #include "tags.h"
 #include "../common/updateassets.h"
 
+#ifdef __APPLE__
+	#define LIBRARY_PATTERN0 "lib%s.dylib"
+	#define LIBRARY_PATTERN "lib%%s.dylib"
+#else
+	#define LIBRARY_PATTERN0 "lib%s.so"
+	#define LIBRARY_PATTERN "lib%%s.so"
+#endif
+
 list *plugin_search_path;
 
 int work(const char *infilename, const char *outfilename, onion_assets_file *assets);
@@ -59,7 +67,7 @@ int main(int argc, char **argv){
 				help("Missing templatedir name");
 				return 3;
 			}
-			snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", argv[i]);
+			snprintf(tmp, sizeof(tmp), "%s/" LIBRARY_PATTERN, argv[i]);
 			ONION_DEBUG("Added templatedir %s", tmp);
 			list_add(plugin_search_path, strdup(tmp)); // dup, remember to free later.
 		}
@@ -103,25 +111,25 @@ int main(int argc, char **argv){
 	else{
 		char tmp2[256];
 		strncpy(tmp2, argv[1], sizeof(tmp2)-1);
-		snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(tmp2));
+		snprintf(tmp, sizeof(tmp), "%s/" LIBRARY_PATTERN, dirname(tmp2));
 		list_add(plugin_search_path, strdup(tmp));
 		strncpy(tmp2, argv[1], sizeof(tmp2)-1);
-		snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(tmp2));
+		snprintf(tmp, sizeof(tmp), "%s/templatetags/" LIBRARY_PATTERN, dirname(tmp2));
 		list_add(plugin_search_path, strdup(tmp));
 	}
 
 	// Default template dirs
-	list_add(plugin_search_path, "lib%s.so");
-	list_add(plugin_search_path, "templatetags/lib%s.so");
+	list_add(plugin_search_path, "" LIBRARY_PATTERN0);
+	list_add(plugin_search_path, "templatetags/" LIBRARY_PATTERN0);
 	char tmp2[256];
 	strncpy(tmp2, argv[0], sizeof(tmp2)-1);
-	snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(tmp2));
+	snprintf(tmp, sizeof(tmp), "%s/templatetags/" LIBRARY_PATTERN, dirname(tmp2));
 	list_add(plugin_search_path, strdup(tmp)); // dupa is ok, as im at main.
 	strncpy(tmp2, argv[0], sizeof(tmp2)-1);
-	snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(tmp2));
+	snprintf(tmp, sizeof(tmp), "%s/" LIBRARY_PATTERN, dirname(tmp2));
 	list_add(plugin_search_path, strdup(tmp)); // dupa is ok, as im at main.
-	list_add(plugin_search_path, "/usr/local/lib/otemplate/templatetags/lib%s.so");
-	list_add(plugin_search_path, "/usr/lib/otemplate/templatetags/lib%s.so");
+	list_add(plugin_search_path, "/usr/local/lib/otemplate/templatetags/" LIBRARY_PATTERN0);
+	list_add(plugin_search_path, "/usr/lib/otemplate/templatetags/" LIBRARY_PATTERN0);
 
 	onion_assets_file *assetsfile=onion_assets_file_new(assetfilename);
 	int error=work(infilename, outfilename, assetsfile);
