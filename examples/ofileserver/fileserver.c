@@ -27,9 +27,12 @@
 #include <sys/stat.h>
 #include <onion/shortcuts.h>
 #include <locale.h>
-#include <libintl.h>
+#ifdef GETTEXT_ENABLED
+# include <libintl.h>
+#endif
 #include <onion/handlers/webdav.h>
 #include <onion/handlers/exportlocal.h>
+#include "assets.h"
 
 onion *o=NULL;
 
@@ -56,9 +59,6 @@ int show_help(){
 				"\n");
 	return 0;
 }
-
-int fileserver_page(const char *basepath, onion_request *req, onion_response *res);
-int fileserver_html_template(onion_dict *context, onion_request *req, onion_response *res);
 
 int main(int argc, char **argv){
 	//onion_log=onion_log_syslog;
@@ -93,7 +93,7 @@ int main(int argc, char **argv){
 		}
 	}
 	
-	onion_handler *root=onion_handler_new((onion_handler_handler)fileserver_page, (void *)dirname, NULL);
+	onion_handler *root=onion_handler_new((onion_handler_handler)fileserver_html_handler, (void *)dirname, NULL);
 #ifdef HAVE_WEBDAV
 	if (withwebdav)
 		onion_handler_add(root, onion_handler_webdav(dirname, NULL)); // fallback.
@@ -102,6 +102,7 @@ int main(int argc, char **argv){
 		onion_handler_add(root, onion_handler_export_local_new(dirname));
 		
 // This is the root directory where the translations are.
+#ifdef GETTEXT_ENABLED
 #define W "."
 	setenv("LANGUAGE","locale",1); // Remove LANGUAGE env var, set it to the locale name,
 	setlocale(LC_ALL,""); 
@@ -112,7 +113,8 @@ int main(int argc, char **argv){
 	bindtextdomain("pl", W);
 	textdomain("C"); // Default language
   // All is configured now, now in hands of dgettext(LANG, txt);
-	
+#endif
+
 	o=onion_new(O_POOL);
 
 	onion_set_root_handler(o, root);

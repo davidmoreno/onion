@@ -43,7 +43,7 @@ struct parser_status_t;
 void functions_write_declarations_assets(struct parser_status_t *st, onion_assets_file *assets);
 void functions_write_declarations(struct parser_status_t *st);
 void functions_write_code(struct parser_status_t *st);
-void functions_write_main_code(struct parser_status_t *st);
+void functions_write_main_code(struct parser_status_t *st, onion_assets_file *assets);
 
 
 function_data *function_new(struct parser_status_t *st, const char *fmt, ...);

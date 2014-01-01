@@ -116,7 +116,7 @@ void functions_write_code(parser_status *st){
 }
 
 /// Writes the main function code.
-void functions_write_main_code(parser_status *st){
+void functions_write_main_code(parser_status *st, onion_assets_file *assets){
 	const char *f=((function_data*)list_get_n(st->function_stack,1))->id;
 
 		fprintf(st->out,"\n\n"
@@ -146,6 +146,14 @@ void functions_write_main_code(parser_status *st){
 "\n"
 "  return OCS_PROCESSED;\n"
 "}\n\n", f, f);
+
+	char line[256];
+	snprintf(line,sizeof(line),"onion_connection_status %s_handler_page(onion_dict *context, onion_request *req, onion_response *res);", f);
+	onion_assets_file_update(assets, line);
+	snprintf(line,sizeof(line),"onion_handler *%s_handler(onion_dict *context);", f);
+	onion_assets_file_update(assets, line);
+	snprintf(line,sizeof(line),"onion_connection_status %s_template(onion_dict *context, onion_request *req, onion_response *res);", f);
+	onion_assets_file_update(assets, line);
 }
 
 /**

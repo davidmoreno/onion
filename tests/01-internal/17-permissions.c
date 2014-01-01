@@ -30,6 +30,10 @@ static onion * t01_server;
 static size_t t01_errors_count;
 static bool t01_failed;
 
+#ifndef EDOTDOT
+#define EDOTDOT 255 // only defined in linux
+#endif
+
 void t01_listen_port_error_handler(onion_log_level level, const char *filename, int lineno, const char *fmt, ...) {
 	if (level == O_ERROR && (errno == EBADF || errno == EDOTDOT)){
 		if (!t01_failed) {

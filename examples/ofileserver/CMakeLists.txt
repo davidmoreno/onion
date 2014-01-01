@@ -1,4 +1,5 @@
 include_directories (${PROJECT_SOURCE_DIR}/src/) 
+include_directories (${CMAKE_CURRENT_BINARY_DIR}) 
 find_program(HAVE_MSGFMT msgfmt)
 
 add_custom_command(

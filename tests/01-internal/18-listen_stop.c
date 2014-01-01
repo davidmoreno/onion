@@ -26,6 +26,10 @@
 
 #include "../ctest.h"
 
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC 0 // Only defined in linux
+#endif
+
 onion *o;
 
 int connect_to(const char *addr, const char *port){
