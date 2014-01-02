@@ -146,10 +146,12 @@ Environmental variables
 You can set the following envvars to modify runtime behaviour of onion:
 
 * ONION_LOG
+
   - noinfo   -- Disables all info output to the console, to achieve faster results
   - nocolor  -- Disable color use by the log
   - nodebug  -- Do not show debug lines
   - syslog   -- Log to syslog. Can be changed programatically too, with the onion_log global function.
+
 * ONION_DEBUG0   -- Set the filename of a c source file, and DEBUG0 log messages are written. This is normally very verbose.
 * ONION_SENDFILE -- Set to 0 do disable sendfile. Under some file systems it does not work. Until a detection code is in place, it can be disabled with this.
 
