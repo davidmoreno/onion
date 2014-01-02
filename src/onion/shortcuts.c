@@ -51,6 +51,8 @@
 #define O_CLOEXEC 0
 #endif
 
+int onion_use_sendfile=-1;
+
 // Import it here as I need it to know if can use sendfile.
 ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
 
@@ -122,14 +124,22 @@ onion_connection_status onion_shortcut_internal_redirect(const char *newurl, oni
 /**
  * @short This shortcut returns the given file contents. 
  * 
- * It sets all the compilant headers (TODO), cache and so on.
- * 
  * This is the recomended way to send static files; it even can use sendfile Linux call 
- * if suitable (TODO).
+ * if suitable.
  * 
  * It does no security checks, so caller must be security aware.
  */
 onion_connection_status onion_shortcut_response_file(const char *filename, onion_request *request, onion_response *res){
+	if (onion_use_sendfile<0){
+		const char *use_sendfile=getenv("ONION_SENDFILE");
+		if (use_sendfile && strcmp(use_sendfile, "0")==0){
+			ONION_DEBUG("Sendfile is disabled");
+			onion_use_sendfile=0;
+		}
+		else
+			onion_use_sendfile=1;
+	}
+	
 	int fd=open(filename,O_RDONLY|O_CLOEXEC);
 	
 	if (fd<0)
@@ -217,7 +227,7 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 	
 	if (length){
 #ifdef USE_SENDFILE
-		if (request->connection.listen_point->write==(void*)onion_http_write){ // Lets have a house party! I can use sendfile!
+		if (onion_use_sendfile && request->connection.listen_point->write==(void*)onion_http_write){ // Lets have a house party! I can use sendfile!
 			onion_response_write(res,NULL,0);
 			ONION_DEBUG("Using sendfile");
 			int r=sendfile(request->connection.fd, fd, NULL, length);
