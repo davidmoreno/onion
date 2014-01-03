@@ -92,7 +92,7 @@ void t02_websocket_server_w_ws(){
 }
 
 
-int main(void){
+int main(int argc, char **argv){
 	START();
 	
 	t01_websocket_server_no_ws();

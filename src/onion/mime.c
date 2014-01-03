@@ -166,3 +166,18 @@ static void onion_mime_fill(){
 	
 	ONION_DEBUG("I know %d mime types", onion_dict_count(onion_mime_dict));
 }
+
+/**
+ * @short Allow to update mime types.
+ * 
+ * User can add new mime types, or remove.
+ */
+void onion_mime_update(const char *extension, const char *mimetype){
+	if (!onion_mime_dict)
+		onion_mime_fill();
+	
+	if (mimetype)
+		onion_dict_add(onion_mime_dict, extension, mimetype,  OD_DUP_ALL);
+	else
+		onion_dict_remove(onion_mime_dict, extension);
+}

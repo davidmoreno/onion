@@ -125,7 +125,7 @@ void t02_stop_listening_some_petitions(){
 	END_LOCAL();
 }
 
-int main(void){
+int main(int argc, char **argv){
 	START();
 	
 	t01_stop_listening();

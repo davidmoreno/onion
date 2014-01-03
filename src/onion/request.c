@@ -56,7 +56,7 @@ void onion_request_parser_data_free(void *token); // At request_parser.c
 const char *onion_request_methods[16]={ 
 	"GET", "POST", "HEAD", "OPTIONS", 
 	"PROPFIND", "PUT", "DELETE", "MOVE", 
-	"MKCOL", "PROPPATCH", NULL, NULL, 
+	"MKCOL", "PROPPATCH", "PATCH", NULL, 
 	NULL, NULL, NULL, NULL };
 
 /**

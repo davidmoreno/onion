@@ -23,27 +23,26 @@
 	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef ONION_MIME_H
-#define ONION_MIME_H
+#ifndef ONION_RANDOM_H
+#define ONION_RANDOM_H
+
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
-#include "types.h"
+/// Initializes the global random number generator
+void onion_random_init();
 
-/// Sets the mime dictionary (extension -> mime_type)
-void onion_mime_set(onion_dict *);
-/// Returns a mime type based on the file name.
-const char *onion_mime_get(const char *filename);
-/// Updates a mime record, for that extensions set that mimetype. If mimetype==NULL, removes it.
-void onion_mime_update(const char *extension, const char *mimetype);
+/// Frees the global random number generator
+void onion_random_free();
+
+/// Generate size bytes of random data and put on data
+void onion_random_generate(void* data, size_t size);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-
 #endif
-

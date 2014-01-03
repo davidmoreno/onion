@@ -6,7 +6,7 @@ target_link_libraries(onioncpp onion)
 target_link_libraries(onioncpp_static onioncpp_static)
 
 SET(INCLUDES_ONIONCPP onion.hpp dict.hpp request.hpp response.hpp url.hpp handler.hpp extrahandlers.hpp)
-MESSAGE("Found include files ${INCLUDES_ONIONCPP}")
+MESSAGE(STATUS "Found include files ${INCLUDES_ONIONCPP}")
 
 install(FILES ${INCLUDES_ONIONCPP} DESTINATION ${INCLUDEDIR})
 install(TARGETS onioncpp EXPORT onioncpp DESTINATION ${LIBDIR})

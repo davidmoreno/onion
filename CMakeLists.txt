@@ -147,7 +147,7 @@ if (GETTEXT_LIB)
 	set(GETTEXT_ENABLED true)
 	message(STATUS "gettext found. gettext support is compiled in otemplate.")
 else (GETTEXT_LIB)
-	message("gettext not found. No gettext support.")
+	message(STATUS "gettext not found. No gettext support.")
 endif (GETTEXT_LIB)
 
 

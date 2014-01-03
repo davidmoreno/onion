@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <onion/mime.h>
 
 #include "../common/updateassets.h"
 
@@ -159,7 +160,9 @@ void parse_file(const char *prefix, const char *filename, FILE *outfd, onion_ass
 	}
 	fprintf(outfd,"};\n");
 
+	const char *mime_type=onion_mime_get(filename);
   fprintf(outfd,"  onion_response_set_length(res, %d);\n", l);
+  fprintf(outfd,"  onion_response_set_header(res, \"Content-Type\", \"%s\");\n", mime_type);
 	fprintf(outfd,"  return onion_response_write(res, data, sizeof(data));\n}\n\n");
 
 	fprintf(outfd,"const unsigned int %s_length = %d;\n\n",fname,l);

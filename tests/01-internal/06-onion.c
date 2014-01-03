@@ -313,7 +313,7 @@ void t04_server_timeout_threaded(){
 
 void t05_server_timeout_threaded_ssl(){
   INIT_LOCAL();
-  CURL *curl=prepare_curl("http://localhost:8081");
+  CURL *curl=prepare_curl("https://localhost:8081");
 	
   ONION_DEBUG("%s",__FUNCTION__);
   o=onion_new(O_THREADED | O_DETACH_LISTEN);

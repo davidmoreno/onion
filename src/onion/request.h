@@ -51,6 +51,7 @@ enum onion_request_flags_e{
 	OR_MOVE=7,
 	OR_MKCOL=8,
 	OR_PROPPATCH=9,
+	OR_PATCH=10,
 	
 	/// Some flags at 0x0F0
 	OR_HTTP11=0x10,

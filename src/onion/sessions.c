@@ -24,12 +24,12 @@
 	*/
 
 #include <stdlib.h>
-#include <time.h>
 
 #include "sessions.h"
 #include "types_internal.h"
 #include "dict.h"
 #include "log.h"
+#include "random.h"
 
 /**
  * @short Generates a unique id.
@@ -45,10 +45,10 @@ char *onion_sessions_generate_id(){
 	char allowed_chars[]="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	
 	char *ret=malloc(33);
+	onion_random_generate(ret,32);
 	int i;
 	for (i=0;i<32;i++){
-		int c=rand()%(sizeof(allowed_chars)-1);
-		ret[i]=allowed_chars[c];
+		ret[i]=allowed_chars[ ret[i]%(sizeof(allowed_chars)-1) ];
 	}
 	ret[i]='\0';
 	return ret;
@@ -61,8 +61,7 @@ char *onion_sessions_generate_id(){
  * TODO: Make it also to allow persistent storage: for example if sqlite is available.
  */
 onion_sessions *onion_sessions_new(){
-	// Just in case nobody elses do it... If somebody else do it, then no problem.
-	srand(time(NULL));
+	onion_random_init();
 	
 	onion_sessions *ret=malloc(sizeof(onion_sessions));
 	ret->sessions=onion_dict_new();
@@ -82,6 +81,8 @@ void onion_sessions_free(onion_sessions* sessions){
 	onion_dict_preorder(sessions->sessions, (void*)onion_sessions_free_helper, NULL);
 	onion_dict_free(sessions->sessions);
 	free(sessions);
+
+	onion_random_free();
 }
 
 

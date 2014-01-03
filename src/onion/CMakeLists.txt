@@ -6,6 +6,9 @@ endif(SYSTEMD_ENABLED)
 # library dependencies
 if (GNUTLS_ENABLED)
 	set(HTTPS_C https.c)
+	set(RANDOM_C random-gnutls.c)
+else(GNUTLS_ENABLED)
+	set(RANDOM_C random-default.c)
 endif(GNUTLS_ENABLED)
 
 if (${ONION_POLLER} STREQUAL libevent)
@@ -17,7 +20,7 @@ if (${ONION_POLLER} STREQUAL libev)
 	find_path(LIBEV_HEADER ev.h ${CMAKE_INCLUDE_PATH} /usr/local/include/)
 	find_library(LIBEV_LIB NAMES ev PATH /usr/local/lib/)
 	if (LIBEV_LIB)
-		message("libev found at ${LIBEV_LIB}")
+		message(STATUS "libev found at ${LIBEV_LIB}")
 	else (LIBEV_LIB)
 		message(FATAL_ERROR "libev not found. Cant compile. ${LIBEV_HEADER} ${LIBEV_LIB}")
 	endif (LIBEV_LIB)
@@ -31,7 +34,7 @@ endif (${ONION_POLLER} STREQUAL epoll)
 
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
                         log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} ${POLLER_C}
-                        listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c)
+			listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c ${RANDOM_C})
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(
@@ -79,7 +82,7 @@ add_subdirectory(extras)
 endif (${PNG_ENABLED})
 
 SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h sd-daemon.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h)
-MESSAGE("Found include files ${INCLUDES_ONION}")
+MESSAGE(STATUS "Found include files ${INCLUDES_ONION}")
 
 install(FILES ${INCLUDES_ONION} DESTINATION ${INCLUDEDIR})
 install(TARGETS onion onion_static EXPORT onion DESTINATION ${LIBDIR})
