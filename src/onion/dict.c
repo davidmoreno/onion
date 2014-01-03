@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,10 +19,11 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
@@ -57,14 +64,14 @@ static onion_dict_node *onion_dict_node_new(const char *key, const void *value, 
  * Initializes the basic tree with all the structure in place, but empty.
  */
 onion_dict *onion_dict_new(){
-	onion_dict *dict=malloc(sizeof(onion_dict));
-	memset(dict,0,sizeof(onion_dict));
+	onion_dict *dict=calloc(1, sizeof(onion_dict));
 #ifdef HAVE_PTHREADS
 	pthread_rwlock_init(&dict->lock, NULL);
 	pthread_mutex_init(&dict->refmutex, NULL);
 #endif
 	dict->refcount=1;
   dict->cmp=strcmp;
+	ONION_DEBUG0("New %p, refcount %d",dict, dict->refcount);
 	return dict;
 }
 
@@ -96,7 +103,7 @@ onion_dict *onion_dict_dup(onion_dict *dict){
 	pthread_mutex_lock(&dict->refmutex);
 #endif
 	dict->refcount++;
-	//ONION_DEBUG0("Dup %p, refcount %d",dict, dict->refcount);
+	ONION_DEBUG0("Dup %p, refcount %d",dict, dict->refcount);
 #ifdef HAVE_PTHREADS
 	pthread_mutex_unlock(&dict->refmutex);
 #endif
@@ -143,11 +150,12 @@ static void onion_dict_node_free(onion_dict_node *node){
  * @memberof onion_dict_t
  */
 void onion_dict_free(onion_dict *dict){
+	ONION_DEBUG0("Free %p", dict);
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&dict->refmutex);
 #endif
 	dict->refcount--;
-	//ONION_DEBUG0("Free %p refcount %d", dict, dict->refcount);
+	ONION_DEBUG0("Free %p refcount %d", dict, dict->refcount);
 	int remove=(dict->refcount==0);
 #ifdef HAVE_PTHREADS
 	pthread_mutex_unlock(&dict->refmutex);
@@ -296,9 +304,17 @@ static onion_dict_node  *onion_dict_node_add(onion_dict *d, onion_dict_node *nod
 
 /**
  * @memberof onion_dict_t
- * Adds a value in the tree.
+ * @short Adds a value in the tree.
+ * 
+ * Flags are or from onion_dict_flags_e, for example OD_DUP_ALL. 
+ * 
+ * @see onion_dict_flags_e
  */
 void onion_dict_add(onion_dict *dict, const char *key, const void *value, int flags){
+	if (!key){
+		ONION_ERROR("Error, trying to add an empty key to a dictionary. There is a underliying bug here! Not adding anything.");
+		return;
+	}
 	dict->root=onion_dict_node_add(dict, dict->root, onion_dict_node_new(key, value, flags));
 }
 
@@ -551,7 +567,7 @@ static void onion_dict_json_preorder(onion_block *block, const char *key, const 
  * 
  * @returns an onion_block with the json data, or NULL on error
  */
-block *onion_dict_to_json(onion_dict *dict){
+onion_block *onion_dict_to_json(onion_dict *dict){
 	onion_block *block=onion_block_new();
 	
 	onion_block_add_char(block, '{');

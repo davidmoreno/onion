@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2011 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +19,12 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
+#ifdef __linux__
 #define USE_SENDFILE
+#endif
 
 #include <string.h>
 #include <stdarg.h>
@@ -42,7 +51,10 @@
 #define O_CLOEXEC 0
 #endif
 
-int onion_write_to_socket(int *fd, const char *data, unsigned int len);
+int onion_use_sendfile=-1;
+
+// Import it here as I need it to know if can use sendfile.
+ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
 
 /**
  * @short Shortcut for fast responses, like errors.
@@ -106,20 +118,28 @@ onion_connection_status onion_shortcut_redirect(const char *newurl, onion_reques
 onion_connection_status onion_shortcut_internal_redirect(const char *newurl, onion_request *req, onion_response *res){
   free(req->fullpath);
   req->fullpath=req->path=strdup(newurl);
-  return onion_handler_handle(req->server->root_handler, req, res);
+  return onion_handler_handle(req->connection.listen_point->server->root_handler, req, res);
 }
 
 /**
  * @short This shortcut returns the given file contents. 
  * 
- * It sets all the compilant headers (TODO), cache and so on.
- * 
  * This is the recomended way to send static files; it even can use sendfile Linux call 
- * if suitable (TODO).
+ * if suitable.
  * 
  * It does no security checks, so caller must be security aware.
  */
 onion_connection_status onion_shortcut_response_file(const char *filename, onion_request *request, onion_response *res){
+	if (onion_use_sendfile<0){
+		const char *use_sendfile=getenv("ONION_SENDFILE");
+		if (use_sendfile && strcmp(use_sendfile, "0")==0){
+			ONION_DEBUG("Sendfile is disabled");
+			onion_use_sendfile=0;
+		}
+		else
+			onion_use_sendfile=1;
+	}
+	
 	int fd=open(filename,O_RDONLY|O_CLOEXEC);
 	
 	if (fd<0)
@@ -200,17 +220,17 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
     close(fd);
     return OCS_PROCESSED;
   }
-
+	onion_response_write_headers(res);
 	if ((onion_request_get_flags(request)&OR_HEAD) == OR_HEAD){ // Just head.
 		length=0;
 	}
 	
 	if (length){
 #ifdef USE_SENDFILE
-		if (request->server->write==(void*)onion_write_to_socket){ // Lets have a house party! I can use sendfile!
+		if (onion_use_sendfile && request->connection.listen_point->write==(void*)onion_http_write){ // Lets have a house party! I can use sendfile!
 			onion_response_write(res,NULL,0);
 			ONION_DEBUG("Using sendfile");
-			int r=sendfile((long int)request->socket, fd, NULL, length);
+			int r=sendfile(request->connection.fd, fd, NULL, length);
 			ONION_DEBUG("Wrote %d, should be %d (%s)", r, length, r==length ? "ok" : "nok");
 			if (r!=length || r<0){
 				ONION_ERROR("Could not send all file (%s)", strerror(errno));

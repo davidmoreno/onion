@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,17 +19,17 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "sessions.h"
 #include "types_internal.h"
 #include "dict.h"
 #include "log.h"
+#include "random.h"
 
 /**
  * @short Generates a unique id.
@@ -39,10 +45,10 @@ char *onion_sessions_generate_id(){
 	char allowed_chars[]="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	
 	char *ret=malloc(33);
+	onion_random_generate(ret,32);
 	int i;
 	for (i=0;i<32;i++){
-		int c=rand()%(sizeof(allowed_chars)-1);
-		ret[i]=allowed_chars[c];
+		ret[i]=allowed_chars[ ret[i]%(sizeof(allowed_chars)-1) ];
 	}
 	ret[i]='\0';
 	return ret;
@@ -55,8 +61,7 @@ char *onion_sessions_generate_id(){
  * TODO: Make it also to allow persistent storage: for example if sqlite is available.
  */
 onion_sessions *onion_sessions_new(){
-	// Just in case nobody elses do it... If somebody else do it, then no problem.
-	srand(time(NULL));
+	onion_random_init();
 	
 	onion_sessions *ret=malloc(sizeof(onion_sessions));
 	ret->sessions=onion_dict_new();
@@ -76,6 +81,8 @@ void onion_sessions_free(onion_sessions* sessions){
 	onion_dict_preorder(sessions->sessions, (void*)onion_sessions_free_helper, NULL);
 	onion_dict_free(sessions->sessions);
 	free(sessions);
+
+	onion_random_free();
 }
 
 

@@ -35,6 +35,8 @@ void t01_test_mime(){
 
 
 int main(int argc, char **argv){
+	START();
+	
 	t01_test_mime();
 	
 	END();

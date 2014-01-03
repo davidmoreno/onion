@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,7 +19,8 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
 #include <stdio.h>
@@ -33,11 +40,13 @@
 
 #include "log.h"
 
-static int onion_log_flags=0;
+int onion_log_flags=0;
 #ifdef HAVE_PTHREADS
 static pthread_mutex_t onion_log_mutex=PTHREAD_MUTEX_INITIALIZER;
 #endif
-
+#ifdef __DEBUG__
+static const char *debug0=NULL;
+#endif
 
 void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
 void onion_log_stderr(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
@@ -57,13 +66,6 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
  */
 void (*onion_log)(onion_log_level level, const char *filename, int lineno, const char *fmt, ...)=onion_log_stderr;
 
-enum onion_log_flags_e{
-	OF_INIT=1,
-	OF_NOCOLOR=2,
-	OF_NODEBUG0=4,
-	OF_SYSLOGINIT=8,
-};
-
 /**
  * @short Logs to stderr.
  * 
@@ -71,6 +73,8 @@ enum onion_log_flags_e{
  * 
  * - "nocolor"  -- then output will be without colors.
  * - "syslog"   -- Switchs the logging to syslog. 
+ * - "noinfo"   -- Do not show info lines.
+ * - "nodebug"  -- When in debug mode, do not show debug lines.
  * 
  * Also for DEBUG0 level, it must be explictly set with the environmental variable ONION_DEBUG0, set
  * to the names of the files to allow DEBUG0 debug info. For example:
@@ -83,35 +87,47 @@ enum onion_log_flags_e{
  * not incurr in any performance penalty.
  */
 void onion_log_stderr(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
+	if ( onion_log_flags ){
+		if ( ( (level==O_INFO) && ((onion_log_flags & OF_NOINFO)==OF_NOINFO) ) ||
+		     ( (level==O_DEBUG) && ((onion_log_flags & OF_NODEBUG)==OF_NODEBUG) ) ){
+			return;
+		}
+	}
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&onion_log_mutex);
 #endif
 	if (!onion_log_flags){
 		onion_log_flags=OF_INIT;
+#ifdef __DEBUG__
+		debug0=getenv("ONION_DEBUG0");
+#endif
 		const char *ol=getenv("ONION_LOG");
 		if (ol){
-			if (strstr("nocolor", ol))
+			if (strstr(ol, "noinfo"))
+				onion_log_flags|=OF_NOINFO;
+			if (strstr(ol, "nodebug"))
+				onion_log_flags|=OF_NODEBUG;
+			if (strstr(ol, "nocolor"))
 				onion_log_flags|=OF_NOCOLOR;
-			if (strstr("nodebug0", ol))
-				onion_log_flags|=OF_NODEBUG0;
-			if (strstr("syslog", ol)){ // Switch to syslog
+			if (strstr(ol, "syslog")) // Switch to syslog
 				onion_log=onion_log_syslog;
-				char tmp[256];
-				
-				va_list ap;
-				va_start(ap, fmt);
-				vsnprintf(tmp,sizeof(tmp),fmt, ap);
-				va_end(ap);
-				onion_log(level, filename, lineno, tmp);
-				return;
-			}
 		}
+#ifdef HAVE_PTHREADS
+		pthread_mutex_unlock(&onion_log_mutex);
+#endif
+		// Call again, now initialized.
+		char tmp[1024];
+		va_list ap;
+		va_start(ap, fmt);
+		vsnprintf(tmp,sizeof(tmp),fmt, ap);
+		va_end(ap);
+		onion_log(level, filename, lineno, tmp);
+		return;
 	}
 	
 	filename=basename((char*)filename);
 	
 #ifdef __DEBUG__
-	const char *debug0=getenv("ONION_DEBUG0");
 	if ( (level==O_DEBUG0) && (!debug0 || !strstr(debug0, filename)) ){
 		#ifdef HAVE_PTHREADS
 			pthread_mutex_unlock(&onion_log_mutex);
@@ -127,11 +143,11 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 		level=(sizeof(levelstr)/sizeof(levelstr[0]))-1;
 
 #ifdef HAVE_PTHREADS
-  int pid=(int)syscall(SYS_gettid);
+  int pid=(unsigned long long)pthread_self();
   if (!(onion_log_flags&OF_NOCOLOR))
-    fprintf(stderr, "\033[%dm[%06d]%s ",30 + (pid%7)+1, pid, levelcolor[level]);
+    fprintf(stderr, "\033[%dm[%04X]%s ",30 + (pid%7)+1, pid, levelcolor[level]);
   else
-    fprintf(stderr, "[%06d] ", pid);
+    fprintf(stderr, "[%04X] ", pid);
 #else
   if (!(onion_log_flags&OF_NOCOLOR))
     fprintf(stderr,"%s",levelcolor[level]);
@@ -166,7 +182,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
 	char pri[]={LOG_DEBUG, LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR};
 
-	if (level>sizeof(pri) || level <0)
+	if (level>sizeof(pri))
 		return;
 	
 	va_list ap;

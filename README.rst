@@ -18,7 +18,7 @@ some functionality. With libonion you have the functionality and add the webserv
 There is a wiki available at https://github.com/davidmoreno/onion/wiki, with many useful 
 information on how to start and internal workings.
 
-API documentation is at http://coralbits.com/staticc/libonion/html/.
+API documentation is at http://coralbits.com/static/onion/.
 
 There is a mailing list at https://groups.google.com/a/coralbits.com/forum/?fromgroups=#!forum/onion-dev
 
@@ -35,6 +35,22 @@ Please join the mailing list at https://groups.google.com/a/coralbits.com/group/
 to ask your questions and comment on your success using onion.
 
 There is also a blog to keep everybody informed about news on onion at http://blog.coralbits.com/.
+
+Compile and Install
+-------------------
+
+Manual compile and install:
+
+    ::
+
+     $ git clone git@github.com:davidmoreno/onion.git
+     $ cd onion
+     $ mkdir build
+     $ cd build
+     $ cmake ..
+     $ make
+     $ sudo make install
+     
 
 SSL Support
 -----------
@@ -83,11 +99,13 @@ ARM Support
 -----------
 
 It can be cross compiled for ARM directly from cmake. Just do:
-
-		$ mkdir arm
-		$ cd arm
-		$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
-		$ make
+    
+    	::
+    	
+	$ mkdir arm
+	$ cd arm
+	$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
+	$ make
 
 It needs the current system opack and otemplate to compile some examples, so if you want to use
 the examples on your instalation, compile and install libonion for the current system first.
@@ -115,6 +133,28 @@ Systemd is integrated. If want to use it, just pass the flag O_SYSTEMD to the on
 
 Oterm has example socket and service files for oterm support.
 
+FreeBSD
+-------
+
+Since september 2013 there is support for FreeBSD using libev or libevent. This work is not as tested 
+as the Linux version, but if some compilation error arises, please send the bug report and we will fix
+it ASAP.
+
+Environmental variables
+-----------------------
+
+You can set the following envvars to modify runtime behaviour of onion:
+
+* ONION_LOG
+
+  - noinfo   -- Disables all info output to the console, to achieve faster results
+  - nocolor  -- Disable color use by the log
+  - nodebug  -- Do not show debug lines
+  - syslog   -- Log to syslog. Can be changed programatically too, with the onion_log global function.
+
+* ONION_DEBUG0   -- Set the filename of a c source file, and DEBUG0 log messages are written. This is normally very verbose.
+* ONION_SENDFILE -- Set to 0 do disable sendfile. Under some file systems it does not work. Until a detection code is in place, it can be disabled with this.
+
 Binary compatibility breaks
 ---------------------------
 
@@ -125,4 +165,7 @@ We try hard to keep binary compatibility, but sometimes its hard. Here is a list
 
 * Onion object private flags have moved. If on your code you rely on them, must recompile. If 
   dont rely on them, everything should keep working.
+
+.. image:: https://cruel-carlota.pagodabox.com/e788af315b3d9517752db2e79553e346
+  :alt: Analytics.
 

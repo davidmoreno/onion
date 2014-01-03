@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,11 +19,12 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_REQUEST__
-#define __ONION_REQUEST__
+#ifndef ONION_REQUEST_H
+#define ONION_REQUEST_H
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -44,6 +51,7 @@ enum onion_request_flags_e{
 	OR_MOVE=7,
 	OR_MKCOL=8,
 	OR_PROPPATCH=9,
+	OR_PATCH=10,
 	
 	/// Some flags at 0x0F0
 	OR_HTTP11=0x10,
@@ -66,17 +74,17 @@ typedef enum onion_request_flags_e onion_request_flags;
 /// List of known methods. NULL empty space, position is the method as listed at the flags. @see onion_request_flags
 extern const char *onion_request_methods[16];
 
-/// Creates a request with client info
-onion_request *onion_request_new(onion_server *server, void *socket, const char *client_info);
+/// Creates a request from a listen point. Socket info and so on must be filled by user.
+onion_request *onion_request_new(onion_listen_point *con);
 
 /// Creates a request, with socket info.
-onion_request *onion_request_new_from_socket(onion_server *server, void *socket, struct sockaddr_storage *cli_addr, socklen_t cli_len);
+onion_request *onion_request_new_from_socket(onion_listen_point *con, int fd, struct sockaddr_storage *cli_addr, socklen_t cli_len);
 
 /// Deletes a request and all its data
 void onion_request_free(onion_request *req);
 
-/// Partially fills a request. One line each time.
-int onion_request_fill(onion_request *req, const char *data);
+// Partially fills a request. One line each time. DEPRECATED
+//int onion_request_fill(onion_request *req, const char *data);
 
 /// Reads some data from the input (net, file...) and performs the onion_request_fill
 onion_connection_status onion_request_write(onion_request *req, const char *data, size_t length);

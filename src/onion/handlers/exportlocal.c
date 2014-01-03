@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,11 +19,12 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -99,7 +106,7 @@ void onion_handler_export_local_header_default(onion_response *res, const char *
 
 	onion_response_printf(res,"<h1>Listing of directory %s</h1>\n",dirname);
 	
-	if (dirname[1]!='\0') // It will be 0, when showpath is "/"
+	if (dirname[0]!='\0' && dirname[1]!='\0') // It will be 0, when showpath is "/"
 		onion_response_write0(res,"<h2><a href=\"..\">Go up..</a></h2>\n");
 }
 
@@ -218,11 +225,12 @@ void onion_handler_export_local_set_footer(onion_handler *handler, void (*render
 }
 
 /**
- * @short Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
- *
- * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
+ * @short Creates an local filesystem handler.
  * 
- * If the localpath is a file, its returned always.
+ * Exports the given localpath and any file inside this localpath is returned.
+ * 
+ * It performs security checks, so that the returned data is saftly known to be inside 
+ * that localpath. Normal permissions apply.
  */
 onion_handler *onion_handler_export_local_new(const char *localpath){
 	char *rp=realpath(localpath, NULL);

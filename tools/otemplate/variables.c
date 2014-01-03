@@ -21,7 +21,7 @@
 #include <string.h>
 #include <onion/block.h>
 #include <onion/codecs.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 /**
  * @short Parses a block variable and writes the code necesary.
@@ -36,7 +36,7 @@ void variable_write(parser_status *st, onion_block *b){
 	variable_solve(st, onion_block_data(b), "tmp", 0);
 	function_add_code(st,
 "    if (tmp)\n"
-"      onion_response_write0(res, tmp);\n"
+"      onion_response_write_html_safe(res, tmp);\n"
 "  }\n");
 }
 

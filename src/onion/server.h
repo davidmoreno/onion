@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,11 +19,12 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_SERVER__
-#define __ONION_SERVER__
+#ifndef ONION_SERVER_H
+#define ONION_SERVER_H
 
 #include <stddef.h>
 
@@ -57,6 +64,9 @@ void onion_server_set_max_file_size(onion_server *server, size_t max_file_size);
 
 /// Writes some data to a specific request.
 onion_connection_status onion_server_write_to_request(onion_server *server, onion_request *request, const char *data, size_t len);
+
+/// Returns the onion struct for this server, if any
+onion *onion_server_get_onion(onion_server *o);
 
 #ifdef __cplusplus
 }

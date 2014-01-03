@@ -1,6 +1,7 @@
 #add_definitions(-D__DEBUG__)
 
-include_directories (${CMAKE_SOURCE_DIR}/src/) 
+include_directories (${PROJECT_SOURCE_DIR}/src/) 
+include_directories (${CMAKE_CURRENT_BINARY_DIR}) 
 
 add_custom_command(
    OUTPUT oterm_data.c

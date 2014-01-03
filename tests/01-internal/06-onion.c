@@ -32,7 +32,7 @@
 
 const int MAX_TIME=500;
 
-int processed;
+volatile int processed;
 pthread_mutex_t processed_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 volatile char okexit=0;
@@ -52,7 +52,7 @@ onion_response_codes process_request(void *_, onion_request *req, onion_response
   pthread_mutex_unlock(&processed_mutex);
   onion_response_write0(res, "Done");
   
-	FAIL_IF_NOT_EQUAL_STR(onion_request_get_client_description(req),"::ffff:127.0.0.1");
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_client_description(req),"127.0.0.1");
 	
   return OCS_PROCESSED;
 }
@@ -84,64 +84,76 @@ int connect_to(const char *addr, const char *port){
   return fd;
 }
 
-int curl_get(const char *url){
-  if (!null_file)
-    null_file=fopen("/dev/null","w");
-  FAIL_IF(null_file == NULL);
-  CURL *curl;
-  curl = curl_easy_init();
-  FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_URL, url)==CURLE_OK);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-  FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_WRITEDATA, null_file)==CURLE_OK);
+int curl_get(CURL *curl, const char *url){
   CURLcode res=curl_easy_perform(curl);
   FAIL_IF_NOT_EQUAL((int)res,0);
+	if (res!=0){
+		ONION_ERROR("%s",curl_easy_strerror(res));
+	}
   long int http_code;
   res=curl_easy_getinfo(curl, CURLINFO_HTTP_CODE, &http_code);
   FAIL_IF_NOT_EQUAL((int)res,0);
   char buffer[1024]; size_t l;
   curl_easy_recv(curl,buffer,sizeof(buffer),&l);
-  curl_easy_cleanup(curl);
   FAIL_IF_NOT_EQUAL_INT((int)http_code, HTTP_OK);
   
   return http_code;
 }
 
-int curl_get_to_fail(const char *url){
+// int curl_get_to_fail(const char *url){
+// 	CURL *curl;
+// 	curl = curl_easy_init();
+//   if (!null_file)
+//     null_file=fopen("/dev/null","w");
+//   FAIL_IF(null_file == NULL);
+//   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_URL, url)==CURLE_OK);
+//   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+//   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+//   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_WRITEDATA, null_file)==CURLE_OK);
+//   CURLcode res=curl_easy_perform(curl);
+//   FAIL_IF_EQUAL((int)res,0);
+//   long int http_code;
+//   res=curl_easy_getinfo(curl, CURLINFO_HTTP_CODE, &http_code);
+//   FAIL_IF_NOT_EQUAL((int)res,0);
+//   char buffer[1024]; size_t l;
+//   curl_easy_recv(curl,buffer,sizeof(buffer),&l);
+//   FAIL_IF_EQUAL_INT((int)http_code, HTTP_OK);
+// 	curl_easy_cleanup(curl);
+//   
+//   return http_code;
+// }
+
+CURL *prepare_curl(const char *url){
+	CURL *curl;
+	curl = curl_easy_init();
   if (!null_file)
     null_file=fopen("/dev/null","w");
   FAIL_IF(null_file == NULL);
-  CURL *curl;
-  curl = curl_easy_init();
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_URL, url)==CURLE_OK);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_WRITEDATA, null_file)==CURLE_OK);
-  CURLcode res=curl_easy_perform(curl);
-  FAIL_IF_EQUAL((int)res,0);
-  long int http_code;
-  res=curl_easy_getinfo(curl, CURLINFO_HTTP_CODE, &http_code);
-  FAIL_IF_NOT_EQUAL((int)res,0);
-  char buffer[1024]; size_t l;
-  curl_easy_recv(curl,buffer,sizeof(buffer),&l);
-  curl_easy_cleanup(curl);
-  FAIL_IF_EQUAL_INT((int)http_code, HTTP_OK);
-  
-  return http_code;
+	
+	return curl;
 }
 
 void *do_requests(params_t *t){
+	const char *url="http://localhost:8080/";
+	CURL *curl=prepare_curl(url);
+	
   ONION_DEBUG("Do %d petitions",t->n_requests);
   int i;
   usleep(t->wait_s*1000000);
   for(i=0;i<t->n_requests;i++){
-    curl_get("http://localhost:8080/");
+    curl_get(curl, url);
     usleep(t->wait_t*1000000);
   }
   if (t->close_at_n==1){
     usleep(t->wait_s*1000000);
     onion_listen_stop(o);
   }
+  
+	curl_easy_cleanup(curl);
   
   return NULL;
 }
@@ -253,24 +265,27 @@ void t02_server_epoll(){
 
 void t03_server_https(){
   INIT_LOCAL();
-  
-  o=onion_new(O_THREADED | O_DETACH_LISTEN);
+  CURL *curl=prepare_curl("https://localhost:8080");
+	
+  o=onion_new(O_ONE_LOOP | O_DETACH_LISTEN);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   FAIL_IF_NOT_EQUAL_INT(onion_set_certificate(o, O_SSL_CERTIFICATE_KEY, "mycert.pem", "mycert.pem"),0);
   FAIL_IF_NOT_EQUAL_INT(onion_listen(o),0);
   //do_petition_set(1,1,1,1);
   sleep(1);
-  FAIL_IF_EQUAL_INT(  curl_get_to_fail("http://localhost:8080"), HTTP_OK);
+  //FAIL_IF_EQUAL_INT(  curl_get_to_fail("http://localhost:8080"), HTTP_OK);
   sleep(1);
-  FAIL_IF_NOT_EQUAL_INT(  curl_get("https://localhost:8080"), HTTP_OK);
+  FAIL_IF_NOT_EQUAL_INT(  curl_get(curl, "https://localhost:8080"), HTTP_OK);
   sleep(1);
   onion_free(o);
   
+	curl_easy_cleanup(curl);
   END_LOCAL();
 }
 
 void t04_server_timeout_threaded(){
   INIT_LOCAL();
+  CURL *curl=prepare_curl("http://localhost:8082");
   
   o=onion_new(O_THREADED | O_DETACH_LISTEN);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
@@ -282,20 +297,24 @@ void t04_server_timeout_threaded(){
   int fd=connect_to("localhost","8082");
   sleep(3);
   // Should have closed the connection
-  FAIL_IF(write(fd,"GET /\n\n",7)==-1);
+  int w=write(fd,"GET /\n\n",7);
+  FAIL_IF_NOT_EQUAL_INT(w,7);
   char data[256];
   FAIL_IF(read(fd, data,sizeof(data))>0);
   close(fd);
 
-  FAIL_IF_NOT(curl_get("http://localhost:8082"));
+  FAIL_IF_NOT(curl_get(curl, "http://localhost:8082"));
   
   onion_free(o);
+	curl_easy_cleanup(curl);
   END_LOCAL();
 }
 
 
 void t05_server_timeout_threaded_ssl(){
   INIT_LOCAL();
+  CURL *curl=prepare_curl("https://localhost:8081");
+	
   ONION_DEBUG("%s",__FUNCTION__);
   o=onion_new(O_THREADED | O_DETACH_LISTEN);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
@@ -308,15 +327,17 @@ void t05_server_timeout_threaded_ssl(){
   int fd=connect_to("localhost","8081");
   sleep(4);
   // Should have closed the connection
-  FAIL_IF(write(fd,"GET /\n\n",7)==-1);
+  int w=write(fd,"GET /\n\n",7);
+  FAIL_IF_NOT_EQUAL_INT(w,7);
   char data[256];
   FAIL_IF(read(fd, data,sizeof(data))>0);
   close(fd);
 
-  FAIL_IF_NOT(curl_get("https://localhost:8081"));
+  FAIL_IF_NOT(curl_get(curl, "https://localhost:8081"));
+
+	onion_free(o);
   
-  onion_free(o);
-  
+	curl_easy_cleanup(curl);
   END_LOCAL();
 }
 
@@ -324,12 +345,12 @@ int main(int argc, char **argv){
   START();
   pthread_t watchdog_thread;
   pthread_create(&watchdog_thread, NULL, (void*)watchdog, NULL);
-  
+
 	t01_server_one();
-  t02_server_epoll();
-  t03_server_https();
-  t04_server_timeout_threaded();
-  t05_server_timeout_threaded_ssl();
+	t02_server_epoll();
+	t03_server_https();
+	t04_server_timeout_threaded();
+	t05_server_timeout_threaded_ssl();
   
   okexit=1;
   pthread_cancel(watchdog_thread);
@@ -337,7 +358,7 @@ int main(int argc, char **argv){
   
   if (null_file)
     fclose(null_file);
-  
+
 	END();
 }
 

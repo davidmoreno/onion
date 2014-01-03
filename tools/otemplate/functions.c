@@ -16,16 +16,17 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <assert.h>
 
 #include <onion/log.h>
 #include <onion/block.h>
 
 #include "list.h"
 #include "parser.h"
+#include "../common/updateassets.h"
 #include <ctype.h>
 
 int use_orig_line_numbers=1;
@@ -42,8 +43,23 @@ void functions_write_declarations(parser_status *st){
 	}
 }
 
+/// Writes to st->out the declarations of the functions for this template
+void functions_write_declarations_assets(parser_status *st, onion_assets_file *assets){
+	list_item *it=st->functions->head;
+	char line[1024];
+	while (it){
+		function_data *d=it->data;
+		if (!d->is_static && !d->signature && strstr(d->id, "__block")==NULL ){
+			snprintf(line, sizeof(line), "void %s(%s);", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res");
+			onion_assets_file_update(assets, line);
+		}
+		it=it->next;
+	}
+}
+
 /// Writes the desired function to st->out
 static void function_write(parser_status *st, function_data *d){
+	ONION_DEBUG("Write function %s", d->id);
 	if (d->code){
 		if (use_orig_line_numbers)
 			fprintf(st->out, "#line 1\n");
@@ -53,26 +69,41 @@ static void function_write(parser_status *st, function_data *d){
 "void %s(%s){\n", d->id, d->signature ? d->signature : "onion_dict *context, onion_response *res"
 					);
 		
+		const char *data=onion_block_data(d->code);
+		int ldata=onion_block_size(d->code);
 		if (use_orig_line_numbers){
 			fprintf(st->out, "#line 1\n");
 		
 			// Write code, but change \n\n to \n
-			const char *data=onion_block_data(d->code);
-			int ldata=onion_block_size(d->code);
-			int i=0, li=0;
+			int i=0, li=0, diff;
 			char lc=0;
+			ssize_t r;
 			for (i=0;i<ldata;i++){
 				if (data[i]=='\n' && lc=='\n'){ // Two in a row
-					fwrite(&data[li], 1, i-li-1, st->out);
+					diff = i-li-1;
+					r=fwrite(&data[li], 1, diff, st->out);
+					if (r!=diff){
+						ONION_ERROR("Could not write all data");
+						abort();
+					}
 					li=i;
 				}
 				lc=data[i];
 			}
-			fwrite(&data[li], 1, i-li, st->out);
+			diff=i-li;
+			r=fwrite(&data[li], 1, diff, st->out);
+			if (r!=diff){
+					ONION_ERROR("Could not write all data");
+					abort();
+			}
 			fprintf(st->out, "#line 1\n");
 		}
 		else{
-			fwrite(onion_block_data(d->code), 1, onion_block_size(d->code), st->out);
+			ssize_t r=fwrite(data, 1, ldata, st->out);
+			if (r!=ldata){
+					ONION_ERROR("Could not write all data");
+					abort();
+			}
 		}
 
 		fprintf(st->out,"}\n");

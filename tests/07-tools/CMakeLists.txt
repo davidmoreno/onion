@@ -1,5 +1,5 @@
 
-include_directories (${CMAKE_SOURCE_DIR}/src/) 
+include_directories (${PROJECT_SOURCE_DIR}/src/) 
 
 add_custom_command(
    OUTPUT test_html.c
@@ -30,8 +30,12 @@ add_custom_command(
    )
 
 
-add_executable(01-test 01-test.c test_html.c external_html.c extended_html.c base_html.c)
-target_link_libraries(01-test onion_static onion_handlers)
+add_executable(01-otemplate 01-otemplate.c test_html.c external_html.c extended_html.c base_html.c)
+target_link_libraries(01-otemplate onion_static onion_handlers)
 
-add_executable(02-test 02-test.cpp test_html.c external_html.c extended_html.c base_html.c)
-target_link_libraries(02-test onion_static onion_handlers onioncpp)
+# add_executable(02-test 02-test.cpp test_html.c external_html.c extended_html.c base_html.c)
+# target_link_libraries(02-test onion_static onion_handlers onioncpp)
+
+ADD_CUSTOM_TARGET(test-assets.sh ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test-assets.sh ${OTEMPLATE} ${OPACK}
+	COMMAND [ "${CMAKE_CURRENT_SOURCE_DIR}" = "${CMAKE_CURRENT_BINARY_DIR}" ] || cp ${CMAKE_CURRENT_SOURCE_DIR}/test-assets.sh  ${CMAKE_CURRENT_BINARY_DIR}/test-assets.sh
+	)

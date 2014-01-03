@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,11 +19,12 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_LOG__
-#define __ONION_LOG__
+#ifndef ONION_LOG_H
+#define ONION_LOG_H
 
 #ifdef __DEBUG__
 #define ONION_DEBUG(...) onion_log(O_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
@@ -43,7 +50,17 @@ enum onion_log_level_e{
 	O_ERROR=4,
 };
 
+enum onion_log_flags_e{
+	OF_INIT=1,
+	OF_NOCOLOR=2,
+	OF_SYSLOGINIT=8,
+	OF_NOINFO=16,
+	OF_NODEBUG=32,
+};
+
+
 typedef enum onion_log_level_e onion_log_level;
+extern int onion_log_flags; // For some speedups, as not getting client info if not going to save it.
 
 /// This function can be overwritten with whatever onion_log facility you want to use, same signature
 extern void (*onion_log)(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);

@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,20 +19,24 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
 #include "log.h"
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
-#ifdef __DEBUG__
+#ifdef __DEBUG__ 
+#ifdef __EXECINFO__
 #include <execinfo.h>
+#endif
 #endif
 
 #include "handler.h"
 #include "response.h"
 #include "types_internal.h"
+#include "websocket.h"
 
 /**
  * @short Tryes to handle the petition with that handler.
@@ -42,15 +52,28 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
 	onion_connection_status res;
 	while (handler){
 		if (handler->handler){
-#ifdef __DEBUG__
+#ifdef __DEBUG0__
 			char **bs=backtrace_symbols((void * const *)&handler->handler, 1);
 			ONION_DEBUG0("Calling handler: %s",bs[0]);
 			free(bs);
 #endif
 			res=handler->handler(handler->priv_data, request, response);
 			ONION_DEBUG0("Result: %d",res);
-			if (res)
+			if (res){
+				// write pending data.
+				if (!(response->flags&OR_HEADER_SENT) && response->buffer_pos<sizeof(response->buffer))
+					onion_response_set_length(response, response->buffer_pos);
+				onion_response_flush(response);
+				if (res==OCS_WEBSOCKET){
+					if (request->websocket)
+						return onion_websocket_call(request->websocket);
+					else{
+						ONION_ERROR("Handler did set the OCS_WEBSOCKET, but did not initialize the websocket on this request.");
+						return OCS_INTERNAL_ERROR;
+					}
+				}
 				return res;
+			}
 		}
 		handler=handler->next;
 	}
@@ -64,8 +87,7 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
  *
  */
 onion_handler *onion_handler_new(onion_handler_handler handler, void *priv_data, onion_handler_private_data_free priv_data_free){
-	onion_handler *phandler=malloc(sizeof(onion_handler));
-	memset(phandler,0,sizeof(onion_handler));
+	onion_handler *phandler=calloc(1, sizeof(onion_handler));
 	phandler->handler=handler;
 	phandler->priv_data=priv_data;
 	phandler->priv_data_free=priv_data_free;

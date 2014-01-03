@@ -16,7 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -173,14 +173,26 @@ void t06_codecs_c_unicode(){
 	END_LOCAL();
 }
 
+void t07_codecs_html(){
+	INIT_LOCAL();
+	
+	char *encoded=onion_html_quote("<\"Hello\">");
+	FAIL_IF_NOT_EQUAL_STR( encoded, "&lt;&quot;Hello&quot;&gt;");
+	free(encoded);
+	
+	END_LOCAL();
+}
 
 int main(int argc, char **argv){
+	START();
+	
 	t01_codecs_base64_decode();
 	t02_codecs_base64_encode();
 	t03_codecs_base64_encode_decode_10();
 	t04_codecs_base64_encode_decode();
 	t05_codecs_base64_decode_trash();
 	t06_codecs_c_unicode();
+	t07_codecs_html();
 	
 	END();
 }

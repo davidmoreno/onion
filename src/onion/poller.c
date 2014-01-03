@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2011 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,7 +19,8 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
 #include <malloc.h>
@@ -29,7 +36,7 @@
 #endif
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <assert.h>
 
 #include "log.h"
 #include "types.h"
@@ -73,6 +80,7 @@ struct onion_poller_slot_t{
 	int fd;
 	int (*f)(void*);
 	void *data;
+	int type;
 
 	void (*shutdown)(void*);
 	void *shutdown_data;
@@ -94,13 +102,17 @@ struct onion_poller_slot_t{
  * @returns A new poller slot, ready to be added (onion_poller_add) or modified (onion_poller_slot_set_shutdown, onion_poller_slot_set_timeout).
  */
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
-	onion_poller_slot *el=(onion_poller_slot*)malloc(sizeof(onion_poller_slot));
-	memset(el,0,sizeof(*el));
+	if (fd<0){
+		ONION_ERROR("Trying to add an invalid file descriptor to the poller. Please check.");
+		return NULL;
+	}
+	onion_poller_slot *el=(onion_poller_slot*)calloc(1, sizeof(onion_poller_slot));
 	el->fd=fd;
 	el->f=f;
 	el->data=data;
 	el->timeout=-1;
 	el->timeout_limit=INT_MAX;
+	el->type=EPOLLIN | EPOLLHUP | EPOLLONESHOT;
 	
 	return el;
 }
@@ -144,8 +156,20 @@ void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout){
 	ONION_DEBUG0("Set timeout to %d, %d s", el->timeout_limit, el->timeout);
 }
 
-static int onion_poller_empty_helper(void *_){
-  return 0;
+void onion_poller_slot_set_type(onion_poller_slot *el, int type){
+	el->type=EPOLLONESHOT;
+	if (type&O_POLL_READ)
+		el->type|=EPOLLIN;
+	if (type&O_POLL_WRITE)
+		el->type|=EPOLLOUT;
+	if (type&O_POLL_OTHER)
+		el->type|=EPOLLERR|EPOLLHUP|EPOLLPRI;
+	ONION_DEBUG0("Setting type to %d, %d", el->fd, el->type);
+}
+
+static int onion_poller_stop_helper(void *p){
+	onion_poller_stop(p);
+  return 1;
 }
 
 #ifndef EFD_CLOEXEC
@@ -158,17 +182,16 @@ static int onion_poller_empty_helper(void *_){
  *
  * This poller is implemented through epoll, but other implementations are possible 
  * 
- * Just now it only have EPOLLIN | EPOLLHUP slots, so wait for write ready not available.
  */
 onion_poller *onion_poller_new(int n){
 	onion_poller *p=malloc(sizeof(onion_poller));
-	p->fd=epoll_create(n);
+	p->fd=epoll_create1(EPOLL_CLOEXEC);
 	if (p->fd < 0){
 		ONION_ERROR("Error creating the poller. %s", strerror(errno));
 		free(p);
 		return NULL;
 	}
-	p->eventfd=eventfd(0,EFD_CLOEXEC);
+	p->eventfd=eventfd(0,EFD_CLOEXEC | EFD_NONBLOCK);
 #if EFD_CLOEXEC == 0
   fcntl(p->eventfd,F_SETFD,FD_CLOEXEC);
 #endif
@@ -177,7 +200,7 @@ onion_poller *onion_poller_new(int n){
   p->stop=0;
 
 #ifdef HAVE_PTHREADS
-  ONION_DEBUG("Init thread stuff for poll");
+  ONION_DEBUG("Init thread stuff for poll. Eventfd at %d", p->eventfd);
   p->npollers=0;
   pthread_mutexattr_t attr;
   pthread_mutexattr_init(&attr);
@@ -186,7 +209,7 @@ onion_poller *onion_poller_new(int n){
   pthread_mutexattr_destroy(&attr);
 #endif
 
-  onion_poller_slot *ev=onion_poller_slot_new(p->eventfd,onion_poller_empty_helper,NULL);
+  onion_poller_slot *ev=onion_poller_slot_new(p->eventfd,onion_poller_stop_helper,p);
   onion_poller_add(p,ev);
   
 	return p;
@@ -194,7 +217,7 @@ onion_poller *onion_poller_new(int n){
 
 /// @memberof onion_poller_t
 void onion_poller_free(onion_poller *p){
-	ONION_DEBUG("Free onion poller");
+	ONION_DEBUG("Free onion poller: %d waiting", p->n);
 	p->stop=1;
 	close(p->fd); 
 	// Wait until all pollers exit.
@@ -242,7 +265,7 @@ int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 	
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
-	ev.events=EPOLLIN | EPOLLHUP | EPOLLONESHOT;
+	ev.events=el->type;
 	ev.data.ptr=el;
 	if (epoll_ctl(poller->fd, EPOLL_CTL_ADD, el->fd, &ev) < 0){
 		ONION_ERROR("Error add descriptor to listen to. %s", strerror(errno));
@@ -331,7 +354,7 @@ static int onion_poller_get_next_timeout(onion_poller *p){
  */
 void onion_poller_poll(onion_poller *p){
 	struct epoll_event event[MAX_EVENTS];
-	ONION_DEBUG0("Start polling");
+	ONION_DEBUG("Start polling");
 	p->stop=0;
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&p->mutex);
@@ -402,14 +425,14 @@ void onion_poller_poll(onion_poller *p){
         continue;
 			// Call the callback
 			//ONION_DEBUG("Calling callback for fd %d (%X %X)", el->fd, event[i].events);
-			int n;
+			int n=-1;
 			if (event[i].events&EPOLLRDHUP){
 				n=-1;
 			}
 			else{ // I also take care of the timeout, no timeout when on the handler, it should handle it itself.
 				el->timeout_limit=INT_MAX;
 
-#ifdef __DEBUG__
+#ifdef __DEBUG0__
         char **bs=backtrace_symbols((void * const *)&el->f, 1);
         ONION_DEBUG0("Calling handler: %s (%d)",bs[0], el->fd);
         free(bs);
@@ -425,15 +448,17 @@ void onion_poller_poll(onion_poller *p){
 			}
 			else{
 				ONION_DEBUG0("Re setting poller %d", el->fd);
-				event[i].events=EPOLLIN | EPOLLHUP | EPOLLONESHOT;
-				int e=epoll_ctl(p->fd, EPOLL_CTL_MOD, el->fd, &event[i]);
-				if (e<0){
-					ONION_ERROR("Error resetting poller, %s", strerror(errno));
+				event[i].events=el->type;
+				if (p->fd>=0){
+					int e=epoll_ctl(p->fd, EPOLL_CTL_MOD, el->fd, &event[i]);
+					if (e<0){
+						ONION_ERROR("Error resetting poller, %s", strerror(errno));
+					}
 				}
 			}
 		}
 	}
-	ONION_DEBUG0("Finished polling fds");
+	ONION_DEBUG("Finished polling fds");
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&p->mutex);
 	p->npollers--;
@@ -447,12 +472,22 @@ void onion_poller_poll(onion_poller *p){
  * @memberof onion_poller_t
  */
 void onion_poller_stop(onion_poller *p){
-  ONION_DEBUG0("Stopping poller");
+  ONION_DEBUG("Stopping poller");
   p->stop=1;
   char data[8]={0,0,0,0, 0,0,0,1};
-  int w=write(p->eventfd,data,8);
-  if (w<0){
-    ONION_ERROR("Error signaling poller to stop!");
-  }
+  int __attribute__((unused)) r=read(p->eventfd, data, 8); // Flush eventfd data, discard data
+	
+	pthread_mutex_lock(&p->mutex);
+  int n=p->npollers;
+	pthread_mutex_unlock(&p->mutex);
+	
+  if (n>0){
+		int w=write(p->eventfd,data,8); // Tell another thread to exit
+		if (w<0){
+			ONION_ERROR("Error signaling poller to stop!");
+		}
+	}
+	else
+		ONION_DEBUG("Poller stopped");
 }
 

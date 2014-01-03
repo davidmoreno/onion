@@ -43,6 +43,7 @@
 #include <onion/dict.h>
 #include <onion/shortcuts.h>
 
+#include <assets.h>
 onion_connection_status opack_static(void *_, onion_request *req, onion_response *res);
 
 onion *o=NULL;
@@ -62,7 +63,7 @@ void show_help(){
 								 "\n");
 }
 
-void free_onion(){
+void free_onion(int unused){
 	static int already_closing=0;
 	if (!already_closing){
 		ONION_INFO("Closing connections.");

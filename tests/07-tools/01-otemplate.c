@@ -29,7 +29,7 @@ onion *o;
 int test_html_template(onion_dict *d, onion_request *req, onion_response *res);
 int extended_html_template(onion_dict *d, onion_request *req, onion_response *res);
 
-void free_onion(){
+void free_onion(int unused){
 	ONION_INFO("Closing connections");
 	onion_free(o);
 	exit(0);

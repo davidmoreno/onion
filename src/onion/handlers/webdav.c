@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,7 +19,8 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
 #include <assert.h>
@@ -116,7 +123,7 @@ onion_connection_status onion_webdav_handler(onion_webdav *wd, onion_request *re
 	onion_response_set_code(res, HTTP_NOT_IMPLEMENTED);
 	onion_response_write0(res, "<h1>Work in progress...</h1>\n");
 	
-	return HTTP_OK;
+	return OCS_PROCESSED;
 }
 
 /**
@@ -323,10 +330,10 @@ static int onion_webdav_parse_propfind(const onion_block *block){
  * 
  * @return 0 is ok, 1 if could not stat file.
  */
-int onion_webdav_write_props(xmlTextWriterPtr writer, 
+int onion_webdav_write_props(xmlTextWriterPtr writer, const char *basepath, 
 														 const char *realpath, const char *urlpath, const char *filename, 
 														 int props){
-	ONION_DEBUG("Info for path '%s', urlpath '%s', file '%s'", realpath, urlpath, filename);
+	ONION_DEBUG("Info for path '%s', urlpath '%s', file '%s', basepath '%s'", realpath, urlpath, filename, basepath);
 	// Stat the thing itself
 	char tmp[512];
 	if (filename)
@@ -338,22 +345,25 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
 		ONION_ERROR("Error on %s: %s", tmp, strerror(errno));
 		return 1;
 	}
+	while (*urlpath=='/') // No / at the begining.
+		urlpath++;
 
 	if (filename){
 		if (urlpath[0]==0)
-			snprintf(tmp, sizeof(tmp), "/%s", filename);
+			snprintf(tmp, sizeof(tmp), "%s/%s", basepath, filename);
 		else
-			snprintf(tmp, sizeof(tmp), "/%s/%s", urlpath, filename);
+			snprintf(tmp, sizeof(tmp), "%s/%s/%s", basepath, urlpath, filename);
 	}
 	else{
 		if (urlpath[0]==0)
-			snprintf(tmp, sizeof(tmp), "/");
+			snprintf(tmp, sizeof(tmp), "%s/", basepath);
 		else{
-			snprintf(tmp, sizeof(tmp), "/%s", urlpath);
+			snprintf(tmp, sizeof(tmp), "%s/%s", basepath, urlpath);
 		}
 	}
-	if (S_ISDIR(st.st_mode))
-		strncat(tmp,"/", sizeof(tmp));
+	if (S_ISDIR(st.st_mode) && urlpath[0]!=0)
+		strncat(tmp,"/", sizeof(tmp) - 1);
+	ONION_DEBUG0("Props for %s", tmp);
 	
 	xmlTextWriterStartElement(writer, BAD_CAST "D:response");
 	xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:lp1" ,BAD_CAST "DAV:");
@@ -438,7 +448,7 @@ int onion_webdav_write_props(xmlTextWriterPtr writer,
  * 
  * @returns An onion_block with the XML data.
  */
-onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpath, int depth, 
+onion_block *onion_webdav_write_propfind(const char *basepath, const char *realpath, const char *urlpath, int depth, 
 																				 int props){
 	onion_block *data=onion_block_new();
 	xmlTextWriterPtr writer;
@@ -457,7 +467,7 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
 	xmlTextWriterStartDocument(writer, NULL, "utf-8", NULL);
 	xmlTextWriterStartElement(writer, BAD_CAST "D:multistatus");
 		xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns:D" ,BAD_CAST "DAV:");
-			error=onion_webdav_write_props(writer, realpath, urlpath, NULL, props);
+			error=onion_webdav_write_props(writer, basepath, realpath, urlpath, NULL, props);
 			if (depth>0){
 				ONION_DEBUG("Get also all files");
 				DIR *dir=opendir(realpath);
@@ -468,7 +478,7 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
 					struct dirent *de;
 					while ( (de=readdir(dir)) ){
 						if (de->d_name[0]!='.')
-							onion_webdav_write_props(writer, realpath, urlpath, de->d_name, props);
+							onion_webdav_write_props(writer, basepath, realpath, urlpath, de->d_name, props);
 					}
 					closedir(dir);
 				}
@@ -496,7 +506,20 @@ onion_block *onion_webdav_write_propfind(const char *realpath, const char *urlpa
  * @param path the shared path.
  */
 onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav *wd, onion_request* req, onion_response* res){
-	ONION_DEBUG0("PROPFIND");
+	// Prepare the basepath, necesary for props.
+	char *basepath=NULL;
+	int pathlen=0;
+	const char *current_path=onion_request_get_path(req);
+	const char *fullpath=onion_request_get_fullpath(req);
+	pathlen=(current_path-fullpath);
+	basepath=alloca(pathlen+1);
+	memcpy(basepath, fullpath, pathlen+1);
+	ONION_DEBUG0("Pathbase initial <%s> %d", basepath, pathlen); 
+	while(basepath[pathlen]=='/')
+		pathlen--;
+	basepath[pathlen+1]=0;
+				 
+	ONION_DEBUG0("PROPFIND; pathbase %s", basepath);
 	int depth;
 	{
 		const char *depths=onion_request_get_header(req, "Depth");
@@ -514,7 +537,7 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	int props=onion_webdav_parse_propfind(onion_request_get_data(req));
 	ONION_DEBUG("Asking for props %08X, depth %d", props, depth);
 	
-	onion_block *block=onion_webdav_write_propfind(filename, onion_request_get_path(req), depth, props);
+	onion_block *block=onion_webdav_write_propfind(basepath, filename, onion_request_get_path(req), depth, props);
 	
 	if (!block) // No block, resource does not exist
 		return onion_shortcut_response("Not found", HTTP_NOT_FOUND, req, res);
@@ -524,6 +547,8 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	onion_response_set_header(res, "Content-Type", "text/xml; charset=\"utf-8\"");
 	onion_response_set_length(res, onion_block_size(block));
 	onion_response_set_code(res, HTTP_MULTI_STATUS);
+	onion_response_write_headers(res);
+	onion_response_flush(res);
 	
 	onion_response_write(res, onion_block_data(block), onion_block_size(block));
 	
@@ -641,7 +666,7 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
 	}
 	if ((ret==0) && strncmp(base, file, strlen(base))!=0){
 		ret=1;
-		ONION_ERROR("Base %s is not for file %s (%p)", base, file, strncmp(base, file, sizeof(base)));
+		ONION_ERROR("Base %s is not for file %s (%p)", base, file, strncmp(base, file, strlen(base)));
 	}
 	
 	if (base)
@@ -673,10 +698,13 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
  * @returns The onion handler.
  */
 onion_handler *onion_handler_webdav(const char *path, onion_webdav_permissions_check perm){
+	onion_webdav *wd=malloc(sizeof(onion_webdav));
+	if (!wd)
+		return NULL;
+	
 	xmlInitParser();
 	LIBXML_TEST_VERSION
 
-	onion_webdav *wd=malloc(sizeof(onion_webdav));
 	wd->path=strdup(path);
 	
 	if (perm)

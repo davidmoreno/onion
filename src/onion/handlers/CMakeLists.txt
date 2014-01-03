@@ -1,5 +1,5 @@
 
-include_directories (${CMAKE_SOURCE_DIR}/src/) 
+include_directories (${PROJECT_SOURCE_DIR}/src/) 
 
 
 if (PAM_ENABLED)
@@ -11,7 +11,7 @@ else (PAM_ENABLED)
 endif (PAM_ENABLED)
 
 if (${XML2_ENABLED})
-	MESSAGE(INFO "Compiling WebDAV support") 
+	MESSAGE(STATUS "Compiling WebDAV support") 
 	SET(WEBDAV webdav.c)
 	SET(XMLLIBS ${XML2_LIB})
 	include_directories(${XML2_HEADERS})
@@ -29,7 +29,7 @@ target_link_libraries(onion_handlers_static ${PAMLIBS} ${XMLLIBS})
 
 
 SET(INCLUDES_HANDLERS static.h exportlocal.h auth_pam.h opack.h path.h webdav.h internal_status.h)
-MESSAGE("Found include files ${INCLUDES_HANDLERS}")
+MESSAGE(STATUS "Found include files ${INCLUDES_HANDLERS}")
 
 install(FILES ${INCLUDES_HANDLERS} DESTINATION ${INCLUDEDIR}/handlers/)
 install(TARGETS onion_handlers EXPORT onion_handlers DESTINATION ${LIBDIR})

@@ -16,22 +16,25 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <string.h>
 #include <ctype.h>
 #include <libgen.h>
 #include <stdarg.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include "onion/log.h"
 #include "onion/block.h"
 #include "list.h"
 #include "parser.h"
 #include "tags.h"
+#include "../common/updateassets.h"
 
 list *plugin_search_path;
 
-int work(const char *infilename, const char *outfilename);
+int work(const char *infilename, const char *outfilename, onion_assets_file *assets);
 
 void help(const char *msg);
 
@@ -42,6 +45,7 @@ int main(int argc, char **argv){
 	const char *infilename=NULL;
 	const char *outfilename=NULL;
 	char tmp[256];
+	char *assetfilename="assets.h";
 
 	int i;
 	for (i=1;i<argc;i++){
@@ -55,13 +59,22 @@ int main(int argc, char **argv){
 				help("Missing templatedir name");
 				return 3;
 			}
-			snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", strdupa(argv[i]));
+			snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", argv[i]);
 			ONION_DEBUG("Added templatedir %s", tmp);
-			list_add(plugin_search_path, strdupa(tmp)); // dupa is ok, as im at main.
+			list_add(plugin_search_path, strdup(tmp)); // dup, remember to free later.
 		}
 		else if ((strcmp(argv[i], "--no-orig-lines")==0) || (strcmp(argv[i], "-n")==0)){
 			use_orig_line_numbers=0;
 			ONION_DEBUG("Disable original line numbers");
+		}
+		else if ((strcmp(argv[i], "--asset-file")==0) || (strcmp(argv[i], "-a")==0)){
+			i++;
+			if (argc<=i){
+				help("Missing assets file name");
+				return 3;
+			}
+			assetfilename=argv[i];
+			ONION_DEBUG("Assets file: %s", assetfilename);
 		}
 		else{
 			if (infilename){
@@ -88,24 +101,31 @@ int main(int argc, char **argv){
 		infilename="";
 	}
 	else{
-		snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(strdupa(argv[1])));
-		list_add(plugin_search_path, strdupa(tmp));
-		snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(strdupa(argv[1])));
-		list_add(plugin_search_path, strdupa(tmp));
+		char tmp2[256];
+		strncpy(tmp2, argv[1], sizeof(tmp2)-1);
+		snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(tmp2));
+		list_add(plugin_search_path, strdup(tmp));
+		strncpy(tmp2, argv[1], sizeof(tmp2)-1);
+		snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(tmp2));
+		list_add(plugin_search_path, strdup(tmp));
 	}
 
 	// Default template dirs
 	list_add(plugin_search_path, "lib%s.so");
 	list_add(plugin_search_path, "templatetags/lib%s.so");
-	snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(strdupa(argv[0])));
-	list_add(plugin_search_path, strdupa(tmp)); // dupa is ok, as im at main.
-	snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(strdupa(argv[0])));
-	list_add(plugin_search_path, strdupa(tmp)); // dupa is ok, as im at main.
+	char tmp2[256];
+	strncpy(tmp2, argv[0], sizeof(tmp2)-1);
+	snprintf(tmp, sizeof(tmp), "%s/templatetags/lib%%s.so", dirname(tmp2));
+	list_add(plugin_search_path, strdup(tmp)); // dupa is ok, as im at main.
+	strncpy(tmp2, argv[0], sizeof(tmp2)-1);
+	snprintf(tmp, sizeof(tmp), "%s/lib%%s.so", dirname(tmp2));
+	list_add(plugin_search_path, strdup(tmp)); // dupa is ok, as im at main.
 	list_add(plugin_search_path, "/usr/local/lib/otemplate/templatetags/lib%s.so");
 	list_add(plugin_search_path, "/usr/lib/otemplate/templatetags/lib%s.so");
 
-
-	int error=work(infilename, outfilename);
+	onion_assets_file *assetsfile=onion_assets_file_new(assetfilename);
+	int error=work(infilename, outfilename, assetsfile);
+	onion_assets_file_free(assetsfile);
 	
 	list_free(plugin_search_path);
 	
@@ -122,6 +142,7 @@ void help(const char *msg){
 "  --templatetagsdir|-t <dirname>  Adds that templatedir to known templatedirs. May be called several times.\n"
 "  --no-orig-lines|-n          Do not set the original lines on the generated .c file. With this off the \n"
 "                              error reporting refers to the C file, not the template.\n"
+"  --asset-file|-a             Write function definitions to an asset file. Defaults to assets.h\n"
 "  <infilename>                Input filename or '-' to use stdin.\n"
 "  <infilename>                Output filename or '-' to use stdin.\n"
 "\n"
@@ -141,7 +162,7 @@ void help(const char *msg){
 /**
  * @short Compiles the infilename to outfilename.
  */
-int work(const char *infilename, const char *outfilename){
+int work(const char *infilename, const char *outfilename, onion_assets_file *assets){
 	tag_init();
 	parser_status status;
 	memset(&status, 0, sizeof(status));
@@ -152,7 +173,9 @@ int work(const char *infilename, const char *outfilename){
 	status.line=1;
 	status.rawblock=onion_block_new();
 	status.infilename=infilename;
-	const char *tname=basename(strdupa(infilename));
+	char tmp2[256];
+	strncpy(tmp2, infilename, sizeof(tmp2)-1);
+	const char *tname=basename(tmp2);
   ONION_DEBUG("Create init function on top, tname %s",tname);
 	status.blocks_init=function_new(&status, "%s_blocks_init", tname);
 	status.blocks_init->signature="onion_dict *context";
@@ -215,6 +238,7 @@ int work(const char *infilename, const char *outfilename){
 "\n"
 "\n");
 
+	functions_write_declarations_assets(&status, assets);
 	
 	functions_write_declarations(&status);
 

@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,11 +19,12 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef __ONION_CODECS__
-#define __ONION_CODECS__
+#ifndef ONION_CODECS_H
+#define ONION_CODECS_H
 
 
 #ifdef __cplusplus
@@ -44,6 +51,13 @@ char *onion_c_quote_new(const char *str);
 
 /// Performs the C quotation on the ret str. Max length is l.
 char *onion_c_quote(const char *str, char *ret, int l);
+
+/// Calculates the sha1 checksum
+void onion_sha1(const char *data, int length, char *result);
+
+/// Calculates the HTML encoding of a string. Returned value must be freed. If no encoding needed, returns NULL.
+char *onion_html_quote(const char *str);
+
 
 #ifdef __cplusplus
 }

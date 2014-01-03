@@ -3,14 +3,21 @@ cmake_policy(VERSION 2.8)
 project(libonion)
 
 # Some tweak parameters
-SET(ONION_USE_SSL true)
-SET(ONION_USE_PAM true)
-SET(ONION_USE_PTHREADS true)
-SET(ONION_USE_PNG true)
-SET(ONION_USE_XML2 true)
-SET(ONION_USE_SYSTEMD true)
-SET(ONION_VERSION 0.4.0)
+SET(ONION_USE_SSL true CACHE BOOL "Use SSL, requires GnuTLS")
+SET(ONION_USE_PAM true CACHE BOOL "Compile PAM handler. Needs libpam")
+SET(ONION_USE_PTHREADS true CACHE BOOL "Compile with pthreads support. Needed for O_THREAD and O_POOL modes")
+SET(ONION_USE_PNG true CACHE BOOL "Adds support for simple image handler")
+SET(ONION_USE_XML2 true CACHE BOOL "Adds support for XML2 lib, which is needed for WebDAV handler")
+SET(ONION_USE_SYSTEMD true CACHE BOOL "Adds simple support for systemd")
+SET(ONION_USE_TESTS true CACHE BOOL "Compile the tests")
+SET(ONION_USE_BINDINGS_CPP true CACHE BOOL "Compile the CPP bindings")
+SET(ONION_VERSION 0.6.0)
+SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | libev | libevent")
 ########
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+  SET(ONION_USE_PAM false)
+endif (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
@@ -30,6 +37,17 @@ ENDIF (NOT DEFINED INCLUDE_PATH)
 IF (NOT DEFINED INCLUDEDIR)
 SET(INCLUDEDIR include/onion)
 ENDIF(NOT DEFINED INCLUDEDIR)
+
+if (${ONION_POLLER} STREQUAL "default")
+	if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+		set (ONION_POLLER "epoll")
+	else(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+		set (ONION_POLLER "libev")
+	endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+endif (${ONION_POLLER} STREQUAL "default")
+
+message(STATUS "Using ${ONION_POLLER} as poller")
+
 
 if (${ONION_USE_SSL})
 	find_library(GNUTLS_LIB NAMES gnutls PATH ${LIBPATH})
@@ -129,6 +147,8 @@ endif(XML2_ENABLED)
 if (SYSTEMD_ENABLED)
 	add_definitions(-DHAVE_SYSTEMD)
 endif (SYSTEMD_ENABLED)
+add_definitions(-D_BSD_SOURCE)
+add_definitions(-D_POSIX_C_SOURCE=200112L)
 
 ##
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
@@ -145,14 +165,13 @@ INCLUDE(CPackConfig.cmake)
 INCLUDE(CPack)
 
 add_subdirectory(src)
+add_subdirectory(tools)
 
-if (CROSS_COMPILING)
-else (CROSS_COMPILING)
-  add_subdirectory(tools)
-	SET(OTEMPLATE otemplate)
-	SET(OPACK opack)
-endif (CROSS_COMPILING)
+SET(OTEMPLATE otemplate)
+SET(OPACK opack)
 
-add_subdirectory(examples)
-add_subdirectory(tests)
-
+if (${ONION_USE_TESTS})
+	enable_testing()
+	add_subdirectory(examples)
+	add_subdirectory(tests)
+endif(${ONION_USE_TESTS})

@@ -17,6 +17,8 @@
 	*/
 
 #include <stdio.h>
+#include <errno.h>
+#include <string.h>
 
 #include <onion/log.h>
 
@@ -41,6 +43,7 @@ int load_external(const char *filename){
 	while (it){
 		snprintf(tmp, sizeof(tmp), it->data, filename);
 		dl=dlopen(tmp, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
+		ONION_DEBUG("Check at %s %p: %s %d", tmp, dl, dlerror(), fopen(tmp, "ro"));
 		if (dl)
 			break;
 		it=it->next;

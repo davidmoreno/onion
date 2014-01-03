@@ -1,11 +1,17 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2013 David Moreno Montero
 
 	This library is free software; you can redistribute it and/or
-	modify it under the terms of the GNU Lesser General Public
-	License as published by the Free Software Foundation; either
-	version 3.0 of the License, or (at your option) any later version.
+	modify it under the terms of, at your choice:
+	
+	a. the GNU Lesser General Public License as published by the 
+	 Free Software Foundation; either version 3.0 of the License, 
+	 or (at your option) any later version.
+	
+	b. the GNU General Public License as published by the 
+	 Free Software Foundation; either version 2.0 of the License, 
+	 or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,24 +19,41 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License and the GNU General Public License along with this 
+	library; if not see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <time.h>
 #include <stdarg.h>
+#include <assert.h>
+
+#ifdef HAVE_PTHREAD
+# include <pthread.h>
+#endif
 
 #include "dict.h"
 #include "request.h"
-#include "server.h"
 #include "response.h"
 #include "types_internal.h"
 #include "log.h"
+#include "codecs.h"
 
 const char *onion_response_code_description(int code);
-static int onion_response_write_buffer(onion_response *res);
+
+// DONT_USE_DATE_HEADER is not defined anywhere, but here just in case needed in the future.
+
+#ifndef DONT_USE_DATE_HEADER
+static volatile time_t onion_response_last_time=0;
+static char *onion_response_last_date_header=NULL;
+#ifdef HAVE_PTHREAD
+pthread_rwlock_t onion_response_date_lock=PTHREAD_RWLOCK_INITIALIZER;
+#endif
+#endif
+
 
 /**
  * @short Generates a new response object
@@ -62,12 +85,54 @@ onion_response *onion_response_new(onion_request *req){
 	res->flags=0;
 	res->sent_bytes_total=res->length=res->sent_bytes=0;
 	res->buffer_pos=0;
-	if (req){
-		res->write=req->server->write;
-		res->socket=req->socket;
-	}
 	
-	// Sorry for the publicity.
+#ifndef DONT_USE_DATE_HEADER
+	{
+		time_t t;
+		struct tm *tmp;
+
+		t = time(NULL);
+		
+		// onion_response_last_date_header is set to t later. It should be more or less atomic. 
+		// If not no big deal, as we will just use slightly more CPU on those "ephemeral" moments.
+		
+		if (t!=onion_response_last_time){
+			ONION_DEBUG("Recalculating date header");
+			char current_datetime[200];
+			
+			tmp = localtime(&t);
+			if (tmp == NULL) {
+					perror("localtime");
+					exit(EXIT_FAILURE);
+			}
+
+			if (strftime(current_datetime, sizeof(current_datetime), "%a, %d %b %Y %H:%M:%S %Z", tmp) == 0) {
+					fprintf(stderr, "strftime returned 0");
+					exit(EXIT_FAILURE);
+			}
+			// Risky, not using mutex...
+#ifdef HAVE_PTHREAD
+			pthread_rwlock_wrlock(&onion_response_date_lock);
+#endif
+			onion_response_last_time=t; 
+			if (onion_response_last_date_header)
+				free(onion_response_last_date_header);
+			onion_response_last_date_header=strdup(current_datetime);
+#ifdef HAVE_PTHREAD
+			pthread_rwlock_unlock(&onion_response_date_lock);
+#endif
+		}
+	}
+#ifdef HAVE_PTHREAD
+	pthread_rwlock_rdlock(&onion_response_date_lock);
+#endif
+	assert(onion_response_last_date_header);
+	onion_dict_add(res->headers, "Date", onion_response_last_date_header, OD_DUP_VALUE);
+#ifdef HAVE_PTHREAD
+	pthread_rwlock_unlock(&onion_response_date_lock);
+#endif
+#endif // USE_DATE_HEADER
+	// Sorry for the advertisment.
 	onion_dict_add(res->headers, "Server", "libonion v0.5 - coralbits.com", 0);
 	onion_dict_add(res->headers, "Content-Type", "text/html", 0); // Maybe not the best guess, but really useful.
 	//time_t t=time(NULL);
@@ -87,32 +152,35 @@ onion_response *onion_response_new(onion_request *req){
  */
 onion_connection_status onion_response_free(onion_response *res){
 	// write pending data.
-	onion_response_write_buffer(res);
+	if (!(res->flags&OR_HEADER_SENT) && res->buffer_pos<sizeof(res->buffer))
+		onion_response_set_length(res, res->buffer_pos);
+	
+	onion_response_flush(res);
+	onion_request *req=res->request;
 	
 	if (res->flags&OR_CHUNKED){ // Set the chunked data end.
-		void *fd=res->socket;
-		onion_write write=res->write;
-		write(fd, "0\r\n\r\n",5);
+		req->connection.listen_point->write(req, "0\r\n\r\n",5);
 	}
 	
 	int r=OCS_CLOSE_CONNECTION;
 	
 	// it is a rare ocassion that there is no request, but although unlikely, it may happend
-	if (res->request){
+	if (req){
 		// keep alive only on HTTP/1.1.
-		//ONION_DEBUG("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d || [chunked] %d)", 
-		//						onion_request_keep_alive(res->request),
-		//						res->flags&OR_SKIP_CONTENT,res->length==res->sent_bytes, res->flags&OR_CHUNKED);
-		if ( onion_request_keep_alive(res->request) && 
+		ONION_DEBUG0("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d==%d || [chunked] %d)", 
+								onion_request_keep_alive(req),
+								res->flags&OR_SKIP_CONTENT,res->length, res->sent_bytes, res->flags&OR_CHUNKED);
+		if ( onion_request_keep_alive(req) && 
 				 ( res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes || res->flags&OR_CHUNKED ) 
 			 )
 			r=OCS_KEEP_ALIVE;
 		
-		// FIXME! This is no proper logging at all. Maybe use a handler.
-		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", onion_request_get_client_description(res->request),
-							 onion_request_methods[res->request->flags&OR_METHODS],
-						res->request->fullpath, res->code, res->sent_bytes,
-						(r==OCS_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
+		if ((onion_log_flags & OF_NOINFO)!=OF_NOINFO)
+			// FIXME! This is no proper logging at all. Maybe use a handler.
+			ONION_INFO("[%s] \"%s %s\" %d %d (%s)", onion_request_get_client_description(res->request),
+								onion_request_methods[res->request->flags&OR_METHODS],
+							res->request->fullpath, res->code, res->sent_bytes,
+							(r==OCS_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
 	}
 	
 	onion_dict_free(res->headers);
@@ -135,6 +203,10 @@ void onion_response_set_header(onion_response *res, const char *key, const char 
  * @memberof onion_response_t
  */
 void onion_response_set_length(onion_response *res, size_t len){
+	if (len!=res->sent_bytes && res->flags&OR_HEADER_SENT){
+		ONION_WARNING("Trying to set length after headers sent. Undefined onion behaviour.");
+		return;
+	}
 	char tmp[16];
 	sprintf(tmp,"%lu",(unsigned long)len);
 	onion_response_set_header(res, "Content-Length", tmp);
@@ -166,6 +238,7 @@ static void write_header(onion_response *res, const char *key, const char *value
 #define CONNECTION_CLOSE "Connection: Close\r\n"
 #define CONNECTION_KEEP_ALIVE "Connection: Keep-Alive\r\n"
 #define CONNECTION_CHUNK_ENCODING "Transfer-Encoding: chunked\r\n"
+#define CONNECTION_UPGRADE "Connection: Upgrade\r\n"
 
 /**
  * @short Writes all the header to the given response
@@ -201,8 +274,11 @@ int onion_response_write_headers(onion_response *res){
 			onion_response_write(res, CONNECTION_KEEP_ALIVE, sizeof(CONNECTION_KEEP_ALIVE)-1);
 	}
 	
-	if (!(res->flags&OR_LENGTH_SET) && !chunked)
+	if (!(res->flags&OR_LENGTH_SET) && !chunked && !(res->flags&OR_CONNECTION_UPGRADE))
 		onion_response_write(res, CONNECTION_CLOSE, sizeof(CONNECTION_CLOSE)-1);
+	
+	if (res->flags&OR_CONNECTION_UPGRADE)
+		onion_response_write(res, CONNECTION_UPGRADE, sizeof(CONNECTION_UPGRADE)-1);
 	
 	onion_dict_preorder(res->headers, write_header, res);
 	
@@ -211,15 +287,16 @@ int onion_response_write_headers(onion_response *res){
   
 	onion_response_write(res,"\r\n",2);
 	
-	res->sent_bytes=0; // the header size is not counted here.
+	ONION_DEBUG0("Headers written");
+	res->sent_bytes=-res->buffer_pos; // the header size is not counted here. It will add again so start negative.
 	
 	if ((res->request->flags&OR_METHODS)==OR_HEAD){
-		onion_response_write_buffer(res);
+		onion_response_flush(res);
 		res->flags|=OR_SKIP_CONTENT;
 		return OR_SKIP_CONTENT;
 	}
 	if (chunked){
-		onion_response_write_buffer(res);
+		onion_response_flush(res);
 		res->flags|=OR_CHUNKED;
 	}
 	
@@ -243,19 +320,18 @@ int onion_response_write_headers(onion_response *res){
  * @returns The bytes written, normally just length. On error returns OCS_CLOSE_CONNECTION.
  */
 ssize_t onion_response_write(onion_response *res, const char *data, size_t length){
-	if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
-		onion_response_write_headers(res);
-	}
 	if (res->flags&OR_SKIP_CONTENT){
+		if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
+			onion_response_write_headers(res);
+		}
 		ONION_DEBUG("Skipping content as we are in HEAD mode");
 		return OCS_CLOSE_CONNECTION;
 	}
 	if (length==0){
-		onion_response_write_buffer(res);
+		onion_response_flush(res);
 		return 0;
 	}
-	res->sent_bytes+=length;
-	res->sent_bytes_total+=length;
+	//ONION_DEBUG0("Write %d bytes [%d total] (%p)", length, res->sent_bytes, res);
 
 	int l=length;
 	int w=0;
@@ -264,7 +340,7 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
 		memcpy(&res->buffer[res->buffer_pos], data, wb);
 		
 		res->buffer_pos=sizeof(res->buffer);
-		if (onion_response_write_buffer(res)<0)
+		if (onion_response_flush(res)<0)
 			return w;
 		
 		l-=wb;
@@ -279,24 +355,51 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
 	return w;
 }
 
-/// Writes all buffered output waiting for sending.
-static int onion_response_write_buffer(onion_response *res){
-	if (res->flags&OR_SKIP_CONTENT || res->buffer_pos==0)
+/**
+ * @short Writes all buffered output waiting for sending.
+ * 
+ * If header has not been sent yet (delayed), it uses a temporary buffer to send it now. This
+ * way header can use the buffer_size information to send the proper content-length, even when it
+ * wasnt properly set by programmer. Whith this information its possib to keep alive the connection
+ * on more cases.
+ */
+int onion_response_flush(onion_response *res){
+	res->sent_bytes+=res->buffer_pos;
+	res->sent_bytes_total+=res->buffer_pos;
+	if(res->buffer_pos==0) // Not used.
 		return 0;
-	void *fd=res->request->socket;
-	onion_write write=res->write;
+	if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
+		ONION_DEBUG0("Doing fast header hack: store current buffer, send current headers. Resend buffer.");
+		char tmpb[sizeof(res->buffer)];
+		int tmpp=res->buffer_pos;
+		memcpy(tmpb, res->buffer, res->buffer_pos);
+		res->buffer_pos=0;
+		
+		onion_response_write_headers(res);
+		onion_response_write( res, tmpb, tmpp );
+ 		return 0;
+	}
+	if (res->flags&OR_SKIP_CONTENT) // HEAD request
+		return 0;
+	ONION_DEBUG0("Flush %d bytes", res->buffer_pos);
+
+	onion_request *req=res->request;
+	ssize_t (*write)(onion_request *, const char *data, size_t len);
+	write=req->connection.listen_point->write;
+	
 	ssize_t w;
 	off_t pos=0;
 	//ONION_DEBUG0("Write %d bytes",res->buffer_pos);
 	if (res->flags&OR_CHUNKED){
 		char tmp[16];
 		snprintf(tmp,sizeof(tmp),"%X\r\n",(unsigned int)res->buffer_pos);
-		if (write(fd, tmp, strlen(tmp))<=0){
+		if ( (w=write(req, tmp, strlen(tmp)))<=0){
 			ONION_WARNING("Error writing chunk encoding length. Aborting write.");
 			return OCS_CLOSE_CONNECTION;
 		}
+		ONION_DEBUG0("Write %d-%d bytes",res->buffer_pos,w);
 	}
-	while ( (w=write(fd, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
+	while ( (w=write(req, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0 || res->buffer_pos<0){
 			ONION_ERROR("Error writing %d bytes. Maybe closed connection. Code %d. ",res->buffer_pos, w);
 			perror("");
@@ -308,7 +411,7 @@ static int onion_response_write_buffer(onion_response *res){
 		res->buffer_pos-=w;
 	}
 	if (res->flags&OR_CHUNKED){
-		write(fd,"\r\n",2);
+		write(req,"\r\n",2);
 	}
 	res->buffer_pos=0;
 	return 0;
@@ -318,6 +421,23 @@ static int onion_response_write_buffer(onion_response *res){
 ssize_t onion_response_write0(onion_response *res, const char *data){
 	return onion_response_write(res, data, strlen(data));
 }
+
+/**
+ * @short Writes the given string to the res, but encodes the data using html entities
+ * 
+ * The encoding mens that <code><html> whould become &lt;html&gt;</code>
+ */
+ssize_t onion_response_write_html_safe(onion_response *res, const char *data){
+	char *tmp=onion_html_quote(data);
+	if (tmp){
+		int r=onion_response_write0(res, tmp);
+		free(tmp);
+		return r;
+	}
+	else
+		return onion_response_write0(res, data);
+}
+
 
 /**
  * @short Writes some data to the response. Using sprintf format strings. Max final string size: 1024
@@ -334,22 +454,6 @@ ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
 
 
 
-/**
- * @short Returns the writer method that can be used to write to the socket.
- * @memberof onion_response_t
- */
-onion_write onion_response_get_writer(onion_response *response){
-	return response->write;
-}
-
-/**
- * @short Returns the socket object.
- * @memberof onion_response_t
- */
-void *onion_response_get_socket(onion_response *response){
-	return response->socket;
-}
-
 
 /**
  * @short Returns a const char * string with the code description.
@@ -365,6 +469,9 @@ const char *onion_response_code_description(int code){
 			return "PARTIAL CONTENT";
 		case HTTP_MULTI_STATUS:
 			return "MULTI STATUS";
+			
+		case HTTP_SWITCH_PROTOCOL:
+			return "SWITCHING PROTOCOLS";
 			
 		case HTTP_MOVED:
 			return "MOVED";
@@ -400,17 +507,6 @@ const char *onion_response_code_description(int code){
 	return "CODE UNKNOWN";
 }
 
-/**
- * @short Sets the writer to use on this response
- * @memberof onion_response_t
- * 
- * Normally this is automatically get from the origin request object. Anyway 
- * it exists the option to overwrite it, for example to have a gzip layer.
- */
-void onion_response_set_writer(onion_response *res, onion_write write, void *socket){
-	res->write=write;
-	res->socket=socket;
-}
 
 /**
  * @short Returns the headers dictionary, so user can add repeated headers

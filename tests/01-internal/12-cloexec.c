@@ -26,6 +26,7 @@
 #include <curl/curl.h>
 #include "../ctest.h"
 #include <fcntl.h>
+#include <signal.h>
 
 int checkfds();
 int handler(const char *me, onion_request *req, onion_response *res);
@@ -59,6 +60,8 @@ void t01_get(){
  * @short Simple server that always launch testfds, and returns the result.
  */
 int main(int argc, char **argv){
+	START();
+	
 	if (argc==2 && strcmp(argv[1],"--checkfds")==0)
 		return checkfds(argc, argv);
 	
@@ -148,7 +151,8 @@ int checkfds(){
 				ONION_ERROR("Hey, one fd I dont know about!");
 				char tmp[256];
 				snprintf(tmp, sizeof(tmp), "ls --color -l /proc/%d/fd/%s", getpid(), de->d_name);
-				FAIL_IF(system(tmp)==-1);
+				int ok=system(tmp);
+				FAIL_IF_NOT_EQUAL_INT(ok,0);
 				nfd++;
 			}
 		}
