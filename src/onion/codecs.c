@@ -418,6 +418,13 @@ char *onion_html_add_enc(char c, char *p){
 			*p++='t';
 			*p++=';';
 			break;
+		case '\'':
+			*p++='&';
+			*p++='#';
+			*p++='3';
+			*p++='9';
+			*p++=';';
+			break;
 		default:
 			*p++=c;
 	}
