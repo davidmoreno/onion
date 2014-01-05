@@ -51,6 +51,28 @@ Manual compile and install:
      $ make
      $ sudo make install
      
+Dependencies
+------------
+
+Required:
+
+* C compiler
+* cmake
+* make
+ 
+Optional; Onion will compile but some functionality will not be available:
+
+* gnutls
+* pthreads
+* libxml2
+* libpam
+* C++ compiler
+* Systemd
+
+Optional for examples:
+
+* cairo
+* libpng2
 
 SSL Support
 -----------
@@ -133,12 +155,16 @@ Systemd is integrated. If want to use it, just pass the flag O_SYSTEMD to the on
 
 Oterm has example socket and service files for oterm support.
 
-FreeBSD
--------
+FreeBSD/Darwin
+--------------
 
 Since september 2013 there is support for FreeBSD using libev or libevent. This work is not as tested 
 as the Linux version, but if some compilation error arises, please send the bug report and we will fix
 it ASAP.
+
+OSX/Darwin support is also available on the darwin branch.
+
+Once this work stabilizes it will be merged back to master.
 
 Environmental variables
 -----------------------
