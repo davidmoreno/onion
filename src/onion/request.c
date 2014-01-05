@@ -486,7 +486,7 @@ const char *onion_request_get_language_code(onion_request *req){
 }
 
 /**
- * @short Some extra data, normally when the petition is propfind
+ * @short Some extra data, normally when the petition is propfind or POST with non-form data.
  * @memberof onion_request_t
  */
 const onion_block *onion_request_get_data(onion_request *req){

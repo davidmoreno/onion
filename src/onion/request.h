@@ -153,7 +153,7 @@ int onion_request_keep_alive(onion_request *req);
 /// Gets the language code for the current language. C is returned if none recognized.
 const char *onion_request_get_language_code(onion_request *req);
 
-/// Returns PROPFIND data
+/// Returns extra request data, such as POST with non-form data, or PROPFIND. Needs the Content-Length request header.
 const onion_block *onion_request_get_data(onion_request *req);
 
 /// Performs final touches to the request to its ready to be processed.
