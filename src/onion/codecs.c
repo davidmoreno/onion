@@ -440,6 +440,8 @@ int onion_html_encoding_size(char c){
 			return 4;
 		case '"':
 			return 6;
+		case '\'':
+			return 5;
 	}
 	return 1;
 }
