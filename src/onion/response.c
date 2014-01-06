@@ -517,3 +517,43 @@ const char *onion_response_code_description(int code){
 onion_dict *onion_response_get_headers(onion_response *res){
 	return res->headers;
 }
+
+
+/**
+ * @short Sets a new cookie into the response. 
+ * 
+ * @param res Response object
+ * @param cookiename Name for the cookie
+ * @param cookievalue Value for the cookis
+ * @param validity_t Seconds this cookie is valid (added to current datetime). -1 to do not expire, 0 to expire inmediatly.
+ * @param path Cookie valid only for this path
+ * @param Domain Cookie valid only for this domain (www.example.com, or *.example.com).
+ * @param flags Flags from onion_cookie_flags_t, for example OC_SECURE or OC_HTTP_ONLY
+ * 
+ * 
+ * If validity is 0, cookie is set to expire right now.
+ */
+void onion_response_add_cookie(onion_response *res, const char *cookiename, const char *cookievalue, time_t validity_t, const char *path, const char *domain, int flags){
+	char data[512];
+	int pos;
+	pos=snprintf(data,sizeof(data),"%s=%s",cookiename, cookievalue);
+	if (validity_t==0)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; expires=Thu, 01 Jan 1970 00:00:00 GMT");
+	else if (validity_t>0){
+		struct tm *tmp;
+		time_t t=time(NULL) + validity_t;
+		tmp = localtime(&t);
+		pos+=strftime(data+pos, sizeof(data)-pos, "; expires=%a, %d %b %Y %H:%M:%S %Z", tmp);
+	}
+	if (path)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; path=%s", path);
+	if (domain)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; domain=%s", domain);
+	if (flags&OC_HTTP_ONLY)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; HttpOnly");
+	if (flags&OC_SECURE)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; Secure");
+	
+	onion_response_set_header(res, "Set-Cookie",data);
+	ONION_DEBUG("Set cookie %s=%s", cookiename, data);
+}

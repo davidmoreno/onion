@@ -80,15 +80,19 @@ typedef enum onion_response_codes_e onion_response_codes;
  * These flags are used internally by the resposnes, but they can be the responses themselves of the handler when appropiate.
  */
 enum onion_response_flags_e{
-	OR_KEEP_ALIVE=4, 				/// Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
-	OR_LENGTH_SET=2,				/// Response has set the length, so we may keep alive.
-	OR_CLOSE_CONNECTION=1,	/// The connection will be closed when processing finishes.
-	OR_SKIP_CONTENT=8,			/// This is set when the method is HEAD. @see onion_response_write_headers
-	OR_CHUNKED=32,					/// The data is to be sent using chunk encoding. Its on if no lenght is set.
-	OR_CONNECTION_UPGRADE=64, /// The connection is upgraded (websockets).
-  OR_HEADER_SENT=0x0200,  /// The header has already been written. Its done automatically on first user write. Same id as OR_HEADER_SENT from onion_response_flags.
+	OR_KEEP_ALIVE=4, 				///< Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
+	OR_LENGTH_SET=2,				///< Response has set the length, so we may keep alive.
+	OR_CLOSE_CONNECTION=1,	///< The connection will be closed when processing finishes.
+	OR_SKIP_CONTENT=8,			///< This is set when the method is HEAD. @see onion_response_write_headers
+	OR_CHUNKED=32,					///< The data is to be sent using chunk encoding. Its on if no lenght is set.
+	OR_CONNECTION_UPGRADE=64, ///< The connection is upgraded (websockets).
+  OR_HEADER_SENT=0x0200,  ///< The header has already been written. Its done automatically on first user write. Same id as OR_HEADER_SENT from onion_response_flags.
 };
 
+enum onion_response_cookie_flags_e{
+	OC_HTTP_ONLY=1, 				///< This cookie is not shown via javascript
+	OC_SECURE=2,						///< This cookie is sent only via https (info for the client, not the server).
+};
 typedef enum onion_response_flags_e onion_response_flags;
 
 /// Generates a new response object
@@ -103,6 +107,9 @@ void onion_response_set_length(onion_response *res, size_t length);
 void onion_response_set_code(onion_response *res, int code);
 /// Gets the headers dictionary
 onion_dict *onion_response_get_headers(onion_response *res);
+/// Sets a new cookie
+void onion_response_add_cookie(onion_response *req, const char *cookiename, const char *cookievalue, time_t validity_t, const char *path, const char *domain, int flags);
+
 
 /// @{ @name Write functions 
 /// Writes all the header to the given fd
