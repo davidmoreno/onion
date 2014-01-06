@@ -136,6 +136,12 @@ const onion_dict *onion_request_get_file_dict(onion_request *req);
 /// Gets session data dict
 onion_dict *onion_request_get_session_dict(onion_request *req);
 
+/// Gets the cookies dict
+onion_dict *onion_request_get_cookies_dict(onion_request *req);
+
+/// Gets a cookie value
+const char *onion_request_get_cookie(onion_request *req, const char *cookiename);
+
 /// @}
 
 /// Frees the session dictionary.

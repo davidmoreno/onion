@@ -145,6 +145,8 @@ void onion_request_free(onion_request *req){
 	if (req->parser_data){
 		free(req->parser_data);
 	}
+	if (req->cookies)
+		onion_dict_free(req->cookies);
 	free(req);
 }
 
@@ -197,6 +199,10 @@ void onion_request_clean(onion_request* req){
 	if (req->connection.cli_info){
 		free(req->connection.cli_info);
 		req->connection.cli_info=NULL;
+	}
+	if (req->cookies){
+		onion_dict_free(req->cookies);
+		req->cookies=NULL;
 	}
 }
 
@@ -582,3 +588,68 @@ struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, s
   return &req->connection.cli_addr;
 }
 
+/**
+ * @short Gets the dict with the cookies
+ * @memberof onion_request_t
+ * 
+ * @param req Request to get the cookies from
+ * 
+ * @returns A dict with all the cookies. It might be empty.
+ * 
+ * First call it generates the dict.
+ */
+onion_dict* onion_request_get_cookies_dict(onion_request* req){
+	if (req->cookies)
+		return req->cookies;
+	
+	req->cookies=onion_dict_new();
+	
+	const char *ccookies=onion_request_get_header(req, "Cookie");
+	if (!ccookies)
+		return req->cookies;
+	char *cookies=strdup(ccookies); // I prepare a temporal string, will modify it.
+	char *val=NULL;
+	char *key=NULL;
+	char *p=cookies;
+	
+	int dflags=OD_FREE_KEY;
+	while(*p){
+		if (*p!=' ' && !key && !val){
+			key=p;
+		}
+		else if (*p=='=' && key && !val){
+			*p=0;
+			val=p+1;
+		}
+		else if (*p==';' && key && val){
+			*p=0;
+			onion_dict_add(req->cookies, key, val, dflags); // I duplicate all as will free cookies string later. 
+			ONION_DEBUG0("Add cookie <%s>=<%s> %X", key, val, dflags);
+			dflags=0; // On the first element, remove all data as is in key.
+			val=NULL;
+			key=NULL;
+		}
+		p++;
+	}
+	if (key && val && val<p){ // A final element, with value.
+		onion_dict_add(req->cookies, key, val, dflags);
+		ONION_DEBUG0("Add cookie <%s>=<%s> %X", key, val, dflags);
+	}
+	
+	return req->cookies;
+}
+
+/**
+ * @short Gets a Cookie value by name
+ * @memberof onion_request_t
+ * 
+ * @param req Reqeust to get the cookie from
+ * @param cookiename Name of the cookie
+ * 
+ * @returns The cookie value, or NULL
+ */
+const char* onion_request_get_cookie(onion_request* req, const char* cookiename)
+{
+	const onion_dict *cookies=onion_request_get_cookies_dict(req);
+	return onion_dict_get(cookies, cookiename);
+}

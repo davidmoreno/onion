@@ -101,6 +101,7 @@ struct onion_request_t{
 	onion_dict *FILES;    /// Dictionary with files. They are automatically saved at /tmp/ and removed at request free. mapped string is full path.
 	onion_dict *session;  /// Pointer to related session
 	onion_block *data;    /// Some extra data from PUT, normally PROPFIND.
+	onion_dict *cookies;  /// Data about cookies.
 	char *session_id;     /// Session id of the request, if any.
 	void *parser;         /// When recieving data, where to put it. Check at request_parser.c.
 	void *parser_data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.

@@ -1116,6 +1116,7 @@ static onion_connection_status prepare_PUT(onion_request *req){
  * @short Frees the parser data.
  */
 void onion_request_parser_data_free(void *t){
+	ONION_DEBUG0("Free parser data");
 	onion_token *token=t;
 	if (token->extra){
 		free(token->extra);
