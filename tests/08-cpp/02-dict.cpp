@@ -88,13 +88,52 @@ void t03_subdict(){
 	END_LOCAL();
 };
 
+const Onion::Dict getLanguagesDict(){
+	const char *languages[2][2]={ 
+		{"en", "English"},
+		{"es", "Español"}
+	};
+
+	Onion::Dict ret;
+	ret.add(languages[0][0], languages[0][1]);
+	ret.add(languages[1][0], languages[1][1]);
+	
+	std::string json=ret.toJSON();
+	std::cout<<json<<std::endl;;
+	
+	return ret;
+}
+
+void t04_langtest(){
+	INIT_LOCAL();
+	Onion::Dict main_dict;
+	/*  == With bug do not fail with this workaround: ==
+	const Onion::Dict test = getLanguagesDict();
+	main_dict.add("languages", test);
+	*/
+	main_dict.add("languages", getLanguagesDict());
+	std::string json=main_dict.toJSON();
+	std::cout<<json<<std::endl;;
+
+	Onion::Dict languages = main_dict.getDict("languages");
+	json=main_dict.toJSON();
+	std::cout<<json<<std::endl;;
+
+	FAIL_IF_NOT_EQUAL_STRING(languages.get("en"), "English");
+	FAIL_IF_NOT_EQUAL_STRING(languages.get("es"), "Español");
+
+	
+	END_LOCAL();
+}
+
+
 int main(int argc, char **argv){
   START();
 	INFO("Remember to check with valgrind");
 	t01_basic();
 	t02_dup();
 	t03_subdict();
-
+	t04_langtest();
 	
 	END();
 }

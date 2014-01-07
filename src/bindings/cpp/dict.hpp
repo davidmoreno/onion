@@ -129,7 +129,7 @@ namespace Onion{
 		}
 
 		void add(const char *k, const Dict &v){
-			onion_dict_add(ptr,k,((Dict*)&v)->c_handler(),OD_DICT);
+			onion_dict_add(ptr,k,((Dict*)&v)->c_handler(),OD_DICT|OD_DUP_VALUE);
 		}
 		void add(const char *k, Dict &v){
 			onion_dict_add(ptr,k,v.c_handler(),OD_DUP_VALUE|OD_DICT);
