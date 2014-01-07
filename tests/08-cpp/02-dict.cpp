@@ -1,9 +1,12 @@
+#include <iostream>
+
 #include "../ctest.h"
 
 #include <bindings/cpp/onion.hpp>
 #include <bindings/cpp/response.hpp>
 #include <bindings/cpp/url.hpp>
 #include <bindings/cpp/request.hpp>
+#include <boost/concept_check.hpp>
 
 
 void t01_basic(){ 
@@ -67,11 +70,30 @@ void t02_dup(){
 }
 
 
+void t03_subdict(){
+	INIT_LOCAL();
+	
+	Onion::Dict a;
+	a.add("Hello", "World");
+	{
+		Onion::Dict b( {{"Hello","World"},{"Another","item"}} );
+		a.add("dict",b);
+	}
+	
+	std::string json=a.toJSON();
+	std::cout<<json<<std::endl;;
+	
+	FAIL_IF_NOT_EQUAL_STRING(json, "{\"Hello\":\"World\", \"dict\":{\"Another\":\"item\", \"Hello\":\"World\"}}");
+	
+	END_LOCAL();
+};
+
 int main(int argc, char **argv){
   START();
 	INFO("Remember to check with valgrind");
 	t01_basic();
 	t02_dup();
+	t03_subdict();
 
 	
 	END();

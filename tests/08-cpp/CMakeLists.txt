@@ -1,3 +1,6 @@
+SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11")
+
+
 include_directories (${PROJECT_SOURCE_DIR}/src/) 
 include_directories (${PROJECT_SOURCE_DIR}/bindings/cpp/)
 
