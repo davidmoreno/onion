@@ -1,4 +1,4 @@
-SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++0x")
 
 
 include_directories (${PROJECT_SOURCE_DIR}/src/) 
