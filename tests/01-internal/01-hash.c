@@ -734,7 +734,7 @@ void t16_soft_dup_dict_in_dict(){
 
 
 int main(int argc, char **argv){
-  START();/*
+  START();
 	t01_create_add_free();
 	t01_create_add_free_10();
 	t02_create_and_free_a_lot(100);
@@ -751,7 +751,7 @@ int main(int argc, char **argv){
 	t11_hard_dup();
 	t12_dict_in_dict();
 	t13_dict_rget();
-  t14_dict_case_insensitive();*/
+  t14_dict_case_insensitive();
 	t15_hard_dup_dict_in_dict();
 	t16_soft_dup_dict_in_dict();
 	
