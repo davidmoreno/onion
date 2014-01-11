@@ -6,7 +6,6 @@
 #include <bindings/cpp/response.hpp>
 #include <bindings/cpp/url.hpp>
 #include <bindings/cpp/request.hpp>
-#include <boost/concept_check.hpp>
 
 
 void t01_basic(){ 
@@ -76,7 +75,14 @@ void t03_subdict(){
 	Onion::Dict a;
 	a.add("Hello", "World");
 	{
+#if __cplusplus >= 201103L
+		// C++11 Style add, if not using c++11, compile anyway.
 		Onion::Dict b( {{"Hello","World"},{"Another","item"}} );
+#else
+		Onion::Dict b;
+		b.add("Hello","World");
+		b.add("Another","item");
+#endif
 		a.add("dict",b);
 	}
 	
