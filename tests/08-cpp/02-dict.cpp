@@ -132,6 +132,40 @@ void t04_langtest(){
 	END_LOCAL();
 }
 
+onion_connection_status index_html_template(onion_dict *context){
+	char *lang = (char*)malloc (3*sizeof(char));
+	strcpy(lang,"en\0");  
+	ONION_DEBUG("Add to dict");
+  if (context) onion_dict_add(context, "LANG", lang, OD_FREE_VALUE);
+	ONION_DEBUG("Free dict");
+  if (context) onion_dict_free(context); // if you remove this line, it works correctly
+  return OCS_PROCESSED;
+}
+
+
+Onion::Dict defaultContext(Onion::Dict dict_){
+  dict_.add("serial", "serial"); 
+  return dict_;
+}
+
+Onion::Dict defaultContext(){
+  Onion::Dict dict; 
+  return defaultContext(dict);
+}
+
+void t05_context(){
+	INIT_LOCAL();
+	Onion::Dict dict(defaultContext());
+	ONION_DEBUG("Render");
+	
+	// This is important as otemplate templates need ownership as they 
+	// will free the pointer. These way we use the internal refcount to avoid double free.
+	onion_dict_dup(dict.c_handler()); 
+	
+	index_html_template(dict.c_handler());
+	END_LOCAL();
+}
+
 
 int main(int argc, char **argv){
   START();
@@ -140,6 +174,7 @@ int main(int argc, char **argv){
 	t02_dup();
 	t03_subdict();
 	t04_langtest();
+	t05_context();
 	
 	END();
 }
