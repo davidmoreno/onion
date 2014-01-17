@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <onion/log.h>
 #include <onion/onion.h>
 #include <onion/dict.h>
 #include <onion/handler.h>
@@ -78,6 +79,7 @@ int main(int argc, char **argv){
 	onion_set_hostname(server, "0.0.0.0");
 	onion_set_root_handler(server, onion_handler_new((void*)ask_handler, NULL, NULL));
 	
+	ONION_INFO("Listening at http://0.0.0.0:8080");
 	onion_listen(server);
 	
 	onion_free(server);
