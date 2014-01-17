@@ -1,3 +1,14 @@
+libonion (0.7.0) unstable; urgency=low
+
+  * Many many improvements and fixes
+  * Version number jump.
+  * OTemplate
+  * C++ (C++11 optional) support
+  * Cookie support.
+  * Check http://github.com/davidmoreno/onion for more changes.
+
+ -- David Moreno Montero <dmoreno@coralbits.com>  Fri, 17 Jan 2014 11:47:54 +0100
+ 
 libonion (0.2.0) unstable; urgency=low
 
   * Initial debian packaging.

@@ -11,7 +11,7 @@ SET(ONION_USE_XML2 true CACHE BOOL "Adds support for XML2 lib, which is needed f
 SET(ONION_USE_SYSTEMD true CACHE BOOL "Adds simple support for systemd")
 SET(ONION_USE_TESTS true CACHE BOOL "Compile the tests")
 SET(ONION_USE_BINDINGS_CPP true CACHE BOOL "Compile the CPP bindings")
-SET(ONION_VERSION 0.6.0)
+SET(ONION_VERSION 0.7.0)
 SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | libev | libevent")
 ########
 
