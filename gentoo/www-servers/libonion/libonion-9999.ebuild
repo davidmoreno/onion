@@ -2,9 +2,9 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: libonion Exp $
 
-EAPI=4
+EAPI="5"
 
-inherit git-2 cmake-utils multilib
+inherit cmake-multilib cmake-utils git-2
 
 DESCRIPTION="HTTP server library in C designed to be lightweight"
 HOMEPAGE="http://www.coralbits.com/libonion/"
@@ -14,7 +14,7 @@ EGIT_REPO_URI="git://github.com/davidmoreno/onion.git"
 LICENSE="LGPL-3,GPL-2,AGPL-3"
 SLOT="0"
 KEYWORDS=""
-IUSE="test cxx gnutls threads pam png xml systemd"
+IUSE="cxx gnutls threads pam png xml systemd examples test"
 
 RDEPEND="
     net-misc/curl
@@ -24,35 +24,32 @@ RDEPEND="
     xml? ( dev-libs/libxml2 )
     systemd? ( sys-apps/systemd )
     test? ( net-analyzer/netcat )
-    "
+"
 DEPEND="${RDEPEND}"
 
 src_unpack() {
     git-2_src_unpack
 }
 
-src_prepare() {
-    epatch "${FILESDIR}"/root-cmakelists.patch
-}
-
 src_configure() {
     local mycmakeargs=(
-        $(cmake-utils_use test    ONION_USE_TESTS)
-        $(cmake-utils_use cxx     ONION_USE_BINDINGS_CPP)
-        $(cmake-utils_use gnutls  ONION_USE_SSL)
-        $(cmake-utils_use threads ONION_USE_PTHREADS)
-        $(cmake-utils_use pam     ONION_USE_PAM)
-        $(cmake-utils_use png     ONION_USE_PNG)
-        $(cmake-utils_use xml     ONION_USE_XML2)
-        $(cmake-utils_use systemd ONION_USE_SYSTEMD)
+        $(cmake-utils_use gnutls   ONION_USE_SSL)
+        $(cmake-utils_use pam      ONION_USE_PAM)
+        $(cmake-utils_use threads  ONION_USE_PTHREADS)
+        $(cmake-utils_use png      ONION_USE_PNG)
+        $(cmake-utils_use xml      ONION_USE_XML2)
+        $(cmake-utils_use systemd  ONION_USE_SYSTEMD)
+        $(cmake-utils_use cxx      ONION_USE_BINDINGS_CPP)
+        $(cmake-utils_use examples ONION_EXAMPLES)
+        $(cmake-utils_use test     ONION_USE_TESTS)
     )
-    cmake-utils_src_configure
+    cmake-multilib_src_configure
 }
 
 src_test() {
-    cmake-utils_src_test
+    cmake-multilib_src_test
 }
 
 src_install() {
-    cmake-utils_src_install
+    cmake-multilib_src_install
 }
