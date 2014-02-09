@@ -61,9 +61,15 @@ void onion_random_init() {
 		}
 		else{
 			unsigned int sr;
-			read(fd, &sr, sizeof(sr));
-			close(fd);
-			srand(sr);
+			ssize_t n;
+			n = read(fd, &sr, sizeof(sr));
+			if (n != sizeof(sr)) {
+				ONION_ERROR("Error reading seed value from /dev/random after file descriptor opened");
+				exit(1);
+			} else {
+				close(fd);
+				srand(sr);
+			}
 		}
 	}
 	onion_random_refcount++;
