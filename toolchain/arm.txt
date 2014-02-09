@@ -25,9 +25,9 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 SET(ONION_USE_SSL false)
 SET(ONION_USE_PAM false)
 SET(LIBPATH /usr/arm-linux-gnueabi/lib)
-SET(LIBDIR /usr/arm-linux-gnueabi/lib)
-SET(BINDIR /usr/arm-linux-gnueabi/bin)
-SET(INCLUDEDIR /usr/arm-linux-gnueabi/include/onion)
+SET(CMAKE_INSTALL_LIBDIR /usr/arm-linux-gnueabi/lib)
+SET(CMAKE_INSTALL_BINDIR /usr/arm-linux-gnueabi/bin)
+SET(CMAKE_INSTALL_INCLUDEDIR /usr/arm-linux-gnueabi/include/onion)
 
 SET(CROSS_COMPILING true)
 

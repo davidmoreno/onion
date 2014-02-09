@@ -12,6 +12,6 @@ else (CMAKE_SYSTEM_NAME  STREQUAL "Linux")
   SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--export-dynamic")
 endif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
-install(TARGETS otemplate DESTINATION bin)
+install(TARGETS otemplate DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_subdirectory(templatetags)

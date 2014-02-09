@@ -7,7 +7,7 @@ if(GNUTLS_ENABLED)
 	target_link_libraries(opack ${GNUTLS_LIB})
 endif(GNUTLS_ENABLED)
 
-install(TARGETS opack DESTINATION bin)
+install(TARGETS opack DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 
 
