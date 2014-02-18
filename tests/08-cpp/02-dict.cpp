@@ -167,6 +167,19 @@ void t05_context(){
 }
 
 
+void t06_tomap(){
+	INIT_LOCAL();
+	
+	std::map<std::string, std::string> orig{{"Hello","World"}};
+	Onion::Dict d(orig);
+	
+	std::map<std::string, std::string> dup=d;
+	
+	FAIL_IF_NOT_EQUAL_STRING(dup["Hello"],"World");
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
   START();
 	INFO("Remember to check with valgrind");
@@ -175,6 +188,7 @@ int main(int argc, char **argv){
 	t03_subdict();
 	t04_langtest();
 	t05_context();
+	t06_tomap();
 	
 	END();
 }

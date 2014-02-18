@@ -1,6 +1,6 @@
 include_directories(${PROJECT_SOURCE_DIR}/src/)
-add_library(onioncpp SHARED handler.cpp extrahandlers.cpp)
-add_library(onioncpp_static STATIC handler.cpp extrahandlers.cpp)
+add_library(onioncpp SHARED dict.cpp handler.cpp extrahandlers.cpp)
+add_library(onioncpp_static STATIC dict.cpp handler.cpp extrahandlers.cpp)
 
 SET(INCLUDES_ONIONCPP onion.hpp dict.hpp request.hpp response.hpp url.hpp handler.hpp extrahandlers.hpp)
 MESSAGE(STATUS "Found include files ${INCLUDES_ONIONCPP}")

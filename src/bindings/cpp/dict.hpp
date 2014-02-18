@@ -135,6 +135,8 @@ namespace Onion{
 			return str;
 		}
 		
+		operator std::map<std::string, std::string>();
+		
 		onion_dict *c_handler(){
 			return ptr;
 		}
