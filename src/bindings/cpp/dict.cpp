@@ -25,8 +25,9 @@
 #include <map>
 
 namespace Onion{
-	void add_to_map(std::map<std::string, std::string> *ret, const char *key, const char *value){
-		(*ret)[key]=value;
+	void add_to_map(std::map<std::string, std::string> *ret, const char *key, const char *value, int flags){
+		if ((flags & OD_DICT)==0)
+			(*ret)[key]=value;
 	}
 	
 	Dict::operator std::map<std::string, std::string>(){

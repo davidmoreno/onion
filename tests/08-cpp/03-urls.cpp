@@ -29,6 +29,8 @@ void t01_url(){
 
 	// Create an empty url handler
 	Onion::Url url;
+	Onion::Url more_url;
+	Onion::Url more_url2;
 	
 	// Set the main handler, does nothing if not called as ?go, if so, uses the url handler.
 	o.setRootHandler(new Onion::HandlerFunction([&url](Onion::Request &req, Onion::Response &res) -> onion_connection_status{
@@ -45,7 +47,6 @@ void t01_url(){
 		return OCS_PROCESSED;
 	});
 	
-	Onion::Url more_url;
 	url.add("^more/", [&more_url](Onion::Request &req, Onion::Response &res){
 		return more_url(req, res);
 	});
@@ -55,14 +56,19 @@ void t01_url(){
 		return OCS_PROCESSED;
 	});
 	more_url.add("less", [](Onion::Request &req, Onion::Response &res){
-		res<<"More is less! (or was is less is more?)";
+		res<<"More is less! (or was is <a href=\"/less/more?go\">less is more</a>?)";
 		return OCS_PROCESSED;
 	});
+	
+	url.add("^less/", more_url2);
+	
+	more_url2.add("more", std::string("Yes, the saying is that <a href=\"http://bit.ly/1fdCbP0\">Less is more</a>"));
 	
 	// Finally we get all guarded by at least the ?go and the following structure:
 	// / (at index)
 	// /more (at url -> more_url)
 	// /more/less (at url -> more_url)
+	// /less/more (at url -> more_url2)
 	
 	o.listen();
 	

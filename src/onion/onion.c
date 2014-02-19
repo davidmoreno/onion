@@ -33,6 +33,8 @@
  * 
  * @note Best way to navigate through this documentation is going to Files / Globals / Functions, or using the search button on the corner.
  * 
+ * @note To Check the C++ bindings check at the Onion namespace.
+ * 
  * There are many documented examples at the examples directory (https://github.com/davidmoreno/onion/tree/master/examples/).
  * 
  * A basic example of a server with authentication, SSL support that serves a static directory is:
