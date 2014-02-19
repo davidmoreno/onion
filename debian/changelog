@@ -2,7 +2,7 @@ libonion (0.7.1) unstable; urgency=low
 
   * Added Onion::Url::operator(), to ease chained url resolving.
 
-  -- David Moreno Montero <dmoreno@coralbits.com>  Wed, 19 Feb 2014 12:22:54 +0100
+ -- David Moreno Montero <dmoreno@coralbits.com>  Wed, 19 Feb 2014 12:22:54 +0100
 
 libonion (0.7.0) unstable; urgency=low
 
@@ -14,7 +14,7 @@ libonion (0.7.0) unstable; urgency=low
   * Check http://github.com/davidmoreno/onion for more changes.
 
  -- David Moreno Montero <dmoreno@coralbits.com>  Fri, 17 Jan 2014 11:47:54 +0100
- 
+
 libonion (0.2.0) unstable; urgency=low
 
   * Initial debian packaging.
