@@ -27,6 +27,7 @@
 #include <onion/handler.h>
 #include <exception>
 #include <string>
+#include <functional>
 
 namespace Onion{
   class Request;
@@ -59,7 +60,7 @@ namespace Onion{
   
   class HandlerFunction : public Handler{
   public:
-    typedef onion_connection_status (*fn_t)(Onion::Request&,Onion::Response&);
+    typedef std::function<onion_connection_status (Onion::Request&,Onion::Response&)> fn_t;
   private:
     fn_t fn;
   public:

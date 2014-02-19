@@ -33,6 +33,7 @@ namespace Onion{
   class Url{
     onion_url *ptr;
   public:
+    Url() : ptr(onion_url_new()){};
     Url(onion_url *_ptr) : ptr(_ptr){};
     Url(Onion *o) {
       ptr=onion_root_url(o->c_handler());
@@ -62,6 +63,8 @@ namespace Onion{
     bool add(const std::string &url, onion_handler_handler handler){
 			return add(url, new HandlerCFunction(handler));
 		}
+		
+		onion_connection_status operator()(Request &req, Response &res);
   };
 }
 
