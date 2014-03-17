@@ -184,6 +184,12 @@ onion *onion_new(int flags){
 		ONION_WARNING("There is no support for SOCK_CLOEXEC compiled in libonion. This may be a SECURITY PROBLEM as connections may leak into executed programs.");
 	}
 	
+	if (!(flags&O_NO_SIGPIPE)){
+		ONION_DEBUG("Ignoring SIGPIPE");
+		signal(SIGPIPE, SIG_IGN);
+	}
+	
+
 	onion *o=calloc(1,sizeof(onion));
 	if (!o){
 		return NULL;
