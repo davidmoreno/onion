@@ -27,6 +27,7 @@
 #include <onion/response.h>
 #include <onion/handler.h>
 #include <onion/log.h>
+#include <onion/block.h>
 
 #include "../ctest.h"
 #include "buffer_listen_point.h"
@@ -223,7 +224,7 @@ void t04_post_largefile(){
 	off_t filesize=lseek(postfd, 0, SEEK_END);
 	lseek(postfd, 0, SEEK_SET);
 	
-	expected_post post={};;
+	expected_post post={};
 	post.filename=BIG_FILE_BASE;
 	post.test_ok=0; // Not ok as not called processor yet
 	post.tmpfilename=NULL;
@@ -303,6 +304,58 @@ void t04_post_largefile(){
 	END_LOCAL();
 }
 
+typedef struct{
+	int processed;
+}json_response;
+
+#define JSON_EXAMPLE "{\n\t\"glossary\": {\n\t\t\"title\": \"example glossary\",\n\t\t\"GlossDiv\": {\n\t\t\t\"title\": \"S\",\n\t\t\t\"GlossList\": {\n\t\t\t\t\"GlossEntry\": {\n\t\t\t\t\t\"ID\": \"SGML\",\n\t\t\t\t\t\"SortAs\": \"SGML\",\n\t\t\t\t\t\"GlossTerm\": \"Standard Generalized Markup Language\",\n\t\t\t\t\t\"Acronym\": \"SGML\",\n\t\t\t\t\t\"Abbrev\": \"ISO 8879:1986\",\n\t\t\t\t\t\"GlossDef\": {\n\t\t\t\t\t\t\"para\": \"A meta-markup language, used to create markup languages such as DocBook.\",\n\t\t\t\t\t\t\"GlossSeeAlso\": [\"GML\", \"XML\"]\n\t\t\t\t\t},\n\t\t\t\t\t\"GlossSee\": \"markup\"\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}"
+
+onion_connection_status post_json_check(json_response *post, onion_request *req, onion_response *res){
+	post->processed=1;
+	
+	FAIL_IF_NOT_EQUAL_INT(onion_request_get_flags(req)&OR_METHODS, OR_POST);
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req, "Content-Type"),"application/json");
+	const onion_block *data=onion_request_get_data(req);
+	FAIL_IF_EQUAL(data, NULL);
+	if (!data)
+		return OCS_INTERNAL_ERROR;
+	
+	FAIL_IF_NOT_EQUAL_INT(onion_block_size(data), sizeof(JSON_EXAMPLE));
+	FAIL_IF_NOT_EQUAL_INT(memcmp(onion_block_data(data), JSON_EXAMPLE, sizeof(JSON_EXAMPLE)), 0);
+	
+	post->processed=2;
+	
+	return OCS_PROCESSED;
+}
+
+void t05_post_content_json(){
+	INIT_LOCAL();
+
+	onion *server=onion_new(0);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	json_response post_json = { 0 };
+	
+	onion_add_listen_point(server,NULL,NULL,lp);
+	onion_set_root_handler(server, onion_handler_new((void*)&post_json_check,&post_json,NULL));
+	
+	onion_request *req=onion_request_new(lp);
+#define POST_HEADER "POST / HTTP/1.1\nContent-Type: application/json\nContent-Length: %d\n\n"
+	char tmp[1024];
+	int json_length=sizeof(JSON_EXAMPLE);
+	ONION_DEBUG("Post size is about %d",json_length);
+	snprintf(tmp, sizeof(tmp), POST_HEADER, json_length);
+// 	ONION_DEBUG("%s",tmp);
+	onion_request_write(req,tmp,strlen(tmp));
+	onion_request_write(req,JSON_EXAMPLE,json_length);
+// 	ONION_DEBUG("%s",JSON_EXAMPLE);
+	
+	FAIL_IF_NOT_EQUAL_INT(post_json.processed, 2);
+	
+	onion_request_free(req);
+	onion_free(server);
+	
+	END_LOCAL();
+}
 
 
 int main(int argc, char **argv){
@@ -312,6 +365,7 @@ int main(int argc, char **argv){
 	t02_post_new_lines_file();
 	t03_post_carriage_return_new_lines_file();
 	t04_post_largefile();
+	t05_post_content_json();
 	
 	END();
 }

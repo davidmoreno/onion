@@ -10,8 +10,9 @@ SET(ONION_USE_PNG true CACHE BOOL "Adds support for simple image handler")
 SET(ONION_USE_XML2 true CACHE BOOL "Adds support for XML2 lib, which is needed for WebDAV handler")
 SET(ONION_USE_SYSTEMD true CACHE BOOL "Adds simple support for systemd")
 SET(ONION_USE_TESTS true CACHE BOOL "Compile the tests")
+SET(ONION_EXAMPLES true CACHE BOOL "Compile the examples")
 SET(ONION_USE_BINDINGS_CPP true CACHE BOOL "Compile the CPP bindings")
-SET(ONION_VERSION 0.6.0)
+SET(ONION_VERSION 0.7.0)
 SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | libev | libevent")
 ########
 
@@ -21,22 +22,22 @@ endif (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
-IF (NOT DEFINED BINDIR)
-SET(BINDIR bin)
-ENDIF (NOT DEFINED BINDIR)
+IF (NOT DEFINED CMAKE_INSTALL_BINDIR)
+SET(CMAKE_INSTALL_BINDIR bin)
+ENDIF (NOT DEFINED CMAKE_INSTALL_BINDIR)
 
-IF (NOT DEFINED LIBDIR)
-SET(LIBDIR lib)
-ENDIF (NOT DEFINED LIBDIR)
+IF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
+SET(CMAKE_INSTALL_LIBDIR lib)
+ENDIF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
 
 IF (NOT DEFINED INCLUDE_PATH)
 SET(INCLUDE_PATH /usr/include)
 ENDIF (NOT DEFINED INCLUDE_PATH)
 
 
-IF (NOT DEFINED INCLUDEDIR)
-SET(INCLUDEDIR include/onion)
-ENDIF(NOT DEFINED INCLUDEDIR)
+IF (NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
+SET(CMAKE_INSTALL_INCLUDEDIR include/onion)
+ENDIF(NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
 
 if (${ONION_POLLER} STREQUAL "default")
 	if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -170,8 +171,11 @@ add_subdirectory(tools)
 SET(OTEMPLATE otemplate)
 SET(OPACK opack)
 
+if (${ONION_EXAMPLES})
+	add_subdirectory(examples)
+endif (${ONION_EXAMPLES})
+
 if (${ONION_USE_TESTS})
 	enable_testing()
-	add_subdirectory(examples)
 	add_subdirectory(tests)
 endif(${ONION_USE_TESTS})

@@ -176,8 +176,8 @@ void t06_codecs_c_unicode(){
 void t07_codecs_html(){
 	INIT_LOCAL();
 	
-	char *encoded=onion_html_quote("<\"Hello\">");
-	FAIL_IF_NOT_EQUAL_STR( encoded, "&lt;&quot;Hello&quot;&gt;");
+	char *encoded=onion_html_quote("<\"Hello\"> Quote: '");
+	FAIL_IF_NOT_EQUAL_STR( encoded, "&lt;&quot;Hello&quot;&gt; Quote: &#39;");
 	free(encoded);
 	
 	END_LOCAL();

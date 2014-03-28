@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 
@@ -34,6 +32,8 @@
  * functionality to an exisitng program, libonion makes it as easy as possible.
  * 
  * @note Best way to navigate through this documentation is going to Files / Globals / Functions, or using the search button on the corner.
+ * 
+ * @note To Check the C++ bindings check at the Onion namespace.
  * 
  * There are many documented examples at the examples directory (https://github.com/davidmoreno/onion/tree/master/examples/).
  * 
@@ -184,6 +184,12 @@ onion *onion_new(int flags){
 		ONION_WARNING("There is no support for SOCK_CLOEXEC compiled in libonion. This may be a SECURITY PROBLEM as connections may leak into executed programs.");
 	}
 	
+	if (!(flags&O_NO_SIGPIPE)){
+		ONION_DEBUG("Ignoring SIGPIPE");
+		signal(SIGPIPE, SIG_IGN);
+	}
+	
+
 	onion *o=calloc(1,sizeof(onion));
 	if (!o){
 		return NULL;

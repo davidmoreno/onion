@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #include <string.h>
@@ -145,6 +143,8 @@ void onion_request_free(onion_request *req){
 	if (req->parser_data){
 		free(req->parser_data);
 	}
+	if (req->cookies)
+		onion_dict_free(req->cookies);
 	free(req);
 }
 
@@ -197,6 +197,10 @@ void onion_request_clean(onion_request* req){
 	if (req->connection.cli_info){
 		free(req->connection.cli_info);
 		req->connection.cli_info=NULL;
+	}
+	if (req->cookies){
+		onion_dict_free(req->cookies);
+		req->cookies=NULL;
 	}
 }
 
@@ -486,7 +490,7 @@ const char *onion_request_get_language_code(onion_request *req){
 }
 
 /**
- * @short Some extra data, normally when the petition is propfind
+ * @short Some extra data, normally when the petition is propfind or POST with non-form data.
  * @memberof onion_request_t
  */
 const onion_block *onion_request_get_data(onion_request *req){
@@ -582,3 +586,68 @@ struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, s
   return &req->connection.cli_addr;
 }
 
+/**
+ * @short Gets the dict with the cookies
+ * @memberof onion_request_t
+ * 
+ * @param req Request to get the cookies from
+ * 
+ * @returns A dict with all the cookies. It might be empty.
+ * 
+ * First call it generates the dict.
+ */
+onion_dict* onion_request_get_cookies_dict(onion_request* req){
+	if (req->cookies)
+		return req->cookies;
+	
+	req->cookies=onion_dict_new();
+	
+	const char *ccookies=onion_request_get_header(req, "Cookie");
+	if (!ccookies)
+		return req->cookies;
+	char *cookies=strdup(ccookies); // I prepare a temporal string, will modify it.
+	char *val=NULL;
+	char *key=NULL;
+	char *p=cookies;
+	
+	int dflags=OD_FREE_KEY;
+	while(*p){
+		if (*p!=' ' && !key && !val){
+			key=p;
+		}
+		else if (*p=='=' && key && !val){
+			*p=0;
+			val=p+1;
+		}
+		else if (*p==';' && key && val){
+			*p=0;
+			onion_dict_add(req->cookies, key, val, dflags); // I duplicate all as will free cookies string later. 
+			ONION_DEBUG0("Add cookie <%s>=<%s> %X", key, val, dflags);
+			dflags=0; // On the first element, remove all data as is in key.
+			val=NULL;
+			key=NULL;
+		}
+		p++;
+	}
+	if (key && val && val<p){ // A final element, with value.
+		onion_dict_add(req->cookies, key, val, dflags);
+		ONION_DEBUG0("Add cookie <%s>=<%s> %X", key, val, dflags);
+	}
+	
+	return req->cookies;
+}
+
+/**
+ * @short Gets a Cookie value by name
+ * @memberof onion_request_t
+ * 
+ * @param req Reqeust to get the cookie from
+ * @param cookiename Name of the cookie
+ * 
+ * @returns The cookie value, or NULL
+ */
+const char* onion_request_get_cookie(onion_request* req, const char* cookiename)
+{
+	const onion_dict *cookies=onion_request_get_cookies_dict(req);
+	return onion_dict_get(cookies, cookiename);
+}

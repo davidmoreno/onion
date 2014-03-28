@@ -1,2 +1,4 @@
 usr/bin/opack
 usr/bin/crl
+usr/bin/otemplate
+usr/lib/otemplate/templatetags/*.so

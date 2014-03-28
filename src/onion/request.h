@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #ifndef ONION_REQUEST_H
@@ -136,6 +134,12 @@ const onion_dict *onion_request_get_file_dict(onion_request *req);
 /// Gets session data dict
 onion_dict *onion_request_get_session_dict(onion_request *req);
 
+/// Gets the cookies dict
+onion_dict *onion_request_get_cookies_dict(onion_request *req);
+
+/// Gets a cookie value
+const char *onion_request_get_cookie(onion_request *req, const char *cookiename);
+
 /// @}
 
 /// Frees the session dictionary.
@@ -153,7 +157,7 @@ int onion_request_keep_alive(onion_request *req);
 /// Gets the language code for the current language. C is returned if none recognized.
 const char *onion_request_get_language_code(onion_request *req);
 
-/// Returns PROPFIND data
+/// Returns extra request data, such as POST with non-form data, or PROPFIND. Needs the Content-Length request header.
 const onion_block *onion_request_get_data(onion_request *req);
 
 /// Performs final touches to the request to its ready to be processed.

@@ -138,12 +138,55 @@ void t03_full_cycle_http11(){
 	END_LOCAL();
 }
 
+void t02_cookies(){
+	INIT_LOCAL();
+	
+	onion_response *res=onion_response_new(NULL);
+	onion_dict *h=onion_response_get_headers(res);
+	
+	onion_response_add_cookie(res, "key1", "value1", -1, NULL, NULL, 0);
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key1=value1");
+	
+	onion_dict_remove(h, "Set-Cookie");
+	onion_response_add_cookie(res, "key2", "value2", -1, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key2=value2; path=/; domain=*.example.org; HttpOnly; Secure");
+
+	onion_dict_remove(h, "Set-Cookie");
+	onion_response_add_cookie(res, "key3", "value3", 0, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key3=value3; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=*.example.org; HttpOnly; Secure");
+	
+	onion_dict_remove(h, "Set-Cookie");
+	onion_response_add_cookie(res, "key4", "value4", 60, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	FAIL_IF_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key4=value4; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=*.example.org; HttpOnly; Secure");
+	FAIL_IF_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key4=value4; domain=*.example.org; HttpOnly; path=/; Secure");
+	
+	int i;
+	int valid_expires=0;
+	char tmpdate[100];
+	const char *setcookie=onion_dict_get(h, "Set-Cookie");
+	for(i=59;i<62;i++){
+		struct tm *tmp;
+		time_t t=time(NULL) + i;
+		tmp = localtime(&t);
+		strftime(tmpdate, sizeof(tmpdate), "key4=value4; expires=%a, %d %b %Y %H:%M:%S %Z; path=/; domain=*.example.org; HttpOnly; Secure", tmp);
+		ONION_DEBUG("\ntest  %s =? \nonion %s", tmpdate, setcookie);
+		if (strcmp(tmpdate, setcookie)==0)
+			valid_expires=1;
+	}
+	FAIL_IF_NOT(valid_expires);
+	
+	onion_response_free(res);
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	START();
 	
 	t01_create_add_free();
 	t02_full_cycle_http10();
 	t03_full_cycle_http11();
+	t02_cookies();
 	
 	END();
 }

@@ -84,8 +84,8 @@ endif (${PNG_ENABLED})
 SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h sd-daemon.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h)
 MESSAGE(STATUS "Found include files ${INCLUDES_ONION}")
 
-install(FILES ${INCLUDES_ONION} DESTINATION ${INCLUDEDIR})
-install(TARGETS onion onion_static EXPORT onion DESTINATION ${LIBDIR})
+install(FILES ${INCLUDES_ONION} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS onion onion_static EXPORT onion DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 if (${ARM})
 elseif (${ARM})
