@@ -1,3 +1,8 @@
+#!/usr/bin/python3.3
+import sys
+sys.path.append('../../src/bindings/python/')
+sys.path.append('../../../src/bindings/python/')
+
 from onion import Onion, O_POOL, O_POLL, OCS_PROCESSED
 import json
 

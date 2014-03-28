@@ -2,6 +2,7 @@ from . import _libonion
 from ctypes import c_char_p, c_void_p
 
 class Response(object):
+	_write=_libonion.onion_response_write
 	_write0=_libonion.onion_response_write0
 	_write_safe=_libonion.onion_response_write_html_safe
 	_set_header=_libonion.onion_response_set_header
@@ -12,8 +13,10 @@ class Response(object):
 		assert isinstance(_ptr, c_void_p)
 		self._request=_ptr
 
-	def write(self, s):
-		n=Response._write0(self._request, s)
+	def write(self, s, n=None):
+		if not n:
+			n=len(s)
+		n=Response._write(self._request, s, n)
 		return n
 
 	def write_html_safe(self, s):

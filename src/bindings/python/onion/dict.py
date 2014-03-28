@@ -29,7 +29,7 @@ class Dict(object):
 		#print 'to dict'
 		d={}
 		def add_to_dict(ignore, key, value, flags):
-			d[key]=value
+			d[key.decode('ascii')]=value.decode('ascii')
 		_libonion.onion_dict_preorder(self._dict, CFUNCTYPE(None, c_void_p, c_char_p, c_char_p, c_int)(add_to_dict))
 		#print d
 		return d
