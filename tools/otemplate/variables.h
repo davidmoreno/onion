@@ -25,4 +25,6 @@
 void variable_write(struct parser_status_t *st, onion_block *b);
 void variable_solve(struct parser_status_t *st, const char *b, const char *tmpname, int type);
 
+list *split(const char *str,char delimiter);
+
 #endif
