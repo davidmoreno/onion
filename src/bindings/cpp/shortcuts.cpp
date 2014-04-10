@@ -22,10 +22,10 @@
 	*/
 #include "shortcuts.hpp"
 #include "onion.hpp"
+#include "dict.hpp"
 #include "response.hpp"
 #include <onion/dict.h>
 #include <onion/log.h>
-#include <onion/dict.hpp>
 
 onion_connection_status Onion::render_to_response(::Onion::template_f fn, const ::Onion::Dict& context, ::Onion::Response &res){
 	ONION_DEBUG("Context: %s", context.toJSON().c_str());
