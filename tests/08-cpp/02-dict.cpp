@@ -187,7 +187,12 @@ void t05_context(){
 void t06_tomap(){
 	INIT_LOCAL();
 	
+#if __cplusplus > 199711L
 	std::map<std::string, std::string> orig{{"Hello","World"}};
+#else
+	std::map<std::string, std::string> orig;
+	orig.insert(std::pair< std::string, std::string>("Hello","World"));
+#endif
 	Onion::Dict d(orig);
 	
 	std::map<std::string, std::string> dup=d;
