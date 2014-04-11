@@ -185,6 +185,7 @@ void onion_request_clean(onion_request* req){
       onion_request_session_free(req);
     }
     else{
+			onion_sessions_save(req->connection.listen_point->server->sessions, req->session_id, req->session);
       onion_dict_free(req->session); // Not really remove, just dereference
       req->session=NULL;
       free(req->session_id);
