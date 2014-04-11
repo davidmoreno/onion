@@ -37,5 +37,5 @@ target_link_libraries(01-otemplate onion_static onion_handlers)
 # target_link_libraries(02-test onion_static onion_handlers onioncpp)
 
 ADD_CUSTOM_TARGET(test-assets.sh ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test-assets.sh ${OTEMPLATE} ${OPACK}
-	COMMAND [ "${CMAKE_CURRENT_SOURCE_DIR}" = "${CMAKE_CURRENT_BINARY_DIR}" ] || cp ${CMAKE_CURRENT_SOURCE_DIR}/test-assets.sh  ${CMAKE_CURRENT_BINARY_DIR}/test-assets.sh
+	COMMAND test "${CMAKE_CURRENT_SOURCE_DIR}" = "${CMAKE_CURRENT_BINARY_DIR}" || cp ${CMAKE_CURRENT_SOURCE_DIR}/test-assets.sh  ${CMAKE_CURRENT_BINARY_DIR}/test-assets.sh
 	)
