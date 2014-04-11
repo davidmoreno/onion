@@ -143,7 +143,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 #ifdef HAVE_PTHREADS
   int pid=(unsigned long long)pthread_self();
   if (!(onion_log_flags&OF_NOCOLOR))
-    fprintf(stderr, "\033[%dm[%04X]%s ",30 + (pid%7)+1, pid, levelcolor[level]);
+    fprintf(stderr, "\033[%dm[%04X]%s ",31 + ((unsigned int)(pid))%7, pid, levelcolor[level]);
   else
     fprintf(stderr, "[%04X] ", pid);
 #else
