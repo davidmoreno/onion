@@ -132,7 +132,11 @@ struct onion_handler_t{
 
 
 struct onion_sessions_t{
-	onion_dict *sessions; 		/// Where all sessions are stored. Each element is another onion_dict.
+	void *data;
+	
+	onion_dict *(*get)(onion_sessions *sessions, const char *sessionid);
+	void (*save)(onion_sessions *sessions, const char *sessionid, onion_dict *data);
+	void (*free)(onion_sessions *sessions);
 };
 
 struct onion_block_t{

@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "log.h"
 #include "dict.h"
@@ -148,6 +149,8 @@ static void onion_dict_node_free(onion_dict_node *node){
  * @memberof onion_dict_t
  */
 void onion_dict_free(onion_dict *dict){
+	if (!dict) // No free NULL
+		return;
 	ONION_DEBUG0("Free %p", dict);
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&dict->refmutex);
@@ -399,6 +402,8 @@ int onion_dict_remove(onion_dict *dict, const char *key){
  * @memberof onion_dict_t
  */
 const char *onion_dict_get(const onion_dict *dict, const char *key){
+	if (!dict) // Get from null dicts, returns null data.
+		return NULL;
 	const onion_dict_node *r;
 	r=onion_dict_find_node(dict, dict->root, key, NULL);
 	if (r && !(r->data.flags&OD_DICT))
@@ -641,5 +646,136 @@ onion_dict *onion_dict_rget_dict(const onion_dict *dict, const char *key, ...){
 		}
 	}
 	va_end(va);
+	return NULL;
+}
+
+static onion_dict *onion_dict_from_json_(const char **data);
+
+/**
+ * @short Creates a dict from a json
+ * 
+ * Onion dicts do not support full json semantics, soit will do the translations as possible; 
+ * sometimes information may be lost.
+ * 
+ * Anyway dicts created by onion are ensured to be readable by onion.
+ * 
+ * If the data is invalid NULL is returned.
+ */
+onion_dict *onion_dict_from_json(const char *data){
+	if (!data)
+		return NULL;
+	const char *_data[1]={ data };
+	onion_dict *ret=onion_dict_from_json_(_data);
+	while (isspace(*_data[0]))
+		++_data[0];
+	if (*_data[0]){
+		ONION_DEBUG("Invalid JSON, not ends at end");
+		onion_dict_free(ret);
+		return NULL;
+	}
+	return ret;
+}
+
+onion_dict *onion_dict_from_json_(const char **_data){
+	const char *data=*_data;
+	ONION_DEBUG("Parse %s", *_data);
+	while (isspace(*data))
+		++data;
+	if (*data!='{')
+		return NULL;
+	++data;
+	
+	while (isspace(*data))
+		++data;
+	;
+	onion_dict *ret=onion_dict_new();
+	onion_block *key=onion_block_new();
+	onion_block *value=onion_block_new();
+	while (*data!='}'){
+		// Get Key
+		if (*data!='"'){ // Includes \0
+			ONION_DEBUG("Expected \" got %c", *data);
+			goto error;
+		}
+		++data;
+		while (*data!='"'){
+			if (!*data){ // \0
+				ONION_DEBUG("Expected \" got eof");
+				goto error;
+			}
+			onion_block_add_char(key, *data);
+			++data;
+		}
+		++data;
+		while (isspace(*data))
+			++data;
+
+		/// Get :
+		if (*data!=':'){ // Includes \0
+			ONION_DEBUG("Expected : got %c", *data);
+			goto error;
+		}
+		++data;
+		while (isspace(*data))
+			++data;
+
+		/// Get Value
+		if (*data=='{'){ // Includes \0
+			*_data=data;
+
+			onion_dict *sub=onion_dict_from_json_(_data);
+			if (!sub){
+				goto error;
+			}
+			onion_dict_add(ret, onion_block_data(key), sub, OD_DUP_KEY|OD_DICT|OD_FREE_VALUE);
+			data=*_data;
+		}
+		else if (*data=='"'){
+			++data;
+			while (*data!='"'){
+				if (!*data){ // \0
+					ONION_DEBUG("Expected \" got eof");
+					goto error;
+				}
+				onion_block_add_char(value, *data);
+				++data;
+			}
+			++data;
+
+			onion_dict_add(ret, onion_block_data(key), onion_block_data(value), OD_DUP_ALL);
+			onion_block_clear(value);
+		}
+		else { // Includes \0
+			ONION_DEBUG("Expected \" got %c", *data);
+			goto error;
+		}
+		onion_block_clear(key);
+		
+		while (isspace(*data))
+			++data;
+		if (*data=='}'){
+			++data;
+			*_data=data;
+			onion_block_free(key);
+			onion_block_free(value);
+			return ret;
+		}
+		if (*data!=','){
+			ONION_DEBUG("Expected , got %c", *data);
+			goto error;
+		}
+		++data;
+		while (isspace(*data))
+			++data;
+	}
+	++data;
+	*_data=data;
+	onion_block_free(key);
+	onion_block_free(value);
+	return ret;
+error:
+	onion_block_free(key);
+	onion_block_free(value);
+	onion_dict_free(ret);
 	return NULL;
 }

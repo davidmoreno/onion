@@ -3,6 +3,11 @@
 if (SYSTEMD_ENABLED)
 	set(SYSTEMD_C sd-daemon.c)
 endif(SYSTEMD_ENABLED)
+if (SQLITE3_ENABLED)
+	set(SQLITE3_C sessions_sqlite3.c)
+	set(SQLITE3_H sessions_sqlite3.h)
+endif(SQLITE3_ENABLED)
+
 # library dependencies
 if (GNUTLS_ENABLED)
 	set(HTTPS_C https.c)
@@ -33,8 +38,8 @@ endif (${ONION_POLLER} STREQUAL epoll)
 
 
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
-                        log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} ${POLLER_C}
-			listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c ${RANDOM_C})
+                        log.c sessions.c sessions_mem.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} ${POLLER_C}
+			listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c ${RANDOM_C} ${SQLITE3_C})
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(
@@ -50,6 +55,8 @@ ELSE (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_library(onion_static STATIC  ${SOURCES})
 ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
 
+
+
 # library dependencies
 if (GNUTLS_ENABLED)
 	target_link_libraries(onion ${GNUTLS_LIB} gcrypt)
@@ -59,6 +66,10 @@ if (PTHREADS)
 	target_link_libraries(onion pthread)
 	target_link_libraries(onion_static pthread)
 endif(PTHREADS)
+if (SQLITE3_ENABLED)
+	target_link_libraries(onion ${SQLITE3_LIB})
+	target_link_libraries(onion_static ${SQLITE3_LIB})
+endif(SQLITE3_ENABLED)
 if (SYSTEMD_ENABLED)
 	target_link_libraries(onion ${RT_LIB})
 	target_link_libraries(onion_static ${RT_LIB})
@@ -81,7 +92,7 @@ if (${PNG_ENABLED})
 add_subdirectory(extras)
 endif (${PNG_ENABLED})
 
-SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h sd-daemon.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h)
+SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h sd-daemon.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ${SQLITE3_H})
 MESSAGE(STATUS "Found include files ${INCLUDES_ONION}")
 
 install(FILES ${INCLUDES_ONION} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

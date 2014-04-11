@@ -105,6 +105,7 @@ void onion_dict_unlock(onion_dict *dict);
 /// @}
 
 onion_block *onion_dict_to_json(onion_dict *dict);
+onion_dict *onion_dict_from_json(const char *data);
 
 #ifdef __cplusplus
 }

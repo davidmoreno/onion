@@ -189,6 +189,7 @@ enum onion_mode_e{
 	O_THREADS_ENABLED=0x0800,   ///< Threads are enabled on this onion object. It difers from O_THREADED as this is set by the library, so it states a real status, not a desired one.
 	
 	O_DETACHED=0x01000,		///< Currently listening on another thread.
+	O_LISTENING=0x02000,		///< Currently listening
 	/// @}
 };
 

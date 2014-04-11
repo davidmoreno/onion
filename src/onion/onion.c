@@ -221,7 +221,9 @@ onion *onion_new(int flags){
  */
 void onion_free(onion *onion){
 	ONION_DEBUG("Onion free");
-	onion_listen_stop(onion);
+	
+	if (onion->flags&O_LISTENING)
+		onion_listen_stop(onion);
 	
 	if (onion->poller)
 		onion_poller_free(onion->poller);
@@ -292,6 +294,8 @@ int onion_listen(onion *o){
 		ONION_ERROR("There are no available listen points");
 		return 1;
 	}
+	
+	o->flags|=O_LISTENING;
 
 	
 	if (o->flags&O_ONE){
@@ -357,6 +361,9 @@ int onion_listen(onion *o){
 			listen_points++;
 		}
 	}
+	
+	o->flags=o->flags & ~O_LISTENING;
+	
 	return 0;
 }
 
@@ -369,7 +376,11 @@ int onion_listen(onion *o){
  * If there is any pending connection, it can finish if onion not freed before.
  */
 void onion_listen_stop(onion* server){
-	/// Start listening
+	/// Not listening
+	if ((server->flags & O_LISTENING)==0)
+		return;
+	
+	/// Stop listening
 	onion_listen_point **lp=server->listen_points;
 	while (*lp){
 		onion_listen_point_listen_stop(*lp);
@@ -673,4 +684,23 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
  */
 void onion_set_max_post_size(onion *server, size_t max_size){
 	server->max_post_size=max_size;
+}
+
+/**
+ * @short Sets a new sessions backend.
+ * 
+ * By default it uses in mem sessions, but it can be set to use sqlite sessions.
+ * 
+ * Example:
+ * 
+ * @code
+ *   onion_set_session_backend(server, onion_sessions_sqlite3_new("sessions.sqlite"));
+ * @endcode
+ * 
+ * @param server The onion server
+ * @param sessions_backend The new backend
+ */
+void onion_set_session_backend(onion *server, onion_sessions *sessions_backend){
+	onion_sessions_free(server->sessions);
+	server->sessions=sessions_backend;
 }

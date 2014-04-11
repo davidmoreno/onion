@@ -30,13 +30,13 @@ static void header_write(onion_response *res, const char *key, const char *value
   onion_response_printf(res,"<li><b>%s</b> = %s</li>",key,value);
 }
 
-static void session_write(onion_response *res, const char *key, onion_dict *value, int flags){
-  onion_response_printf(res,"<li>%s<ul>",key);
-  
-  onion_dict_preorder(value, header_write, res);
-  
-  onion_response_write0(res, "</ul></li>");
-}
+// static void session_write(onion_response *res, const char *key, onion_dict *value, int flags){
+//   onion_response_printf(res,"<li>%s<ul>",key);
+//   
+//   onion_dict_preorder(value, header_write, res);
+//   
+//   onion_response_write0(res, "</ul></li>");
+// }
 
 static onion_connection_status onion_internal_handler(void *_, onion_request *req, onion_response *res){
   onion_request_get_session_dict(req);
@@ -57,9 +57,9 @@ static onion_connection_status onion_internal_handler(void *_, onion_request *re
   
   
   // Sessions
-  onion_response_write0(res,"<h1>Sessions and data</h1><ul>");
-  onion_dict_preorder( req->connection.listen_point->server->sessions->sessions, session_write, res);
-  onion_response_write0(res, "</ul>");
+//   onion_response_write0(res,"<h1>Sessions and data</h1><ul>");
+//   onion_dict_preorder( req->connection.listen_point->server->sessions->sessions, session_write, res);
+//   onion_response_write0(res, "</ul>");
   
   onion_response_write0(res, "</body></html>");
   return OCS_PROCESSED;
