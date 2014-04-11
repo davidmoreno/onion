@@ -36,6 +36,19 @@ to ask your questions and comment on your success using onion.
 
 There is also a blog to keep everybody informed about news on onion at http://blog.coralbits.com/.
 
+Download
+--------
+
+There are third party contributed packages:
+
+ * RPM based: http://software.opensuse.org/download.html?project=home%3Arudi_m&package=onion
+ * Raspberry pi: http://packages.aisoy.com/debian/pool/unstable/libo/libonion/
+ * Arch Linux: https://aur.archlinux.org/packages/libonion-git/
+
+If you know of any other packaged version, please send me a note.
+ 
+As always they may be outdated, if you want the latests and greatest, do a manual compile and install.
+
 Compile and Install
 -------------------
 
