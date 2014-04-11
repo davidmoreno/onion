@@ -68,6 +68,8 @@ onion_sessions *onion_sessions_new(){
  * @memberof onion_sessions_t
  */
 void onion_sessions_free(onion_sessions* sessions){
+	if (!sessions)
+		return;
 	sessions->free(sessions);
 	onion_random_free();
 }
@@ -80,6 +82,8 @@ void onion_sessions_free(onion_sessions* sessions){
  * @returns the name. Must be freed by user.
  */
 char *onion_sessions_create(onion_sessions *sessions){
+	if (!sessions)
+		return NULL;
 	char *sessionId=onion_sessions_generate_id();
 	onion_dict *data=onion_dict_new();
 	sessions->save(sessions, sessionId, data);
@@ -106,6 +110,8 @@ char *onion_sessions_create(onion_sessions *sessions){
  * @returns The session for that id, or NULL if none.
  */
 onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId){
+	if (!sessions)
+		return NULL;
 	return sessions->get(sessions, sessionId);
 }
 
@@ -114,6 +120,8 @@ onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId){
  * @memberof onion_sessions_t
  */
 void onion_sessions_remove(onion_sessions *sessions, const char *sessionId){
+	if (!sessions)
+		return;
 	sessions->save(sessions, sessionId, NULL);
 }
 
@@ -123,5 +131,7 @@ void onion_sessions_remove(onion_sessions *sessions, const char *sessionId){
  * On memory backend does nothing, on other backends may do the marshalling.
  */
 void onion_sessions_save(onion_sessions *sessions, const char *sessionId, onion_dict *data){
+	if (!sessions)
+		return;
 	sessions->save(sessions, sessionId, data);
 }
