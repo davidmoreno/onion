@@ -189,7 +189,7 @@ namespace Onion{
 		 * @short Adds a subdictionary to this dictionary.
 		 */
 		void add(const std::string &k, const Dict &v, int flags=OD_DUP_ALL){
-			onion_dict_add(ptr,k.c_str(),(const_cast<Dict*>(&v))->c_handler(),flags|OD_DICT);
+			onion_dict_add(ptr,k.c_str(),v.c_handler(),flags|OD_DICT);
 		}
 		
 		/**
@@ -226,7 +226,7 @@ namespace Onion{
 		/**
 		 * @short Returns the C onion_dict handler, to be able to use C functions.
 		 */
-		onion_dict *c_handler(){
+		onion_dict *c_handler() const{
 			return ptr;
 		}
 	};

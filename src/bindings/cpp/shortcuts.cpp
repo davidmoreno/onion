@@ -30,7 +30,7 @@
 onion_connection_status Onion::render_to_response(::Onion::template_f fn, const ::Onion::Dict& context, ::Onion::Response &res){
 	ONION_DEBUG("Context: %s", context.toJSON().c_str());
 
-	onion_dict *d=onion_dict_dup( const_cast<::Onion::Dict*>(&context)->c_handler() );
+	onion_dict *d=onion_dict_dup( context.c_handler() );
 	
 	fn(d, res.c_handler());
 	
