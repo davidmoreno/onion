@@ -32,6 +32,7 @@
 #include "../ctest.h"
 #include "buffer_listen_point.h"
 #include <fcntl.h>
+#include <onion/dict.h>
 
 // Just a file that is always there, and should be big enought to be several packages
 #define BIG_FILE "/etc/services"
@@ -357,6 +358,39 @@ void t05_post_content_json(){
 	END_LOCAL();
 }
 
+onion_connection_status post_empty_check(json_response *post, onion_request *req, onion_response *res){
+	post->processed=1;
+
+	FAIL_IF_NOT_EQUAL_INT (onion_dict_count( onion_request_get_post_dict(req) ), 0);
+	
+	post->processed=2;
+	
+	return OCS_PROCESSED;
+}
+
+void t06_post_empty(){
+	INIT_LOCAL();
+
+	onion *server=onion_new(0);
+	onion_listen_point *lp=onion_buffer_listen_point_new();
+	json_response post_json = { 0 };
+	
+	onion_add_listen_point(server,NULL,NULL,lp);
+	onion_set_root_handler(server, onion_handler_new((void*)&post_empty_check,&post_json,NULL));
+	
+	onion_request *req=onion_request_new(lp);
+#define POST_EMPTY "POST / HTTP/1.1\nContent-Type: application/x-www-form-urlencoded\nContent-Length: 0\n\n"
+	onion_request_write(req,POST_EMPTY,strlen(POST_EMPTY));
+// 	ONION_DEBUG("%s",JSON_EXAMPLE);
+	
+	FAIL_IF_NOT_EQUAL_INT(post_json.processed, 2);
+	
+	onion_request_free(req);
+	onion_free(server);
+	
+	END_LOCAL();
+}
+
 
 int main(int argc, char **argv){
 	START();
@@ -366,6 +400,7 @@ int main(int argc, char **argv){
 	t03_post_carriage_return_new_lines_file();
 	t04_post_largefile();
 	t05_post_content_json();
+	t06_post_empty();
 	
 	END();
 }

@@ -980,6 +980,9 @@ static onion_connection_status prepare_POST(onion_request *req){
 		return OCS_INTERNAL_ERROR;
 	}
 	size_t cl=atol(content_size);
+	if (cl==0)
+		return onion_request_process(req);
+	
 	//ONION_DEBUG("Content type %s",content_type);
 	if (!content_type || (strstr(content_type, "application/x-www-form-urlencoded"))){
 		if (cl>req->connection.listen_point->server->max_post_size){
