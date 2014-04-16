@@ -1,7 +1,9 @@
 Onion http server library
 =========================
-.. image:: https://scan.coverity.com/projects/1815
-.. image:: https://travis-ci.org/davidmoreno/onion
+
+.. image:: https://travis-ci.org/davidmoreno/onion.svg?branch=master
+
+.. image:: https://scan.coverity.com/projects/1815/badge.svg#svg
 
 
 Onion plans is a lightweight C library that facilitate the creation of simple HTTP servers and applications. 
