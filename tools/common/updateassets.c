@@ -177,6 +177,7 @@ onion_assets_file *onion_assets_file_new(const char *filename){
 	onion_assets_file_set_tail(ret);
 	
 	free(FILENAME);
+	fclose(file);
 	return ret;
 }
 

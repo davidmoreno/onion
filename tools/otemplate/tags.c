@@ -124,6 +124,7 @@ void tag_write(parser_status *st, onion_block *b){
 	if (!command->head){
 		ONION_ERROR("%s:%d Incomplete command", st->infilename, st->line);
 		st->status=1;
+		list_free(command);
 		return;
 	}
 	

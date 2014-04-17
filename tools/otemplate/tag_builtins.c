@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <libgen.h>
+#include <assert.h>
 
 #include <onion/log.h>
 #include <onion/codecs.h>
@@ -207,6 +208,7 @@ void tag_block(parser_status *st, list *l){
 "  }\n", block_name);
 
 	char tmp[256];
+	assert (strlen(st->infilename)<sizeof(tmp));
 	strncpy(tmp, st->infilename, sizeof(tmp));
 	function_data *d=function_new(st, "%s__block_%s", basename(tmp),  block_name);
 	function_add_code_f(st->blocks_init, 
