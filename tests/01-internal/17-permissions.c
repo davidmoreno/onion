@@ -57,6 +57,8 @@ void t01_listen_port() {
 		FAIL_IF_NOT(pwd);
 		int setuid_result = setuid(pwd->pw_uid);
 		FAIL_IF(setuid_result);
+		free(pwd);
+		free(buffer);
 	}
 	// current user is not root
 	// it has no permissions to bind to port 88

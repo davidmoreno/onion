@@ -118,6 +118,7 @@ void t02_stop_listening_some_petitions(){
 	pthread_join(th, NULL);
 	onion_free(o);
 	
+	close(connfd);
 	END_LOCAL();
 }
 

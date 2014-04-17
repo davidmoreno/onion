@@ -263,6 +263,8 @@ void t04_post_largefile(){
 
 	int difffd=open(post.tmpfilename, O_RDONLY);
 	FAIL_IF_NOT_EQUAL_INT(difffd,-1); // Orig file is removed at handler returns. But i have a copy
+	if (difffd>=0)
+		close(difffd);
 	difffd=open(post.tmplink, O_RDONLY);
 	FAIL_IF_EQUAL_INT(difffd,-1);
 	ONION_DEBUG("tmp filename %s",post.tmpfilename);

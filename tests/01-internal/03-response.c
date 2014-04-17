@@ -84,7 +84,8 @@ void t02_full_cycle_http10(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
-	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer));
+	buffer[sizeof(buffer)-1]=0;
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer)-1);
 	onion_request_free(request);
 	onion_free(server);
 	
@@ -122,7 +123,8 @@ void t03_full_cycle_http11(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
-	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer));
+	buffer[sizeof(buffer)-1]=0;
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer)-1);
 	onion_request_free(request);
 	onion_free(server);
 	
