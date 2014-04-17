@@ -58,8 +58,13 @@ int onion_handler_export_local_handler(onion_handler_export_local_data *d, onion
 	char tmp[PATH_MAX];
 	char realp[PATH_MAX];
 	
-	if (d->is_file)
+	if (d->is_file){
+		if (strlen(d->localpath)>(PATH_MAX-1)){
+			ONION_ERROR("File path too long");
+			return OCS_INTERNAL_ERROR;
+		}
 		strncpy(tmp, d->localpath, PATH_MAX);
+	}
 	else
 		snprintf(tmp,PATH_MAX, "%s/%s",d->localpath,onion_request_get_path(request));
 

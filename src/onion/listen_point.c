@@ -97,7 +97,7 @@ void onion_listen_point_free(onion_listen_point *op){
  * from the poller.
  * 
  * @param op The listen point from where the request must be built
- * @returns 1 always. 
+ * @returns 1 always. The poller needs one to keep listening for connections.
  */
 int onion_listen_point_accept(onion_listen_point *op){
 	onion_request *req=onion_request_new(op);
@@ -111,9 +111,10 @@ int onion_listen_point_accept(onion_listen_point *op){
 			onion_poller_add(req->connection.listen_point->server->poller, slot);
 			return 1;
 		}
-		if (req->connection.fd<0)
-			ONION_ERROR("Error creating connection");
-		// else, no need for fd... no use case yet.
+		// No fd. This could mean error, or not fd based. Normally error would not return a req.
+		onion_request_free(req);
+		ONION_ERROR("Error creating connection");
+		return 1;
 	}
 
 	return 1;

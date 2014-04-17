@@ -580,7 +580,7 @@ onion_block *onion_dict_to_json(onion_dict *dict){
 
 	int s=onion_block_size(block);
 	if (s==0){ // Error.
-		onion_block_clear(block);
+		onion_block_free(block);
 		return NULL;
 	}
 	if (s!=1) // To remove a final ", "

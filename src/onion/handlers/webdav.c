@@ -333,11 +333,16 @@ int onion_webdav_write_props(xmlTextWriterPtr writer, const char *basepath,
 														 int props){
 	ONION_DEBUG("Info for path '%s', urlpath '%s', file '%s', basepath '%s'", realpath, urlpath, filename, basepath);
 	// Stat the thing itself
-	char tmp[512];
+	char tmp[PATH_MAX];
 	if (filename)
 		snprintf(tmp, sizeof(tmp), "%s/%s", realpath, filename);
-	else
+	else{
+		if (strlen(realpath)>=sizeof(tmp)){
+			ONION_ERROR("File path too long");
+			return 1;
+		}
 		strncpy(tmp, realpath, sizeof(tmp));
+	}
 	struct stat st;
 	if (stat(tmp, &st)<0){
 		ONION_ERROR("Error on %s: %s", tmp, strerror(errno));
@@ -513,7 +518,7 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	basepath=alloca(pathlen+1);
 	memcpy(basepath, fullpath, pathlen+1);
 	ONION_DEBUG0("Pathbase initial <%s> %d", basepath, pathlen); 
-	while(basepath[pathlen]=='/')
+	while(basepath[pathlen]=='/' && pathlen>=0)
 		pathlen--;
 	basepath[pathlen+1]=0;
 				 

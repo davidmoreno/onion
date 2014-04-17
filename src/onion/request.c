@@ -612,7 +612,7 @@ onion_dict* onion_request_get_cookies_dict(onion_request* req){
 	char *key=NULL;
 	char *p=cookies;
 	
-	int dflags=OD_FREE_KEY;
+	int first=1;
 	while(*p){
 		if (*p!=' ' && !key && !val){
 			key=p;
@@ -623,17 +623,26 @@ onion_dict* onion_request_get_cookies_dict(onion_request* req){
 		}
 		else if (*p==';' && key && val){
 			*p=0;
-			onion_dict_add(req->cookies, key, val, dflags); // I duplicate all as will free cookies string later. 
-			ONION_DEBUG0("Add cookie <%s>=<%s> %X", key, val, dflags);
-			dflags=0; // On the first element, remove all data as is in key.
+			if (first){
+				// The first cookie is special as it is the pointer to the reserved area for all the keys and values 
+				// for all th eother cookies, to free at dict free.
+				onion_dict_add(req->cookies, cookies, val, OD_FREE_KEY); 
+				first=0;
+			}
+			else
+				onion_dict_add(req->cookies, key, val, 0); /// Can use as static data as will be freed at first cookie free
+			ONION_DEBUG0("Add cookie <%s>=<%s> %d", key, val, first);
 			val=NULL;
 			key=NULL;
 		}
 		p++;
 	}
 	if (key && val && val<p){ // A final element, with value.
-		onion_dict_add(req->cookies, key, val, dflags);
-		ONION_DEBUG0("Add cookie <%s>=<%s> %X", key, val, dflags);
+		if (first)
+			onion_dict_add(req->cookies, cookies, val, OD_FREE_KEY);
+		else
+			onion_dict_add(req->cookies, key, val, 0);
+		ONION_DEBUG0("Add cookie <%s>=<%s> %d", key, val, first);
 	}
 	
 	return req->cookies;
