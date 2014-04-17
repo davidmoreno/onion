@@ -168,9 +168,9 @@ add_definitions(-D_POSIX_C_SOURCE=200112L)
 ##
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 	add_definitions(-D__DEBUG__)
-	SET(CMAKE_C_FLAGS "-Wall -Werror -O0 -fPIC")
+	SET(CMAKE_C_FLAGS "-Wall -Werror -O0 -fPIC ${CMAKE_C_FLAGS}")
 ELSE (${CMAKE_BUILD_TYPE} MATCHES "Debug")
-	SET(CMAKE_C_FLAGS "-Wall -Werror -O2 -fPIC")
+	SET(CMAKE_C_FLAGS "-Wall -Werror -O2 -fPIC ${CMAKE_C_FLAGS}")
 ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
 
