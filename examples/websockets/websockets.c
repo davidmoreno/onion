@@ -51,9 +51,9 @@ onion_connection_status websocket_example_cont(void *data, onion_websocket *ws, 
 		data_ready_len=sizeof(tmp)-1;
 	
 	int len=onion_websocket_read(ws, tmp, data_ready_len);
-	if (len==0){
+	if (len<=0){
 		ONION_ERROR("Error reading data: %d: %s (%d)", errno, strerror(errno), data_ready_len);
-		sleep(1);
+		return OCS_NEED_MORE_DATA;
 	}
 	tmp[len]=0;
 	onion_websocket_printf(ws, "Echo: %s", tmp);
