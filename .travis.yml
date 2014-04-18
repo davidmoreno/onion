@@ -16,6 +16,8 @@ script:
   - mkdir build
     && cd build
     && cmake ..
+       -DCMAKE_C_FLAGS="-Werror"
+       -DCMAKE_CXX_FLAGS="-Werror"
     && make VERBOSE=1
     && (make test || true)
 
