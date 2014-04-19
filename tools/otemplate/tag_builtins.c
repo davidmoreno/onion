@@ -84,7 +84,10 @@ void tag_load(parser_status *st, list *l){
 void tag_for(parser_status *st, list *l){
 	function_add_code(st, 
 "  {\n"
-"    onion_dict *loopdict=onion_dict_get_dict(context, \"%s\");\n", tag_value_arg (l,3));
+"    onion_dict *loopdict=NULL;\n"
+	);
+	variable_solve(st, tag_value_arg (l,3), "loopdict", 2);
+// "    onion_dict_get_dict(context, \"%s\");\n", tag_value_arg (l,3));
 	function_add_code(st, 
 "    onion_dict *tmpcontext=onion_dict_hard_dup(context);\n"
 "    if (loopdict){\n"

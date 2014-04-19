@@ -157,7 +157,7 @@ int tag_type_arg(list *l, int n){
 	tag_token *t=list_get_n(l,n);
 	if (t)
 		return t->type;
-	return 0;
+	return STRING;
 }
 
 /**
