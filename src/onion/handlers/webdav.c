@@ -151,6 +151,8 @@ onion_connection_status onion_webdav_delete(const char *filename, onion_webdav *
  */
 onion_connection_status onion_webdav_move(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
 	const char *dest=onion_request_get_header(req,"Destination");
+	if (!dest)
+		return OCS_INTERNAL_ERROR;
 	const char *dest_orig=dest;
 	// Skip the http... part. Just 3 /.
 	int i;
@@ -337,11 +339,11 @@ int onion_webdav_write_props(xmlTextWriterPtr writer, const char *basepath,
 	if (filename)
 		snprintf(tmp, sizeof(tmp), "%s/%s", realpath, filename);
 	else{
-		if (strlen(realpath)>=sizeof(tmp)){
+		if (strlen(realpath)>=sizeof(tmp)-1){
 			ONION_ERROR("File path too long");
 			return 1;
 		}
-		strncpy(tmp, realpath, sizeof(tmp));
+		strncpy(tmp, realpath, sizeof(tmp)-1);
 	}
 	struct stat st;
 	if (stat(tmp, &st)<0){
@@ -518,7 +520,7 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	basepath=alloca(pathlen+1);
 	memcpy(basepath, fullpath, pathlen+1);
 	ONION_DEBUG0("Pathbase initial <%s> %d", basepath, pathlen); 
-	while(basepath[pathlen]=='/' && pathlen>=0)
+	while(basepath[pathlen]=='/' && pathlen>0)
 		pathlen--;
 	basepath[pathlen+1]=0;
 				 
@@ -566,7 +568,7 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 onion_connection_status onion_webdav_proppatch(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
 	xmlDocPtr doc;
 	const onion_block *block=onion_request_get_data(req);
-	ONION_DEBUG("%s",onion_block_data(block));
+// 	ONION_DEBUG("%s",onion_block_data(block));
 	if (!block)
 		return OCS_INTERNAL_ERROR;
 	doc = xmlParseMemory((char*)onion_block_data(block), onion_block_size(block));

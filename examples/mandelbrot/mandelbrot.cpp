@@ -53,6 +53,9 @@ int mandelbrot(void *p, onion_request *req, onion_response *res){
 	int width=atoi(onion_request_get_queryd(req,"width","256"));
 	int height=atoi(onion_request_get_queryd(req,"height","256"));
 	
+	if (width<=0 || height<=0)
+		return OCS_INTERNAL_ERROR;
+	
 	unsigned char *image=new unsigned char[width*height];
   int    i,j,n;
 
@@ -83,7 +86,7 @@ int mandelbrot(void *p, onion_request *req, onion_response *res){
   }
 	
 	onion_png_response(image, 1, width, height, res);
-	delete image;
+	delete[] image;
 	return OCS_PROCESSED;
 }
 

@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 
 enum onion_websocket_flags_e{
@@ -351,7 +352,7 @@ static int onion_websocket_read_packet_header(onion_websocket *ws){
 		ws->data_left=0;
 		int i;
 		for(i=0;i<8;i++)
-			ws->data_left+=utmp[i]<<(i*8); // Maybe problematic on 32bits systems
+			ws->data_left+=((uint64_t)utmp[i])<<(i*8); // Maybe problematic on 32bits systems
 	}
 	ONION_DEBUG("Data left %d", ws->data_left);
 	if (ws->flags&WS_MASK){

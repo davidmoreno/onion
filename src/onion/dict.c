@@ -189,9 +189,8 @@ static const onion_dict_node *onion_dict_find_node(const onion_dict *d, const on
 	if (parent) *parent=current;
 	if (cmp<0)
 		return onion_dict_find_node(d, current->left, key, parent);
-	if (cmp>0)
+	else // if (cmp>0)
 		return onion_dict_find_node(d, current->right, key, parent);
-	return NULL;
 }
 
 

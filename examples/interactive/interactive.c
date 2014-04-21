@@ -55,7 +55,7 @@ void format_query(const char *key, const char *value, char *temp){
  */
 onion_connection_status ask_handler(void *none, onion_request *req, onion_response *res){
 	char temp[1024];
-	strcpy(temp, onion_request_get_path(req));
+	strncpy(temp, onion_request_get_path(req), sizeof(temp)-1);
 	onion_dict_preorder(onion_request_get_query_dict(req),format_query,temp);
 	
 	char *resp=ask_question(temp);

@@ -453,7 +453,7 @@ int onion_add_listen_point(onion* server, const char* hostname, const char* port
 		onion_listen_point **p=server->listen_points;
 		int protcount=0;
 		while (*p++) protcount++;
-		server->listen_points=realloc(server->listen_points, (protcount+2)*sizeof(onion_listen_point));
+		server->listen_points=(onion_listen_point**)realloc(server->listen_points, (protcount+2)*sizeof(onion_listen_point));
 		server->listen_points[protcount]=protocol;
 		server->listen_points[protcount+1]=NULL;
 	}

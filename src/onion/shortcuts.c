@@ -182,8 +182,10 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 		onion_response_set_code(res, HTTP_PARTIAL_CONTENT);
 		//ONION_DEBUG("Need just a range: %s",range);
 		char tmp[1024];
-		if (strlen(range+6)>=sizeof(tmp))
+		if (strlen(range+6)>=sizeof(tmp)){
+			close(fd);
 			return OCS_INTERNAL_ERROR; // Bad specified range. Very bad indeed.
+		}
 		strncpy(tmp, range+6, sizeof(tmp)-1);
 		char *start=tmp;
 		char *end=tmp;

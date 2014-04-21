@@ -49,6 +49,9 @@ typedef struct{
 onion_connection_status post_check(expected_post *post, onion_request *req){
 	const char *filename=onion_request_get_post(req,"file");
 	const char *tmpfilename=onion_request_get_file(req,"file");
+	if (!filename || !tmpfilename)
+		return OCS_INTERNAL_ERROR;
+	
 	post->test_ok=1;
 	ONION_DEBUG("Got filename %s, expected %s",filename,post->filename);
 	if (strcmp(filename, post->filename)!=0){

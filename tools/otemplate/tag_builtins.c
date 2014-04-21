@@ -180,6 +180,8 @@ void tag_endif(parser_status *st, list *l){
 
 /// Include an external html. This is only the call, the programmer must compile such html too.
 void tag_include(parser_status* st, list* l){
+	assert(st!=NULL); // Tell coverty that at function_new it will keep a pointer to the original, always.
+	
 	function_data *d=function_new(st, "%s", tag_value_arg(l, 1));
 	function_pop(st);
 	onion_block_free(d->code); // This means no impl
@@ -212,7 +214,7 @@ void tag_block(parser_status *st, list *l){
 
 	char tmp[256];
 	assert (strlen(st->infilename)<sizeof(tmp));
-	strncpy(tmp, st->infilename, sizeof(tmp));
+	strncpy(tmp, st->infilename, sizeof(tmp)-1);
 	function_data *d=function_new(st, "%s__block_%s", basename(tmp),  block_name);
 	function_add_code_f(st->blocks_init, 
 "  if (!onion_dict_get(context, \"__block_%s__\"))\n"
