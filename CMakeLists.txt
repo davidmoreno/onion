@@ -13,9 +13,16 @@ SET(ONION_USE_SQLITE3 true CACHE BOOL "Adds support for sqlite3 sessions")
 SET(ONION_USE_TESTS true CACHE BOOL "Compile the tests")
 SET(ONION_EXAMPLES true CACHE BOOL "Compile the examples")
 SET(ONION_USE_BINDINGS_CPP true CACHE BOOL "Compile the CPP bindings")
-SET(ONION_VERSION 0.7.0)
 SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | libev | libevent")
 ########
+
+execute_process(
+	COMMAND sh -c "git describe | sed -e 's/v//g' -e 's/-/./g' | tr -d '\n'"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	OUTPUT_VARIABLE ONION_VERSION)
+
+message(STATUS "Onion version is ${ONION_VERSION}")
+
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
   SET(ONION_USE_PAM false)

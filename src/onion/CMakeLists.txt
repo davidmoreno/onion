@@ -95,6 +95,12 @@ endif (${PNG_ENABLED})
 SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h sd-daemon.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ${SQLITE3_H})
 MESSAGE(STATUS "Found include files ${INCLUDES_ONION}")
 
+SET_TARGET_PROPERTIES(onion onion_static
+	PROPERTIES
+		SOVERSION 0
+		VERSION ${ONION_VERSION}
+	)
+
 install(FILES ${INCLUDES_ONION} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(TARGETS onion onion_static EXPORT onion DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
