@@ -1,4 +1,4 @@
 usr/bin/opack
-usr/bin/crl
+usr/bin/onion-crl
 usr/bin/otemplate
 usr/lib/otemplate/templatetags/*.so
