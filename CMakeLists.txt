@@ -172,6 +172,9 @@ endif (SQLITE3_ENABLED)
 add_definitions(-D_BSD_SOURCE)
 add_definitions(-D_POSIX_C_SOURCE=200112L)
 
+add_definitions(-DONION_VERSION="${ONION_VERSION}")
+
+
 ##
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 	add_definitions(-D__DEBUG__)
