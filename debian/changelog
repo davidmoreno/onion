@@ -1,22 +1,5 @@
-libonion (0.7.1) unstable; urgency=low
+libonion (0.7.5) unstable; urgency=low
 
-  * Added Onion::Url::operator(), to ease chained url resolving.
+  * Initial release (Closes: #744119)
 
- -- David Moreno Montero <dmoreno@coralbits.com>  Wed, 19 Feb 2014 12:22:54 +0100
-
-libonion (0.7.0) unstable; urgency=low
-
-  * Many many improvements and fixes
-  * Version number jump.
-  * OTemplate
-  * C++ (C++11 optional) support
-  * Cookie support.
-  * Check http://github.com/davidmoreno/onion for more changes.
-
- -- David Moreno Montero <dmoreno@coralbits.com>  Fri, 17 Jan 2014 11:47:54 +0100
-
-libonion (0.2.0) unstable; urgency=low
-
-  * Initial debian packaging.
-
- -- David Moreno Montero <dmoreno@coralbits.com>  Fri, 31 Dec 2010 13:46:04 +0000
+ -- David Moreno Montero <dmoreno@coralbits.com>  Wed, 23 Apr 2014 16:16:42 +0200
