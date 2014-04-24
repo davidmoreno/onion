@@ -17,8 +17,7 @@ SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | 
 ########
 
 execute_process(
-	COMMAND sh -c "git describe | sed -e 's/v//g' -e 's/-/./g' | tr -d '\n'"
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/git-version-gen" "${CMAKE_CURRENT_SOURCE_DIR}"
 	OUTPUT_VARIABLE ONION_VERSION)
 
 message(STATUS "Onion version is ${ONION_VERSION}")
