@@ -44,7 +44,7 @@
 #endif
 
 #ifdef HAVE_SYSTEMD
-#include "sd-daemon.h"
+#include <systemd/sd-daemon.h>
 #endif
 
 

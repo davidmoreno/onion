@@ -1,8 +1,5 @@
 # the lib itself. Two versions, static and shared.
 
-if (SYSTEMD_ENABLED)
-	set(SYSTEMD_C sd-daemon.c)
-endif(SYSTEMD_ENABLED)
 if (SQLITE3_ENABLED)
 	set(SQLITE3_C sessions_sqlite3.c)
 	set(SQLITE3_H sessions_sqlite3.h)
@@ -38,7 +35,7 @@ endif (${ONION_POLLER} STREQUAL epoll)
 
 
 set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
-                        log.c sessions.c sessions_mem.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} ${POLLER_C}
+                        log.c sessions.c sessions_mem.c shortcuts.c block.c mime.c url.c ${POLLER_C}
 			listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c ${RANDOM_C} ${SQLITE3_C})
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
@@ -70,10 +67,6 @@ if (SQLITE3_ENABLED)
 	target_link_libraries(onion ${SQLITE3_LIB})
 	target_link_libraries(onion_static ${SQLITE3_LIB})
 endif(SQLITE3_ENABLED)
-if (SYSTEMD_ENABLED)
-	target_link_libraries(onion ${RT_LIB})
-	target_link_libraries(onion_static ${RT_LIB})
-endif(SYSTEMD_ENABLED)
 if (${ONION_POLLER} STREQUAL libevent)
 	target_link_libraries(onion event_core event_pthreads)
 	target_link_libraries(onion_static event_core event_pthreads)
@@ -82,7 +75,10 @@ if (${ONION_POLLER} STREQUAL libev)
 	target_link_libraries(onion ${LIBEV_LIB})
 	target_link_libraries(onion_static ${LIBEV_LIB})
 endif (${ONION_POLLER} STREQUAL libev)
-
+if (SYSTEMD_ENABLED)
+	target_link_libraries(onion ${SD_DAEMON_LIB})
+	target_link_libraries(onion_static ${SD_DAEMON_LIB})
+endif(SYSTEMD_ENABLED)
 
 
 add_subdirectory(handlers)
@@ -92,7 +88,7 @@ if (${PNG_ENABLED})
 add_subdirectory(extras)
 endif (${PNG_ENABLED})
 
-SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h sd-daemon.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ${SQLITE3_H})
+SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ${SQLITE3_H})
 MESSAGE(STATUS "Found include files ${INCLUDES_ONION}")
 
 SET_TARGET_PROPERTIES(onion onion_static
