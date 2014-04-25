@@ -27,8 +27,14 @@
 
 namespace Onion{
 	class Dict;
+	class Request;
+	class Response;
+	
 	typedef std::function<void (onion_dict *d, onion_response *r)> template_f;
  
-	/// Redenrs a otemplate template with the given context, on this response.
+	/// Renders a otemplate template with the given context, on this response.
 	onion_connection_status render_to_response(template_f fn, const Dict& context, Response &res);
+	
+	/// Redirects to an given url
+	onion_connection_status redirect(const std::string &url, Request &req, Response &res);
 }
