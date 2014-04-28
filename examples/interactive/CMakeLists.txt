@@ -4,5 +4,7 @@ add_executable(interactive interactive.c)
 
 target_link_libraries(interactive onion_static)
 
-install(TARGETS interactive DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME onion-interactive)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/interactive
+	DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME onion-interactive
+)
 
