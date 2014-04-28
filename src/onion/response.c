@@ -438,16 +438,47 @@ ssize_t onion_response_write_html_safe(onion_response *res, const char *data){
 
 
 /**
- * @short Writes some data to the response. Using sprintf format strings. Max final string size: 1024
+ * @short Writes some data to the response. Using sprintf format strings. 
  * @memberof onion_response_t
  */
 ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
-	char temp[1024];
 	va_list ap;
 	va_start(ap, fmt);
-	int l=vsnprintf(temp, sizeof(temp)-1, fmt, ap);
+	ssize_t ret=onion_response_vprintf(res, fmt, ap);
 	va_end(ap);
-	return onion_response_write(res, temp, l);
+	return ret;
+}
+
+/**
+ * @short Writes some data to the response. Using sprintf format strings. va_list args version
+ * 
+ * @param args va_list of arguments
+ * @memberof onion_response_t
+ */
+ssize_t onion_response_vprintf(onion_response *res, const char *fmt, va_list args)
+{
+	char temp[512];
+	int l;
+	l=vsnprintf(temp, sizeof(temp), fmt, args);
+	if (l<0) {
+		ONION_ERROR("Invalid vprintf fmt");
+		return -1;
+	} 
+	else if (l<sizeof(temp)) {
+		return onion_response_write(res, temp, l);
+	}
+	else {
+		ssize_t s;
+		char*buf = malloc(l+1);
+		if (!buf){
+			ONION_ERROR("Could not reserve %d bytes", l+1);
+			return -1;
+		}
+		vsnprintf(buf, l, fmt, args);
+		s = onion_response_write (res, buf, l);
+		free (buf);
+		return s;
+	}
 }
 
 

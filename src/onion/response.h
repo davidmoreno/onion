@@ -26,6 +26,7 @@
 
 #include "types.h"
 #include <stdlib.h>
+#include <stdarg.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -119,7 +120,9 @@ ssize_t onion_response_write0(onion_response *res, const char *data);
 /// Writes some data to the response. \0 ended string, and encodes it if necesary into html entities to make it safe
 ssize_t onion_response_write_html_safe(onion_response *res, const char *data);
 /// Writes some data to the response. Using sprintf format strings.
-ssize_t onion_response_printf(onion_response *res, const char *fmt, ...);
+ssize_t onion_response_printf(onion_response *res, const char *fmt, ...)  __attribute__ ((format (printf, 2, 3)));
+/// Writes some data to the response. Using sprintf format strings. va_list version
+ssize_t onion_response_vprintf(onion_response *res, const char *fmt, va_list args) __attribute__ ((format (printf, 2, 0)));
 /// Flushes remaining data on the buffer to the listen point.
 int onion_response_flush(onion_response *res);
 /// @}
