@@ -46,5 +46,5 @@ if (${Z_LIB})
    target_link_libraries(ofileserver ${Z_LIB})
 endif(${Z_LIB})
 
-install(TARGETS ofileserver DESTINATION ${CMAKE_INSTALL_BINDIR}/onion-ofileserver)
+install(TARGETS ofileserver DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME onion-ofileserver)
 
