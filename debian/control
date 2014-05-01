@@ -53,7 +53,7 @@ Description: HTTP server library
 Package: libonion-examples
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libjs-jquery
 Description: HTTP server library -- Examples
  Onion plans to be a lightweight C library that facilitate to create simple 
  HTTP servers.
