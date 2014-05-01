@@ -5,7 +5,7 @@ compiler:
   - clang
 
 git:
-  depth: 0
+  depth: 1
 
 install:
   # install some packages from Ubuntu's default sources
