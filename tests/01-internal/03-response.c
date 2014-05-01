@@ -51,15 +51,6 @@ void t01_create_add_free(){
 	END_LOCAL();
 }
 
-/// Just appends to the handler. Must be big enought or segfault.. Just for tests.
-int write_append(onion_request *req, const char *data, unsigned int length){
-	char *str=req->connection.user_data;
-	ONION_DEBUG("char data %p", str);
-	int p=strlen(str);
-	strncat(str,data,length);
-	str[p+length]=0;
-	return length;
-}
 
 
 void t02_full_cycle_http10(){
@@ -140,7 +131,7 @@ void t03_full_cycle_http11(){
 	END_LOCAL();
 }
 
-void t02_cookies(){
+void t04_cookies(){
 	INIT_LOCAL();
 	
 	onion_response *res=onion_response_new(NULL);
@@ -182,13 +173,40 @@ void t02_cookies(){
 	END_LOCAL();
 }
 
+void t05_printf(){
+	INIT_LOCAL();
+
+	onion *server=onion_new(0);
+	onion_add_listen_point(server,NULL,NULL,onion_buffer_listen_point_new());
+	onion_request *request;
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	
+	request=onion_request_new(server->listen_points[0]);
+	
+	onion_response *response=onion_response_new(request);
+
+	onion_response_printf(response, "%s %d %p", "Hello world", 123, NULL);
+	onion_response_flush(response);
+	onion_response_free(response);
+	buffer[sizeof(buffer)-1]=0;
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer)-1);
+	onion_request_free(request);
+	onion_free(server);
+	
+	FAIL_IF_NOT_STRSTR(buffer, "Hello world 123 (nil)");
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	START();
 	
 	t01_create_add_free();
 	t02_full_cycle_http10();
 	t03_full_cycle_http11();
-	t02_cookies();
+	t04_cookies();
+	t05_printf();
 	
 	END();
 }

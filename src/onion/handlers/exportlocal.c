@@ -178,9 +178,9 @@ int onion_handler_export_local_directory(onion_handler_export_local_data *data, 
 		pwd=getpwuid(st.st_uid);
 		
 		if (S_ISDIR(st.st_mode))
-			onion_response_printf(res, "  ['%s/',%d,'%s','dir'],\n",fi->d_name, st.st_size, pwd ? pwd->pw_name : "???");
+			onion_response_printf(res, "  ['%s/',%ld,'%s','dir'],\n",fi->d_name, st.st_size, pwd ? pwd->pw_name : "???");
 		else
-			onion_response_printf(res, "  ['%s',%d,'%s','file'],\n",fi->d_name, st.st_size, pwd ? pwd->pw_name : "???");
+			onion_response_printf(res, "  ['%s',%ld,'%s','file'],\n",fi->d_name, st.st_size, pwd ? pwd->pw_name : "???");
 	}
 
 	onion_response_write0(res,"  [] ]\n</script>\n");
