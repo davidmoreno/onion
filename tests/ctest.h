@@ -136,19 +136,19 @@ static const char * __attribute__((unused)) __BASENAME__="please set the START()
 #define FAIL_IF_EQUAL(A,B) if ((A)==(B)){ FAIL("FAIL IF EQUAL %s == %s",#A,#B); } else { SUCCESS(); }
 #define FAIL_IF_NOT_EQUAL(A,B) if ((A)!=(B)){ FAIL("FAIL IF NOT EQUAL %s != %s",#A,#B); } else { SUCCESS(); }
 
-#define FAIL_IF_EQUAL_INT(A,B) { int a=(A), b=(B); if (a==b){ FAIL("FAIL IF EQUAL %s == %s, %d == %d",#A,#B,a,b); } else { SUCCESS(); } }
-#define FAIL_IF_NOT_EQUAL_INT(A,B) { int a=(A), b=(B);  if (a!=b){ FAIL("FAIL IF NOT EQUAL %s != %s, %d != %d",#A,#B,a,b); } else { SUCCESS(); } }
+#define FAIL_IF_EQUAL_INT(A,B) { int __a=(A), __b=(B); if (__a==__b){ FAIL("FAIL IF EQUAL %s == %s, %d == %d",#A,#B,__a,__b); } else { SUCCESS(); } }
+#define FAIL_IF_NOT_EQUAL_INT(A,B) { int __a=(A), __b=(B);  if (__a!=__b){ FAIL("FAIL IF NOT EQUAL %s != %s, %d != %d",#A,#B,__a,__b); } else { SUCCESS(); } }
 
-#define FAIL_IF_EQUAL_STR(A,B) { const char *a=(A); const char *b=(B); if ((a == b) || ((a && b) && strcmp(a,b)==0)){ FAIL("FAIL IF EQUAL STR %s == %s (\"%s\" == \"%s\")",#A,#B,a,b); } else { SUCCESS(); } }
-#define FAIL_IF_NOT_EQUAL_STR(A,B) { const char *a=(A); const char *b=(B); if ((a!=b) && ((!a || !b) || strcmp(a,b)!=0)){ FAIL("FAIL IF NOT EQUAL STR %s != %s (\"%s\" != \"%s\")",#A,#B,a,b); } else { SUCCESS(); } }
+#define FAIL_IF_EQUAL_STR(A,B) { const char *__a=(A); const char *__b=(B); if ((__a == __b) || ((__a && __b) && strcmp(__a,__b)==0)){ FAIL("FAIL IF EQUAL STR %s == %s (\"%s\" == \"%s\")",#A,#B,__a,__b); } else { SUCCESS(); } }
+#define FAIL_IF_NOT_EQUAL_STR(A,B) { const char *__a=(A); const char *__b=(B); if ((__a!=__b) && ((!__a || !__b) || strcmp(__a,__b)!=0)){ FAIL("FAIL IF NOT EQUAL STR %s != %s (\"%s\" != \"%s\")",#A,#B,__a,__b); } else { SUCCESS(); } }
 
 #ifdef __cplusplus
-#define FAIL_IF_EQUAL_STRING(A,B) { std::string a=A; std::string b=B; if (a == b){ FAIL("FAIL IF EQUAL STRING %s == %s (\"%s\" == \"%s\")",#A,#B,a.c_str(),b.c_str()); } else { SUCCESS(); } }
-#define FAIL_IF_NOT_EQUAL_STRING(A,B) { std::string a=A; std::string b=B; if (a != b){ FAIL("FAIL IF NOT EQUAL STRING %s != %s (\"%s\" != \"%s\")",#A,#B,a.c_str(),b.c_str()); } else { SUCCESS(); } }
+#define FAIL_IF_EQUAL_STRING(A,B) { std::string __a=A; std::string __b=B; if (__a == __b){ FAIL("FAIL IF EQUAL STRING %s == %s (\"%s\" == \"%s\")",#A,#B,__a.c_str(),__b.c_str()); } else { SUCCESS(); } }
+#define FAIL_IF_NOT_EQUAL_STRING(A,B) { std::string __a=A; std::string __b=B; if (__a != __b){ FAIL("FAIL IF NOT EQUAL STRING %s != %s (\"%s\" != \"%s\")",#A,#B,__a.c_str(),__b.c_str()); } else { SUCCESS(); } }
 #endif
 
-#define FAIL_IF_STRSTR(A,B) { const char *a=(A); const char *b=(B); if (a==b || strstr(a,b)){ FAIL("FAIL IF STRSTR %s HAS %s (\"%s\" HAS \"%s\")",#A,#B,a,b); } else { SUCCESS(); } }
-#define FAIL_IF_NOT_STRSTR(A,B) { const char *a=(A); const char *b=(B); if (((a==NULL) && (b==NULL)) || (!strstr(a,b))){ FAIL("FAIL IF NOT STRSTR %s HAS NOT %s (\"%s\" HAS NOT \"%s\")",#A,#B,a,b); } else { SUCCESS(); } }
+#define FAIL_IF_STRSTR(A,B) { const char *__a=(A); const char *__b=(B); if (__a==__b || strstr(__a,__b)){ FAIL("FAIL IF STRSTR %s HAS %s (\"%s\" HAS \"%s\")",#A,#B,__a,__b); } else { SUCCESS(); } }
+#define FAIL_IF_NOT_STRSTR(A,B) { const char *__a=(A); const char *__b=(B); if (((__a==NULL) && (__b==NULL)) || (!strstr(__a,__b))){ FAIL("FAIL IF NOT STRSTR %s HAS NOT %s (\"%s\" HAS NOT \"%s\")",#A,#B,__a,__b); } else { SUCCESS(); } }
 
 #ifdef __cplusplus
 #define FAIL_IF_EXCEPTION(A) { try{ A; SUCCESS(); } catch(const std::exception &e){ FAIL("FAIL IF EXCEPTION Exception raised: %s", e.what()); } catch(...){ FAIL("Exception raised"); } }

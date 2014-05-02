@@ -51,15 +51,6 @@ void t01_create_add_free(){
 	END_LOCAL();
 }
 
-/// Just appends to the handler. Must be big enought or segfault.. Just for tests.
-int write_append(onion_request *req, const char *data, unsigned int length){
-	char *str=req->connection.user_data;
-	ONION_DEBUG("char data %p", str);
-	int p=strlen(str);
-	strncat(str,data,length);
-	str[p+length]=0;
-	return length;
-}
 
 
 void t02_full_cycle_http10(){
@@ -84,7 +75,8 @@ void t02_full_cycle_http10(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
-	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer));
+	buffer[sizeof(buffer)-1]=0;
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer)-1);
 	onion_request_free(request);
 	onion_free(server);
 	
@@ -122,7 +114,8 @@ void t03_full_cycle_http11(){
 	FAIL_IF_NOT_EQUAL(response->sent_bytes,30);
 	
 	onion_response_free(response);
-	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer));
+	buffer[sizeof(buffer)-1]=0;
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer)-1);
 	onion_request_free(request);
 	onion_free(server);
 	
@@ -138,12 +131,82 @@ void t03_full_cycle_http11(){
 	END_LOCAL();
 }
 
+void t04_cookies(){
+	INIT_LOCAL();
+	
+	onion_response *res=onion_response_new(NULL);
+	onion_dict *h=onion_response_get_headers(res);
+	
+	onion_response_add_cookie(res, "key1", "value1", -1, NULL, NULL, 0);
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key1=value1");
+	
+	onion_dict_remove(h, "Set-Cookie");
+	onion_response_add_cookie(res, "key2", "value2", -1, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key2=value2; path=/; domain=*.example.org; HttpOnly; Secure");
+
+	onion_dict_remove(h, "Set-Cookie");
+	onion_response_add_cookie(res, "key3", "value3", 0, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key3=value3; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=*.example.org; HttpOnly; Secure");
+	
+	onion_dict_remove(h, "Set-Cookie");
+	onion_response_add_cookie(res, "key4", "value4", 60, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	FAIL_IF_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key4=value4; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=*.example.org; HttpOnly; Secure");
+	FAIL_IF_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key4=value4; domain=*.example.org; HttpOnly; path=/; Secure");
+	
+	int i;
+	int valid_expires=0;
+	char tmpdate[100];
+	const char *setcookie=onion_dict_get(h, "Set-Cookie");
+	for(i=59;i<62;i++){
+		struct tm *tmp;
+		time_t t=time(NULL) + i;
+		tmp = localtime(&t);
+		strftime(tmpdate, sizeof(tmpdate), "key4=value4; expires=%a, %d %b %Y %H:%M:%S %Z; path=/; domain=*.example.org; HttpOnly; Secure", tmp);
+		ONION_DEBUG("\ntest  %s =? \nonion %s", tmpdate, setcookie);
+		if (strcmp(tmpdate, setcookie)==0)
+			valid_expires=1;
+	}
+	FAIL_IF_NOT(valid_expires);
+	
+	onion_response_free(res);
+	
+	END_LOCAL();
+}
+
+void t05_printf(){
+	INIT_LOCAL();
+
+	onion *server=onion_new(0);
+	onion_add_listen_point(server,NULL,NULL,onion_buffer_listen_point_new());
+	onion_request *request;
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	
+	request=onion_request_new(server->listen_points[0]);
+	
+	onion_response *response=onion_response_new(request);
+
+	onion_response_printf(response, "%s %d %p", "Hello world", 123, NULL);
+	onion_response_flush(response);
+	onion_response_free(response);
+	buffer[sizeof(buffer)-1]=0;
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer)-1);
+	onion_request_free(request);
+	onion_free(server);
+	
+	FAIL_IF_NOT_STRSTR(buffer, "Hello world 123 (nil)");
+	
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	START();
 	
 	t01_create_add_free();
 	t02_full_cycle_http10();
 	t03_full_cycle_http11();
+	t04_cookies();
+	t05_printf();
 	
 	END();
 }

@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #include <assert.h>
@@ -153,6 +151,8 @@ onion_connection_status onion_webdav_delete(const char *filename, onion_webdav *
  */
 onion_connection_status onion_webdav_move(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
 	const char *dest=onion_request_get_header(req,"Destination");
+	if (!dest)
+		return OCS_INTERNAL_ERROR;
 	const char *dest_orig=dest;
 	// Skip the http... part. Just 3 /.
 	int i;
@@ -335,11 +335,16 @@ int onion_webdav_write_props(xmlTextWriterPtr writer, const char *basepath,
 														 int props){
 	ONION_DEBUG("Info for path '%s', urlpath '%s', file '%s', basepath '%s'", realpath, urlpath, filename, basepath);
 	// Stat the thing itself
-	char tmp[512];
+	char tmp[PATH_MAX];
 	if (filename)
 		snprintf(tmp, sizeof(tmp), "%s/%s", realpath, filename);
-	else
-		strncpy(tmp, realpath, sizeof(tmp));
+	else{
+		if (strlen(realpath)>=sizeof(tmp)-1){
+			ONION_ERROR("File path too long");
+			return 1;
+		}
+		strncpy(tmp, realpath, sizeof(tmp)-1);
+	}
 	struct stat st;
 	if (stat(tmp, &st)<0){
 		ONION_ERROR("Error on %s: %s", tmp, strerror(errno));
@@ -515,7 +520,7 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 	basepath=alloca(pathlen+1);
 	memcpy(basepath, fullpath, pathlen+1);
 	ONION_DEBUG0("Pathbase initial <%s> %d", basepath, pathlen); 
-	while(basepath[pathlen]=='/')
+	while(basepath[pathlen]=='/' && pathlen>0)
 		pathlen--;
 	basepath[pathlen+1]=0;
 				 
@@ -563,7 +568,7 @@ onion_connection_status onion_webdav_propfind(const char *filename, onion_webdav
 onion_connection_status onion_webdav_proppatch(const char *filename, onion_webdav *wd, onion_request *req, onion_response *res){
 	xmlDocPtr doc;
 	const onion_block *block=onion_request_get_data(req);
-	ONION_DEBUG("%s",onion_block_data(block));
+// 	ONION_DEBUG("%s",onion_block_data(block));
 	if (!block)
 		return OCS_INTERNAL_ERROR;
 	doc = xmlParseMemory((char*)onion_block_data(block), onion_block_size(block));

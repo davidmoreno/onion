@@ -76,7 +76,9 @@ void free_onion(int unused){
 int oterm_nopam(onion_handler *next, onion_request *req, onion_response *res){
 	onion_dict *session=onion_request_get_session_dict(req);
 	onion_dict_lock_write(session);
-	onion_dict_add(session, "username", getenv("USER"), 0);
+	const char *username=getenv("USER");
+	if (username)
+		onion_dict_add(session, "username", username, 0);
 	onion_dict_add(session, "nopam", "true", 0);
 	onion_dict_unlock(session);
 	

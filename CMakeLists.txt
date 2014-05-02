@@ -9,11 +9,19 @@ SET(ONION_USE_PTHREADS true CACHE BOOL "Compile with pthreads support. Needed fo
 SET(ONION_USE_PNG true CACHE BOOL "Adds support for simple image handler")
 SET(ONION_USE_XML2 true CACHE BOOL "Adds support for XML2 lib, which is needed for WebDAV handler")
 SET(ONION_USE_SYSTEMD true CACHE BOOL "Adds simple support for systemd")
+SET(ONION_USE_SQLITE3 true CACHE BOOL "Adds support for sqlite3 sessions")
 SET(ONION_USE_TESTS true CACHE BOOL "Compile the tests")
+SET(ONION_EXAMPLES true CACHE BOOL "Compile the examples")
 SET(ONION_USE_BINDINGS_CPP true CACHE BOOL "Compile the CPP bindings")
-SET(ONION_VERSION 0.6.0)
 SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | libev | libevent")
 ########
+
+execute_process(
+	COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/git-version-gen" "${CMAKE_CURRENT_SOURCE_DIR}"
+	OUTPUT_VARIABLE ONION_VERSION)
+
+message(STATUS "Onion version is ${ONION_VERSION}")
+
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
   SET(ONION_USE_PAM false)
@@ -21,22 +29,22 @@ endif (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
-IF (NOT DEFINED BINDIR)
-SET(BINDIR bin)
-ENDIF (NOT DEFINED BINDIR)
+IF (NOT DEFINED CMAKE_INSTALL_BINDIR)
+SET(CMAKE_INSTALL_BINDIR bin)
+ENDIF (NOT DEFINED CMAKE_INSTALL_BINDIR)
 
-IF (NOT DEFINED LIBDIR)
-SET(LIBDIR lib)
-ENDIF (NOT DEFINED LIBDIR)
+IF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
+SET(CMAKE_INSTALL_LIBDIR lib)
+ENDIF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
 
 IF (NOT DEFINED INCLUDE_PATH)
 SET(INCLUDE_PATH /usr/include)
 ENDIF (NOT DEFINED INCLUDE_PATH)
 
 
-IF (NOT DEFINED INCLUDEDIR)
-SET(INCLUDEDIR include/onion)
-ENDIF(NOT DEFINED INCLUDEDIR)
+IF (NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
+SET(CMAKE_INSTALL_INCLUDEDIR include/onion)
+ENDIF(NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
 
 if (${ONION_POLLER} STREQUAL "default")
 	if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -59,6 +67,16 @@ if (${ONION_USE_SSL})
 		message("Gnutls not found. SSL support is not compiled in.")
 	endif(GNUTLS_LIB AND GCRYPT_LIB)
 endif(${ONION_USE_SSL})
+
+if (${ONION_USE_SQLITE3})
+	find_library(SQLITE3_LIB NAMES sqlite3 PATH ${LIBPATH})
+	if (SQLITE3_LIB)
+		set(SQLITE3_ENABLED true)
+		message(STATUS "SQLite found. Sqlite session support is compiled in.")
+	else(SQLITE3_LIB)
+		message("SQLite not found. Sqlite session support is not compiled in.")
+	endif(SQLITE3_LIB)
+endif(${ONION_USE_SQLITE3})
 
 if (${ONION_USE_PTHREADS})
 	find_library(PTHREADS_LIB NAMES pthread PATH ${LIBPATH})
@@ -121,13 +139,13 @@ else(CURL_LIB)
 endif(CURL_LIB)
 
 if (${ONION_USE_SYSTEMD})
-	find_library(RT_LIB NAMES rt PATH ${LIBPATH})
-	if (RT_LIB)
+	find_library(SD_DAEMON_LIB NAMES systemd-daemon PATH ${LIBPATH})
+	if (SD_DAEMON_LIB)
 		set(SYSTEMD_ENABLED true)
-		message(STATUS "librt found. Systemd support compiled in.")
-	else(RT_LIB)
-		message("librt not found. Systemd support is not compiled in.")
-	endif(RT_LIB)
+		message(STATUS "libsystemd-daemon found. Systemd support compiled in.")
+	else(SD_DAEMON_LIB)
+		message("libsystemd-daemon not found. Systemd support is not compiled in. Install libsystemd-dev | systemd-devel")
+	endif(SD_DAEMON_LIB)
 endif(${ONION_USE_SYSTEMD})
 
 
@@ -147,15 +165,23 @@ endif(XML2_ENABLED)
 if (SYSTEMD_ENABLED)
 	add_definitions(-DHAVE_SYSTEMD)
 endif (SYSTEMD_ENABLED)
+if (SQLITE3_ENABLED)
+	add_definitions(-DHAVE_SQLITE3)
+endif (SQLITE3_ENABLED)
 add_definitions(-D_BSD_SOURCE)
 add_definitions(-D_POSIX_C_SOURCE=200112L)
+
+add_definitions(-DONION_VERSION="${ONION_VERSION}")
+
 
 ##
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 	add_definitions(-D__DEBUG__)
-	SET(CMAKE_C_FLAGS "-Wall -Werror -O0 -fPIC")
+	SET(CMAKE_C_FLAGS "-Wall -Werror -O0 -fPIC ${CMAKE_C_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "-Wall -Werror -O0 -fPIC ${CMAKE_CXX_FLAGS}")
 ELSE (${CMAKE_BUILD_TYPE} MATCHES "Debug")
-	SET(CMAKE_C_FLAGS "-Wall -Werror -O2 -fPIC")
+	SET(CMAKE_C_FLAGS "-Wall -O2 -fPIC ${CMAKE_C_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "-Wall -O2 -fPIC ${CMAKE_CXX_FLAGS}")
 ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
 
@@ -170,8 +196,11 @@ add_subdirectory(tools)
 SET(OTEMPLATE otemplate)
 SET(OPACK opack)
 
+if (${ONION_EXAMPLES})
+	add_subdirectory(examples)
+endif (${ONION_EXAMPLES})
+
 if (${ONION_USE_TESTS})
 	enable_testing()
-	add_subdirectory(examples)
 	add_subdirectory(tests)
 endif(${ONION_USE_TESTS})

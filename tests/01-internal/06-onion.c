@@ -46,7 +46,7 @@ typedef struct{
   char close_at_n;
 }params_t;
 
-onion_response_codes process_request(void *_, onion_request *req, onion_response *res){
+onion_connection_status process_request(void *_, onion_request *req, onion_response *res){
   pthread_mutex_lock(&processed_mutex);
   processed++;
   pthread_mutex_unlock(&processed_mutex);

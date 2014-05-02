@@ -479,6 +479,46 @@ void t10_repeated_header(){
 	END_LOCAL();
 }
 
+void t11_cookies(){
+	INIT_LOCAL();
+	
+	onion_request *req;
+	int ok;
+	
+	req=onion_request_new(custom_io);
+	FAIL_IF_EQUAL(req,NULL);
+	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
+	
+	{
+		const char *query="GET / HTTP/1.0\n"
+											"Content-Type: application/x-www-form-urlencoded\n"
+											"Host: 127.0.0.1\n\r"
+											"Cookie: key1=value1; key2=value2;\n"
+											"Accept-Language: en\n"; // Missing \n caused memleak, to check with valgrind
+		
+		ok=onion_request_write_const(req,query,strlen(query));
+	}
+	FAIL_IF_EQUAL(ok,OCS_INTERNAL_ERROR);
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"Host"),"127.0.0.1");
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"Cookie"), "key1=value1; key2=value2;");
+	
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_cookie(req,"key1"), "value1");
+	FAIL_IF_NOT_EQUAL_STR(onion_request_get_cookie(req,"key2"), "value2");
+	FAIL_IF_EQUAL_STR(onion_request_get_cookie(req," key2"), "value2");
+	
+	onion_dict *cookies=onion_request_get_cookies_dict(req);
+	FAIL_IF_EQUAL(cookies, NULL);
+	
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(cookies,"key1"), "value1");
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(cookies,"key2"), "value2");
+	
+	onion_request_free(req);
+	
+	
+	END_LOCAL();
+}
+
+
 
 int main(int argc, char **argv){
   START();
@@ -494,6 +534,8 @@ int main(int argc, char **argv){
   t08_sockaddr_storage();
 	t09_very_long_header();
 	t10_repeated_header();
+	t11_cookies();
+	
 	teardown();
 	END();
 }

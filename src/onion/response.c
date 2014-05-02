@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #include <stdlib.h>
@@ -89,7 +87,7 @@ onion_response *onion_response_new(onion_request *req){
 	
 	onion_response_update_date_header(res);
 	// Sorry for the advertisment.
-	onion_dict_add(res->headers, "Server", "libonion v0.5 - coralbits.com", 0);
+	onion_dict_add(res->headers, "Server", "libonion v" ONION_VERSION " - coralbits.com", 0);
 	onion_dict_add(res->headers, "Content-Type", "text/html", 0); // Maybe not the best guess, but really useful.
 	//time_t t=time(NULL);
 	//onion_dict_add(res->headers, "Date", asctime(localtime(&t)), OD_DUP_VALUE);
@@ -396,16 +394,47 @@ ssize_t onion_response_write_html_safe(onion_response *res, const char *data){
 
 
 /**
- * @short Writes some data to the response. Using sprintf format strings. Max final string size: 1024
+ * @short Writes some data to the response. Using sprintf format strings. 
  * @memberof onion_response_t
  */
 ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
-	char temp[1024];
 	va_list ap;
 	va_start(ap, fmt);
-	int l=vsnprintf(temp, sizeof(temp)-1, fmt, ap);
+	ssize_t ret=onion_response_vprintf(res, fmt, ap);
 	va_end(ap);
-	return onion_response_write(res, temp, l);
+	return ret;
+}
+
+/**
+ * @short Writes some data to the response. Using sprintf format strings. va_list args version
+ * 
+ * @param args va_list of arguments
+ * @memberof onion_response_t
+ */
+ssize_t onion_response_vprintf(onion_response *res, const char *fmt, va_list args)
+{
+	char temp[512];
+	int l;
+	l=vsnprintf(temp, sizeof(temp), fmt, args);
+	if (l<0) {
+		ONION_ERROR("Invalid vprintf fmt");
+		return -1;
+	} 
+	else if (l<sizeof(temp)) {
+		return onion_response_write(res, temp, l);
+	}
+	else {
+		ssize_t s;
+		char*buf = malloc(l+1);
+		if (!buf){
+			ONION_ERROR("Could not reserve %d bytes", l+1);
+			return -1;
+		}
+		vsnprintf(buf, l, fmt, args);
+		s = onion_response_write (res, buf, l);
+		free (buf);
+		return s;
+	}
 }
 
 
@@ -474,7 +503,14 @@ onion_dict *onion_response_get_headers(onion_response *res){
 	return res->headers;
 }
 
-
+/**
+ * @short Given the response, adds the date header.
+ * 
+ * This function is compilation time enabled. If disabled does nothing.
+ * 
+ * Internally keeps a cache of the date string, changed every time the date changed. This is a 
+ * small speedup to do not recalculate it on every request.
+ */
 void onion_response_update_date_header(onion_response *res){
 #ifndef DONT_USE_DATE_HEADER
 	{
@@ -522,4 +558,43 @@ void onion_response_update_date_header(onion_response *res){
 	pthread_rwlock_unlock(&onion_response_date_lock);
 #endif
 #endif // USE_DATE_HEADER
+}
+
+/**
+ * @short Sets a new cookie into the response. 
+ * 
+ * @param res Response object
+ * @param cookiename Name for the cookie
+ * @param cookievalue Value for the cookis
+ * @param validity_t Seconds this cookie is valid (added to current datetime). -1 to do not expire, 0 to expire inmediatly.
+ * @param path Cookie valid only for this path
+ * @param Domain Cookie valid only for this domain (www.example.com, or *.example.com).
+ * @param flags Flags from onion_cookie_flags_t, for example OC_SECURE or OC_HTTP_ONLY
+ * 
+ * 
+ * If validity is 0, cookie is set to expire right now.
+ */
+void onion_response_add_cookie(onion_response *res, const char *cookiename, const char *cookievalue, time_t validity_t, const char *path, const char *domain, int flags){
+	char data[512];
+	int pos;
+	pos=snprintf(data,sizeof(data),"%s=%s",cookiename, cookievalue);
+	if (validity_t==0)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; expires=Thu, 01 Jan 1970 00:00:00 GMT");
+	else if (validity_t>0){
+		struct tm *tmp;
+		time_t t=time(NULL) + validity_t;
+		tmp = localtime(&t);
+		pos+=strftime(data+pos, sizeof(data)-pos, "; expires=%a, %d %b %Y %H:%M:%S %Z", tmp);
+	}
+	if (path)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; path=%s", path);
+	if (domain)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; domain=%s", domain);
+	if (flags&OC_HTTP_ONLY)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; HttpOnly");
+	if (flags&OC_SECURE)
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; Secure");
+	
+	onion_response_set_header(res, "Set-Cookie",data);
+	ONION_DEBUG("Set cookie %s=%s", cookiename, data);
 }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+  <herd>libonion</herd>
+  <maintainer>
+    <email>dmoreno@coralbits.com</email>
+    <name>David Moreno Montero</name>
+  </maintainer>
+  <longdescription>
+    HTTP server library in C designed to be lightweight.
+  </longdescription>
+  <use>
+    <flag name="gnutls">Enable SSL</flag>
+    <flag name="threads">Enable pthreads support, which is needed for O_THREAD and O_POOL modes</flag>
+    <flag name="pam">Enable PAM handler</flag>
+    <flag name="png">Enable support for simple image handler</flag>
+    <flag name="xml">Enable support for XML2 lib, which is needed for WebDAV handler</flag>
+    <flag name="systemd">Enable simple support for systemd</flag>
+    <flag name="cxx">Enable CPP bindings</flag>
+    <flag name="examples">Enable examples</flag>
+    <flag name="test">Enable tests</flag>
+  </use>
+</pkgmetadata>

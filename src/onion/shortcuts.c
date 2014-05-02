@@ -1,27 +1,26 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
+
 #ifdef __linux__
 #define USE_SENDFILE
 #endif
@@ -50,6 +49,8 @@
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
 #endif
+
+int onion_use_sendfile=-1;
 
 // Import it here as I need it to know if can use sendfile.
 ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
@@ -122,14 +123,22 @@ onion_connection_status onion_shortcut_internal_redirect(const char *newurl, oni
 /**
  * @short This shortcut returns the given file contents. 
  * 
- * It sets all the compilant headers (TODO), cache and so on.
- * 
  * This is the recomended way to send static files; it even can use sendfile Linux call 
- * if suitable (TODO).
+ * if suitable.
  * 
  * It does no security checks, so caller must be security aware.
  */
 onion_connection_status onion_shortcut_response_file(const char *filename, onion_request *request, onion_response *res){
+	if (onion_use_sendfile<0){
+		const char *use_sendfile=getenv("ONION_SENDFILE");
+		if (use_sendfile && strcmp(use_sendfile, "0")==0){
+			ONION_DEBUG("Sendfile is disabled");
+			onion_use_sendfile=0;
+		}
+		else
+			onion_use_sendfile=1;
+	}
+	
 	int fd=open(filename,O_RDONLY|O_CLOEXEC);
 	
 	if (fd<0)
@@ -173,7 +182,11 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 		onion_response_set_code(res, HTTP_PARTIAL_CONTENT);
 		//ONION_DEBUG("Need just a range: %s",range);
 		char tmp[1024];
-		strncpy(tmp, range+6, 1024);
+		if (strlen(range+6)>=sizeof(tmp)){
+			close(fd);
+			return OCS_INTERNAL_ERROR; // Bad specified range. Very bad indeed.
+		}
+		strncpy(tmp, range+6, sizeof(tmp)-1);
 		char *start=tmp;
 		char *end=tmp;
 		while (*end!='-' && *end) end++;
@@ -217,7 +230,7 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 	
 	if (length){
 #ifdef USE_SENDFILE
-		if (request->connection.listen_point->write==(void*)onion_http_write){ // Lets have a house party! I can use sendfile!
+		if (onion_use_sendfile && request->connection.listen_point->write==(void*)onion_http_write){ // Lets have a house party! I can use sendfile!
 			onion_response_write(res,NULL,0);
 			ONION_DEBUG("Using sendfile");
 			int r=sendfile(request->connection.fd, fd, NULL, length);

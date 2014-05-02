@@ -1,5 +1,5 @@
-libonion (0.2.0) unstable; urgency=low
+libonion (0.7.5) unstable; urgency=low
 
-  * Initial debian packaging.
+  * Initial release (Closes: #744119)
 
- -- David Moreno Montero <dmoreno@coralbits.com>  Fri, 31 Dec 2010 13:46:04 +0000
+ -- David Moreno Montero <dmoreno@coralbits.com>  Wed, 23 Apr 2014 16:16:42 +0200

@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #include <string.h>
@@ -982,6 +980,9 @@ static onion_connection_status prepare_POST(onion_request *req){
 		return OCS_INTERNAL_ERROR;
 	}
 	size_t cl=atol(content_size);
+	if (cl==0)
+		return onion_request_process(req);
+	
 	//ONION_DEBUG("Content type %s",content_type);
 	if (!content_type || (strstr(content_type, "application/x-www-form-urlencoded"))){
 		if (cl>req->connection.listen_point->server->max_post_size){
@@ -1116,6 +1117,7 @@ static onion_connection_status prepare_PUT(onion_request *req){
  * @short Frees the parser data.
  */
 void onion_request_parser_data_free(void *t){
+	ONION_DEBUG0("Free parser data");
 	onion_token *token=t;
 	if (token->extra){
 		free(token->extra);

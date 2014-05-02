@@ -4,7 +4,6 @@ add_executable(interactive interactive.c)
 
 target_link_libraries(interactive onion_static)
 
-if ( ${ARM} MATCHES "yes" )
-install(TARGETS interactive DESTINATION ${BINDIR})
-endif ( ${ARM} MATCHES "yes" )
+set_target_properties(interactive PROPERTIES OUTPUT_NAME "onion-interactive")
+install(TARGETS interactive	DESTINATION ${CMAKE_INSTALL_BINDIR})
 

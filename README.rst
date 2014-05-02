@@ -1,7 +1,14 @@
 Onion http server library
 =========================
 
-Onion plans to be a lightweight C library that facilitate to create simple HTTP servers. 
+.. image:: https://travis-ci.org/davidmoreno/onion.svg?branch=master#svg   
+   :target: https://travis-ci.org/davidmoreno/onion
+
+.. image:: https://scan.coverity.com/projects/1815/badge.svg#svg   
+   :target: https://scan.coverity.com/projects/1815
+
+
+Onion plans is a lightweight C library that facilitate the creation of simple HTTP servers and applications. 
 
 The use case is an existing application, or a new one, that needs some HTTP interconnection 
 with the world. It uses the library to add some handlers for specific URLs and generate and 
@@ -28,13 +35,26 @@ Colaborate!
 You can, and are encouraged, to branch at github, download and tweak onion to use it in your 
 projects.
 
-The library is under the LGPL license, so you can make almost everything with it, use it
-in your commercial and free software programs, and modify it to your needs.
+The library is dual licensed under the Apache2 license and GPLv2, so you can make almost anything
+with it, use it in your commercial and free software programs, and modify it to your needs.
 
 Please join the mailing list at https://groups.google.com/a/coralbits.com/group/onion-dev/topics,
 to ask your questions and comment on your success using onion.
 
 There is also a blog to keep everybody informed about news on onion at http://blog.coralbits.com/.
+
+Download
+--------
+
+There are third party contributed packages:
+
+ * RPM based: http://software.opensuse.org/download.html?project=home%3Arudi_m&package=onion
+ * Raspberry pi: http://packages.aisoy.com/debian/pool/unstable/libo/libonion/
+ * Arch Linux: https://aur.archlinux.org/packages/libonion-git/
+
+If you know of any other packaged version, please send me a note.
+ 
+As always they may be outdated, if you want the latests and greatest, do a manual compile and install.
 
 Compile and Install
 -------------------
@@ -51,6 +71,28 @@ Manual compile and install:
      $ make
      $ sudo make install
      
+Dependencies
+------------
+
+Required:
+
+* C compiler
+* cmake
+* make
+ 
+Optional; Onion will compile but some functionality will not be available:
+
+* gnutls
+* pthreads
+* libxml2
+* libpam
+* C++ compiler
+* Systemd
+
+Optional for examples:
+
+* cairo
+* libpng2
 
 SSL Support
 -----------
@@ -133,12 +175,31 @@ Systemd is integrated. If want to use it, just pass the flag O_SYSTEMD to the on
 
 Oterm has example socket and service files for oterm support.
 
-FreeBSD
--------
+FreeBSD/Darwin
+--------------
 
 Since september 2013 there is support for FreeBSD using libev or libevent. This work is not as tested 
 as the Linux version, but if some compilation error arises, please send the bug report and we will fix
 it ASAP.
+
+OSX/Darwin support is also available on the darwin branch.
+
+Once this work stabilizes it will be merged back to master.
+
+Environmental variables
+-----------------------
+
+You can set the following envvars to modify runtime behaviour of onion:
+
+* ONION_LOG
+
+  - noinfo   -- Disables all info output to the console, to achieve faster results
+  - nocolor  -- Disable color use by the log
+  - nodebug  -- Do not show debug lines
+  - syslog   -- Log to syslog. Can be changed programatically too, with the onion_log global function.
+
+* ONION_DEBUG0   -- Set the filename of a c source file, and DEBUG0 log messages are written. This is normally very verbose.
+* ONION_SENDFILE -- Set to 0 do disable sendfile. Under some file systems it does not work. Until a detection code is in place, it can be disabled with this.
 
 Binary compatibility breaks
 ---------------------------

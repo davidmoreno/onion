@@ -106,3 +106,14 @@ add_test(internal-permissions 17-permissions)
 add_executable(18-listen_stop 18-listen_stop.c)
 target_link_libraries(18-listen_stop onion)
 add_test(listen_stop 18-listen_stop)
+
+add_executable(19-random 19-random.c)
+target_link_libraries(19-random onion)
+add_test(random 19-random)
+
+if (SQLITE3_ENABLED)
+ add_executable(20-session_sqlite3 20-session_sqlite3.c)
+ target_link_libraries(20-session_sqlite3 onion)
+ add_test(session_sqlite3 20-session_sqlite3)
+endif(SQLITE3_ENABLED)
+

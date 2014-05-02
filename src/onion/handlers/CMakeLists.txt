@@ -31,9 +31,16 @@ target_link_libraries(onion_handlers_static ${PAMLIBS} ${XMLLIBS})
 SET(INCLUDES_HANDLERS static.h exportlocal.h auth_pam.h opack.h path.h webdav.h internal_status.h)
 MESSAGE(STATUS "Found include files ${INCLUDES_HANDLERS}")
 
-install(FILES ${INCLUDES_HANDLERS} DESTINATION ${INCLUDEDIR}/handlers/)
-install(TARGETS onion_handlers EXPORT onion_handlers DESTINATION ${LIBDIR})
-install(TARGETS onion_handlers_static EXPORT onion_handlers_static DESTINATION ${LIBDIR})
+SET_TARGET_PROPERTIES(onion_handlers onion_handlers_static
+	PROPERTIES
+		SOVERSION 0
+		VERSION ${ONION_VERSION}
+	)
+
+
+install(FILES ${INCLUDES_HANDLERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/handlers/)
+install(TARGETS onion_handlers EXPORT onion_handlers DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS onion_handlers_static EXPORT onion_handlers_static DESTINATION ${CMAKE_INSTALL_LIBDIR})
 if (${ARM})
 elseif (${ARM})
 install(EXPORT onion_handlers_static DESTINATION share/cmake)

@@ -22,7 +22,15 @@
 #include "parser.h"
 #include <onion/types.h>
 
+typedef enum{
+	STRING=0,
+	LITERAL=1,
+	DICT=2
+} vartype_e;
+
 void variable_write(struct parser_status_t *st, onion_block *b);
-void variable_solve(struct parser_status_t *st, const char *b, const char *tmpname, int type);
+void variable_solve(struct parser_status_t *st, const char *b, const char *tmpname, vartype_e type);
+
+list *split(const char *str,char delimiter);
 
 #endif

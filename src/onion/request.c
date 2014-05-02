@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #include <string.h>
@@ -57,7 +55,7 @@ void onion_request_parser_data_free(void *token); // At request_parser.c
 const char *onion_request_methods[16]={ 
 	"GET", "POST", "HEAD", "OPTIONS", 
 	"PROPFIND", "PUT", "DELETE", "MOVE", 
-	"MKCOL", "PROPPATCH", NULL, NULL, 
+	"MKCOL", "PROPPATCH", "PATCH", NULL, 
 	NULL, NULL, NULL, NULL };
 
 /**
@@ -136,6 +134,7 @@ void onion_request_free(onion_request *req){
     if (onion_dict_count(req->session)==0)
       onion_request_session_free(req);
     else{
+			onion_sessions_save(req->connection.listen_point->server->sessions, req->session_id, req->session);
       onion_dict_free(req->session); // Not really remove, just dereference
       free(req->session_id);
     }
@@ -152,6 +151,8 @@ void onion_request_free(onion_request *req){
 		if (req->parser.free)
 			req->parser.free(req->parser.data);
 	}
+	if (req->cookies)
+		onion_dict_free(req->cookies);
 	free(req);
 }
 
@@ -187,6 +188,7 @@ void onion_request_clean(onion_request* req){
       onion_request_session_free(req);
     }
     else{
+			onion_sessions_save(req->connection.listen_point->server->sessions, req->session_id, req->session);
       onion_dict_free(req->session); // Not really remove, just dereference
       req->session=NULL;
       free(req->session_id);
@@ -196,6 +198,10 @@ void onion_request_clean(onion_request* req){
 	if (req->connection.cli_info){
 		free(req->connection.cli_info);
 		req->connection.cli_info=NULL;
+	}
+	if (req->cookies){
+		onion_dict_free(req->cookies);
+		req->cookies=NULL;
 	}
 }
 
@@ -485,7 +491,7 @@ const char *onion_request_get_language_code(onion_request *req){
 }
 
 /**
- * @short Some extra data, normally when the petition is propfind
+ * @short Some extra data, normally when the petition is propfind or POST with non-form data.
  * @memberof onion_request_t
  */
 const onion_block *onion_request_get_data(onion_request *req){
@@ -684,3 +690,77 @@ onion_connection_status onion_request_write(onion_request* req, char* data, size
 	return req->parser.parse(req, &block);
 }
 
+/**
+ * @short Gets the dict with the cookies
+ * @memberof onion_request_t
+ * 
+ * @param req Request to get the cookies from
+ * 
+ * @returns A dict with all the cookies. It might be empty.
+ * 
+ * First call it generates the dict.
+ */
+onion_dict* onion_request_get_cookies_dict(onion_request* req){
+	if (req->cookies)
+		return req->cookies;
+	
+	req->cookies=onion_dict_new();
+	
+	const char *ccookies=onion_request_get_header(req, "Cookie");
+	if (!ccookies)
+		return req->cookies;
+	char *cookies=strdup(ccookies); // I prepare a temporal string, will modify it.
+	char *val=NULL;
+	char *key=NULL;
+	char *p=cookies;
+	
+	int first=1;
+	while(*p){
+		if (*p!=' ' && !key && !val){
+			key=p;
+		}
+		else if (*p=='=' && key && !val){
+			*p=0;
+			val=p+1;
+		}
+		else if (*p==';' && key && val){
+			*p=0;
+			if (first){
+				// The first cookie is special as it is the pointer to the reserved area for all the keys and values 
+				// for all th eother cookies, to free at dict free.
+				onion_dict_add(req->cookies, cookies, val, OD_FREE_KEY); 
+				first=0;
+			}
+			else
+				onion_dict_add(req->cookies, key, val, 0); /// Can use as static data as will be freed at first cookie free
+			ONION_DEBUG0("Add cookie <%s>=<%s> %d", key, val, first);
+			val=NULL;
+			key=NULL;
+		}
+		p++;
+	}
+	if (key && val && val<p){ // A final element, with value.
+		if (first)
+			onion_dict_add(req->cookies, cookies, val, OD_FREE_KEY);
+		else
+			onion_dict_add(req->cookies, key, val, 0);
+		ONION_DEBUG0("Add cookie <%s>=<%s> %d", key, val, first);
+	}
+	
+	return req->cookies;
+}
+
+/**
+ * @short Gets a Cookie value by name
+ * @memberof onion_request_t
+ * 
+ * @param req Reqeust to get the cookie from
+ * @param cookiename Name of the cookie
+ * 
+ * @returns The cookie value, or NULL
+ */
+const char* onion_request_get_cookie(onion_request* req, const char* cookiename)
+{
+	const onion_dict *cookies=onion_request_get_cookies_dict(req);
+	return onion_dict_get(cookies, cookiename);
+}

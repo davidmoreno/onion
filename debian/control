@@ -1,17 +1,15 @@
 Source: libonion
 Priority: extra
 Maintainer: David Moreno <dmoreno@coralbits.com>
-Build-Depends: debhelper (>= 7.0.50~), cmake, libgnutls-dev, libpam0g-dev, 
+Build-Depends: debhelper (>= 9), cmake, libgnutls-dev, libpam0g-dev, libxml2-dev, libsqlite3-dev, libcurl-dev, gnutls-bin
 Standards-Version: 3.8.4
 Section: libs
-Homepage: http://www.coralbits.com/libonion/
-Vcs-Git: https://github.com/davidmoreno/onion.git
-Vcs-Browser: https://github.com/davidmoreno/onion
+Homepage: http://github.com/davidmoreno/onion
 
 Package: libonion-dev
 Section: libdevel
 Architecture: any
-Depends: libonion
+Depends: libonion0 (= ${binary:Version})
 Description: HTTP server library - development package
  Onion plans to be a lightweight C library that facilitate to create simple 
  HTTP servers.
@@ -31,10 +29,10 @@ Description: HTTP server library - development package
  .
  API documentation is at http://coralbits.com/staticc/libonion/html/.
 
-Package: libonion
+Package: libonion0
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libgnutls26, libpam0g
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: HTTP server library
  Onion plans to be a lightweight C library that facilitate to create simple 
  HTTP servers.
@@ -83,8 +81,10 @@ Description: HTTP server library -- Tools
  .
  This includes the tools used to help onion developments (and maybe others):
  .
-  * opack -- Prepares a file to be embedded into an onion powered server executable
-  * crl   -- Do the compile/run loop, checking source files; as modified the executable 
-             is stopped and the loop starts again.
-
+  * opack -- Prepares a file to be embedded into an onion powered server 
+             executable
+  * crl   -- Do the compile/run loop, checking source files; as modified the 
+             executable is stopped and the loop starts again.
+  * otemplate -- Compile Django like templates to C source code to use with 
+             onion servers.
 

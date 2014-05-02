@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 
@@ -34,6 +32,8 @@
  * functionality to an exisitng program, libonion makes it as easy as possible.
  * 
  * @note Best way to navigate through this documentation is going to Files / Globals / Functions, or using the search button on the corner.
+ * 
+ * @note To Check the C++ bindings check at the Onion namespace.
  * 
  * There are many documented examples at the examples directory (https://github.com/davidmoreno/onion/tree/master/examples/).
  * 
@@ -184,6 +184,12 @@ onion *onion_new(int flags){
 		ONION_WARNING("There is no support for SOCK_CLOEXEC compiled in libonion. This may be a SECURITY PROBLEM as connections may leak into executed programs.");
 	}
 	
+	if (!(flags&O_NO_SIGPIPE)){
+		ONION_DEBUG("Ignoring SIGPIPE");
+		signal(SIGPIPE, SIG_IGN);
+	}
+	
+
 	onion *o=calloc(1,sizeof(onion));
 	if (!o){
 		return NULL;
@@ -215,7 +221,9 @@ onion *onion_new(int flags){
  */
 void onion_free(onion *onion){
 	ONION_DEBUG("Onion free");
-	onion_listen_stop(onion);
+	
+	if (onion->flags&O_LISTENING)
+		onion_listen_stop(onion);
 	
 	if (onion->poller)
 		onion_poller_free(onion->poller);
@@ -286,6 +294,8 @@ int onion_listen(onion *o){
 		ONION_ERROR("There are no available listen points");
 		return 1;
 	}
+	
+	o->flags|=O_LISTENING;
 
 	
 	if (o->flags&O_ONE){
@@ -351,6 +361,9 @@ int onion_listen(onion *o){
 			listen_points++;
 		}
 	}
+	
+	o->flags=o->flags & ~O_LISTENING;
+	
 	return 0;
 }
 
@@ -363,7 +376,11 @@ int onion_listen(onion *o){
  * If there is any pending connection, it can finish if onion not freed before.
  */
 void onion_listen_stop(onion* server){
-	/// Start listening
+	/// Not listening
+	if ((server->flags & O_LISTENING)==0)
+		return;
+	
+	/// Stop listening
 	onion_listen_point **lp=server->listen_points;
 	while (*lp){
 		onion_listen_point_listen_stop(*lp);
@@ -436,7 +453,7 @@ int onion_add_listen_point(onion* server, const char* hostname, const char* port
 		onion_listen_point **p=server->listen_points;
 		int protcount=0;
 		while (*p++) protcount++;
-		server->listen_points=realloc(server->listen_points, (protcount+2)*sizeof(onion_listen_point));
+		server->listen_points=(onion_listen_point**)realloc(server->listen_points, (protcount+2)*sizeof(onion_listen_point));
 		server->listen_points[protcount]=protocol;
 		server->listen_points[protcount+1]=NULL;
 	}
@@ -667,4 +684,23 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
  */
 void onion_set_max_post_size(onion *server, size_t max_size){
 	server->max_post_size=max_size;
+}
+
+/**
+ * @short Sets a new sessions backend.
+ * 
+ * By default it uses in mem sessions, but it can be set to use sqlite sessions.
+ * 
+ * Example:
+ * 
+ * @code
+ *   onion_set_session_backend(server, onion_sessions_sqlite3_new("sessions.sqlite"));
+ * @endcode
+ * 
+ * @param server The onion server
+ * @param sessions_backend The new backend
+ */
+void onion_set_session_backend(onion *server, onion_sessions *sessions_backend){
+	onion_sessions_free(server->sessions);
+	server->sessions=sessions_backend;
 }

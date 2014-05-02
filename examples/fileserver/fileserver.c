@@ -28,6 +28,7 @@
 #include <onion/response.h>
 #include <onion/handler.h>
 #include <onion/log.h>
+#include <onion/shortcuts.h>
 
 #include <onion/handlers/exportlocal.h>
 #include <onion/handlers/path.h>
@@ -57,24 +58,7 @@ onion_connection_status upload_file(upload_file_data *data, onion_request *req, 
 			snprintf(finalname,sizeof(finalname),"%s/%s",data->abspath,name);
 			ONION_DEBUG("Copying from %s to %s",filename,finalname);
 
-			unlink(finalname); // Just try to unlink it, if fail, sure its because it does not exist.
-			int src=open(filename,O_RDONLY);
-			int dst=open(finalname, O_WRONLY|O_CREAT, 0666);
-			if (!src || !dst){
-				ONION_ERROR("Could not open src or dst file (%d %d)",src,dst);
-				return OCS_INTERNAL_ERROR;
-			}
-			ssize_t r,w;
-			char buffer[1024*4];
-			while ( (r=read(src,buffer,sizeof(buffer))) > 0){
-				w=write(dst,buffer,r);
-				if (w!=r){
-					ONION_ERROR("Error writing file");
-					break;
-				}
-			}
-			close(src);
-			close(dst);
+			onion_shortcut_rename(filename, finalname);
 		}
 	}
 	return 0; // I just ignore the request, but process over the FILE data

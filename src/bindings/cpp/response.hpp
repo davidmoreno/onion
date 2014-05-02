@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2014 David Moreno Montero and othes
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #ifndef ONION_RESPONSE_HPP
@@ -31,52 +29,87 @@
 #include <ostream>
 
 namespace Onion{
-  class Response : public std::ostream {
-    class ResponseBuf : public std::streambuf{
-      Response *res;
-    public:
-      ResponseBuf(Response *_res) : res(_res){
-      }
-      virtual int overflow(int  c = traits_type::eof()){
-        char C=c;
-        res->write(&C,1);
-        return traits_type::not_eof(c);
-      }
-      std::streamsize xsputn(const char *data, std::streamsize s){
-        return res->write(data,s);
-      }
-    };
-    
-    onion_response *ptr;
-    ResponseBuf resbuf;
-  public:
-    Response(onion_response *_ptr) : ptr(_ptr), resbuf(this) { init( &resbuf ); }
-    
-    int write(const char *data, int len){
-      return onion_response_write(ptr, data, len);
-    }
-    
-    void setHeader(const std::string &k, const std::string &v){
-      onion_response_set_header(ptr, k.c_str(), v.c_str());
-    }
-    
-    void setLength(size_t length){
-      onion_response_set_length(ptr,length);
-    }
-    
-    void setCode(int code){
-      onion_response_set_code(ptr,code);
-    }
-    
-    void writeHeaders(){
+	/**
+	* @short Response on which to write the response to the clients.
+	* 
+	* Response itself is a std::ostream, so std::stream methods may be applied:
+	* 
+	* \code
+	*   res<<"OK";
+	* \endcode
+	*/
+	class Response : public std::ostream {
+		/**
+		* @short Buffer management for Onion::Response
+		*/
+		class ResponseBuf : public std::streambuf{
+			Response *res;
+		public:
+			ResponseBuf(Response *_res) : res(_res){
+			}
+			virtual int overflow(int  c = traits_type::eof()){
+				char C=c;
+				res->write(&C,1);
+				return traits_type::not_eof(c);
+			}
+			std::streamsize xsputn(const char *data, std::streamsize s){
+				return res->write(data,s);
+			}
+		};
+		
+		onion_response *ptr;
+		ResponseBuf resbuf;
+	public:
+		Response(onion_response *_ptr) : ptr(_ptr), resbuf(this) { init( &resbuf ); }
+		
+		/**
+		 * @short Writes some data straigth to the response.
+		 */
+		int write(const char *data, int len){
+			return onion_response_write(ptr, data, len);
+		}
+		
+		/**
+		 * @short Sets a header on the response.
+		 */
+		void setHeader(const std::string &k, const std::string &v){
+			onion_response_set_header(ptr, k.c_str(), v.c_str());
+		}
+		
+		/**
+		 * @short Sets the response lenght. 
+		 * 
+		 * If not set onion has some heuristics to try to guess it, or use chunked encoding.
+		 */
+		void setLength(size_t length){
+			onion_response_set_length(ptr,length);
+		}
+		
+		/**
+		 * @short Sets the response code, by default 200.
+		 */
+		void setCode(int code){
+			onion_response_set_code(ptr,code);
+		}
+		
+		/**
+		 * @short Ensure to write headers at this point. 
+		 * 
+		 * Normally automatically done when first data is written with write (or streams), but on some
+		 * occasions user may want to force write in a specific moment.
+		 */
+		void writeHeaders(){
 			onion_response_write_headers(ptr);
 		}
-    
-    onion_response *c_handler(){
+		
+		/**
+		 * @short Gets the C handelr to use onion_response C functions.
+		 */
+		onion_response *c_handler(){
 			return ptr;
 		}
-  };
-  
+	};
+	
 }
 
 #endif

@@ -339,8 +339,8 @@ static void oterm_check_running(process *n){
 int oterm_status(oterm_session *session, onion_request *req, onion_response *res){
 	onion_dict *status=onion_dict_new();
 	
-	pthread_mutex_lock( &session->head_mutex );
 	if (session){
+		pthread_mutex_lock( &session->head_mutex );
 		process *n=session->head;
 		int i=1;
 		while(n){
@@ -356,8 +356,8 @@ int oterm_status(oterm_session *session, onion_request *req, onion_response *res
 			n=n->next;
 			i++;
 		}
+		pthread_mutex_unlock( &session->head_mutex );
 	}
-	pthread_mutex_unlock( &session->head_mutex );
 	
 	return onion_shortcut_response_json(status, req, res);
 }
@@ -395,7 +395,7 @@ int oterm_resize(process *p, onion_request* req, onion_response *res){
 	
 	int ok=ioctl(p->fd, TIOCSWINSZ, (char *)&winSize) == 0;
 
-	if (ok>=0)
+	if (ok)
 		return onion_shortcut_response("OK",HTTP_OK, req, res);
 	else
 		return onion_shortcut_response("Error",HTTP_INTERNAL_ERROR, req, res);

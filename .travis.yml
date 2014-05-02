@@ -1,0 +1,28 @@
+language: c
+
+compiler:
+  - gcc
+  - clang
+
+git:
+  depth: 1
+
+install:
+  # install some packages from Ubuntu's default sources
+  - sudo apt-get -qq update
+
+script:
+  # make distcheck still does not work on travis
+  - mkdir build
+    && cd build
+    && cmake ..
+       -DCMAKE_C_FLAGS="-Werror"
+       -DCMAKE_CXX_FLAGS="-Werror"
+    && make VERBOSE=1
+    && (make test || true)
+
+after_script:
+  - if test -f ./Testing/Temporary/LastTest.log; then
+      echo "cat test logs:";
+      cat  ./Testing/Temporary/LastTest.log;
+    fi

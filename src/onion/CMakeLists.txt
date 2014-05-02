@@ -1,11 +1,16 @@
 # the lib itself. Two versions, static and shared.
 
-if (SYSTEMD_ENABLED)
-	set(SYSTEMD_C sd-daemon.c)
-endif(SYSTEMD_ENABLED)
+if (SQLITE3_ENABLED)
+	set(SQLITE3_C sessions_sqlite3.c)
+	set(SQLITE3_H sessions_sqlite3.h)
+endif(SQLITE3_ENABLED)
+
 # library dependencies
 if (GNUTLS_ENABLED)
 	set(HTTPS_C https.c)
+	set(RANDOM_C random-gnutls.c)
+else(GNUTLS_ENABLED)
+	set(RANDOM_C random-default.c)
 endif(GNUTLS_ENABLED)
 
 if (${ONION_POLLER} STREQUAL libevent)
@@ -29,9 +34,12 @@ if (${ONION_POLLER} STREQUAL epoll)
 endif (${ONION_POLLER} STREQUAL epoll)
 
 
-set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
-                        log.c sessions.c shortcuts.c block.c mime.c url.c ${SYSTEMD_C} ${POLLER_C}
-                        listen_point.c http_parser.c http.c ${HTTPS_C} websocket.c parser_block.c)
+set(SOURCES 
+	onion.c codecs.c dict.c request.c response.c handler.c 
+	log.c sessions.c sessions_mem.c shortcuts.c block.c mime.c url.c ${POLLER_C}
+	listen_point.c http.c ${HTTPS_C} websocket.c ${RANDOM_C} parser_block.c http_parser.c ${SQLITE3_C}
+# 	request_parser.c 
+	)
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(
@@ -47,6 +55,8 @@ ELSE (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_library(onion_static STATIC  ${SOURCES})
 ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
 
+
+
 # library dependencies
 if (GNUTLS_ENABLED)
 	target_link_libraries(onion ${GNUTLS_LIB} gcrypt)
@@ -56,10 +66,10 @@ if (PTHREADS)
 	target_link_libraries(onion pthread)
 	target_link_libraries(onion_static pthread)
 endif(PTHREADS)
-if (SYSTEMD_ENABLED)
-	target_link_libraries(onion ${RT_LIB})
-	target_link_libraries(onion_static ${RT_LIB})
-endif(SYSTEMD_ENABLED)
+if (SQLITE3_ENABLED)
+	target_link_libraries(onion ${SQLITE3_LIB})
+	target_link_libraries(onion_static ${SQLITE3_LIB})
+endif(SQLITE3_ENABLED)
 if (${ONION_POLLER} STREQUAL libevent)
 	target_link_libraries(onion event_core event_pthreads)
 	target_link_libraries(onion_static event_core event_pthreads)
@@ -68,7 +78,10 @@ if (${ONION_POLLER} STREQUAL libev)
 	target_link_libraries(onion ${LIBEV_LIB})
 	target_link_libraries(onion_static ${LIBEV_LIB})
 endif (${ONION_POLLER} STREQUAL libev)
-
+if (SYSTEMD_ENABLED)
+	target_link_libraries(onion ${SD_DAEMON_LIB})
+	target_link_libraries(onion_static ${SD_DAEMON_LIB})
+endif(SYSTEMD_ENABLED)
 
 
 add_subdirectory(handlers)
@@ -78,11 +91,17 @@ if (${PNG_ENABLED})
 add_subdirectory(extras)
 endif (${PNG_ENABLED})
 
-SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h sd-daemon.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h)
+SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h log.h mime.h onion.h poller.h request.h response.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ${SQLITE3_H})
 MESSAGE(STATUS "Found include files ${INCLUDES_ONION}")
 
-install(FILES ${INCLUDES_ONION} DESTINATION ${INCLUDEDIR})
-install(TARGETS onion onion_static EXPORT onion DESTINATION ${LIBDIR})
+SET_TARGET_PROPERTIES(onion onion_static
+	PROPERTIES
+		SOVERSION 0
+		VERSION ${ONION_VERSION}
+	)
+
+install(FILES ${INCLUDES_ONION} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS onion onion_static EXPORT onion DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 if (${ARM})
 elseif (${ARM})
