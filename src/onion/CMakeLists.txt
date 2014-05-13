@@ -34,7 +34,7 @@ if (${ONION_POLLER} STREQUAL epoll)
 endif (${ONION_POLLER} STREQUAL epoll)
 
 
-set(SOURCES onion.c codecs.c dict.c request.c response.c handler.c 
+set(SOURCES onion.c codecs.c dict.c low_util.c request.c response.c handler.c 
                         log.c sessions.c sessions_mem.c shortcuts.c block.c mime.c url.c ${POLLER_C}
 			listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c ${RANDOM_C} ${SQLITE3_C})
 

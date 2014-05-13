@@ -30,6 +30,7 @@
 #include <gnutls/crypto.h>
 #endif
 
+#include "low_util.h"
 #include "log.h"
 #include "codecs.h"
 
@@ -73,7 +74,7 @@ char *onion_base64_decode(const char *orig, int *length){
 	
 	//fprintf(stderr,"ol %d\n",ol);
 	int l=ol*3/4;
-	char *ret=malloc(l+1);
+	char *ret=onionlow_scalar_malloc(l+1);
 	
 	if (ol<4){ // Not even a block
 		if (length)
@@ -136,7 +137,7 @@ char *onion_base64_encode(const char *orig, int length){
 	if (orig==NULL)
 		return NULL;
 	/// that chars + \n one per every 57 + \n\0 at end, and maybe two '='
-	char *ret=malloc(((length*4)/3) + (length/57) + 2 + 3 );
+	char *ret=onionlow_malloc(((length*4)/3) + (length/57) + 2 + 3 );
 	if (length==0){ // easy case.. here.
 		ret[0]='\0';
 		return ret;
@@ -262,7 +263,7 @@ char *onion_quote_new(const char *str){
 			nl++;
 	}
 	// Now do the quotation part
-	char *ret=malloc(nl);
+	char *ret=onionlow_scalar_malloc(nl);
 	onion_quote(str, ret, nl);
 	return ret;
 }
@@ -308,7 +309,7 @@ char *onion_c_quote_new(const char *str){
 			l+=4;
 		l++; p++;
 	}
-	ret=malloc(l);
+	ret=onionlow_scalar_malloc(l);
 	onion_c_quote(str, ret, l);
 	return ret;
 }
@@ -459,7 +460,8 @@ char *onion_html_quote(const char *str){
 	}
 	if (size==(p-str))
 		return NULL;
-	char *ret=calloc(1,size+1);
+	char *ret=onionlow_scalar_malloc(size+1);
+	memset (ret, 0, size+1);
 	p=str;
 	char *t=ret;
 	while( (*p) ){

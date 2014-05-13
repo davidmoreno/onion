@@ -34,6 +34,7 @@
 #include "codecs.h"
 #include "log.h"
 #include "block.h"
+#include "low_util.h"
 
 /**
  * @short Known token types. This is merged with onion_connection_status as return value at token readers.
@@ -358,7 +359,7 @@ static onion_connection_status parse_PUT(onion_request *req, onion_buffer *data)
 	
 	if (exit){
 		close (*fd);
-		free(fd);
+		onionlow_free(fd);
 		token->extra=NULL;
 		return onion_request_process(req);
 	}
@@ -761,7 +762,7 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 		return onion_request_process(req);
 	}
 	
-	token->extra=strdup(token->str);
+	token->extra=onionlow_strdup(token->str);
 	
 	req->parser=parse_headers_VALUE;
 	return parse_headers_VALUE(req, data);
@@ -810,7 +811,7 @@ static onion_connection_status parse_headers_URL(onion_request *req, onion_buffe
 	if (res<=1000)
 		return res;
 
-	req->fullpath=strdup(token->str);
+	req->fullpath=onionlow_strdup(token->str);
 	onion_request_parse_query(req);
 	ONION_DEBUG0("URL path is %s", req->fullpath);
 	
@@ -862,7 +863,7 @@ static onion_connection_status parse_headers_GET(onion_request *req, onion_buffe
  */
 onion_connection_status onion_request_write(onion_request *req, const char *data, size_t size){
 	if (!req->parser_data){
-		req->parser_data=calloc(1, sizeof(onion_token));
+		req->parser_data=onionlow_calloc(1, sizeof(onion_token));
 		req->parser=parse_headers_GET;
 	}
 	
@@ -989,7 +990,7 @@ static onion_connection_status prepare_POST(onion_request *req){
 			ONION_ERROR("Asked to send much POST data. Limit %d. Failing.",req->connection.listen_point->server->max_post_size);
 			return OCS_INTERNAL_ERROR;
 		}
-		token->extra=malloc(cl+1); // Cl + \0
+		token->extra=onionlow_scalar_malloc(cl+1); // Cl + \0
 		token->extra_size=cl;
 		
 		req->parser=parse_POST_urlencode;
@@ -1009,7 +1010,7 @@ static onion_connection_status prepare_POST(onion_request *req){
 	
 	int mp_token_size=strlen(mp_token);
 	token->extra_size=cl; // Max size of the multipart->data
-	onion_multipart_buffer *multipart=malloc(token->extra_size+sizeof(onion_multipart_buffer)+mp_token_size+2);
+	onion_multipart_buffer *multipart=onionlow_malloc(token->extra_size+sizeof(onion_multipart_buffer)+mp_token_size+2);
 	token->extra=(char*)multipart;
 	
 	multipart->boundary=(char*)multipart+sizeof(onion_multipart_buffer)+1;
@@ -1082,7 +1083,7 @@ static onion_connection_status prepare_PUT(onion_request *req){
 	char filename[]="/tmp/onion-XXXXXX";
 	int fd=mkstemp(filename);
 	if (fd<0)
-		ONION_ERROR("Could not create temporal file at %s.", filename);
+		ONION_ERROR("Could not create temporary file at %s.", filename);
 	
 	onion_block_add_str(req->data, filename);
 	ONION_DEBUG0("Creating PUT file %s (%d bytes long)", filename, token->extra_size);
@@ -1102,7 +1103,7 @@ static onion_connection_status prepare_PUT(onion_request *req){
 		return onion_request_process(req);
 	}
 	
-	int *pfd=malloc(sizeof(fd));
+	int *pfd=onionlow_scalar_malloc(sizeof(fd));
 	*pfd=fd;
 	
 	token->extra=(char*)pfd;
@@ -1120,8 +1121,8 @@ void onion_request_parser_data_free(void *t){
 	ONION_DEBUG0("Free parser data");
 	onion_token *token=t;
 	if (token->extra){
-		free(token->extra);
+		onionlow_free(token->extra);
 		token->extra=NULL;
 	}
-	free(token);
+	onionlow_free(token);
 }

@@ -45,6 +45,7 @@
 #include "block.h"
 #include "mime.h"
 #include "types_internal.h"
+#include "low_util.h"
 
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
@@ -115,8 +116,8 @@ onion_connection_status onion_shortcut_redirect(const char *newurl, onion_reques
 
 /// Shortcut for fast internal redirect. It returns what the server would return with the new address.
 onion_connection_status onion_shortcut_internal_redirect(const char *newurl, onion_request *req, onion_response *res){
-  free(req->fullpath);
-  req->fullpath=req->path=strdup(newurl);
+  onionlow_free(req->fullpath);
+  req->fullpath=req->path=onionlow_strdup(newurl);
   return onion_handler_handle(req->connection.listen_point->server->root_handler, req, res);
 }
 
