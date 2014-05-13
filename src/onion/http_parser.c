@@ -96,7 +96,7 @@ onion_connection_status onion_http_parse(onion_request *req, onion_parser_block 
 	}
 	
 	if (ret == OCS_REQUEST_READY){ // restarting the parser
-		ONION_DEBUG0("Process request.");
+		ONION_DEBUG0("Process request. Ready for next petition.");
 		pd->parser=onion_http_parse_petition;
 	}
 	
