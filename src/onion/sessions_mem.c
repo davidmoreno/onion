@@ -28,6 +28,7 @@
 #include "dict.h"
 #include "log.h"
 #include "random.h"
+#include "low_util.h"
 
 char *last_data=NULL;
 
@@ -54,13 +55,13 @@ static void onion_sessions_mem_save(onion_sessions *sessions, const char *sessio
 
 static void onion_sessions_mem_free(onion_sessions *sessions){
 	onion_dict_free(sessions->data);
-	free(sessions);
+	onionlow_free(sessions);
 }
 
 onion_sessions *onion_sessions_mem_new(){
 	onion_random_init();
 	
-	onion_sessions *ret=malloc(sizeof(onion_sessions));
+	onion_sessions *ret=onionlow_malloc(sizeof(onion_sessions));
 	ret->data=onion_dict_new();
 	
 	ret->get=onion_sessions_mem_get;

@@ -70,7 +70,22 @@ Manual compile and install:
      $ cmake ..
      $ make
      $ sudo make install
-     
+
+To compile with debugging enabled, use
+
+    ::
+
+     $ cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+To run with some debug messages, set the ONION_DEBUG and/or
+ONION_DEBUG0 environment variable containing some source file names,
+e.g.
+
+    ::
+
+     $ export ONION_DEBUG0='request.c url.c'
+
+
 Dependencies
 ------------
 
