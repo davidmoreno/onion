@@ -104,9 +104,6 @@ extern "C"
    generally should not return, i.e. should exit, abort, or perhaps
    setjmp.... */
   typedef void onionlow_memoryfailure_sigt (const char *msg)
-#ifdef __GNUC__
-    __attribute__ ((noreturn))
-#endif
     ;
 
 /* Our configurator for memory routines. To be called once before any
