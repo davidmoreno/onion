@@ -97,14 +97,13 @@ extern "C"
   typedef void *onionlow_scalar_malloc_sigt (size_t sz);
   typedef void *onionlow_calloc_sigt (size_t nmemb, size_t size);
   typedef void *onionlow_realloc_sigt (void *ptr, size_t size);
-  typedef char* onionlow_strdup_sigt (const char *ptr);
+  typedef char *onionlow_strdup_sigt (const char *ptr);
   typedef void onionlow_free_sigt (void *ptr);
 
 /* The memory failure handler is called with a short message. It
    generally should not return, i.e. should exit, abort, or perhaps
    setjmp.... */
-  typedef void onionlow_memoryfailure_sigt (const char *msg)
-    ;
+  typedef void onionlow_memoryfailure_sigt (const char *msg);
 
 /* Our configurator for memory routines. To be called once before any
    other onion processing at initialization. All the routines should
@@ -147,23 +146,23 @@ extern "C"
   typedef void onionlow_pthread_exit_sigt (void *retval);
 
   int onionlow_pthread_sigmask (int how, const sigset_t * set,
-				 sigset_t * oldset);
+				sigset_t * oldset);
   typedef int onionlow_pthread_sigmask_sigt (int how, const sigset_t * set,
-					      sigset_t * oldset);
+					     sigset_t * oldset);
 
   /* Our configurator for pthread wrapping. Every routine should be
      provided. This initialization should happen early, at the same
      time as onionlow_initialize_memory_allocation, and before any
      other onion calls. If using Boehm GC you probably want to pass
-     GC_pthread_create, GC_pthread_join, etc, etc...*/
+     GC_pthread_create, GC_pthread_join, etc, etc... */
 
-  void onionlow_initialize_threads 
-  (onionlow_pthread_create_sigt *thrcreator,
-   onionlow_pthread_join_sigt * thrjoiner,
-   onionlow_pthread_cancel_sigt *thrcanceler,
-   onionlow_pthread_detach_sigt *thrdetacher,
-   onionlow_pthread_exit_sigt *threxiter,
-   onionlow_pthread_sigmask_sigt *thrsigmasker);
+  void onionlow_initialize_threads
+    (onionlow_pthread_create_sigt * thrcreator,
+     onionlow_pthread_join_sigt * thrjoiner,
+     onionlow_pthread_cancel_sigt * thrcanceler,
+     onionlow_pthread_detach_sigt * thrdetacher,
+     onionlow_pthread_exit_sigt * threxiter,
+     onionlow_pthread_sigmask_sigt * thrsigmasker);
 
 #endif				/*HAVE_PTHREADS */
 

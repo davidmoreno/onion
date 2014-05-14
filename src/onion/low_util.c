@@ -25,12 +25,14 @@
    for memory allocation and thread creation. This should be useful
    e.g. to use libonion with the Boehm conservative garbage collector,
    see http://hboehm.info/gc/ for more. This file is contributed by
-   Basile Starynkevitch see http://starynkevitch.net/Basile/ for
-   more. */
+   Basile Starynkevitch (France), see http://starynkevitch.net/Basile/ for
+   contact information. */
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
+
 
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
@@ -41,24 +43,27 @@
 
 /* the pointers to user provided routines for memory management &
    memory failure */
-static onionlow_malloc_sigt *malloc_userout;
-static onionlow_scalar_malloc_sigt *scalarmalloc_userout;
-static onionlow_calloc_sigt *calloc_userout;
-static onionlow_realloc_sigt *realloc_userout;
-static onionlow_strdup_sigt *strdup_userout;
-static onionlow_memoryfailure_sigt *memoryfailure_userout;
-static onionlow_free_sigt *free_userout;
+static void default_memoryfailure_onion (const char *msg);
+static onionlow_malloc_sigt *malloc_onion_f = malloc;
+static onionlow_scalar_malloc_sigt *scalarmalloc_onion_f = malloc;
+static onionlow_calloc_sigt *calloc_onion_f = calloc;
+static onionlow_realloc_sigt *realloc_onion_f = realloc;
+static onionlow_strdup_sigt *strdup_onion_f = strdup;
+static onionlow_free_sigt *free_onion_f = free;
+static onionlow_memoryfailure_sigt *memoryfailure_onion_f
+  = default_memoryfailure_onion;
+
 
 
 
 #ifdef HAVE_PTHREADS
 /* the pointers to user provided routines for threads */
-static onionlow_pthread_create_sigt *thrcreate_userout;
-static onionlow_pthread_join_sigt *thrjoin_userout;
-static onionlow_pthread_cancel_sigt *thrcancel_userout;
-static onionlow_pthread_detach_sigt *thrdetach_userout;
-static onionlow_pthread_exit_sigt *threxit_userout;
-static onionlow_pthread_sigmask_sigt *thrsigmask_userout;
+static onionlow_pthread_create_sigt *thrcreate_onion_f = pthread_create;
+static onionlow_pthread_join_sigt *thrjoin_onion_f = pthread_join;
+static onionlow_pthread_cancel_sigt *thrcancel_onion_f = pthread_cancel;
+static onionlow_pthread_detach_sigt *thrdetach_onion_f = pthread_detach;
+static onionlow_pthread_exit_sigt *threxit_onion_f = pthread_exit;
+static onionlow_pthread_sigmask_sigt *thrsigmask_onion_f = pthread_sigmask;
 #endif /* HAVE_PTHREADS */
 
 
@@ -67,18 +72,25 @@ static onionlow_pthread_sigmask_sigt *thrsigmask_userout;
   char errmsg[48];					\
   memset (errmsg, 0, sizeof(errmsg));			\
   snprintf (errmsg, sizeof(errmsg), Fmt, __VA_ARGS__);	\
-  if (memoryfailure_userout)				\
-    memoryfailure_userout (errmsg);			\
-  ONION_ERROR("memory failure: %s", errmsg);		\
+  memoryfailure_onion_f (errmsg);			\
   abort (); } while(0)
+
+
+/*** our default memory failure handler: ***/
+static void
+default_memoryfailure_onion (const char *msg)
+{
+  ONION_ERROR ("memory failure: %s (%s)", msg, strerror (errno));
+  exit (EXIT_FAILURE);
+}
 
 /***** NEVER FAILING ALLOCATORS *****/
 void *
 onionlow_malloc (size_t sz)
 {
   void *res = NULL;
-  if (malloc_userout)
-    res = malloc_userout (sz);
+  if (malloc_onion_f)
+    res = malloc_onion_f (sz);
   else
     res = malloc (sz);
   if (!res)
@@ -90,8 +102,8 @@ void *
 onionlow_scalar_malloc (size_t sz)
 {
   void *res = NULL;
-  if (scalarmalloc_userout)
-    res = scalarmalloc_userout (sz);
+  if (scalarmalloc_onion_f)
+    res = scalarmalloc_onion_f (sz);
   else
     res = malloc (sz);
   if (!res)
@@ -106,8 +118,8 @@ onionlow_calloc (size_t nmemb, size_t size)
   void *res = NULL;
   if (nmemb == 0 || size == 0)
     return NULL;
-  if (calloc_userout)
-    res = calloc_userout (nmemb, size);
+  if (calloc_onion_f)
+    res = calloc_onion_f (nmemb, size);
   else
     res = calloc (nmemb, size);
   if (!res)
@@ -120,8 +132,8 @@ void *
 onionlow_realloc (void *ptr, size_t size)
 {
   void *res = NULL;
-  if (realloc_userout)
-    res = realloc_userout (ptr, size);
+  if (realloc_onion_f)
+    res = realloc_onion_f (ptr, size);
   else
     res = realloc (ptr, size);
   if (!res)
@@ -135,8 +147,8 @@ onionlow_strdup (const char *str)
   char *res = NULL;
   if (!str)
     return NULL;
-  if (strdup_userout)
-    res = strdup_userout (str);
+  if (strdup_onion_f)
+    res = strdup_onion_f (str);
   else
     res = strdup (str);
   if (!res)
@@ -149,8 +161,8 @@ void *
 onionlow_try_malloc (size_t sz)
 {
   void *res = NULL;
-  if (malloc_userout)
-    res = malloc_userout (sz);
+  if (malloc_onion_f)
+    res = malloc_onion_f (sz);
   else
     res = malloc (sz);
   return res;
@@ -160,8 +172,8 @@ void *
 onionlow_try_scalar_malloc (size_t sz)
 {
   void *res = NULL;
-  if (scalarmalloc_userout)
-    res = scalarmalloc_userout (sz);
+  if (scalarmalloc_onion_f)
+    res = scalarmalloc_onion_f (sz);
   else
     res = malloc (sz);
   return res;
@@ -174,8 +186,8 @@ onionlow_try_calloc (size_t nmemb, size_t size)
   void *res = NULL;
   if (nmemb == 0 || size == 0)
     return NULL;
-  if (calloc_userout)
-    res = calloc_userout (nmemb, size);
+  if (calloc_onion_f)
+    res = calloc_onion_f (nmemb, size);
   else
     res = calloc (nmemb, size);
   return res;
@@ -185,8 +197,8 @@ void *
 onionlow_try_realloc (void *ptr, size_t size)
 {
   void *res = NULL;
-  if (realloc_userout)
-    res = realloc_userout (ptr, size);
+  if (realloc_onion_f)
+    res = realloc_onion_f (ptr, size);
   else
     res = realloc (ptr, size);
   return res;
@@ -198,8 +210,8 @@ onionlow_try_strdup (const char *str)
   char *res = NULL;
   if (!str)
     return NULL;
-  if (strdup_userout)
-    res = strdup_userout (str);
+  if (strdup_onion_f)
+    res = strdup_onion_f (str);
   else
     res = strdup (str);
   return res;
@@ -210,78 +222,89 @@ onionlow_free (void *ptr)
 {
   if (!ptr)
     return;
-  if (free_userout)
-    free_userout (ptr);
+  if (free_onion_f)
+    free_onion_f (ptr);
   else
     free (ptr);
 }
 
+/* Our configurator for memory routines. To be called once before any
+   other onion processing at initialization. All the routines should
+   be explicitly provided. */
+void onionlow_initialize_memory_allocation
+  (onionlow_malloc_sigt * malloc_pf,
+   onionlow_scalar_malloc_sigt * scalarmalloc_pf,
+   onionlow_calloc_sigt * calloc_pf,
+   onionlow_realloc_sigt * realloc_pf,
+   onionlow_strdup_sigt * strdup_pf,
+   onionlow_free_sigt * free_pf,
+   onionlow_memoryfailure_sigt * memoryfailure_pf)
+{
+  malloc_onion_f = malloc_pf;
+  scalarmalloc_onion_f = scalarmalloc_pf;
+  calloc_onion_f = calloc_pf;
+  strdup_onion_f = strdup_pf;
+  realloc_onion_f = realloc_pf;
+  strdup_onion_f = strdup_pf;
+  free_onion_f = free_pf;
+  memoryfailure_onion_f = memoryfailure_pf;
+}
 
 #ifdef HAVE_PTHREADS
-/* the pointers to user provided routines for threads */
-static onionlow_pthread_create_sigt *thrcreate_userout;
-static onionlow_pthread_join_sigt *thrjoin_userout;
-static onionlow_pthread_cancel_sigt *thrcancel_userout;
-static onionlow_pthread_detach_sigt *thrdetach_userout;
-static onionlow_pthread_exit_sigt *threxit_userout;
-static onionlow_pthread_sigmask_sigt *thrsigmask_userout;
-
 
 int
 onionlow_pthread_create (pthread_t * thread,
 			 const pthread_attr_t * attr,
 			 void *(*start_routine) (void *), void *arg)
 {
-  if (thrcreate_userout)
-    return thrcreate_userout (thread, attr, start_routine, arg);
-  else
-    return pthread_create (thread, attr, start_routine, arg);
+  return thrcreate_onion_f (thread, attr, start_routine, arg);
 }
 
 int
 onionlow_pthread_join (pthread_t thread, void **retval)
 {
-  if (thrjoin_userout)
-    return thrjoin_userout (thread, retval);
-  else
-    return pthread_join (thread, retval);
+  return thrjoin_onion_f (thread, retval);
 }
 
 int
 onionlow_pthread_cancel (pthread_t thread)
 {
-  if (thrcancel_userout)
-    return thrcancel_userout (thread);
-  else
-    return pthread_cancel (thread);
+  return thrcancel_onion_f (thread);
 }
 
 int
 onionlow_pthread_detach (pthread_t thread)
 {
-  if (thrdetach_userout)
-    return thrdetach_userout (thread);
-  else
-    return pthread_detach (thread);
+  return thrdetach_onion_f (thread);
 }
 
 void
-onionlow_pthread_exit (void* retval)
+onionlow_pthread_exit (void *retval)
 {
-  if (threxit_userout)
-    threxit_userout (retval);
-  else
-    pthread_exit (retval);
+  threxit_onion_f (retval);
 }
 
 
 int
 onionlow_pthread_sigmask (int how, const sigset_t * set, sigset_t * oldset)
 {
-  if (thrsigmask_userout)
-    return thrsigmask_userout (how, set, oldset);
-  else
-    return pthread_sigmask (how, set, oldset);
+  return thrsigmask_onion_f (how, set, oldset);
+}
+
+void onionlow_initialize_threads
+  (onionlow_pthread_create_sigt * thrcreator_pf,
+   onionlow_pthread_join_sigt * thrjoiner_pf,
+   onionlow_pthread_cancel_sigt * thrcanceler_pf,
+   onionlow_pthread_detach_sigt * thrdetacher_pf,
+   onionlow_pthread_exit_sigt * threxiter_pf,
+   onionlow_pthread_sigmask_sigt * thrsigmasker_pf)
+{
+  thrcreate_onion_f = thrcreator_pf;
+  thrjoin_onion_f = thrjoiner_pf;
+  thrcancel_onion_f = thrcanceler_pf;
+  thrdetach_onion_f = thrdetacher_pf;
+  threxit_onion_f = threxiter_pf;
+  thrsigmask_onion_f = thrsigmasker_pf;
 }
 
 #endif /* HAVE_PTHREADS */
