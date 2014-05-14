@@ -191,7 +191,7 @@ onion *onion_new(int flags){
 	}
 	
 
-	onion *o=onionlow_calloc(1,sizeof(onion));
+	onion *o=onion_os_calloc(1,sizeof(onion));
 	if (!o){
 		return NULL;
 	}
@@ -199,7 +199,7 @@ onion *onion_new(int flags){
 	o->timeout=5000; // 5 seconds of timeout, default.
 	o->poller=onion_poller_new(15);
 	if (!o->poller){
-		onionlow_free(o);
+		onion_os_free(o);
 		return NULL;
 	}
 	o->sessions=onion_sessions_new();
@@ -230,7 +230,7 @@ void onion_free(onion *onion){
 		onion_poller_free(onion->poller);
 	
 	if (onion->username)
-		onionlow_free(onion->username);
+		onion_os_free(onion->username);
 	
 	if (onion->listen_points){
 		onion_listen_point **p=onion->listen_points;
@@ -238,7 +238,7 @@ void onion_free(onion *onion){
 			ONION_DEBUG("Free %p listen_point", *p);
 			onion_listen_point_free(*p++);
 		}
-		onionlow_free(onion->listen_points);
+		onion_os_free(onion->listen_points);
 	}
 	if (onion->root_handler)
 		onion_handler_free(onion->root_handler);
@@ -250,9 +250,9 @@ void onion_free(onion *onion){
 	
 #ifdef HAVE_PTHREADS
 	if (onion->threads)
-		onionlow_free(onion->threads);
+		onion_os_free(onion->threads);
 #endif
-	onionlow_free(onion);
+	onion_os_free(onion);
 }
 
 /**
@@ -269,7 +269,7 @@ int onion_listen(onion *o){
 #ifdef HAVE_PTHREADS
 	if (!(o->flags&O_DETACHED) && (o->flags&O_DETACH_LISTEN)){ // Must detach and return
 		o->flags|=O_DETACHED;
-		int errcode=onionlow_pthread_create(&o->listen_thread,NULL, (void*)onion_listen, o);
+		int errcode=onion_os_pthread_create(&o->listen_thread,NULL, (void*)onion_listen, o);
 		if (errcode!=0)
 			return errcode;
 		return 0;
@@ -334,10 +334,10 @@ int onion_listen(onion *o){
 #ifdef HAVE_PTHREADS
 		ONION_DEBUG("Start polling / listening %p, %p, %p", o->listen_points, *o->listen_points, *(o->listen_points+1));
 		if (o->flags&O_THREADED){
-			o->threads=onionlow_malloc(sizeof(pthread_t)*(o->nthreads-1));
+			o->threads=onion_os_malloc(sizeof(pthread_t)*(o->nthreads-1));
 			int i;
 			for (i=0;i<o->nthreads-1;i++){
-				onionlow_pthread_create(&o->threads[i],NULL,(void*)onion_poller_poll, o->poller);
+				onion_os_pthread_create(&o->threads[i],NULL,(void*)onion_poller_poll, o->poller);
 			}
 			
 			// Here is where it waits.. but eventually it will exit at onion_listen_stop
@@ -345,7 +345,7 @@ int onion_listen(onion *o){
 			ONION_DEBUG("Closing onion_listen");
 			
 			for (i=0;i<o->nthreads-1;i++){
-				onionlow_pthread_join(o->threads[i],NULL);
+				onion_os_pthread_join(o->threads[i],NULL);
 			}
 		}
 		else
@@ -393,7 +393,7 @@ void onion_listen_stop(onion* server){
 	}
 #ifdef HAVE_PTHREADS
 	if (server->flags&O_DETACHED)
-		onionlow_pthread_join(server->listen_thread, NULL);
+		onion_os_pthread_join(server->listen_thread, NULL);
 #endif
 }
 
@@ -446,22 +446,22 @@ int onion_add_listen_point(onion* server, const char* hostname, const char* port
 	
 	protocol->server=server;
 	if (hostname)
-		protocol->hostname=onionlow_strdup(hostname);
+		protocol->hostname=onion_os_strdup(hostname);
 	if (port)
-		protocol->port=onionlow_strdup(port);
+		protocol->port=onion_os_strdup(port);
 	
 	if (server->listen_points){
 		onion_listen_point **p=server->listen_points;
 		int protcount=0;
 		while (*p++) protcount++;
 		server->listen_points=
-		  (onion_listen_point**)onionlow_realloc(server->listen_points,
+		  (onion_listen_point**)onion_os_realloc(server->listen_points,
 							 (protcount+2)*sizeof(onion_listen_point));
 		server->listen_points[protcount]=protocol;
 		server->listen_points[protcount+1]=NULL;
 	}
 	else{
-		server->listen_points=onionlow_malloc(sizeof(onion_listen_point*)*2);
+		server->listen_points=onion_os_malloc(sizeof(onion_listen_point*)*2);
 		server->listen_points[0]=protocol;
 		server->listen_points[1]=NULL;
 	}
@@ -535,7 +535,7 @@ int onion_flags(onion *onion){
  * but the proper way should be use capabilities and/or SELinux.
  */
 void onion_set_user(onion *server, const char *username){
-	server->username=onionlow_strdup(username);
+	server->username=onion_os_strdup(username);
 }
 
 void onion_url_free_data(onion_url_data **d);
@@ -617,8 +617,8 @@ static int onion_default_error(void *handler, onion_request *req, onion_response
 /// Sets the port to listen
 void onion_set_port(onion *server, const char *port){
 	if (server->listen_points){
-		onionlow_free(server->listen_points[0]->port);
-		server->listen_points[0]->port=onionlow_strdup(port);
+		onion_os_free(server->listen_points[0]->port);
+		server->listen_points[0]->port=onion_os_strdup(port);
 	}
 	else{
 		onion_add_listen_point(server, NULL, port, onion_http_new());
@@ -628,8 +628,8 @@ void onion_set_port(onion *server, const char *port){
 /// Sets the hostname on which to listen
 void onion_set_hostname(onion *server, const char *hostname){
 	if (server->listen_points){
-		onionlow_free(server->listen_points[0]->hostname);
-		server->listen_points[0]->hostname=onionlow_strdup(hostname);
+		onion_os_free(server->listen_points[0]->hostname);
+		server->listen_points[0]->hostname=onion_os_strdup(hostname);
 	}
 	else{
 		onion_add_listen_point(server, hostname, NULL, onion_http_new());
@@ -651,9 +651,9 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 			}
 			ONION_DEBUG("Promoting from HTTP to HTTPS");
 			char *port=first_listen_point->port 
-			  ? onionlow_strdup(first_listen_point->port) : NULL;
+			  ? onion_os_strdup(first_listen_point->port) : NULL;
 			char *hostname=first_listen_point->hostname 
-			  ? onionlow_strdup(first_listen_point->hostname) : NULL;
+			  ? onion_os_strdup(first_listen_point->hostname) : NULL;
 			onion_listen_point_free(first_listen_point);
 			onion_listen_point *https=onion_https_new();
 			if (NULL==https){

@@ -64,7 +64,7 @@ static onion_dict_node *onion_dict_node_new(const char *key, const void *value, 
  * Initializes the basic tree with all the structure in place, but empty.
  */
 onion_dict *onion_dict_new(){
-	onion_dict *dict=onionlow_calloc(1, sizeof(onion_dict));
+	onion_dict *dict=onion_os_calloc(1, sizeof(onion_dict));
 #ifdef HAVE_PTHREADS
 	pthread_rwlock_init(&dict->lock, NULL);
 	pthread_mutex_init(&dict->refmutex, NULL);
@@ -142,7 +142,7 @@ static void onion_dict_node_free(onion_dict_node *node){
 		onion_dict_node_free(node->right);
 
 	onion_dict_node_data_free(&node->data);
-	onionlow_free(node);
+	onion_os_free(node);
 }
 
 /**
@@ -169,7 +169,7 @@ void onion_dict_free(onion_dict *dict){
 #endif
 		if (dict->root)
 			onion_dict_node_free(dict->root);
-		onionlow_free(dict);
+		onion_os_free(dict);
 	}
 }
 	
@@ -197,7 +197,7 @@ static const onion_dict_node *onion_dict_find_node(const onion_dict *d, const on
 
 /// Allocates a new node data, and sets the data itself.
 static onion_dict_node *onion_dict_node_new(const char *key, const void *value, int flags){
-	onion_dict_node *node=onionlow_malloc(sizeof(onion_dict_node));
+	onion_dict_node *node=onion_os_malloc(sizeof(onion_dict_node));
 
 	onion_dict_set_node_data(&node->data, key, value, flags);
 	
@@ -211,14 +211,14 @@ static onion_dict_node *onion_dict_node_new(const char *key, const void *value, 
 static void onion_dict_set_node_data(onion_dict_node_data *data, const char *key, const void *value, int flags){
 	//ONION_DEBUG("Set data %02X",flags);
 	if ((flags&OD_DUP_KEY)==OD_DUP_KEY) // not enought with flag, as its a multiple bit flag, with FREE included
-		data->key=onionlow_strdup(key);
+		data->key=onion_os_strdup(key);
 	else
 		data->key=key;
 	if ((flags&OD_DUP_VALUE)==OD_DUP_VALUE){
 		if (flags&OD_DICT)
 			data->value=onion_dict_hard_dup((onion_dict*)value);
 		else
-			data->value=onionlow_strdup(value);
+			data->value=onion_os_strdup(value);
 	}
 	else
 		data->value=value;
@@ -284,7 +284,7 @@ static onion_dict_node  *onion_dict_node_add(onion_dict *d, onion_dict_node *nod
 		//ONION_DEBUG("Replace %s with %s", node->data.key, nnode->data.key);
 		onion_dict_node_data_free(&node->data);
 		memcpy(&node->data, &nnode->data, sizeof(onion_dict_node_data));
-		onionlow_free(nnode);
+		onion_os_free(nnode);
 		return node;
 	}
 	else if (cmp<0){
@@ -322,14 +322,14 @@ void onion_dict_add(onion_dict *dict, const char *key, const void *value, int fl
 /// Frees the memory, if necesary of key and value
 static void onion_dict_node_data_free(onion_dict_node_data *data){
 	if (data->flags&OD_FREE_KEY){
-		onionlow_free((char*)data->key);
+		onion_os_free((char*)data->key);
 	}
 	if (data->flags&OD_FREE_VALUE){
 		if (data->flags&OD_DICT){
 			onion_dict_free((onion_dict*)data->value);
 		}
 		else
-			onionlow_free((char*)data->value);
+			onion_os_free((char*)data->value);
 	}
 }
 
@@ -350,7 +350,7 @@ static onion_dict_node *onion_dict_node_remove(const onion_dict *d, onion_dict_n
 		//ONION_DEBUG("Remove here %p", node);
 		onion_dict_node_data_free(&node->data);
 		if (node->left==NULL && node->right==NULL){
-			onionlow_free(node);
+			onion_os_free(node);
 			return NULL;
 		}
 		if (node->left==NULL){
@@ -538,7 +538,7 @@ static void onion_dict_json_preorder(onion_block *block, const char *key, const 
 		return;
 	}
 	onion_block_add_str(block, s);
-	onionlow_free(s);
+	onion_os_free(s);
 	onion_block_add_char(block, ':');
 	if (flags&OD_DICT){
 		onion_block *tmp;
@@ -557,7 +557,7 @@ static void onion_dict_json_preorder(onion_block *block, const char *key, const 
 			return;
 		}
 		onion_block_add_str(block, s);
-		onionlow_free(s);
+		onion_os_free(s);
 	}
 	onion_block_add_data(block, ", ",2);
 }

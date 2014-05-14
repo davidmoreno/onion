@@ -48,7 +48,7 @@ struct onion_poller_slot_t{
 
 /// Create a new slot for the poller
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
-	onion_poller_slot *ret=onionlow_calloc(1, sizeof(onion_poller_slot));
+	onion_poller_slot *ret=onion_os_calloc(1, sizeof(onion_poller_slot));
 	ret->fd=fd;
 	ret->f=f;
 	ret->data=data;
@@ -84,7 +84,7 @@ void onion_poller_slot_set_type(onion_poller_slot *el, int type){
 
 /// Create a new poller
 onion_poller *onion_poller_new(int aprox_n){
-	onion_poller *ret=onionlow_calloc(1,sizeof(onion_poller));
+	onion_poller *ret=onion_os_calloc(1,sizeof(onion_poller));
 	ret->loop=ev_default_loop(0);
 	sem_init(&ret->sem, 0, 1);
 	return ret;
@@ -92,7 +92,7 @@ onion_poller *onion_poller_new(int aprox_n){
 
 /// Frees the poller. It first stops it.
 void onion_poller_free(onion_poller *p){
-	onionlow_free(p);
+	onion_os_free(p);
 }
 
 static void event_callback(struct ev_loop *loop, ev_io *w, int revents){

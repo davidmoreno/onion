@@ -58,9 +58,9 @@ static void onion_sessions_sqlite3_free(onion_sessions *sessions)
 	sqlite3_finalize(p->save);
 	sqlite3_finalize(p->get);
 	sqlite3_close(p->db);
-	onionlow_free(sessions->data);
+	onion_os_free(sessions->data);
 	
-	onionlow_free(sessions);
+	onion_os_free(sessions);
 }
 
 static onion_dict* onion_sessions_sqlite3_get(onion_sessions *sessions, const char *session_id){
@@ -173,9 +173,9 @@ onion_sessions* onion_sessions_sqlite3_new(const char *database_filename)
 		return NULL;
 	}
 	
-	onion_sessions *ret=onionlow_malloc(sizeof(onion_sessions));
+	onion_sessions *ret=onion_os_malloc(sizeof(onion_sessions));
 
-	ret->data=onionlow_malloc(sizeof(onion_session_sqlite3));
+	ret->data=onion_os_malloc(sizeof(onion_session_sqlite3));
 	ret->free=onion_sessions_sqlite3_free;
 	ret->get=onion_sessions_sqlite3_get;
 	ret->save=onion_sessions_sqlite3_save;

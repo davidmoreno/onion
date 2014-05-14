@@ -55,8 +55,8 @@ int onion_handler_opack_handler(onion_handler_opack_data *d, onion_request *requ
 
 
 void onion_handler_opack_delete(onion_handler_opack_data *data){
-	onionlow_free(data->path);
-	onionlow_free(data);
+	onion_os_free(data->path);
+	onion_os_free(data);
 }
 
 /**
@@ -69,11 +69,11 @@ void onion_handler_opack_delete(onion_handler_opack_data *data){
  * @param length Lenght of the data, or 0 if unknown. Needed to keep alive.
  */
 onion_handler *onion_handler_opack(const char *path, onion_opack_renderer render, unsigned int length){
-	onion_handler_opack_data *priv_data=onionlow_malloc(sizeof(onion_handler_opack_data));
+	onion_handler_opack_data *priv_data=onion_os_malloc(sizeof(onion_handler_opack_data));
 	if (!priv_data)
 		return NULL;
 	
-	priv_data->path=onionlow_strdup(path);
+	priv_data->path=onion_os_strdup(path);
 	priv_data->length=length;
 	priv_data->render=render;
 	

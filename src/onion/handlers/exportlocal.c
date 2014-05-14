@@ -212,8 +212,8 @@ int onion_handler_export_local_directory(onion_handler_export_local_data *data, 
 /// Frees local data from the directory handler
 void onion_handler_export_local_delete(void *data){
 	onion_handler_export_local_data *d=data;
-	onionlow_free(d->localpath);
-	onionlow_free(d);
+	onion_os_free(d->localpath);
+	onion_os_free(d);
 }
 
 /// Sets the header renderer
@@ -245,7 +245,7 @@ onion_handler *onion_handler_export_local_new(const char *localpath){
 	struct stat st;
 	if (stat(rp, &st)!=0){
 		ONION_ERROR("Cant access to the exported directory/file (%s).",rp);
-		onionlow_free(rp);
+		onion_os_free(rp);
 		return NULL;
 	}
 	onion_handler_export_local_data *priv_data=malloc(sizeof(onion_handler_export_local_data));

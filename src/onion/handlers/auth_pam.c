@@ -81,12 +81,12 @@ int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request
 			onion_dict_add(session, "pam_logged_in", username, OD_REPLACE|OD_DUP_VALUE);
 			onion_dict_unlock(session);
 			
-			onionlow_free(auth);
+			onion_os_free(auth);
 			return onion_handler_handle(d->inside, request, res);
 		}
 	}
 	if (auth)
-		onionlow_free(auth);
+		onion_os_free(auth);
 
 	
 	// Not authorized. Ask for it.
@@ -102,10 +102,10 @@ int onion_handler_auth_pam_handler(onion_handler_auth_pam_data *d, onion_request
 
 
 void onion_handler_auth_pam_delete(onion_handler_auth_pam_data *d){
-	onionlow_free(d->pamname);
-	onionlow_free(d->realm);
+	onion_os_free(d->pamname);
+	onion_os_free(d->realm);
 	onion_handler_free(d->inside);
-	onionlow_free(d);
+	onion_os_free(d);
 }
 
 /**
@@ -114,13 +114,13 @@ void onion_handler_auth_pam_delete(onion_handler_auth_pam_data *d){
  * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
  */
 onion_handler *onion_handler_auth_pam(const char *realm, const char *pamname, onion_handler *inside_level){
-	onion_handler_auth_pam_data *priv_data=onionlow_malloc(sizeof(onion_handler_auth_pam_data));
+	onion_handler_auth_pam_data *priv_data=onion_os_malloc(sizeof(onion_handler_auth_pam_data));
 	if (!priv_data)
 		return NULL;
 
 	priv_data->inside=inside_level;
-	priv_data->pamname=onionlow_strdup(pamname);
-	priv_data->realm=onionlow_strdup(realm);
+	priv_data->pamname=onion_os_strdup(pamname);
+	priv_data->realm=onion_os_strdup(realm);
 	
 	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_auth_pam_handler,
 																			 priv_data, (onion_handler_private_data_free) onion_handler_auth_pam_delete);
@@ -133,7 +133,7 @@ static int authPAM_passwd(int num_msg, const struct pam_message **msg,
 	ONION_DEBUG0("Num messages %d",num_msg);
 	struct pam_response *r;
 	
-	*resp=r=(struct pam_response*)onionlow_calloc(num_msg,sizeof(struct pam_response));
+	*resp=r=(struct pam_response*)onion_os_calloc(num_msg,sizeof(struct pam_response));
 	if (r==NULL)
 		return PAM_BUF_ERR;
 	
@@ -141,7 +141,7 @@ static int authPAM_passwd(int num_msg, const struct pam_message **msg,
 	
 	for (i=0;i<num_msg;i++){
 		ONION_DEBUG0("Question %d: %s",i, (*msg)[i].msg);
-		r->resp=onionlow_strdup((const char*)appdata_ptr);
+		r->resp=onion_os_strdup((const char*)appdata_ptr);
 		r->resp_retcode=0;
 		r++;
 	}
@@ -157,7 +157,7 @@ int authorize(const char *pamname, const char *username, const char *password){
 	int ok;
 	pam_handle_t *pamh=NULL;
 	
-	const char *password_local=password; //onionlow_strdup(password);
+	const char *password_local=password; //onion_os_strdup(password);
 	struct pam_conv conv = {
     authPAM_passwd,
     (void*)password_local

@@ -44,13 +44,13 @@
 /* the pointers to user provided routines for memory management &
    memory failure */
 static void default_memoryfailure_onion (const char *msg);
-static onionlow_malloc_sigt *malloc_onion_f = malloc;
-static onionlow_scalar_malloc_sigt *scalarmalloc_onion_f = malloc;
-static onionlow_calloc_sigt *calloc_onion_f = calloc;
-static onionlow_realloc_sigt *realloc_onion_f = realloc;
-static onionlow_strdup_sigt *strdup_onion_f = strdup;
-static onionlow_free_sigt *free_onion_f = free;
-static onionlow_memoryfailure_sigt *memoryfailure_onion_f
+static onion_os_malloc_sigt *malloc_onion_f = malloc;
+static onion_os_scalar_malloc_sigt *scalarmalloc_onion_f = malloc;
+static onion_os_calloc_sigt *calloc_onion_f = calloc;
+static onion_os_realloc_sigt *realloc_onion_f = realloc;
+static onion_os_strdup_sigt *strdup_onion_f = strdup;
+static onion_os_free_sigt *free_onion_f = free;
+static onion_os_memoryfailure_sigt *memoryfailure_onion_f
   = default_memoryfailure_onion;
 
 
@@ -58,12 +58,12 @@ static onionlow_memoryfailure_sigt *memoryfailure_onion_f
 
 #ifdef HAVE_PTHREADS
 /* the pointers to user provided routines for threads */
-static onionlow_pthread_create_sigt *thrcreate_onion_f = pthread_create;
-static onionlow_pthread_join_sigt *thrjoin_onion_f = pthread_join;
-static onionlow_pthread_cancel_sigt *thrcancel_onion_f = pthread_cancel;
-static onionlow_pthread_detach_sigt *thrdetach_onion_f = pthread_detach;
-static onionlow_pthread_exit_sigt *threxit_onion_f = pthread_exit;
-static onionlow_pthread_sigmask_sigt *thrsigmask_onion_f = pthread_sigmask;
+static onion_os_pthread_create_sigt *thrcreate_onion_f = pthread_create;
+static onion_os_pthread_join_sigt *thrjoin_onion_f = pthread_join;
+static onion_os_pthread_cancel_sigt *thrcancel_onion_f = pthread_cancel;
+static onion_os_pthread_detach_sigt *thrdetach_onion_f = pthread_detach;
+static onion_os_pthread_exit_sigt *threxit_onion_f = pthread_exit;
+static onion_os_pthread_sigmask_sigt *thrsigmask_onion_f = pthread_sigmask;
 #endif /* HAVE_PTHREADS */
 
 
@@ -86,7 +86,7 @@ default_memoryfailure_onion (const char *msg)
 
 /***** NEVER FAILING ALLOCATORS *****/
 void *
-onionlow_malloc (size_t sz)
+onion_os_malloc (size_t sz)
 {
   void *res = NULL;
   if (malloc_onion_f)
@@ -99,7 +99,7 @@ onionlow_malloc (size_t sz)
 }
 
 void *
-onionlow_scalar_malloc (size_t sz)
+onion_os_scalar_malloc (size_t sz)
 {
   void *res = NULL;
   if (scalarmalloc_onion_f)
@@ -113,7 +113,7 @@ onionlow_scalar_malloc (size_t sz)
 
 /* Our calloc wrapper for any kind of data, even scalar ones. */
 void *
-onionlow_calloc (size_t nmemb, size_t size)
+onion_os_calloc (size_t nmemb, size_t size)
 {
   void *res = NULL;
   if (nmemb == 0 || size == 0)
@@ -129,7 +129,7 @@ onionlow_calloc (size_t nmemb, size_t size)
 }
 
 void *
-onionlow_realloc (void *ptr, size_t size)
+onion_os_realloc (void *ptr, size_t size)
 {
   void *res = NULL;
   if (realloc_onion_f)
@@ -142,7 +142,7 @@ onionlow_realloc (void *ptr, size_t size)
 }
 
 char *
-onionlow_strdup (const char *str)
+onion_os_strdup (const char *str)
 {
   char *res = NULL;
   if (!str)
@@ -158,7 +158,7 @@ onionlow_strdup (const char *str)
 
 /***** POSSIBLY FAILING ALLOCATORS *****/
 void *
-onionlow_try_malloc (size_t sz)
+onion_os_try_malloc (size_t sz)
 {
   void *res = NULL;
   if (malloc_onion_f)
@@ -169,7 +169,7 @@ onionlow_try_malloc (size_t sz)
 }
 
 void *
-onionlow_try_scalar_malloc (size_t sz)
+onion_os_try_scalar_malloc (size_t sz)
 {
   void *res = NULL;
   if (scalarmalloc_onion_f)
@@ -181,7 +181,7 @@ onionlow_try_scalar_malloc (size_t sz)
 
 /* Our calloc wrapper for any kind of data, even scalar ones. */
 void *
-onionlow_try_calloc (size_t nmemb, size_t size)
+onion_os_try_calloc (size_t nmemb, size_t size)
 {
   void *res = NULL;
   if (nmemb == 0 || size == 0)
@@ -194,7 +194,7 @@ onionlow_try_calloc (size_t nmemb, size_t size)
 }
 
 void *
-onionlow_try_realloc (void *ptr, size_t size)
+onion_os_try_realloc (void *ptr, size_t size)
 {
   void *res = NULL;
   if (realloc_onion_f)
@@ -205,7 +205,7 @@ onionlow_try_realloc (void *ptr, size_t size)
 }
 
 char *
-onionlow_try_strdup (const char *str)
+onion_os_try_strdup (const char *str)
 {
   char *res = NULL;
   if (!str)
@@ -218,7 +218,7 @@ onionlow_try_strdup (const char *str)
 }
 
 void
-onionlow_free (void *ptr)
+onion_os_free (void *ptr)
 {
   if (!ptr)
     return;
@@ -231,14 +231,14 @@ onionlow_free (void *ptr)
 /* Our configurator for memory routines. To be called once before any
    other onion processing at initialization. All the routines should
    be explicitly provided. */
-void onionlow_initialize_memory_allocation
-  (onionlow_malloc_sigt * malloc_pf,
-   onionlow_scalar_malloc_sigt * scalarmalloc_pf,
-   onionlow_calloc_sigt * calloc_pf,
-   onionlow_realloc_sigt * realloc_pf,
-   onionlow_strdup_sigt * strdup_pf,
-   onionlow_free_sigt * free_pf,
-   onionlow_memoryfailure_sigt * memoryfailure_pf)
+void onion_os_initialize_memory_allocation
+  (onion_os_malloc_sigt * malloc_pf,
+   onion_os_scalar_malloc_sigt * scalarmalloc_pf,
+   onion_os_calloc_sigt * calloc_pf,
+   onion_os_realloc_sigt * realloc_pf,
+   onion_os_strdup_sigt * strdup_pf,
+   onion_os_free_sigt * free_pf,
+   onion_os_memoryfailure_sigt * memoryfailure_pf)
 {
   malloc_onion_f = malloc_pf;
   scalarmalloc_onion_f = scalarmalloc_pf;
@@ -253,7 +253,7 @@ void onionlow_initialize_memory_allocation
 #ifdef HAVE_PTHREADS
 
 int
-onionlow_pthread_create (pthread_t * thread,
+onion_os_pthread_create (pthread_t * thread,
 			 const pthread_attr_t * attr,
 			 void *(*start_routine) (void *), void *arg)
 {
@@ -261,43 +261,43 @@ onionlow_pthread_create (pthread_t * thread,
 }
 
 int
-onionlow_pthread_join (pthread_t thread, void **retval)
+onion_os_pthread_join (pthread_t thread, void **retval)
 {
   return thrjoin_onion_f (thread, retval);
 }
 
 int
-onionlow_pthread_cancel (pthread_t thread)
+onion_os_pthread_cancel (pthread_t thread)
 {
   return thrcancel_onion_f (thread);
 }
 
 int
-onionlow_pthread_detach (pthread_t thread)
+onion_os_pthread_detach (pthread_t thread)
 {
   return thrdetach_onion_f (thread);
 }
 
 void
-onionlow_pthread_exit (void *retval)
+onion_os_pthread_exit (void *retval)
 {
   threxit_onion_f (retval);
 }
 
 
 int
-onionlow_pthread_sigmask (int how, const sigset_t * set, sigset_t * oldset)
+onion_os_pthread_sigmask (int how, const sigset_t * set, sigset_t * oldset)
 {
   return thrsigmask_onion_f (how, set, oldset);
 }
 
-void onionlow_initialize_threads
-  (onionlow_pthread_create_sigt * thrcreator_pf,
-   onionlow_pthread_join_sigt * thrjoiner_pf,
-   onionlow_pthread_cancel_sigt * thrcanceler_pf,
-   onionlow_pthread_detach_sigt * thrdetacher_pf,
-   onionlow_pthread_exit_sigt * threxiter_pf,
-   onionlow_pthread_sigmask_sigt * thrsigmasker_pf)
+void onion_os_initialize_threads
+  (onion_os_pthread_create_sigt * thrcreator_pf,
+   onion_os_pthread_join_sigt * thrjoiner_pf,
+   onion_os_pthread_cancel_sigt * thrcanceler_pf,
+   onion_os_pthread_detach_sigt * thrdetacher_pf,
+   onion_os_pthread_exit_sigt * threxiter_pf,
+   onion_os_pthread_sigmask_sigt * thrsigmasker_pf)
 {
   thrcreate_onion_f = thrcreator_pf;
   thrjoin_onion_f = thrjoiner_pf;

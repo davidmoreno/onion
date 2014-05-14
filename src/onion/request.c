@@ -63,7 +63,7 @@ const char *onion_request_methods[16]={
  */
 onion_request *onion_request_new(onion_listen_point *op){
 	onion_request *req;
-	req=onionlow_calloc(1, sizeof(onion_request));
+	req=onion_os_calloc(1, sizeof(onion_request));
 	
 	req->connection.listen_point=op;
 	req->connection.fd=-1;
@@ -116,7 +116,7 @@ void onion_request_free(onion_request *req){
 	if (req->connection.listen_point!=NULL && req->connection.listen_point->close)
 		req->connection.listen_point->close(req);
 	if (req->fullpath)
-		onionlow_free(req->fullpath);
+		onion_os_free(req->fullpath);
 	if (req->GET)
 		onion_dict_free(req->GET);
 	if (req->POST)
@@ -131,23 +131,23 @@ void onion_request_free(onion_request *req){
     else{
 			onion_sessions_save(req->connection.listen_point->server->sessions, req->session_id, req->session);
       onion_dict_free(req->session); // Not really remove, just dereference
-      onionlow_free(req->session_id);
+      onion_os_free(req->session_id);
     }
   }
 	if (req->data)
 		onion_block_free(req->data);
 	if (req->connection.cli_info)
-		onionlow_free(req->connection.cli_info);
+		onion_os_free(req->connection.cli_info);
 	
 	if (req->websocket)
 		onion_websocket_free(req->websocket);
 	
 	if (req->parser_data){
-		onionlow_free(req->parser_data);
+		onion_os_free(req->parser_data);
 	}
 	if (req->cookies)
 		onion_dict_free(req->cookies);
-	onionlow_free(req);
+	onion_os_free(req);
 }
 
 /**
@@ -165,7 +165,7 @@ void onion_request_clean(onion_request* req){
     req->parser_data=NULL;
   }
   if (req->fullpath){
-    onionlow_free(req->fullpath);
+    onion_os_free(req->fullpath);
     req->path=req->fullpath=NULL;
   }
   if (req->GET){
@@ -189,7 +189,7 @@ void onion_request_clean(onion_request* req){
 			onion_sessions_save(req->connection.listen_point->server->sessions, req->session_id, req->session);
       onion_dict_free(req->session); // Not really remove, just dereference
       req->session=NULL;
-      onionlow_free(req->session_id);
+      onion_os_free(req->session_id);
       req->session_id=NULL;
     }
   }
@@ -198,7 +198,7 @@ void onion_request_clean(onion_request* req){
     req->data=NULL;
   }
 	if (req->connection.cli_info){
-		onionlow_free(req->connection.cli_info);
+		onion_os_free(req->connection.cli_info);
 		req->connection.cli_info=NULL;
 	}
 	if (req->cookies){
@@ -346,7 +346,7 @@ void onion_request_guess_session_id(onion_request *req){
 	
 	do{ // Check all possible sessions
 		if (r) {
-		  onionlow_free(r);
+		  onion_os_free(r);
 		  r=NULL;
 		}
 		if (!v)
@@ -360,7 +360,7 @@ void onion_request_guess_session_id(onion_request *req){
     }
     else{
       v+=10;
-      r=onionlow_strdup(v); // Maybe allocated more memory, not much anyway.
+      r=onion_os_strdup(v); // Maybe allocated more memory, not much anyway.
       char *p=r;
       while (*p!='\0' && *p!=';') p++;
       *p='\0';
@@ -458,7 +458,7 @@ void onion_request_session_free(onion_request *req){
 		onion_sessions_remove(req->connection.listen_point->server->sessions, req->session_id);
 		onion_dict_free(req->session);
 		req->session=NULL;
-		onionlow_free(req->session_id);
+		onion_os_free(req->session_id);
 		req->session_id=NULL;
 	}
 }
@@ -477,7 +477,7 @@ void onion_request_session_free(onion_request *req){
 const char *onion_request_get_language_code(onion_request *req){
 	const char *lang=onion_dict_get(req->headers, "Accept-Language");
 	if (lang){
-		char *l=onionlow_strdup(lang);
+		char *l=onion_os_strdup(lang);
 		char *p=l;
 		while (*p){ // search first part
 			if (*p=='-' || *p==';' || *p==','){
@@ -489,7 +489,7 @@ const char *onion_request_get_language_code(onion_request *req){
 		//ONION_DEBUG("Language is %s", l);
 		return l;
 	}
-	return onionlow_strdup("C");
+	return onion_os_strdup("C");
 }
 
 /**
@@ -565,7 +565,7 @@ const char *onion_request_get_client_description(onion_request *req){
 		if (getnameinfo((struct sockaddr *)&req->connection.cli_addr, req->connection.cli_len, tmp, sizeof(tmp)-1,
 					NULL, 0, NI_NUMERICHOST) == 0){
 			tmp[sizeof(tmp)-1]='\0';
-			req->connection.cli_info=onionlow_strdup(tmp);
+			req->connection.cli_info=onion_os_strdup(tmp);
 		}
 		else
 			req->connection.cli_info=NULL;
@@ -608,7 +608,7 @@ onion_dict* onion_request_get_cookies_dict(onion_request* req){
 	const char *ccookies=onion_request_get_header(req, "Cookie");
 	if (!ccookies)
 		return req->cookies;
-	char *cookies=onionlow_strdup(ccookies); // I prepare a temporary string, will modify it.
+	char *cookies=onion_os_strdup(ccookies); // I prepare a temporary string, will modify it.
 	char *val=NULL;
 	char *key=NULL;
 	char *p=cookies;

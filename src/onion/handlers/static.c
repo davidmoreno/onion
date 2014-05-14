@@ -56,8 +56,8 @@ int onion_handler_static_handler(onion_handler_static_data *d, onion_request *re
 
 /// Removes internal data for this handler.
 void onion_handler_static_delete(onion_handler_static_data *d){
-	onionlow_free((char*)d->data);
-	onionlow_free(d);
+	onion_os_free((char*)d->data);
+	onion_os_free(d);
 }
 
 /**
@@ -66,12 +66,12 @@ void onion_handler_static_delete(onion_handler_static_data *d){
  * Path is a regex for the url, as arrived here.
  */
 onion_handler *onion_handler_static(const char *text, int code){
-	onion_handler_static_data *priv_data=onionlow_malloc(sizeof(onion_handler_static_data));
+	onion_handler_static_data *priv_data=onion_os_malloc(sizeof(onion_handler_static_data));
 	if (!priv_data)
 		return NULL;
 
 	priv_data->code=code;
-	priv_data->data=onionlow_strdup(text);
+	priv_data->data=onion_os_strdup(text);
 
 	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_static_handler,
 																			 priv_data,(onion_handler_private_data_free) onion_handler_static_delete);

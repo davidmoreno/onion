@@ -105,7 +105,7 @@ onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
 		ONION_ERROR("Trying to add an invalid file descriptor to the poller. Please check.");
 		return NULL;
 	}
-	onion_poller_slot *el=(onion_poller_slot*)onionlow_calloc(1, sizeof(onion_poller_slot));
+	onion_poller_slot *el=(onion_poller_slot*)onion_os_calloc(1, sizeof(onion_poller_slot));
 	el->fd=fd;
 	el->f=f;
 	el->data=data;
@@ -123,7 +123,7 @@ onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
 void onion_poller_slot_free(onion_poller_slot *el){
 	if (el->shutdown)
 		el->shutdown(el->shutdown_data);
-	onionlow_free(el);
+	onion_os_free(el);
 }
 
 /**
@@ -183,11 +183,11 @@ static int onion_poller_stop_helper(void *p){
  * 
  */
 onion_poller *onion_poller_new(int n){
-	onion_poller *p=onionlow_malloc(sizeof(onion_poller));
+	onion_poller *p=onion_os_malloc(sizeof(onion_poller));
 	p->fd=epoll_create1(EPOLL_CLOEXEC);
 	if (p->fd < 0){
 		ONION_ERROR("Error creating the poller. %s", strerror(errno));
-		onionlow_free(p);
+		onion_os_free(p);
 		return NULL;
 	}
 	p->eventfd=eventfd(0,EFD_CLOEXEC | EFD_NONBLOCK);
@@ -230,11 +230,11 @@ void onion_poller_free(onion_poller *p){
 			onion_poller_slot *tnext=next->next;
 			if (next->shutdown)
 				next->shutdown(next->shutdown_data);
-			onionlow_free(next);
+			onion_os_free(next);
 			next=tnext;
 		}
 		pthread_mutex_unlock(&p->mutex);
-		onionlow_free(p);
+		onion_os_free(p);
 	}
 	ONION_DEBUG0("Done");
 }
@@ -434,7 +434,7 @@ void onion_poller_poll(onion_poller *p){
 #ifdef __DEBUG0__
         char **bs=backtrace_symbols((void * const *)&el->f, 1);
         ONION_DEBUG0("Calling handler: %s (%d)",bs[0], el->fd);
-        free(bs); /* This cannot be onionlow_free since from
+        free(bs); /* This cannot be onion_os_free since from
 		     backtrace_symbols */
 #endif
 				n=el->f(el->data);

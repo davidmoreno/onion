@@ -632,8 +632,8 @@ onion_connection_status onion_webdav_proppatch(const char *filename, onion_webda
  * @short Frees the webdav data
  */
 void onion_webdav_free(onion_webdav *wd){
-	onionlow_free(wd->path);
-	onionlow_free(wd);
+	onion_os_free(wd->path);
+	onion_os_free(wd);
 	
 	xmlCleanupParser();
 	xmlMemoryDump();
@@ -676,9 +676,9 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
 	}
 	
 	if (base)
-		onionlow_free(base); 
+		onion_os_free(base); 
 	if (file)
-		onionlow_free(file);
+		onion_os_free(file);
 	ONION_DEBUG0("Permission %s", ret==0 ? "granted" : "denied");
 	return ret;
 }
@@ -704,14 +704,14 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
  * @returns The onion handler.
  */
 onion_handler *onion_handler_webdav(const char *path, onion_webdav_permissions_check perm){
-	onion_webdav *wd=onionlow_malloc(sizeof(onion_webdav));
+	onion_webdav *wd=onion_os_malloc(sizeof(onion_webdav));
 	if (!wd)
 		return NULL;
 	
 	xmlInitParser();
 	LIBXML_TEST_VERSION
 
-	wd->path=onionlow_strdup(path);
+	wd->path=onion_os_strdup(path);
 	
 	if (perm)
 		wd->check_permissions=perm;
