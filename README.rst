@@ -8,7 +8,7 @@ Onion http server library
    :target: https://scan.coverity.com/projects/1815
 
 
-Onion plans is a lightweight C library that facilitate the creation of simple HTTP servers and applications. 
+Onion is a lightweight C library to create simple HTTP servers and Web Applications. 
 
 The use case is an existing application, or a new one, that needs some HTTP interconnection 
 with the world. It uses the library to add some handlers for specific URLs and generate and 
