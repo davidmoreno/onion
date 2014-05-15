@@ -142,14 +142,62 @@ is not compiled in.
 
 Also when thread support is on, onion server can set to work on another (non-main) thread. 
 This is independant from O_THREADED operation; it can have one thread with your normal 
-application and another thread that listens and processes petitions. Its set with the 
+application and another thread that listens and processes web-requests. Its set with the 
 O_DETACH_LISTEN flag. This is very useful when adding an extra web server to your application
 as it can be added without changes to the flow of your application, but you will need to
 thread protect your data if you access to it from the web server.
 
 Finally there is a pool mode. User can set a default number of threads (onion_set_max_threads), 
 and using epoll the data is given to the threads. This is the highest performant method, with
-up to 30k petitions served on a Intel(R) Core(TM)2 Duo CPU T6500  @2.10GHz.
+up to 30k web-requests served on a Intel(R) Core(TM)2 Duo CPU T6500  @2.10GHz.
+
+
+Customizing low-level allocation and threads
+--------------------------------------------
+
+Sometimes it may be needed to customize memory allocation and/or
+threads operation.  This could be useful when using an alternative
+malloc, or if you wanted to use Hans Boehm's conservative garbage
+collector from http://www.hboehm.info/gc/ e.g. if you use GNU
+guile. Then you need to define your own memory routines and pass them
+to `onion_low_initialize_memory_allocation` before any other calls to
+onion. Likewise, to customize threads operations, call
+`onion_low_initialize_threads`. See comments in header file `low.h`. A
+program using onion and Boehm's GC should first define a memory
+failure routine which should never return:
+
+   ::
+
+   /* the memory failure routine should never return! */
+   static void memory_failure(const char*msg) {
+      perror(msg);
+      exit(EXIT_FAILURE);
+   };
+
+
+Then, your program (using both onion and Boehm's GC) should initialize
+both memory routines and threads, like:
+
+   ::
+
+   onion_low_initialize_memory_allocation
+      (GC_malloc,  GC_malloc_atomic,  GC_calloc,
+       GC_realloc, GC_strdup, GC_free,
+       memory_failure);
+   onion_low_initialize_threads
+      (GC_pthread_create, GC_pthread_join,
+       GC_pthread_cancel, GC_pthread_detach,
+       GC_pthread_exit, GC_pthread_sigmask);
+
+
+You might need to define your `GC_calloc` using `GC_malloc` and
+`memset` if your version of Boehm's GC don't provide it. After these
+low-level initialization you can use Onion as usual.
+
+You could also want to call just `onion_low_initialize_threads` if you
+wanted to name threads created by the onion library (using
+`pthread_setname_np` on Linux) and/or change their priority (using
+`pthread_setschedprio`).
 
 
 ARM Support
@@ -201,10 +249,10 @@ OSX/Darwin support is also available on the darwin branch.
 
 Once this work stabilizes it will be merged back to master.
 
-Environmental variables
------------------------
+Environment variables
+---------------------
 
-You can set the following envvars to modify runtime behaviour of onion:
+You can set the following environment variables -e.g. with the export builtin of bash- to modify runtime behaviour of onion:
 
 * ONION_LOG
 
