@@ -162,17 +162,17 @@ collector from http://www.hboehm.info/gc/ e.g. if you use GNU
 guile. Then you need to define your own memory routines and pass them
 to `onion_low_initialize_memory_allocation` before any other calls to
 onion. Likewise, to customize threads operations, call
-`onion_low_initialize_threads`. See comments in header file `low.h`. A
-program using onion and Boehm's GC should first define a memory
+`onion_low_initialize_threads`.  See comments in header file `low.h`. A
+program using Onion and Boehm's GC should first define a memory
 failure routine which should never return:
 
    ::
 
-   /* the memory failure routine should never return! */
-   static void memory_failure(const char*msg) {
+    /* the memory failure routine should never return! */
+    static void memory_failure(const char*msg) {
       perror(msg);
       exit(EXIT_FAILURE);
-   };
+    };
 
 
 Then, your program (using both onion and Boehm's GC) should initialize
@@ -180,11 +180,11 @@ both memory routines and threads, like:
 
    ::
 
-   onion_low_initialize_memory_allocation
+    onion_low_initialize_memory_allocation
       (GC_malloc,  GC_malloc_atomic,  GC_calloc,
        GC_realloc, GC_strdup, GC_free,
        memory_failure);
-   onion_low_initialize_threads
+    onion_low_initialize_threads
       (GC_pthread_create, GC_pthread_join,
        GC_pthread_cancel, GC_pthread_detach,
        GC_pthread_exit, GC_pthread_sigmask);
@@ -197,7 +197,7 @@ low-level initialization you can use Onion as usual.
 You could also want to call just `onion_low_initialize_threads` if you
 wanted to name threads created by the onion library (using
 `pthread_setname_np` on Linux) and/or change their priority (using
-`pthread_setschedprio`).
+`pthread_setschedprio`), etc.
 
 
 ARM Support
