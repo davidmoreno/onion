@@ -39,6 +39,7 @@
 #include "types_internal.h"
 #include "log.h"
 #include "codecs.h"
+#include "low.h"
 
 const char *onion_response_code_description(int code);
 
@@ -75,7 +76,7 @@ pthread_rwlock_t onion_response_date_lock=PTHREAD_RWLOCK_INITIALIZER;
  * @returns An onion_response object for that request.
  */
 onion_response *onion_response_new(onion_request *req){
-	onion_response *res=malloc(sizeof(onion_response));
+	onion_response *res=onion_low_malloc(sizeof(onion_response));
 	
 	res->request=req;
 	res->headers=onion_dict_new();
@@ -114,8 +115,8 @@ onion_response *onion_response_new(onion_request *req){
 #endif
 			onion_response_last_time=t; 
 			if (onion_response_last_date_header)
-				free(onion_response_last_date_header);
-			onion_response_last_date_header=strdup(current_datetime);
+				onion_low_free(onion_response_last_date_header);
+			onion_response_last_date_header=onion_low_strdup(current_datetime);
 #ifdef HAVE_PTHREAD
 			pthread_rwlock_unlock(&onion_response_date_lock);
 #endif
@@ -182,7 +183,7 @@ onion_connection_status onion_response_free(onion_response *res){
 	}
 	
 	onion_dict_free(res->headers);
-	free(res);
+	onion_low_free(res);
 	
 	return r;
 }
@@ -429,7 +430,7 @@ ssize_t onion_response_write_html_safe(onion_response *res, const char *data){
 	char *tmp=onion_html_quote(data);
 	if (tmp){
 		int r=onion_response_write0(res, tmp);
-		free(tmp);
+		onion_low_free(tmp);
 		return r;
 	}
 	else
@@ -469,14 +470,16 @@ ssize_t onion_response_vprintf(onion_response *res, const char *fmt, va_list arg
 	}
 	else {
 		ssize_t s;
-		char*buf = malloc(l+1);
+		char*buf = onion_low_scalar_malloc(l+1);
 		if (!buf){
+		  // this cannot happen, since onion_low_scalar_malloc
+		  // handles that error...
 			ONION_ERROR("Could not reserve %d bytes", l+1);
 			return -1;
 		}
 		vsnprintf(buf, l, fmt, args);
 		s = onion_response_write (res, buf, l);
-		free (buf);
+		onion_low_free (buf);
 		return s;
 	}
 }

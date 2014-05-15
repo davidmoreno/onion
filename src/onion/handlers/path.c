@@ -30,6 +30,7 @@
 #include <onion/handler.h>
 #include <onion/response.h>
 #include <onion/log.h>
+#include <onion/low.h>
 
 #include "static.h"
 
@@ -59,7 +60,7 @@ void onion_handler_path_delete(void *data){
 	onion_handler_path_data *d=data;
 	regfree(&d->path);
 	onion_handler_free(d->inside);
-	free(data);
+	onion_low_free(data);
 }
 
 /**
@@ -68,7 +69,7 @@ void onion_handler_path_delete(void *data){
  * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
  */
 onion_handler *onion_handler_path(const char *path, onion_handler *inside_level){
-	onion_handler_path_data *priv_data=malloc(sizeof(onion_handler_path_data));
+	onion_handler_path_data *priv_data=onion_low_malloc(sizeof(onion_handler_path_data));
 	if (!priv_data)
 		return NULL;
 	

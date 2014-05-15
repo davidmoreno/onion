@@ -24,6 +24,7 @@
 #include "types_internal.h"
 #include "block.h"
 #include "log.h"
+#include "low.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -36,8 +37,8 @@
  * @memberof onion_block_t
  */
 onion_block *onion_block_new(){
-	onion_block *ret=malloc(sizeof(onion_block));
-	ret->data=malloc(ONION_BLOCK_GROW_MIN_BLOCK);
+	onion_block *ret=onion_low_malloc(sizeof(onion_block));
+	ret->data=onion_low_scalar_malloc(ONION_BLOCK_GROW_MIN_BLOCK);
 	ret->maxsize=ONION_BLOCK_GROW_MIN_BLOCK;
 	ret->size=0;
 	return ret;
@@ -48,8 +49,8 @@ onion_block *onion_block_new(){
  * @memberof onion_block_t
  */
 void onion_block_free(onion_block *bl){
-	free(bl->data);
-	free(bl);
+	onion_low_free(bl->data);
+	onion_low_free(bl);
 }
 
 /**
@@ -71,7 +72,7 @@ void onion_block_clear(onion_block *b){
  */
 void onion_block_min_maxsize(onion_block *b, int minsize){
 	if (b->maxsize < minsize){
-		b->data=realloc(b->data, minsize);
+		b->data=onion_low_realloc(b->data, minsize);
 		b->maxsize=minsize;
 	}
 }
@@ -123,7 +124,7 @@ int onion_block_add_char(onion_block *bl, char c){
 		if (grow>ONION_BLOCK_GROW_EXPONENTIAL_LIMIT)
 			grow=ONION_BLOCK_GROW_EXPONENTIAL_LIMIT;
 		bl->maxsize+=grow;
-		bl->data=realloc(bl->data, bl->maxsize);
+		bl->data=onion_low_realloc(bl->data, bl->maxsize);
 	}
 	bl->data[bl->size++]=c;
 	return 1;
@@ -153,14 +154,14 @@ int onion_block_add_data(onion_block *bl, const char *data, size_t l){
 			grow=ONION_BLOCK_GROW_MIN_BLOCK;
 		bl->maxsize=bl->size+grow;
 		manualrealloc=bl->data;
-		bl->data=malloc(bl->maxsize);
+		bl->data=onion_low_scalar_malloc(bl->maxsize);
 		memcpy(bl->data, manualrealloc, bl->size);
 	}
 	//ONION_DEBUG("Copy %d bytes, start at %d, max size is %d", l, bl->size, bl->maxsize);
 	memmove(&bl->data[bl->size], data, l);
 	bl->size+=l;
 	if (manualrealloc)
-		free(manualrealloc);
+		onion_low_free(manualrealloc);
 	return l;
 }
 

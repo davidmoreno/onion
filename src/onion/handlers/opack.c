@@ -28,6 +28,7 @@
 
 #include <onion/handler.h>
 #include <onion/response.h>
+#include <onion/low.h>
 
 #include "opack.h"
 
@@ -54,8 +55,8 @@ int onion_handler_opack_handler(onion_handler_opack_data *d, onion_request *requ
 
 
 void onion_handler_opack_delete(onion_handler_opack_data *data){
-	free(data->path);
-	free(data);
+	onion_low_free(data->path);
+	onion_low_free(data);
 }
 
 /**
@@ -68,11 +69,11 @@ void onion_handler_opack_delete(onion_handler_opack_data *data){
  * @param length Lenght of the data, or 0 if unknown. Needed to keep alive.
  */
 onion_handler *onion_handler_opack(const char *path, onion_opack_renderer render, unsigned int length){
-	onion_handler_opack_data *priv_data=malloc(sizeof(onion_handler_opack_data));
+	onion_handler_opack_data *priv_data=onion_low_malloc(sizeof(onion_handler_opack_data));
 	if (!priv_data)
 		return NULL;
 	
-	priv_data->path=strdup(path);
+	priv_data->path=onion_low_strdup(path);
 	priv_data->length=length;
 	priv_data->render=render;
 	

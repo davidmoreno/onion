@@ -23,10 +23,12 @@
 
 #include <gcrypt.h>
 #include <gnutls/gnutls.h>
-#include <malloc.h>
+/* Notice that malloc.h is deprecated, use stdlib.h instead */
+#include <stdlib.h>
 #include <stdarg.h>
 #include <errno.h>
 
+#include "low.h"
 #include "https.h"
 #include "http.h"
 #include "types_internal.h"
@@ -86,7 +88,7 @@ onion_listen_point *onion_https_new(){
 	op->close=onion_https_close;
 	op->read_ready=onion_http_read_ready;
 	
-	op->user_data=calloc(1,sizeof(onion_https));
+	op->user_data=onion_low_calloc(1,sizeof(onion_https));
 	onion_https *https=(onion_https*)op->user_data;
 	
 #ifdef HAVE_PTHREADS
@@ -109,7 +111,7 @@ onion_listen_point *onion_https_new(){
 		gnutls_certificate_free_credentials (https->x509_cred);
 		op->free_user_data=NULL;
 		onion_listen_point_free(op);
-		free(https);
+		onion_low_free(https);
 		return NULL;
 	}
 	e=gnutls_dh_params_generate2 (https->dh_params, bits);
@@ -118,7 +120,7 @@ onion_listen_point *onion_https_new(){
 		gnutls_certificate_free_credentials (https->x509_cred);
 		op->free_user_data=NULL;
 		onion_listen_point_free(op);
-		free(https);
+		onion_low_free(https);
 		return NULL;
 	}
 	e=gnutls_priority_init (&https->priority_cache, "PERFORMANCE:%SAFE_RENEGOTIATION:-VERS-TLS1.0", NULL);
@@ -128,7 +130,7 @@ onion_listen_point *onion_https_new(){
 		gnutls_dh_params_deinit(https->dh_params);
 		op->free_user_data=NULL;
 		onion_listen_point_free(op);
-		free(https);
+		onion_low_free(https);
 		return NULL;
 	}
 	gnutls_certificate_set_dh_params (https->x509_cred, https->dh_params);
@@ -169,7 +171,7 @@ static void onion_https_free_user_data(onion_listen_point *op){
 	gnutls_priority_deinit (https->priority_cache);
 	//if (op->server->flags&O_SSL_NO_DEINIT)
 	gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
-	free(https);
+	onion_low_free(https);
 }
 
 /**
