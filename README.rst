@@ -35,7 +35,7 @@ Colaborate!
 You can, and are encouraged, to branch at github, download and tweak onion to use it in your 
 projects.
 
-The library is dual licensed under the Apache2 license and GPLv2, so you can make almost anything
+The library is dual licensed under the Apache2 license and GPLv2+, so you can make almost anything
 with it, use it in your commercial and free software programs, and modify it to your needs.
 
 Please join the mailing list at https://groups.google.com/a/coralbits.com/group/onion-dev/topics,
