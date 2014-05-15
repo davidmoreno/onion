@@ -35,7 +35,7 @@
 #include "response.h"
 #include "types_internal.h"
 #include "websocket.h"
-#include "low_util.h"
+#include "low.h"
 
 /**
  * @short Tryes to handle the petition with that handler.
@@ -56,8 +56,8 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
 			ONION_DEBUG0("Calling handler: %s",bs[0]);
 			/* backtrace_symbols is explicitly documented
 			   to malloc. We need to call the system free
-			   routine, not our onion_os_free ! */
-			free(bs); /* Can't be onion_os_free.... */
+			   routine, not our onion_low_free ! */
+			free(bs); /* Can't be onion_low_free.... */
 #endif
 			res=handler->handler(handler->priv_data, request, response);
 			ONION_DEBUG0("Result: %d",res);
@@ -89,7 +89,7 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
  *
  */
 onion_handler *onion_handler_new(onion_handler_handler handler, void *priv_data, onion_handler_private_data_free priv_data_free){
-	onion_handler *phandler=onion_os_calloc(1, sizeof(onion_handler));
+	onion_handler *phandler=onion_low_calloc(1, sizeof(onion_handler));
 	phandler->handler=handler;
 	phandler->priv_data=priv_data;
 	phandler->priv_data_free=priv_data_free;
@@ -116,7 +116,7 @@ int onion_handler_free(onion_handler *handler){
 			handler->priv_data_free(handler->priv_data);
 		}
 		next=handler->next;
-		onion_os_free(handler);
+		onion_low_free(handler);
 		n++;
 	}
 	return n;

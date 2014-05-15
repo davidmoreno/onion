@@ -21,7 +21,7 @@
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
-/* File low_util.c implementing low-level utilities, notably wrappers
+/* File low.c implementing low-level utilities, notably wrappers
    for memory allocation and thread creation. This should be useful
    e.g. to use libonion with the Boehm conservative garbage collector,
    see http://hboehm.info/gc/ for more. This file is contributed by
@@ -38,19 +38,19 @@
 #include <pthread.h>
 #endif
 
-#include "low_util.h"
+#include "low.h"
 #include "log.h"
 
 /* the pointers to user provided routines for memory management &
    memory failure */
 static void default_memoryfailure_onion (const char *msg);
-static onion_os_malloc_sigt *malloc_onion_f = malloc;
-static onion_os_scalar_malloc_sigt *scalarmalloc_onion_f = malloc;
-static onion_os_calloc_sigt *calloc_onion_f = calloc;
-static onion_os_realloc_sigt *realloc_onion_f = realloc;
-static onion_os_strdup_sigt *strdup_onion_f = strdup;
-static onion_os_free_sigt *free_onion_f = free;
-static onion_os_memoryfailure_sigt *memoryfailure_onion_f
+static onion_low_malloc_sigt *malloc_onion_f = malloc;
+static onion_low_scalar_malloc_sigt *scalarmalloc_onion_f = malloc;
+static onion_low_calloc_sigt *calloc_onion_f = calloc;
+static onion_low_realloc_sigt *realloc_onion_f = realloc;
+static onion_low_strdup_sigt *strdup_onion_f = strdup;
+static onion_low_free_sigt *free_onion_f = free;
+static onion_low_memoryfailure_sigt *memoryfailure_onion_f
   = default_memoryfailure_onion;
 
 
@@ -58,12 +58,12 @@ static onion_os_memoryfailure_sigt *memoryfailure_onion_f
 
 #ifdef HAVE_PTHREADS
 /* the pointers to user provided routines for threads */
-static onion_os_pthread_create_sigt *thrcreate_onion_f = pthread_create;
-static onion_os_pthread_join_sigt *thrjoin_onion_f = pthread_join;
-static onion_os_pthread_cancel_sigt *thrcancel_onion_f = pthread_cancel;
-static onion_os_pthread_detach_sigt *thrdetach_onion_f = pthread_detach;
-static onion_os_pthread_exit_sigt *threxit_onion_f = pthread_exit;
-static onion_os_pthread_sigmask_sigt *thrsigmask_onion_f = pthread_sigmask;
+static onion_low_pthread_create_sigt *thrcreate_onion_f = pthread_create;
+static onion_low_pthread_join_sigt *thrjoin_onion_f = pthread_join;
+static onion_low_pthread_cancel_sigt *thrcancel_onion_f = pthread_cancel;
+static onion_low_pthread_detach_sigt *thrdetach_onion_f = pthread_detach;
+static onion_low_pthread_exit_sigt *threxit_onion_f = pthread_exit;
+static onion_low_pthread_sigmask_sigt *thrsigmask_onion_f = pthread_sigmask;
 #endif /* HAVE_PTHREADS */
 
 
@@ -86,7 +86,7 @@ default_memoryfailure_onion (const char *msg)
 
 /***** NEVER FAILING ALLOCATORS *****/
 void *
-onion_os_malloc (size_t sz)
+onion_low_malloc (size_t sz)
 {
   void *res = NULL;
   if (malloc_onion_f)
@@ -99,7 +99,7 @@ onion_os_malloc (size_t sz)
 }
 
 void *
-onion_os_scalar_malloc (size_t sz)
+onion_low_scalar_malloc (size_t sz)
 {
   void *res = NULL;
   if (scalarmalloc_onion_f)
@@ -113,7 +113,7 @@ onion_os_scalar_malloc (size_t sz)
 
 /* Our calloc wrapper for any kind of data, even scalar ones. */
 void *
-onion_os_calloc (size_t nmemb, size_t size)
+onion_low_calloc (size_t nmemb, size_t size)
 {
   void *res = NULL;
   if (nmemb == 0 || size == 0)
@@ -129,7 +129,7 @@ onion_os_calloc (size_t nmemb, size_t size)
 }
 
 void *
-onion_os_realloc (void *ptr, size_t size)
+onion_low_realloc (void *ptr, size_t size)
 {
   void *res = NULL;
   if (realloc_onion_f)
@@ -142,7 +142,7 @@ onion_os_realloc (void *ptr, size_t size)
 }
 
 char *
-onion_os_strdup (const char *str)
+onion_low_strdup (const char *str)
 {
   char *res = NULL;
   if (!str)
@@ -158,7 +158,7 @@ onion_os_strdup (const char *str)
 
 /***** POSSIBLY FAILING ALLOCATORS *****/
 void *
-onion_os_try_malloc (size_t sz)
+onion_low_try_malloc (size_t sz)
 {
   void *res = NULL;
   if (malloc_onion_f)
@@ -169,7 +169,7 @@ onion_os_try_malloc (size_t sz)
 }
 
 void *
-onion_os_try_scalar_malloc (size_t sz)
+onion_low_try_scalar_malloc (size_t sz)
 {
   void *res = NULL;
   if (scalarmalloc_onion_f)
@@ -181,7 +181,7 @@ onion_os_try_scalar_malloc (size_t sz)
 
 /* Our calloc wrapper for any kind of data, even scalar ones. */
 void *
-onion_os_try_calloc (size_t nmemb, size_t size)
+onion_low_try_calloc (size_t nmemb, size_t size)
 {
   void *res = NULL;
   if (nmemb == 0 || size == 0)
@@ -194,7 +194,7 @@ onion_os_try_calloc (size_t nmemb, size_t size)
 }
 
 void *
-onion_os_try_realloc (void *ptr, size_t size)
+onion_low_try_realloc (void *ptr, size_t size)
 {
   void *res = NULL;
   if (realloc_onion_f)
@@ -205,7 +205,7 @@ onion_os_try_realloc (void *ptr, size_t size)
 }
 
 char *
-onion_os_try_strdup (const char *str)
+onion_low_try_strdup (const char *str)
 {
   char *res = NULL;
   if (!str)
@@ -218,7 +218,7 @@ onion_os_try_strdup (const char *str)
 }
 
 void
-onion_os_free (void *ptr)
+onion_low_free (void *ptr)
 {
   if (!ptr)
     return;
@@ -231,14 +231,14 @@ onion_os_free (void *ptr)
 /* Our configurator for memory routines. To be called once before any
    other onion processing at initialization. All the routines should
    be explicitly provided. */
-void onion_os_initialize_memory_allocation
-  (onion_os_malloc_sigt * malloc_pf,
-   onion_os_scalar_malloc_sigt * scalarmalloc_pf,
-   onion_os_calloc_sigt * calloc_pf,
-   onion_os_realloc_sigt * realloc_pf,
-   onion_os_strdup_sigt * strdup_pf,
-   onion_os_free_sigt * free_pf,
-   onion_os_memoryfailure_sigt * memoryfailure_pf)
+void onion_low_initialize_memory_allocation
+  (onion_low_malloc_sigt * malloc_pf,
+   onion_low_scalar_malloc_sigt * scalarmalloc_pf,
+   onion_low_calloc_sigt * calloc_pf,
+   onion_low_realloc_sigt * realloc_pf,
+   onion_low_strdup_sigt * strdup_pf,
+   onion_low_free_sigt * free_pf,
+   onion_low_memoryfailure_sigt * memoryfailure_pf)
 {
   malloc_onion_f = malloc_pf;
   scalarmalloc_onion_f = scalarmalloc_pf;
@@ -253,7 +253,7 @@ void onion_os_initialize_memory_allocation
 #ifdef HAVE_PTHREADS
 
 int
-onion_os_pthread_create (pthread_t * thread,
+onion_low_pthread_create (pthread_t * thread,
 			 const pthread_attr_t * attr,
 			 void *(*start_routine) (void *), void *arg)
 {
@@ -261,43 +261,43 @@ onion_os_pthread_create (pthread_t * thread,
 }
 
 int
-onion_os_pthread_join (pthread_t thread, void **retval)
+onion_low_pthread_join (pthread_t thread, void **retval)
 {
   return thrjoin_onion_f (thread, retval);
 }
 
 int
-onion_os_pthread_cancel (pthread_t thread)
+onion_low_pthread_cancel (pthread_t thread)
 {
   return thrcancel_onion_f (thread);
 }
 
 int
-onion_os_pthread_detach (pthread_t thread)
+onion_low_pthread_detach (pthread_t thread)
 {
   return thrdetach_onion_f (thread);
 }
 
 void
-onion_os_pthread_exit (void *retval)
+onion_low_pthread_exit (void *retval)
 {
   threxit_onion_f (retval);
 }
 
 
 int
-onion_os_pthread_sigmask (int how, const sigset_t * set, sigset_t * oldset)
+onion_low_pthread_sigmask (int how, const sigset_t * set, sigset_t * oldset)
 {
   return thrsigmask_onion_f (how, set, oldset);
 }
 
-void onion_os_initialize_threads
-  (onion_os_pthread_create_sigt * thrcreator_pf,
-   onion_os_pthread_join_sigt * thrjoiner_pf,
-   onion_os_pthread_cancel_sigt * thrcanceler_pf,
-   onion_os_pthread_detach_sigt * thrdetacher_pf,
-   onion_os_pthread_exit_sigt * threxiter_pf,
-   onion_os_pthread_sigmask_sigt * thrsigmasker_pf)
+void onion_low_initialize_threads
+  (onion_low_pthread_create_sigt * thrcreator_pf,
+   onion_low_pthread_join_sigt * thrjoiner_pf,
+   onion_low_pthread_cancel_sigt * thrcanceler_pf,
+   onion_low_pthread_detach_sigt * thrdetacher_pf,
+   onion_low_pthread_exit_sigt * threxiter_pf,
+   onion_low_pthread_sigmask_sigt * thrsigmasker_pf)
 {
   thrcreate_onion_f = thrcreator_pf;
   thrjoin_onion_f = thrjoiner_pf;

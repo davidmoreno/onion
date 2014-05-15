@@ -34,7 +34,7 @@ if (${ONION_POLLER} STREQUAL epoll)
 endif (${ONION_POLLER} STREQUAL epoll)
 
 
-set(SOURCES onion.c codecs.c dict.c low_util.c request.c response.c handler.c 
+set(SOURCES onion.c codecs.c dict.c low.c request.c response.c handler.c 
                         log.c sessions.c sessions_mem.c shortcuts.c block.c mime.c url.c ${POLLER_C}
 			listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c ${RANDOM_C} ${SQLITE3_C})
 
@@ -88,7 +88,7 @@ if (${PNG_ENABLED})
 add_subdirectory(extras)
 endif (${PNG_ENABLED})
 
-SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h low_util.h log.h mime.h onion.h poller.h request.h response.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ${SQLITE3_H})
+SET(INCLUDES_ONION block.h codecs.h dict.h handler.h http.h https.h listen_point.h low.h log.h mime.h onion.h poller.h request.h response.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ${SQLITE3_H})
 MESSAGE(STATUS "Found include files ${INCLUDES_ONION}")
 
 SET_TARGET_PROPERTIES(onion onion_static

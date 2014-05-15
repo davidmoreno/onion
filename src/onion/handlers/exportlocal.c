@@ -38,7 +38,7 @@
 #include <onion/response.h>
 #include <onion/codecs.h>
 #include <onion/log.h>
-#include <onion/low_util.h>
+#include <onion/low.h>
 
 #include "exportlocal.h"
 
@@ -212,8 +212,8 @@ int onion_handler_export_local_directory(onion_handler_export_local_data *data, 
 /// Frees local data from the directory handler
 void onion_handler_export_local_delete(void *data){
 	onion_handler_export_local_data *d=data;
-	onion_os_free(d->localpath);
-	onion_os_free(d);
+	onion_low_free(d->localpath);
+	onion_low_free(d);
 }
 
 /// Sets the header renderer
@@ -245,7 +245,7 @@ onion_handler *onion_handler_export_local_new(const char *localpath){
 	struct stat st;
 	if (stat(rp, &st)!=0){
 		ONION_ERROR("Cant access to the exported directory/file (%s).",rp);
-		onion_os_free(rp);
+		onion_low_free(rp);
 		return NULL;
 	}
 	onion_handler_export_local_data *priv_data=malloc(sizeof(onion_handler_export_local_data));

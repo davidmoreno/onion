@@ -24,7 +24,7 @@
 #ifndef ONION_LOW_UTIL_H
 #define ONION_LOW_UTIL_H
 
-/* File low_util.h provides low level utilities, notably wrapping
+/* File low.h provides low level utilities, notably wrapping
    memory allocation and thread creation. Adventurous users could even
    customize them during early initialization, e.g. when using Hans
    Boehm conservative garbage collector from http://hboehm.info/gc/ or
@@ -49,22 +49,22 @@ extern "C"
    ***/
 /* Our malloc wrapper for any kind of data, including data
    containing pointers.  */
-  void *onion_os_malloc (size_t sz);
+  void *onion_low_malloc (size_t sz);
 
 /* Our malloc wrapper for scalar data which does not contain any
    pointers inside. Knowing that a given zone does not contain any
    pointer can be useful, e.g. to Hans Boehm's conservative garbage
    collector on http://hboehm.info/gc/ using GC_MALLOC_ATOMIC.... */
-  void *onion_os_scalar_malloc (size_t sz);
+  void *onion_low_scalar_malloc (size_t sz);
 
 /* Our calloc wrapper for any kind of data, even scalar one.  */
-  void *onion_os_calloc (size_t nmemb, size_t size);
+  void *onion_low_calloc (size_t nmemb, size_t size);
 
 /* Our realloc wrapper for any kind of data, even scalar one.  */
-  void *onion_os_realloc (void *ptr, size_t size);
+  void *onion_low_realloc (void *ptr, size_t size);
 
 /* Our strdup wrapper. */
-  char *onion_os_strdup (const char *str);
+  char *onion_low_strdup (const char *str);
 
   /***** POSSIBLY FAILING MEMORY ALLOCATORS *****/
   /***
@@ -73,49 +73,49 @@ extern "C"
   ***/
 /* Our malloc wrapper for any kind of data, including data
    containing pointers.  */
-  void *onion_os_try_malloc (size_t sz);
+  void *onion_low_try_malloc (size_t sz);
 
 /* Our malloc wrapper for scalar data which does not contain any
    pointers inside.  */
-  void *onion_os_try_scalar_malloc (size_t sz);
+  void *onion_low_try_scalar_malloc (size_t sz);
 
 /* Our calloc wrapper for any kind of data, even scalar one.  */
-  void *onion_os_try_calloc (size_t nmemb, size_t size);
+  void *onion_low_try_calloc (size_t nmemb, size_t size);
 
 /* Our realloc wrapper for any kind of data, even scalar one.  */
-  void *onion_os_try_realloc (void *ptr, size_t size);
+  void *onion_low_try_realloc (void *ptr, size_t size);
 
 /* Our strdup wrapper. */
-  char *onion_os_try_strdup (const char *str);
+  char *onion_low_try_strdup (const char *str);
 
   /******** FREE WRAPPER ******/
 /* Our free wrapper for any kind of data, even scalar one.  */
-  void onion_os_free (void *ptr);
+  void onion_low_free (void *ptr);
 
 /* Signatures of user configurable memory routine replacement.  */
-  typedef void *onion_os_malloc_sigt (size_t sz);
-  typedef void *onion_os_scalar_malloc_sigt (size_t sz);
-  typedef void *onion_os_calloc_sigt (size_t nmemb, size_t size);
-  typedef void *onion_os_realloc_sigt (void *ptr, size_t size);
-  typedef char *onion_os_strdup_sigt (const char *ptr);
-  typedef void onion_os_free_sigt (void *ptr);
+  typedef void *onion_low_malloc_sigt (size_t sz);
+  typedef void *onion_low_scalar_malloc_sigt (size_t sz);
+  typedef void *onion_low_calloc_sigt (size_t nmemb, size_t size);
+  typedef void *onion_low_realloc_sigt (void *ptr, size_t size);
+  typedef char *onion_low_strdup_sigt (const char *ptr);
+  typedef void onion_low_free_sigt (void *ptr);
 
 /* The memory failure handler is called with a short message. It
    generally should not return, i.e. should exit, abort, or perhaps
    setjmp.... */
-  typedef void onion_os_memoryfailure_sigt (const char *msg);
+  typedef void onion_low_memoryfailure_sigt (const char *msg);
 
 /* Our configurator for memory routines. To be called once before any
    other onion processing at initialization. All the routines should
    be explicitly provided. */
-  void onion_os_initialize_memory_allocation
-    (onion_os_malloc_sigt * mallocrout,
-     onion_os_scalar_malloc_sigt * scalarmallocrout,
-     onion_os_calloc_sigt * callocrout,
-     onion_os_realloc_sigt * reallocrout,
-     onion_os_strdup_sigt * strduprout,
-     onion_os_free_sigt * freerout,
-     onion_os_memoryfailure_sigt * memoryfailurerout);
+  void onion_low_initialize_memory_allocation
+    (onion_low_malloc_sigt * mallocrout,
+     onion_low_scalar_malloc_sigt * scalarmallocrout,
+     onion_low_calloc_sigt * callocrout,
+     onion_low_realloc_sigt * reallocrout,
+     onion_low_strdup_sigt * strduprout,
+     onion_low_free_sigt * freerout,
+     onion_low_memoryfailure_sigt * memoryfailurerout);
 
 
   /* We also offer a mean to wrap thread creation, join, cancel,
@@ -125,44 +125,44 @@ extern "C"
      system.  There is no need to wrap mutexes... The wrapper functions
      can fail and their caller is expected to check for failure. */
 #ifdef HAVE_PTHREADS
-  int onion_os_pthread_create (pthread_t * thread,
+  int onion_low_pthread_create (pthread_t * thread,
 			       const pthread_attr_t * attr,
 			       void *(*start_routine) (void *), void *arg);
-  typedef int onion_os_pthread_create_sigt (pthread_t * thread,
+  typedef int onion_low_pthread_create_sigt (pthread_t * thread,
 					    const pthread_attr_t * attr,
 					    void *(*start_routine) (void *),
 					    void *arg);
 
-  int onion_os_pthread_join (pthread_t thread, void **retval);
-  typedef int onion_os_pthread_join_sigt (pthread_t thread, void **retval);
+  int onion_low_pthread_join (pthread_t thread, void **retval);
+  typedef int onion_low_pthread_join_sigt (pthread_t thread, void **retval);
 
-  int onion_os_pthread_cancel (pthread_t thread);
-  typedef int onion_os_pthread_cancel_sigt (pthread_t thread);
+  int onion_low_pthread_cancel (pthread_t thread);
+  typedef int onion_low_pthread_cancel_sigt (pthread_t thread);
 
-  int onion_os_pthread_detach (pthread_t thread);
-  typedef int onion_os_pthread_detach_sigt (pthread_t thread);
+  int onion_low_pthread_detach (pthread_t thread);
+  typedef int onion_low_pthread_detach_sigt (pthread_t thread);
 
-  void onion_os_pthread_exit (void *retval);
-  typedef void onion_os_pthread_exit_sigt (void *retval);
+  void onion_low_pthread_exit (void *retval);
+  typedef void onion_low_pthread_exit_sigt (void *retval);
 
-  int onion_os_pthread_sigmask (int how, const sigset_t * set,
+  int onion_low_pthread_sigmask (int how, const sigset_t * set,
 				sigset_t * oldset);
-  typedef int onion_os_pthread_sigmask_sigt (int how, const sigset_t * set,
+  typedef int onion_low_pthread_sigmask_sigt (int how, const sigset_t * set,
 					     sigset_t * oldset);
 
   /* Our configurator for pthread wrapping. Every routine should be
      provided. This initialization should happen early, at the same
-     time as onion_os_initialize_memory_allocation, and before any
+     time as onion_low_initialize_memory_allocation, and before any
      other onion calls. If using Boehm GC you probably want to pass
      GC_pthread_create, GC_pthread_join, etc, etc... */
 
-  void onion_os_initialize_threads
-    (onion_os_pthread_create_sigt * thrcreator,
-     onion_os_pthread_join_sigt * thrjoiner,
-     onion_os_pthread_cancel_sigt * thrcanceler,
-     onion_os_pthread_detach_sigt * thrdetacher,
-     onion_os_pthread_exit_sigt * threxiter,
-     onion_os_pthread_sigmask_sigt * thrsigmasker);
+  void onion_low_initialize_threads
+    (onion_low_pthread_create_sigt * thrcreator,
+     onion_low_pthread_join_sigt * thrjoiner,
+     onion_low_pthread_cancel_sigt * thrcanceler,
+     onion_low_pthread_detach_sigt * thrdetacher,
+     onion_low_pthread_exit_sigt * threxiter,
+     onion_low_pthread_sigmask_sigt * thrsigmasker);
 
 #endif				/*HAVE_PTHREADS */
 

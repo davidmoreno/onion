@@ -28,7 +28,7 @@
 
 #include <onion/handler.h>
 #include <onion/response.h>
-#include <onion/low_util.h>
+#include <onion/low.h>
 
 #include "static.h"
 
@@ -56,8 +56,8 @@ int onion_handler_static_handler(onion_handler_static_data *d, onion_request *re
 
 /// Removes internal data for this handler.
 void onion_handler_static_delete(onion_handler_static_data *d){
-	onion_os_free((char*)d->data);
-	onion_os_free(d);
+	onion_low_free((char*)d->data);
+	onion_low_free(d);
 }
 
 /**
@@ -66,12 +66,12 @@ void onion_handler_static_delete(onion_handler_static_data *d){
  * Path is a regex for the url, as arrived here.
  */
 onion_handler *onion_handler_static(const char *text, int code){
-	onion_handler_static_data *priv_data=onion_os_malloc(sizeof(onion_handler_static_data));
+	onion_handler_static_data *priv_data=onion_low_malloc(sizeof(onion_handler_static_data));
 	if (!priv_data)
 		return NULL;
 
 	priv_data->code=code;
-	priv_data->data=onion_os_strdup(text);
+	priv_data->data=onion_low_strdup(text);
 
 	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_static_handler,
 																			 priv_data,(onion_handler_private_data_free) onion_handler_static_delete);

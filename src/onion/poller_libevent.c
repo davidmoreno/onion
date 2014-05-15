@@ -28,7 +28,7 @@
 
 #include "poller.h"
 #include "log.h"
-#include "low_util.h"
+#include "low.h"
 
 struct onion_poller_t{
 	struct event_base *base;
@@ -51,8 +51,8 @@ typedef struct onion_poller_slot_t onion_poller_slot;
 
 /// Create a new slot for the poller
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
-	onion_poller_slot *ret=onion_os_calloc(1, sizeof(onion_poller_slot));
-	ret->fd=fd;
+	onion_poller_slot *ret=onion_low_calloc(1, sizeof(onion_poller_slot));
+	ret->fd=fd;<
 	ret->f=f;
 	ret->data=data;
 	ret->type=EV_READ | EV_WRITE | EV_PERSIST;
@@ -98,7 +98,7 @@ onion_poller *onion_poller_new(int aprox_n){
 /// Frees the poller. It first stops it.
 void onion_poller_free(onion_poller *p){
 	event_base_free(p->base);
-	onion_os_free(p);
+	onion_low_free(p);
 }
 
 static void event_callback(evutil_socket_t fd, short evtype, void *e){

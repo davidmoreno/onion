@@ -33,7 +33,7 @@
 #include <fcntl.h>
 
 #include "types_internal.h"
-#include "low_util.h"
+#include "low.h"
 #include "log.h"
 #include "poller.h"
 #include "request.h"
@@ -61,7 +61,7 @@ static int onion_listen_point_read_ready(onion_request *req);
  * @returns An alloc'ed onion_listen_point pointer
  */
 onion_listen_point *onion_listen_point_new(){
-	onion_listen_point *ret=onion_os_calloc(1,sizeof(onion_listen_point));
+	onion_listen_point *ret=onion_low_calloc(1,sizeof(onion_listen_point));
 	return ret;
 }
 
@@ -79,10 +79,10 @@ void onion_listen_point_free(onion_listen_point *op){
 	if (op->free_user_data)
 		op->free_user_data(op);
 	if (op->hostname)
-		onion_os_free(op->hostname);
+		onion_low_free(op->hostname);
 	if (op->port)
-		onion_os_free(op->port);
-	onion_os_free(op);
+		onion_low_free(op->port);
+	onion_low_free(op);
 }
 
 

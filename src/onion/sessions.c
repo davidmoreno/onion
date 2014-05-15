@@ -29,7 +29,7 @@
 #include "log.h"
 #include "random.h"
 #include "sessions_mem.h"
-#include "low_util.h"
+#include "low.h"
 
 /**
  * @short Generates a unique id.
@@ -44,7 +44,7 @@
 char *onion_sessions_generate_id(){
 	char allowed_chars[]="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	
-	char *ret=onion_os_scalar_malloc(33);
+	char *ret=onion_low_scalar_malloc(33);
 	onion_random_generate(ret,32);
 	int i;
 	for (i=0;i<32;i++){

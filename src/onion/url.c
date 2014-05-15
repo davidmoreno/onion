@@ -35,7 +35,7 @@
 #include "url.h"
 #include "types_internal.h"
 #include "dict.h"
-#include "low_util.h"
+#include "low.h"
 
 enum onion_url_data_flags_e{
 	OUD_REGEXP=1,
@@ -88,7 +88,7 @@ int onion_url_handler(onion_url_data **dd, onion_request *request, onion_respons
 			for (i=1;i<16;i++){
 				regmatch_t *rm=&match[i];
 				if (rm->rm_so!=-1){
-					char *tmp=onion_os_scalar_malloc(rm->rm_eo-rm->rm_so+1);
+					char *tmp=onion_low_scalar_malloc(rm->rm_eo-rm->rm_so+1);
 					memcpy(tmp, &path[rm->rm_so], rm->rm_eo-rm->rm_so);
 					tmp[rm->rm_eo-rm->rm_so]='\0'; // proper finish string
 					char tmpn[4];
@@ -120,14 +120,14 @@ void onion_url_free_data(onion_url_data **d){
 		if (t->flags&OUD_REGEXP)
 			regfree(&t->regexp);
 		else
-			onion_os_free(t->str);
+			onion_low_free(t->str);
 		next=t->next;
 #ifdef __DEBUG__
-		onion_os_free(t->orig);
+		onion_low_free(t->orig);
 #endif
-		onion_os_free(t);
+		onion_low_free(t);
 	}
-	onion_os_free(d);
+	onion_low_free(d);
 }
 
 /**
@@ -176,7 +176,7 @@ void onion_url_free_data(onion_url_data **d){
  * how to create proper regular expressions. They are compiled as REG_EXTENDED.
  */
 onion_url *onion_url_new(){
-	onion_url_data **priv_data=onion_os_calloc(1,sizeof(onion_url_data*));
+	onion_url_data **priv_data=onion_low_calloc(1,sizeof(onion_url_data*));
 	*priv_data=NULL;
 	
 	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_url_handler,
@@ -208,7 +208,7 @@ int onion_url_add_handler(onion_url *url, const char *regexp, onion_handler *nex
 		w=&(*w)->next;
 	}
 	//ONION_DEBUG("Adding handler at %p",w);
-	*w=onion_os_malloc(sizeof(onion_url_data));
+	*w=onion_low_malloc(sizeof(onion_url_data));
 	onion_url_data *data=*w;
 	
 	data->flags=(regexp[0]=='^') ? OUD_REGEXP : OUD_STRCMP;
@@ -219,18 +219,18 @@ int onion_url_add_handler(onion_url *url, const char *regexp, onion_handler *nex
 			char buffer[1024];
 			regerror(err, &data->regexp, buffer, sizeof(buffer));
 			ONION_ERROR("Error analyzing regular expression '%s': %s.\n", regexp, buffer);
-			onion_os_free(data);
+			onion_low_free(data);
 			*w=NULL;
 			return 1;
 		}
 	}
 	else{
-		data->str=onion_os_strdup(regexp);
+		data->str=onion_low_strdup(regexp);
 	}
 	data->next=NULL;
 	data->inside=next;
 #ifdef __DEBUG__
-	data->orig=onion_os_strdup(regexp);
+	data->orig=onion_low_strdup(regexp);
 #endif	
 	
 	return 0;
@@ -285,8 +285,8 @@ static int onion_url_static(struct onion_url_static_data *data, onion_request *r
 
 /// Frees the static data
 static void onion_url_static_free(struct onion_url_static_data *data){
-	onion_os_free(data->text);
-	onion_os_free(data);
+	onion_low_free(data->text);
+	onion_low_free(data);
 }
 
 /**
@@ -294,8 +294,8 @@ static void onion_url_static_free(struct onion_url_static_data *data){
  * @memberof onion_url_t
  */
 int onion_url_add_static(onion_url *url, const char *regexp, const char *text, int http_code){
-	struct onion_url_static_data *d=onion_os_malloc(sizeof(struct onion_url_static_data));
-	d->text=onion_os_strdup(text);
+	struct onion_url_static_data *d=onion_low_malloc(sizeof(struct onion_url_static_data));
+	d->text=onion_low_strdup(text);
 	d->code=http_code;
 	return onion_url_add_with_data(url, regexp, onion_url_static, d, onion_url_static_free);
 }
