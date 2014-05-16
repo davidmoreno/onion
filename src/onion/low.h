@@ -94,13 +94,12 @@ char *onion_low_try_strdup (const char *str);
 void onion_low_free (void *ptr);
 
 /// @short Signatures of user configurable memory routine replacement.  @{
-  typedef void *onion_low_malloc_sigt (size_t sz);
-  typedef void *onion_low_scalar_malloc_sigt (size_t sz);
-  typedef void *onion_low_calloc_sigt (size_t nmemb, size_t size);
-  typedef void *onion_low_realloc_sigt (void *ptr, size_t size);
-  typedef char *onion_low_strdup_sigt (const char *ptr);
-  typedef void onion_low_free_sigt (void *ptr);
-/// @}
+typedef void *onion_low_malloc_sigt (size_t sz);
+typedef void *onion_low_scalar_malloc_sigt (size_t sz);
+typedef void *onion_low_calloc_sigt (size_t nmemb, size_t size);
+typedef void *onion_low_realloc_sigt (void *ptr, size_t size);
+typedef char *onion_low_strdup_sigt (const char *ptr);
+typedef void onion_low_free_sigt (void *ptr);
 
 /**
  * @short The memory failure handler is called with a short message. 
@@ -109,6 +108,7 @@ void onion_low_free (void *ptr);
  * setjmp.... 
  */
 typedef void onion_low_memoryfailure_sigt (const char *msg);
+/// @}
 
 /**
  * @short Our configurator for memory routines. 
