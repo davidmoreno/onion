@@ -31,13 +31,14 @@
 #include <onion/response.h>
 #include <onion/block.h>
 #include <onion/shortcuts.h>
+#include <onion/low.h>
 
 #include "webdav.h"
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <libgen.h>
 #include <ctype.h>
 
@@ -631,8 +632,8 @@ onion_connection_status onion_webdav_proppatch(const char *filename, onion_webda
  * @short Frees the webdav data
  */
 void onion_webdav_free(onion_webdav *wd){
-	free(wd->path);
-	free(wd);
+	onion_low_free(wd->path);
+	onion_low_free(wd);
 	
 	xmlCleanupParser();
 	xmlMemoryDump();
@@ -675,9 +676,9 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
 	}
 	
 	if (base)
-		free(base); 
+		onion_low_free(base); 
 	if (file)
-		free(file);
+		onion_low_free(file);
 	ONION_DEBUG0("Permission %s", ret==0 ? "granted" : "denied");
 	return ret;
 }
@@ -703,14 +704,14 @@ int onion_webdav_default_check_permissions(const char *exported_path, const char
  * @returns The onion handler.
  */
 onion_handler *onion_handler_webdav(const char *path, onion_webdav_permissions_check perm){
-	onion_webdav *wd=malloc(sizeof(onion_webdav));
+	onion_webdav *wd=onion_low_malloc(sizeof(onion_webdav));
 	if (!wd)
 		return NULL;
 	
 	xmlInitParser();
 	LIBXML_TEST_VERSION
 
-	wd->path=strdup(path);
+	wd->path=onion_low_strdup(path);
 	
 	if (perm)
 		wd->check_permissions=perm;

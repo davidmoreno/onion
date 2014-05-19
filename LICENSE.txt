@@ -2,4 +2,4 @@ Contents of the src folder (the Library) is licensed under both GPLv2+ and Apach
 
 All the rest of the code (examples, tests, tools) are AGPLv3. See AGPL.txt file for details.
 
-The GPLv2 compatibility is needed as Apache 2 is not compatible with GPLv2: http://www.gnu.org/licenses/license-list.html#apache2
+The GPLv2+ compatibility is needed as Apache 2 is not compatible with GPLv2: http://www.gnu.org/licenses/license-list.html#apache2
