@@ -248,7 +248,7 @@ onion_handler *onion_handler_export_local_new(const char *localpath){
 		onion_low_free(rp);
 		return NULL;
 	}
-	onion_handler_export_local_data *priv_data=malloc(sizeof(onion_handler_export_local_data));
+	onion_handler_export_local_data *priv_data=onion_low_malloc(sizeof(onion_handler_export_local_data));
 
 	priv_data->localpath=rp;
 	priv_data->renderer_header=onion_handler_export_local_header_default;
