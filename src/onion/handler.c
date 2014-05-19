@@ -57,7 +57,7 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
 			/* backtrace_symbols is explicitly documented
 			   to malloc. We need to call the system free
 			   routine, not our onion_low_free ! */
-			free(bs); /* Can't be onion_low_free.... */
+			onion_low_free(bs); /* Can't be onion_low_free.... */
 #endif
 			res=handler->handler(handler->priv_data, request, response);
 			ONION_DEBUG0("Result: %d",res);

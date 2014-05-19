@@ -434,7 +434,7 @@ void onion_poller_poll(onion_poller *p){
 #ifdef __DEBUG0__
         char **bs=backtrace_symbols((void * const *)&el->f, 1);
         ONION_DEBUG0("Calling handler: %s (%d)",bs[0], el->fd);
-        free(bs); /* This cannot be onion_low_free since from
+        onion_low_free(bs); /* This cannot be onion_low_free since from
 		     backtrace_symbols. */
 #endif
 				n=el->f(el->data);
