@@ -89,7 +89,7 @@ void onion_poller_slot_set_type(onion_poller_slot *el, int type){
 onion_poller *onion_poller_new(int aprox_n){
 	evthread_use_pthreads();
 	
-	onion_poller *ret=calloc(1,sizeof(onion_poller));
+	onion_poller *ret=onion_low_calloc(1,sizeof(onion_poller));
 	ret->base=event_base_new();
 	sem_init(&ret->sem, 0, 1);
 	return ret;
