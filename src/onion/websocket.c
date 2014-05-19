@@ -28,6 +28,7 @@
 #include "request.h"
 #include "codecs.h"
 #include "random.h"
+#include "low.h"
 
 #include <poll.h>
 #include <errno.h>
@@ -105,12 +106,12 @@ onion_websocket* onion_websocket_new(onion_request* req, onion_response *res)
 	if (ws_protocol)
 		onion_response_set_header(res, "Sec-Websocket-Procotol", ws_protocol);
 	onion_response_set_header(res, "Sec-Websocket-Accept", key_answer);
-	free(key_answer);
+	onion_low_free(key_answer);
 	
 	onion_response_write_headers(res);
 	onion_response_write(res, "",0); // AKA flush
 	
-	onion_websocket *ret=malloc(sizeof(onion_websocket));
+	onion_websocket *ret=onion_low_malloc(sizeof(onion_websocket));
 	ret->callback=NULL;
 	ret->req=req;
 	ret->data_left=0;
@@ -140,7 +141,7 @@ void onion_websocket_free(onion_websocket *ws){
 	onion_random_free();
 
 	ws->req->websocket=NULL; // To avoid double free on stupid programs that call this directly.
-	free(ws);
+	onion_low_free(ws);
 }
 
 
@@ -363,7 +364,7 @@ static int onion_websocket_read_packet_header(onion_websocket *ws){
 	
 	if (ws->opcode==OWS_PING){ // I do answer ping myself.
 		onion_websocket_set_opcode(ws, OWS_PONG);
-		char *data=malloc(ws->data_left);
+		char *data=onion_low_scalar_malloc(ws->data_left);
 		ssize_t r=onion_websocket_read(ws,data, ws->data_left);
 		
 		onion_websocket_write(ws, data, r);
