@@ -148,14 +148,9 @@ void onion_request_free(onion_request *req){
 	if (req->websocket)
 		onion_websocket_free(req->websocket);
 	
-<<<<<<< HEAD
 	if (req->parser.data){
 		if (req->parser.free)
 			req->parser.free(req->parser.data);
-=======
-	if (req->parser_data){
-		onion_low_free(req->parser_data);
->>>>>>> master
 	}
 	if (req->cookies)
 		onion_dict_free(req->cookies);
