@@ -72,6 +72,9 @@ enum onion_response_codes_e{
 
 typedef enum onion_response_codes_e onion_response_codes;
 
+/* utility function to return a string for a code above, so given
+   HTTP_OK returns "OK", etc... */
+const char *onion_response_code_description(int code);
 
 /**
  * @short Possible flags.
