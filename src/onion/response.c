@@ -383,22 +383,23 @@ int onion_response_flush(onion_response *res){
 	ONION_DEBUG0("Flush %d bytes", res->buffer_pos);
 
 	onion_request *req=res->request;
-	ssize_t (*write)(onion_request *, const char *data, size_t len);
-	write=req->connection.listen_point->write;
-	
+	ssize_t (*writereqf)(onion_request *, const char *data, size_t len);
+	writereqf=req->connection.listen_point->write;
+	if (!writereqf)
+	  ONION_ERROR("corrupted listen point, null write");
 	ssize_t w;
 	off_t pos=0;
 	//ONION_DEBUG0("Write %d bytes",res->buffer_pos);
 	if (res->flags&OR_CHUNKED){
 		char tmp[16];
 		snprintf(tmp,sizeof(tmp),"%X\r\n",(unsigned int)res->buffer_pos);
-		if ( (w=write(req, tmp, strlen(tmp)))<=0){
+		if ( (w=writereqf(req, tmp, strlen(tmp)))<=0){
 			ONION_WARNING("Error writing chunk encoding length. Aborting write.");
 			return OCS_CLOSE_CONNECTION;
 		}
 		ONION_DEBUG0("Write %d-%d bytes",res->buffer_pos,w);
 	}
-	while ( (w=write(req, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
+	while ( (w=writereqf(req, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos){
 		if (w<=0 || res->buffer_pos<0){
 			ONION_ERROR("Error writing %d bytes. Maybe closed connection. Code %d. ",res->buffer_pos, w);
 			perror("");
@@ -410,7 +411,7 @@ int onion_response_flush(onion_response *res){
 		res->buffer_pos-=w;
 	}
 	if (res->flags&OR_CHUNKED){
-		write(req,"\r\n",2);
+		writereqf(req,"\r\n",2);
 	}
 	res->buffer_pos=0;
 	return 0;
