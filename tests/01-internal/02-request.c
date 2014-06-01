@@ -164,7 +164,7 @@ void t04_create_add_free_GET(){
 	for (i=0;i<10;i++){
 		FAIL_IF_NOT_EQUAL_INT(req->flags,0);
 		ok=REQ_WRITE(req, query);
-		FAIL_IF_NOT_EQUAL_INT(ok, OCS_CLOSE_CONNECTION);
+		FAIL_IF_NOT_EQUAL_INT(ok, OCS_REQUEST_READY);
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
 		FAIL_IF_EQUAL(req->headers, NULL);
@@ -209,15 +209,15 @@ void t05_create_add_free_POST(){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
 		ok=REQ_WRITE(req,query);
 		
-		FAIL_IF_NOT_EQUAL(ok, OCS_CLOSE_CONNECTION);
+		FAIL_IF_NOT_EQUAL(ok, OCS_REQUEST_READY);
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
 		FAIL_IF_EQUAL(req->headers, NULL);
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Host"), "127.0.0.1");
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->headers,"Other-Header"), "My header is very long and with spaces...");
 
-		FAIL_IF_NOT_EQUAL_STR(req->fullpath,"/myurl /is/very/deeply/nested");
-		FAIL_IF_NOT_EQUAL_STR(req->path,"myurl /is/very/deeply/nested");
+		FAIL_IF_NOT_EQUAL_STR( onion_request_get_fullpath(req),"/myurl /is/very/deeply/nested");
+		FAIL_IF_NOT_EQUAL_STR( onion_request_get_path(req),"myurl /is/very/deeply/nested");
 
 		FAIL_IF_EQUAL(req->GET,NULL);
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->GET,"test"), "test");
@@ -225,6 +225,7 @@ void t05_create_add_free_POST(){
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(req->GET,"more_query"), " more query 10");
 
 		const onion_dict *post=onion_request_get_post_dict(req);
+		onion_dict_print_dot(post);
 		FAIL_IF_EQUAL(post,NULL);
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(post,"post_data"), "1");
 		FAIL_IF_NOT_EQUAL_STR( onion_dict_get(post,"post_data2"), "2");
@@ -280,7 +281,7 @@ void t06_create_add_free_POST_toobig(){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
 		ok=REQ_WRITE(req,query);
 		
-		FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR);
+		FAIL_IF_NOT_EQUAL(ok,OCS_REQUEST_READY);
 
 		onion_request_clean(req);
 		FAIL_IF_NOT_EQUAL(req->GET,NULL);
@@ -326,7 +327,7 @@ void t07_multiline_headers(){
 		
 		ok=onion_request_write_const(req,query,strlen(query));
 	}
-	FAIL_IF_NOT_EQUAL(ok,OCS_INTERNAL_ERROR); // No \t at my-other-header
+	FAIL_IF_NOT_EQUAL(ok,OCS_REQUEST_READY); // No \t at my-other-header
 	
 	onion_request_free(req);
 	

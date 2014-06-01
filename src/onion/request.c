@@ -212,6 +212,8 @@ void onion_request_clean(onion_request* req){
  * @memberof onion_request_t
  */
 const char *onion_request_get_path(onion_request *req){
+	if (!req->path)
+		onion_request_polish(req);
 	return req->path;
 }
 
@@ -546,7 +548,7 @@ onion_connection_status onion_request_process(onion_request *req){
  * @param req The request.
  */
 void onion_request_polish(onion_request *req){
-  if (*req->fullpath)
+  if (*req->fullpath=='/') // Remove trailing /.
     req->path=req->fullpath+1;
   else
     req->path=req->fullpath;
@@ -596,6 +598,7 @@ struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, s
 void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 	ONION_DEBUG0("Query to dict %s",p);
 	char *key=NULL, *value=NULL;
+	int flags=OD_DUP_ALL; // Maybe might be improved to use in place.
 	int state=0;  // 0 key, 1 value
 	key=p;
 	while(*p){
@@ -609,7 +612,7 @@ void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 				*p='\0';
 				onion_unquote_inplace(key);
 				ONION_DEBUG0("Adding key %s",key);
-				onion_dict_add(dict, key, "", 0);
+				onion_dict_add(dict, key, "", flags);
 				key=p+1;
 				state=0;
 			}
@@ -620,7 +623,7 @@ void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 				onion_unquote_inplace(key);
 				onion_unquote_inplace(value);
 				ONION_DEBUG0("Adding key %s=%-16s",key,value);
-				onion_dict_add(dict, key, value, 0);
+				onion_dict_add(dict, key, value, flags);
 				key=p+1;
 				state=0;
 			}
@@ -631,14 +634,14 @@ void onion_request_parse_query_to_dict(onion_dict *dict, char *p){
 		if (key[0]!='\0'){
 			onion_unquote_inplace(key);
 			ONION_DEBUG0("Adding key %s",key);
-			onion_dict_add(dict, key, "", 0);
+			onion_dict_add(dict, key, "", flags);
 		}
 	}
 	else{
 		onion_unquote_inplace(key);
 		onion_unquote_inplace(value);
 		ONION_DEBUG0("Adding key %s=%-16s",key,value);
-		onion_dict_add(dict, key, value, 0);
+		onion_dict_add(dict, key, value, flags);
 	}
 }
 
