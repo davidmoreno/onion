@@ -33,7 +33,7 @@ int main(int argc, char **argv){
 	
 	Onion::Url root(&server);
 	
-	root.add("", "Some static code");
+	root.add("", "Some static text", HTTP_OK );
 	root.add("lambda", [](Onion::Request &req, Onion::Response &res){
 		res<<"Lambda handler";
 		return OCS_PROCESSED;
