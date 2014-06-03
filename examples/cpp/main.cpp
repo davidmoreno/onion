@@ -16,12 +16,20 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#include <onion/onion.hpp>
-#include <onion/response.hpp>
-#include <onion/url.hpp>
+#include <onion.hpp>
+#include <response.hpp>
+#include <url.hpp>
 
 int main(int argc, char **argv){
+	if (argc!=3){
+		ONION_ERROR("%s <certificate file> <key file>", argv[0]);
+		exit(1);
+	}
+	ONION_INFO("Listening at https://localhost:8080");
+	
 	Onion::Onion server(O_POOL);
+	
+	server.setCertificate(O_SSL_CERTIFICATE_KEY, argv[1], argv[2]);
 	
 	Onion::Url root(&server);
 	

@@ -158,6 +158,17 @@ namespace Onion{
 		}
 		
 		/**
+		 * @short Sets the HTTPS certificates
+		 */
+		bool setCertificate(onion_ssl_certificate_type type, const char *filename, ...){
+			va_list va;
+			va_start(va, filename);
+			int r=onion_set_certificate_va(ptr, type, filename, va);
+			va_end(va);
+			return r;
+		}
+		
+		/**
 		* @short Returns the current flags.
 		*/
 		Flags flags(){
