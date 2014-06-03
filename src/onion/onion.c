@@ -255,6 +255,82 @@ void onion_free(onion *onion){
 	onion_low_free(onion);
 }
 
+
+#ifdef HAVE_PTHREADS
+static pthread_mutex_t count_mtx;
+static long listen_counter;
+static long poller_counter;
+static void* onion_listen_start (void* data)
+{
+  onion* o = data;
+  pthread_mutex_lock (&count_mtx);
+  listen_counter++;
+#ifdef __DEBUG__
+#ifdef __USE_GNU 
+  long cnt = listen_counter;
+#endif /*__USE_GNU */
+#endif /*__DEBUG__*/
+  pthread_mutex_unlock (&count_mtx);
+#ifdef __DEBUG__
+#ifdef __USE_GNU 
+  /* GNU systems such as Linux with GNU glibc have the non-standard pthread_setname_np */
+  {
+    char thrname[16];
+    memset (thrname, 0, sizeof(thrname));
+    snprintf (thrname, sizeof(thrname), "onlisten%ld", cnt);
+    pthread_setname_np (pthread_self(), thrname);
+  }
+#endif /*__USE_GNU */
+#endif /*__DEBUG__*/
+  onion_listen (o);
+  return NULL;
+}
+
+long onion_count_listen_threads(void)
+{
+  long cnt = 0;
+  pthread_mutex_lock (&count_mtx);
+  cnt = listen_counter;
+  pthread_mutex_unlock (&count_mtx);
+  return cnt;
+}
+
+static void* onion_poller_poll_start (void* data)
+{
+  onion_poller* poller = data;
+  pthread_mutex_lock (&count_mtx);
+  poller_counter++;
+#ifdef __DEBUG__
+#ifdef __USE_GNU 
+  long cnt = poller_counter;
+#endif /*__USE_GNU */
+#endif /*__DEBUG__*/
+  pthread_mutex_unlock (&count_mtx);
+#ifdef __DEBUG__
+#ifdef __USE_GNU 
+  /* GNU systems such as Linux with GNU glibc have the non-standard pthread_setname_np */
+  {
+    char thrname[16];
+    memset (thrname, 0, sizeof(thrname));
+    snprintf (thrname, sizeof(thrname), "onpoller%ld", cnt);
+    pthread_setname_np (pthread_self(), thrname);
+  }
+#endif /*__USE_GNU */
+#endif /*__DEBUG__*/
+  onion_poller_poll(poller);
+  return NULL;
+}
+
+long onion_count_poller_threads(void)
+{
+  long cnt = 0;
+  pthread_mutex_lock (&count_mtx);
+  cnt = poller_counter;
+  pthread_mutex_unlock (&count_mtx);
+  return cnt;
+}
+#endif
+
 /**
  * @short Performs the listening with the given mode
  * @memberof onion_t
@@ -269,7 +345,7 @@ int onion_listen(onion *o){
 #ifdef HAVE_PTHREADS
 	if (!(o->flags&O_DETACHED) && (o->flags&O_DETACH_LISTEN)){ // Must detach and return
 		o->flags|=O_DETACHED;
-		int errcode=onion_low_pthread_create(&o->listen_thread,NULL, (void*)onion_listen, o);
+		int errcode=onion_low_pthread_create(&o->listen_thread,NULL, onion_listen_start, o);
 		if (errcode!=0)
 			return errcode;
 		return 0;
@@ -337,7 +413,7 @@ int onion_listen(onion *o){
 			o->threads=onion_low_malloc(sizeof(pthread_t)*(o->nthreads-1));
 			int i;
 			for (i=0;i<o->nthreads-1;i++){
-				onion_low_pthread_create(&o->threads[i],NULL,(void*)onion_poller_poll, o->poller);
+				onion_low_pthread_create(&o->threads[i],NULL,onion_poller_poll_start, o->poller);
 			}
 			
 			// Here is where it waits.. but eventually it will exit at onion_listen_stop
