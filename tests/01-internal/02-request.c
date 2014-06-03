@@ -281,7 +281,7 @@ void t06_create_add_free_POST_toobig(){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
 		ok=REQ_WRITE(req,query);
 		
-		FAIL_IF_NOT_EQUAL(ok,OCS_REQUEST_READY);
+		FAIL_IF_NOT_EQUAL_INT(ok,OCS_REQUEST_READY);
 
 		onion_request_clean(req);
 		FAIL_IF_NOT_EQUAL(req->GET,NULL);

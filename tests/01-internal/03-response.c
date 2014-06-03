@@ -30,7 +30,7 @@
 #include "../ctest.h"
 #include "buffer_listen_point.h"
 
-#define FILL(a,b) onion_request_write(a,b,strlen(b))
+#define FILL(a,b) onion_request_write_const(a,b,strlen(b))
 
 
 void t01_create_add_free(){

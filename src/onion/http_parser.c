@@ -26,6 +26,8 @@
 #include <assert.h>
 #include <execinfo.h>
 #include <fcntl.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "types.h"
 #include "types_internal.h"
@@ -35,6 +37,9 @@
 #include "dict.h"
 #include "request.h"
 #include "block.h"
+#include "low.h"
+
+static const uint16_t MAX_LINE_SIZE=4096;
 
 extern const char *onion_request_methods[16];
 
@@ -53,6 +58,8 @@ void onion_http_parse_free(void *data);
 typedef struct{
 	onion_connection_status (*parser)(onion_request *req, char *line);
 	const char *last_key;
+	onion_block *line; // read line by line in line mode. Until full line is not read, add here.
+	bool read_by_line;
 	struct{
 		char *marker;
 		int marker_size;
@@ -68,11 +75,13 @@ void onion_http_parser_init(onion_request *req){
 	if (req->parser.data && req->parser.free)
 		req->parser.free(req->parser.data);
 	req->parser.parse=onion_http_parse;
-	req->parser.data=calloc(1, sizeof(http_parser_data));
+	req->parser.data=onion_low_calloc(1, sizeof(http_parser_data));
 	req->parser.free=onion_http_parse_free;
 	http_parser_data *pd=(http_parser_data*)req->parser.data;
 	pd->parser=onion_http_parse_petition;
 	pd->multipart.data=NULL; //onion_block_new();
+	pd->line=onion_block_new();
+	pd->read_by_line=true;
 }
 
 onion_connection_status onion_http_parse(onion_request *req, onion_parser_block *block){
@@ -84,18 +93,31 @@ onion_connection_status onion_http_parse(onion_request *req, onion_parser_block 
 		return OCS_INTERNAL_ERROR;
 	}
 	while ( (ret==OCS_NEED_MORE_DATA) && pd->parser && ( (line=onion_parser_block_get_to_nl(block)) != NULL ) ){
-	#ifdef __DEBUG__0
-		char **bs=backtrace_symbols((void * const *)&pd->parser, 1);
-		ONION_DEBUG0("Line: <%s>, parser <%s>", line, bs[0]);
-		free(bs);
-	#endif
-
-		ret=pd->parser(req, line);
+		if (pd->read_by_line && ( onion_block_size(pd->line)>0 || onion_parser_block_incomplete(block) )){
+			ONION_DEBUG("Did not read full line or continue (%*s).", block->end - line, line);
+			if ( (block->end - line) + onion_block_size(pd->line) > MAX_LINE_SIZE){
+				ONION_ERROR("Header too long. Max size is %d", MAX_LINE_SIZE);
+				return OCS_INTERNAL_ERROR;
+			}
+			onion_block_add_data(pd->line, line, block->end - line);
+			if (!onion_parser_block_incomplete(block)){ // Ok, finally complete
+				ONION_DEBUG("Ok now is full: <%s>", onion_block_data(pd->line));
+				ret=pd->parser(req,  (char *)onion_block_data(pd->line)); // DANGER convert const to non-const. Im the owner of the data so should be ok.
+				onion_block_clear(pd->line);
+			}
+			else
+				ret=OCS_NEED_MORE_DATA;
+		}
+		else{ // Good full clean line. This is the fast way.
+			ONION_DEBUG0("Got full line: <%s>", line);
+			ret=pd->parser(req, line);
+		}
 	}
 	
 	if (ret == OCS_REQUEST_READY){ // restarting the parser
 		ONION_DEBUG0("Process request. Ready for next petition.");
 		pd->parser=onion_http_parse_petition;
+		pd->read_by_line=true;
 	}
 	
 	ONION_DEBUG0("Return %d (%d is OCS_REQUEST_READY)", ret, OCS_REQUEST_READY);
@@ -106,7 +128,8 @@ void onion_http_parse_free(void *data){
 	http_parser_data *pd=(http_parser_data*)data;
 	if (pd->multipart.data)
 		onion_block_free(pd->multipart.data);
-	free(pd);
+	onion_block_free(pd->line);
+	onion_low_free(pd);
 }
 
 onion_connection_status onion_http_parse_petition(onion_request *req, char *line){
@@ -211,13 +234,14 @@ onion_connection_status onion_http_parse_prepare_for_POST(onion_request *req){
 	http_parser_data *pd=(http_parser_data*)req->parser.data;
 	const char *content_type=onion_request_get_header(req, "Content-Type");
 	if (content_type && strncmp(content_type,"multipart/form-data",sizeof("multipart/form-data")-1)==0){
+		pd->read_by_line=false;
 		pd->parser=onion_http_parse_POST_multipart;
 		
 		// All this because of no strdupa
 		int len=strlen(content_type);
-		char cttt[len];
+		char cttt[len]; // Temporal data 
 		memcpy(cttt,content_type,len);
-		char *ctt=(char*)cttt;
+		char *ctt=(char*)cttt; // Pointer to the temporal data, will change head.
 		
 		pd->multipart.marker=NULL;
 		while(*ctt){
@@ -234,7 +258,7 @@ onion_connection_status onion_http_parse_prepare_for_POST(onion_request *req){
 				if (!boundary)
 					return OCS_INTERNAL_ERROR;
 				pd->multipart.marker_size=strlen(boundary)+2;
-				pd->multipart.marker=malloc(pd->multipart.marker_size+3);
+				pd->multipart.marker=onion_low_malloc(pd->multipart.marker_size+3);
 				pd->multipart.marker[0]=pd->multipart.marker[1]='-';
 				memcpy(pd->multipart.marker+2, boundary, pd->multipart.marker_size-1);
 				ONION_DEBUG0("Boundary marker is <%s> <%s>",boundary, pd->multipart.marker);
@@ -243,8 +267,10 @@ onion_connection_status onion_http_parse_prepare_for_POST(onion_request *req){
 		}
 		return OCS_INTERNAL_ERROR;
 	}
-	else
+	else{
+		pd->read_by_line=false;
 		pd->parser=onion_http_parse_POST_urlencoded;
+	}
 
 	ONION_DEBUG0("Next is POST data");
 	return OCS_NEED_MORE_DATA;
@@ -299,7 +325,7 @@ onion_connection_status onion_http_parse_POST_multipart_header(onion_request *re
 				if (strcasecmp(key, "name")==0){
 					char *v=onion_str_unquote(onion_str_get_token2(&line, ";=", &c));
 					if (pd->multipart.current_name)
-						free(pd->multipart.current_name);
+						onion_low_free(pd->multipart.current_name);
 					pd->multipart.current_name=strdup(v);
 					ONION_DEBUG("Current name is <%s>", pd->multipart.current_name);
 				}
@@ -345,7 +371,7 @@ onion_connection_status onion_http_parse_POST_multipart_data(onion_request *req,
 									 pd->multipart.current_name, 
 									 onion_block_data(pd->multipart.data),
 									 OD_DUP_ALL);
-		free(pd->multipart.current_name);
+		onion_low_free(pd->multipart.current_name);
 		pd->multipart.current_name=NULL;
 		onion_block_clear(pd->multipart.data);
 		

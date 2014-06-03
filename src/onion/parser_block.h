@@ -27,6 +27,7 @@
 #include "types.h"
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 struct onion_parser_block_t{
 	char *end;
@@ -46,6 +47,9 @@ static inline char *onion_parser_block_get(onion_parser_block *bl){
 }
 static inline int onion_parser_block_eof(onion_parser_block *bl){
 	return bl->p>=bl->end;
+}
+static inline int onion_parser_block_incomplete(onion_parser_block *bl){
+	return bl->p>bl->end;
 }
 static inline size_t onion_parser_block_remaining(onion_parser_block *bl){
 	return bl->end-bl->p;

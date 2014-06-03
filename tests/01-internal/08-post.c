@@ -104,7 +104,7 @@ void t01_post_empty_file(){
 	onion_request *req=onion_request_new(lp);
 
 #define POST_EMPTY "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length:80\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\n\n\n--end--"
-	onion_request_write(req,POST_EMPTY,sizeof(POST_EMPTY));
+	onion_request_write_const(req,POST_EMPTY,sizeof(POST_EMPTY));
 	FAIL_IF_NOT_EQUAL(post.test_ok,1);
 	
 	onion_request_clean(req);
@@ -112,7 +112,7 @@ void t01_post_empty_file(){
 #undef POST_EMPTY
 
 #define POST_EMPTYR "POST / HTTP/1.1\r\nContent-Type: multipart/form-data; boundary=end\r\nContent-Length:84\r\n\r\n--end\r\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\r\n\r\n\r\n--end--"
-	onion_request_write(req,POST_EMPTYR,sizeof(POST_EMPTYR));
+	onion_request_write_const(req,POST_EMPTYR,sizeof(POST_EMPTYR));
 	FAIL_IF_NOT_EQUAL(post.test_ok,1);
 #undef POST_EMPTYR
 
@@ -148,7 +148,7 @@ void t02_post_new_lines_file(){
 	onion_request *req=onion_request_new(lp);
 
 #define POST_EMPTY "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length:81\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\n\n\n\n--end--"
-	onion_request_write(req,POST_EMPTY,sizeof(POST_EMPTY));
+	onion_request_write_const(req,POST_EMPTY,sizeof(POST_EMPTY));
 	FAIL_IF_NOT_EQUAL(post.test_ok,1);
 #undef POST_EMPTY
 
@@ -156,7 +156,7 @@ void t02_post_new_lines_file(){
 	post.test_ok=0; // Not ok as not called processor yet
 
 #define POST_EMPTYR "POST / HTTP/1.1\r\nContent-Type: multipart/form-data; boundary=end\r\nContent-Length:85\r\n\r\n--end\r\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\r\n\r\n\n\r\n--end--"
-	onion_request_write(req,POST_EMPTYR,sizeof(POST_EMPTYR));
+	onion_request_write_const(req,POST_EMPTYR,sizeof(POST_EMPTYR));
 	FAIL_IF_NOT_EQUAL(post.test_ok,1);
 #undef POST_EMPTYR
 
@@ -194,7 +194,7 @@ void t03_post_carriage_return_new_lines_file(){
 
 #define POST_EMPTY "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length:81\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\n\n\n\r\n\n--end--"
 	//ONION_DEBUG("%s",POST_EMPTY);
-	onion_request_write(req,POST_EMPTY,sizeof(POST_EMPTY));
+	onion_request_write_const(req,POST_EMPTY,sizeof(POST_EMPTY));
 	FAIL_IF_NOT_EQUAL(post.test_ok,1);
 #undef POST_EMPTY
 
@@ -202,7 +202,7 @@ void t03_post_carriage_return_new_lines_file(){
 	post.test_ok=0; // Not ok as not called processor yet
 
 #define POST_EMPTYR "POST / HTTP/1.1\r\nContent-Type: multipart/form-data; boundary=end\r\nContent-Length:85\r\n\r\n--end\r\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\r\n\r\n\n\r\n\r\n--end--"
-	onion_request_write(req,POST_EMPTYR,sizeof(POST_EMPTYR));
+	onion_request_write_const(req,POST_EMPTYR,sizeof(POST_EMPTYR));
 	FAIL_IF_NOT_EQUAL(post.test_ok,1);
 #undef POST_EMPTYR
 
@@ -246,15 +246,15 @@ void t04_post_largefile(){
 	ONION_DEBUG("Post size is about %d",filesize+73);
 	snprintf(tmp, sizeof(tmp), POST_HEADER, (int)filesize+73);
 	ONION_DEBUG("%s",tmp);
-	onion_request_write(req,tmp,strlen(tmp));
+	onion_request_write_const(req,tmp,strlen(tmp));
 	
 	int r=read(postfd, tmp, sizeof(tmp));
 	while ( r>0 ){
-		onion_request_write(req, tmp, r);
+		onion_request_write_const(req, tmp, r);
 		r=read(postfd, tmp, sizeof(tmp));
 	}
 	
-	onion_request_write(req,"\n--end--",8);
+	onion_request_write_const(req,"\n--end--",8);
 	FAIL_IF_NOT_EQUAL_INT(post.test_ok,1);
 #undef POST_HEADER
 	onion_request_clean(req);
@@ -351,8 +351,8 @@ void t05_post_content_json(){
 	ONION_DEBUG("Post size is about %d",json_length);
 	snprintf(tmp, sizeof(tmp), POST_HEADER, json_length);
 // 	ONION_DEBUG("%s",tmp);
-	onion_request_write(req,tmp,strlen(tmp));
-	onion_request_write(req,JSON_EXAMPLE,json_length);
+	onion_request_write_const(req,tmp,strlen(tmp));
+	onion_request_write_const(req,JSON_EXAMPLE,json_length);
 // 	ONION_DEBUG("%s",JSON_EXAMPLE);
 	
 	FAIL_IF_NOT_EQUAL_INT(post_json.processed, 2);
@@ -385,7 +385,7 @@ void t06_post_empty(){
 	
 	onion_request *req=onion_request_new(lp);
 #define POST_EMPTY "POST / HTTP/1.1\nContent-Type: application/x-www-form-urlencoded\nContent-Length: 0\n\n"
-	onion_request_write(req,POST_EMPTY,strlen(POST_EMPTY));
+	onion_request_write_const(req,POST_EMPTY,strlen(POST_EMPTY));
 // 	ONION_DEBUG("%s",JSON_EXAMPLE);
 	
 	FAIL_IF_NOT_EQUAL_INT(post_json.processed, 2);

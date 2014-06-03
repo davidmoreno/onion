@@ -79,7 +79,10 @@ void t01_server_min(){
 	onion_request_write_const(req, "/",1);
 	onion_request_write_const(req, " HTTP/1.1\r\n",11);
 	
-	onion_request_write_const(req, "\r\n",2);
+	onion_connection_status st=onion_request_write_const(req, "\r\n",2);
+	FAIL_IF_NOT_EQUAL(st,OCS_REQUEST_READY);
+	if (OCS_REQUEST_READY==st)
+		onion_request_process(req);
 	
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	
@@ -294,7 +297,10 @@ void t07_server_with_error_501(){
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
 	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
-	onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	onion_connection_status st=onion_request_write_const(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	FAIL_IF_NOT_EQUAL(st, OCS_REQUEST_READY);
+	if (st==OCS_REQUEST_READY)
+		onion_request_process(req);
 	
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
