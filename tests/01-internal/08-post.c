@@ -104,7 +104,11 @@ void t01_post_empty_file(){
 	onion_request *req=onion_request_new(lp);
 
 #define POST_EMPTY "POST / HTTP/1.1\nContent-Type: multipart/form-data; boundary=end\nContent-Length:80\n\n--end\nContent-Disposition: text/plain; name=\"file\"; filename=\"file.dat\"\n\n\n--end--"
-	onion_request_write_const(req,POST_EMPTY,sizeof(POST_EMPTY));
+	onion_connection_status r=onion_request_write_const(req,POST_EMPTY,sizeof(POST_EMPTY));
+	FAIL_IF_NOT_EQUAL_INT(r, OCS_REQUEST_READY);
+	if (r==OCS_REQUEST_READY)
+		onion_request_process(req);
+	
 	FAIL_IF_NOT_EQUAL(post.test_ok,1);
 	
 	onion_request_clean(req);

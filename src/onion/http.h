@@ -25,8 +25,11 @@
 #define ONION_HTTP_H
 
 #include "types.h"
+#include <stdbool.h>
 
 onion_listen_point *onion_http_new();
 void onion_http_parser_init(onion_request *req);
+onion_connection_status onion_http_parse(onion_request *req, char *buffer, size_t len);
+onion_connection_status onion_http_parse_const(onion_request *req, const char *buffer, size_t len);
 
 #endif

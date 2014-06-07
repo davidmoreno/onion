@@ -43,16 +43,16 @@ static const uint16_t MAX_LINE_SIZE=4096;
 
 extern const char *onion_request_methods[16];
 
-onion_connection_status onion_http_parse(onion_request *req, onion_parser_block *block);
-onion_connection_status onion_http_parse_petition(onion_request *req, char *line);
-onion_connection_status onion_http_parse_headers(onion_request *req, char *line);
+static onion_connection_status onion_http_parse(onion_request *req, onion_parser_block *block);
+static onion_connection_status onion_http_parse_petition(onion_request *req, char *line);
+static onion_connection_status onion_http_parse_headers(onion_request *req, char *line);
 
-onion_connection_status onion_http_parse_prepare_for_POST(onion_request *req);
-onion_connection_status onion_http_parse_POST_urlencoded(onion_request *req, char *line);
-onion_connection_status onion_http_parse_POST_multipart(onion_request *req, char *line);
-onion_connection_status onion_http_parse_POST_multipart_header(onion_request *req, char *line);
-onion_connection_status onion_http_parse_POST_multipart_data(onion_request *req, char *line);
-onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req, onion_parser_block *block);
+static onion_connection_status onion_http_parse_prepare_for_POST(onion_request *req);
+static onion_connection_status onion_http_parse_POST_urlencoded(onion_request *req, char *line);
+static onion_connection_status onion_http_parse_POST_multipart(onion_request *req, char *line);
+static onion_connection_status onion_http_parse_POST_multipart_header(onion_request *req, char *line);
+static onion_connection_status onion_http_parse_POST_multipart_data(onion_request *req, char *line);
+static onion_connection_status onion_http_parse_POST_multipart_file(onion_request *req, onion_parser_block *block);
 void onion_http_parse_free(void *data);
 
 typedef struct{

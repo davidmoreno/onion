@@ -39,7 +39,7 @@ void setup(){
 	onion_add_listen_point(server, NULL, NULL, custom_io);
 }
 
-#define REQ_WRITE(req, txt) onion_request_write_const(req, txt, strlen(txt));
+#define REQ_WRITE(req, txt) onion_http_parse_const(req, txt, strlen(txt));
 
 void teardown(){
 	onion_free(server);
@@ -164,7 +164,7 @@ void t04_create_add_free_GET(){
 	for (i=0;i<10;i++){
 		FAIL_IF_NOT_EQUAL_INT(req->flags,0);
 		ok=REQ_WRITE(req, query);
-		FAIL_IF_NOT_EQUAL_INT(ok, OCS_REQUEST_READY);
+		FAIL_IF_NOT_EQUAL_INT(ok, OCS_CONNECTION_CLOSE);
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
 		FAIL_IF_EQUAL(req->headers, NULL);
@@ -311,7 +311,7 @@ void t07_multiline_headers(){
 											"Extra-Other-Header: My header is very long and with several\n \n lines\n"
 											"My-Other-Header: My header is very long and with several\n\tlines\n\n";
 		
-		ok=onion_request_write_const(req,query,strlen(query));
+		ok=onion_http_parse_const(req,query,strlen(query));
 	}
 	FAIL_IF_EQUAL(ok,OCS_INTERNAL_ERROR);
 	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"other-header"),"My header is very long and with several lines");
@@ -325,7 +325,7 @@ void t07_multiline_headers(){
 											"Other-Header: My header is very long and with several\n lines\n"
 											"My-Other-Header: My header is very long and with several\nlines\n\n";
 		
-		ok=onion_request_write_const(req,query,strlen(query));
+		ok=onion_http_parse_const(req,query,strlen(query));
 	}
 	FAIL_IF_NOT_EQUAL(ok,OCS_REQUEST_READY); // No \t at my-other-header
 	
@@ -437,7 +437,7 @@ void t09_very_long_header(){
 		
 		FAIL_IF_NOT_EQUAL_INT(strlen(query), longsize-1);
 		
-		ok=onion_request_write(req, query, longsize);
+		ok=onion_http_parse(req, query, longsize);
 		free(query);
 	}
 	FAIL_IF_EQUAL_INT(ok,OCS_INTERNAL_ERROR);
@@ -466,7 +466,7 @@ void t10_repeated_header(){
 											"Accept-Language: en\n"
 											"Content-Type: application/x-www-form-urlencoded-bis\n\n";
 		
-		ok=onion_request_write_const(req,query,strlen(query));
+		ok=onion_http_parse_const(req,query,strlen(query));
 	}
 	FAIL_IF_EQUAL(ok,OCS_INTERNAL_ERROR);
 	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"Host"),"127.0.0.1");
@@ -497,7 +497,7 @@ void t11_cookies(){
 											"Cookie: key1=value1; key2=value2;\n"
 											"Accept-Language: en\n"; // Missing \n caused memleak, to check with valgrind
 		
-		ok=onion_request_write_const(req,query,strlen(query));
+		ok=onion_http_parse_const(req,query,strlen(query));
 	}
 	FAIL_IF_EQUAL(ok,OCS_INTERNAL_ERROR);
 	FAIL_IF_NOT_EQUAL_STR(onion_request_get_header(req,"Host"),"127.0.0.1");

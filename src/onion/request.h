@@ -154,7 +154,7 @@ const char *onion_request_get_language_code(onion_request *req);
 /// Returns extra request data, such as POST with non-form data, or PROPFIND. Needs the Content-Length request header.
 const onion_block *onion_request_get_data(onion_request *req);
 
-/// Performs final touches to the request to its ready to be processed.
+/// Performs final touches to the request so its ready to be processed.
 void onion_request_polish(onion_request *req);
 
 /// Executes the handler required for this request
@@ -172,11 +172,6 @@ int onion_request_parse_query(onion_request *req);
 /// Reads a query data, and insert it into the given dict.
 void onion_request_parse_query_to_dict(onion_dict *dict, char *query);
 
-/// Simple write data to a request. const version. Does a copy as it modifies buffers.
-onion_connection_status onion_request_write_const(onion_request *req, const char *data, size_t len);
-
-/// Simple write data to a request. Modifies the data buffer.
-onion_connection_status onion_request_write(onion_request *req, char *data, size_t len);
 #ifdef __cplusplus
 }
 #endif

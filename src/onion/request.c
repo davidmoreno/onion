@@ -675,26 +675,6 @@ int onion_request_parse_query(onion_request *req){
 }
 
 /**
- * @short Simple write some data to the request. Normally use the req->parser.parse.
- * 
- * This method is SLOW as it copies the data as a requirement for parsing. Better use internally
- * req->parser.parse, with the knowledge that it is a non-const data.
- */
-onion_connection_status onion_request_write_const(onion_request *req, const char *data, size_t len){
-	char *datac=alloca(len);
-	memcpy(datac, data, len);
-	
-	return onion_request_write(req, datac, len);
-}
-
-onion_connection_status onion_request_write(onion_request* req, char* data, size_t len){
-	assert(req->parser.parse != NULL);
-	onion_parser_block block;
-	onion_parser_block_init(&block, data, len);
-	return req->parser.parse(req, &block);
-}
-
-/**
  * @short Gets the dict with the cookies
  * @memberof onion_request_t
  * 
