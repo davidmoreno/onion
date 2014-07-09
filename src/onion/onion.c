@@ -713,7 +713,16 @@ void onion_set_hostname(onion *server, const char *hostname){
 }
 
 /// Set a certificate for use in the connection
-int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename,...){
+int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...){
+	va_list va;
+	va_start(va, filename);
+	int r=onion_set_certificate_va(onion, type, filename, va);
+	va_end(va);
+	return r;
+}
+
+/// Set a certificate for use in the connection
+int onion_set_certificate_va(onion *onion, onion_ssl_certificate_type type, const char *filename, va_list va){
 #ifdef HAVE_GNUTLS
 	if (!onion->listen_points){
 		onion_add_listen_point(onion,NULL,NULL,onion_https_new());
@@ -741,10 +750,7 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 			first_listen_point=https;
 		}
 	}
-	va_list va;
-	va_start(va, filename);
-	int r=onion_https_set_certificate_argv(onion->listen_points[0], type, filename,va);
-	va_end(va);
+	int r=onion_https_set_certificate_argv(onion->listen_points[0], type, filename, va);
 
 	return r;
 #else

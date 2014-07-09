@@ -65,6 +65,9 @@ void onion_set_hostname(onion *server, const char *hostname);
 /// Set a certificate for use in the connection
 int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const char *filename, ...);
 
+/// Set a certificate for use in the connection. va_list version.
+int onion_set_certificate_va(onion *onion, onion_ssl_certificate_type type, const char *filename, va_list va);
+
 /// Adds a listen point, a listening address and port with a given protocol.
 int onion_add_listen_point(onion *server, const char *hostname, const char *port, onion_listen_point *protocol);
 
