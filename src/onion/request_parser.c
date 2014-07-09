@@ -681,9 +681,17 @@ static onion_connection_status parse_POST_urlencode(onion_request *req, onion_bu
 }
 
 static onion_connection_status parse_POST_rawdata(onion_request *req, onion_buffer *data){
-#warning parse_POST_rawdata should be implemented
-  ONION_ERROR("unimplemented parse_POST_rawdata");
-  return OCS_NOT_IMPLEMENTED;
+  onion_token *token=req->parser_data;
+  int l=data->size-data->pos;
+  if (l > (token->extra_size-token->pos))
+    l=token->extra_size-token->pos;
+  memcpy(&token->extra[token->pos], &data->data[data->pos], l);
+  token->pos+=l;	//ONION_DEBUG0("Feed %d bytes",l);
+  if (token->extra_size==token->pos){
+    token->extra[token->pos]='\0';
+    return OCS_PROCESSED;
+  }
+  return OCS_NEED_MORE_DATA;
 }
 
 static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffer *data);
@@ -1008,13 +1016,17 @@ static onion_connection_status prepare_POST(onion_request *req){
 	// http://www.simple-is-better.org/json-rpc/transport_http.html
 	else if (strstr(content_type, "application/json") && (req->flags&OR_METHODS)==OR_POST) {
 		if (cl>req->connection.listen_point->server->max_post_size){
-			ONION_ERROR("Asked to send too much POST JSONRPC data. Limit %d. Failing.",
-				    req->connection.listen_point->server->max_post_size);
-			return OCS_INTERNAL_ERROR;
+		  ONION_ERROR("Asked to send too much POST JSONRPC data. Limit %d. Failing.",
+			      req->connection.listen_point->server->max_post_size);
+		  return OCS_INTERNAL_ERROR;
+		}
+		else if (cl==0){
+		  ONION_ERROR("POST JSONRPC with empty data. Failing.");
+		  return OCS_INTERNAL_ERROR;
 		}
 		token->extra=onion_low_scalar_malloc(cl+1); // Cl + \0
 		token->extra_size=cl;
-		
+		///
 		req->parser=parse_POST_rawdata;
 		return OCS_NEED_MORE_DATA;
 	}
