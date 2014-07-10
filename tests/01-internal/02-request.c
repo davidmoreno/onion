@@ -164,7 +164,7 @@ void t04_create_add_free_GET(){
 	for (i=0;i<10;i++){
 		FAIL_IF_NOT_EQUAL_INT(req->flags,0);
 		ok=REQ_WRITE(req, query);
-		FAIL_IF_NOT_EQUAL_INT(ok, OCS_CONNECTION_CLOSE);
+		FAIL_IF_NOT_EQUAL_INT(ok, OCS_CLOSE_CONNECTION);
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
 		FAIL_IF_EQUAL(req->headers, NULL);
@@ -209,7 +209,7 @@ void t05_create_add_free_POST(){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
 		ok=REQ_WRITE(req,query);
 		
-		FAIL_IF_NOT_EQUAL(ok, OCS_REQUEST_READY);
+		FAIL_IF_NOT_EQUAL_INT(ok, OCS_CLOSE_CONNECTION);
 		FAIL_IF_EQUAL(req->flags,OR_GET|OR_HTTP11);
 		
 		FAIL_IF_EQUAL(req->headers, NULL);
@@ -281,7 +281,7 @@ void t06_create_add_free_POST_toobig(){
 		FAIL_IF_NOT_EQUAL(req->flags,0);
 		ok=REQ_WRITE(req,query);
 		
-		FAIL_IF_NOT_EQUAL_INT(ok,OCS_REQUEST_READY);
+		FAIL_IF_NOT_EQUAL_INT(ok,OCS_KEEP_ALIVE);
 
 		onion_request_clean(req);
 		FAIL_IF_NOT_EQUAL(req->GET,NULL);
