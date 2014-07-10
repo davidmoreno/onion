@@ -730,6 +730,13 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			onion_dict_add(ret, onion_block_data(key), sub, OD_DUP_KEY|OD_DICT|OD_FREE_VALUE);
 			data=*_data;
 		}
+		else if (isdigit(*data)){
+			while(isdigit(*data)){
+				onion_block_add_char(value, *data);
+				++data;
+			}
+			onion_dict_add(ret, onion_block_data(key), onion_block_data(value), OD_DUP_ALL);
+		}
 		else if (*data=='"'){
 			++data;
 			while (*data!='"'){

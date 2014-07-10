@@ -199,7 +199,7 @@ void t05_create_add_free_POST(){
 	FAIL_IF_NOT_EQUAL(req->connection.fd, -1);
 	
 	const char *query="POST /myurl%20/is/very/deeply/nested?test=test&query2=query%202&more_query=%20more%20query+10 HTTP/1.0\n"
-													"Host: 127.0.0.1\n\rContent-Length: 50\n"
+													"Host: 127.0.0.1\n\rContent-Length: 50\nContent-Type: application/x-www-form-urlencoded\n"
 													"Other-Header: My header is very long and with spaces...\r\n\r\nempty_post=&post_data=1&post_data2=2&empty_post_2=\n";
 	
 	int i; // Straight write, with clean (keep alive like)

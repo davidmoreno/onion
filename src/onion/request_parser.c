@@ -308,6 +308,7 @@ static onion_connection_status parse_POST_multipart_next(onion_request *req, oni
  * @short Reads from the data to fulfill content-length data.
  */
 static onion_connection_status parse_CONTENT_LENGTH(onion_request *req, onion_buffer *data){
+	ONION_DEBUG0("Adding data to request->data (non form POST)");
 	onion_token *token=req->parser_data;
 	int length=data->size-data->pos;
 	int exit=0;
@@ -748,12 +749,12 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 	if ( res == NEW_LINE ){
 		if ((req->flags&OR_METHODS)==OR_POST){
 			const char *content_type=onion_request_get_header(req, "Content-Type");
-			if (!content_type || (strstr(content_type,"application/x-www-form-urlencoded") || strstr(content_type, "boundary")))
+			if (content_type && (strstr(content_type,"application/x-www-form-urlencoded") || strstr(content_type, "boundary")))
 				return prepare_POST(req);
 		}
 		if ((req->flags&OR_METHODS)==OR_PUT)
 			return prepare_PUT(req);
-		if (onion_request_get_header(req, "Content-Length")){ // Soem length, not POST, get data.
+		if (onion_request_get_header(req, "Content-Length")){ // Some length, not POST, get data.
 			int n=atoi(onion_request_get_header(req, "Content-Length"));
 			if (n>0)
 				return prepare_CONTENT_LENGTH(req);
