@@ -34,14 +34,37 @@ if (${ONION_POLLER} STREQUAL epoll)
 endif (${ONION_POLLER} STREQUAL epoll)
 
 
+if (PAM_ENABLED)
+	SET(PAM handlers/auth_pam.c)
+	SET(PAMLIBS pam pam_misc)
+else (PAM_ENABLED)
+	SET(PAM)
+	SET(PAMLIBS)
+endif (PAM_ENABLED)
+
+if (${XML2_ENABLED})
+	MESSAGE(STATUS "Compiling WebDAV support") 
+	SET(WEBDAV handlers/webdav.c)
+	SET(XMLLIBS ${XML2_LIB})
+	include_directories(${XML2_HEADERS})
+endif (${XML2_ENABLED})
+
+
+SET(SOURCES_HANDLERS handlers/static.c handlers/exportlocal.c handlers/opack.c handlers/path.c handlers/internal_status.c
+		${PAM} ${WEBDAV})
+SET(LIBRARY_HANDLERS ${PAMLIBS} ${XMLLIBS})
+
 set(SOURCES onion.c codecs.c dict.c low.c request.c response.c handler.c 
                         log.c sessions.c sessions_mem.c shortcuts.c block.c mime.c url.c ${POLLER_C}
-			listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c ${RANDOM_C} ${SQLITE3_C})
+			listen_point.c request_parser.c http.c ${HTTPS_C} websocket.c ${RANDOM_C} ${SQLITE3_C} 
+			${SOURCES_HANDLERS})
+
+add_subdirectory(handlers)
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(
    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/all-onion.c
-   COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR} && cat ${SOURCES} > ${CMAKE_CURRENT_BINARY_DIR}/all-onion.c
+   COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR} && cat ${SOURCES}> ${CMAKE_CURRENT_BINARY_DIR}/all-onion.c
    DEPENDS ${SOURCES}
    )
  include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -80,11 +103,7 @@ if (SYSTEMD_ENABLED)
 	target_link_libraries(onion_static ${SD_DAEMON_LIB})
 endif(SYSTEMD_ENABLED)
 
-target_link_libraries(onion onion_handlers_static)
-target_link_libraries(onion_static onion_handlers_static)
 
-
-add_subdirectory(handlers)
 
 # Only if png by the moment, maybe later other functionalities there.
 if (${PNG_ENABLED})
