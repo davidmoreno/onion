@@ -28,6 +28,8 @@
 #include <onion/dict.h>
 #include <onion/log.h>
 #include <onion/shortcuts.h>
+#include <onion/handler.h>
+#include <onion/handlers/exportlocal.h>
 
 onion_connection_status Onion::render_to_response(::Onion::template_f fn, const ::Onion::Dict& context, ::Onion::Response &res){
 	ONION_DEBUG("Context: %s", context.toJSON().c_str());
@@ -42,4 +44,19 @@ onion_connection_status Onion::render_to_response(::Onion::template_f fn, const 
 onion_connection_status Onion::redirect(const std::string& url, ::Onion::Request& req, ::Onion::Response& res)
 {
 	return onion_shortcut_redirect(url.c_str(), req.c_handler(), res.c_handler());
+}
+
+::Onion::ExportLocal::ExportLocal(const std::string& path) 
+{
+	export_local=onion_handler_export_local_new(path.c_str());
+}
+
+::Onion::ExportLocal::~ExportLocal()
+{
+	onion_handler_free(export_local);
+}
+
+onion_connection_status Onion::ExportLocal::operator()(::Onion::Request &req, ::Onion::Response &res)
+{
+	return onion_handler_handle(export_local, req.c_handler(), res.c_handler());
 }

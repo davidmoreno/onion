@@ -25,6 +25,7 @@
 #include "request.hpp"
 #include "response.hpp"
 #include <onion/shortcuts.h>
+#include <onion/handlers/exportlocal.h>
 
 static onion_connection_status onion_handler_call_operator(void *ptr, onion_request *_req, onion_response *_res){
 	try{

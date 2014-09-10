@@ -37,4 +37,25 @@ namespace Onion{
 	
 	/// Redirects to an given url
 	onion_connection_status redirect(const std::string &url, Request &req, Response &res);
+	
+	/**
+	 * @short Exports local data as a handler
+	 * 
+	 * Using this class developer can safetly export a local directory.
+	 * 
+	 * Example to export current directory:
+	 * 
+	 * @code
+	 * Onion::Onion o;
+	 * o.setRootHandler(ExportLocal("."));
+	 * o.listen();
+	 * @endcode
+	 */
+	class ExportLocal : public Handler{
+		onion_handler *export_local;
+	public:
+		ExportLocal(const std::string &path);
+		virtual ~ExportLocal();
+		onion_connection_status operator()(Request&, Response&);
+	};
 }
