@@ -80,6 +80,9 @@ if (SYSTEMD_ENABLED)
 	target_link_libraries(onion_static ${SD_DAEMON_LIB})
 endif(SYSTEMD_ENABLED)
 
+target_link_libraries(onion onion_handlers_static)
+target_link_libraries(onion_static onion_handlers_static)
+
 
 add_subdirectory(handlers)
 
