@@ -103,6 +103,7 @@ if (SYSTEMD_ENABLED)
 	target_link_libraries(onion ${SD_DAEMON_LIB})
 	target_link_libraries(onion_static ${SD_DAEMON_LIB})
 endif(SYSTEMD_ENABLED)
+target_link_libraries(onion ${LIBRARY_HANDLERS})
 
 
 
