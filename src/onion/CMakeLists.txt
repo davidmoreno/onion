@@ -1,4 +1,5 @@
 # the lib itself. Two versions, static and shared.
+include_directories (${PROJECT_SOURCE_DIR}/src/) 
 
 if (SQLITE3_ENABLED)
 	set(SQLITE3_C sessions_sqlite3.c)
