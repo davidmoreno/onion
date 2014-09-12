@@ -25,6 +25,7 @@
 #define ONION_HANDLER_HPP
 
 #include <onion/handler.h>
+#include <onion/response.h>
 #include <exception>
 #include <string>
 #include <functional>
@@ -121,11 +122,14 @@ namespace Onion{
 	*/
 	class HttpException : public std::exception{
 		std::string str;
+		onion_response_codes code;
 	public:
-		HttpException(const std::string &str) : str(str){}
+		HttpException(const std::string &str, onion_response_codes code=HTTP_INTERNAL_ERROR) : str(str), code(code){}
 		virtual ~HttpException() throw(){}
 		const char *what() const throw(){ return str.c_str(); }
 		const std::string &message(){ return str; }
+		/// How to handle this exception type. May be a redirect, or just plain show this message.
+		virtual onion_connection_status handle(Onion::Request &req, Onion::Response &res);
 	};
 	
 	/**
@@ -153,6 +157,7 @@ namespace Onion{
 	public:
 		HttpRedirect(const std::string &url) : HttpException(url){};
 		virtual ~HttpRedirect() throw(){}
+		virtual onion_connection_status handle(Request& req, Response& res);
 	};
 	
 };
