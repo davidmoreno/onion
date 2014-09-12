@@ -66,12 +66,34 @@ namespace Onion{
 				return Dict();
 		}
 		/**
+		 * @short Get a key from post
+		 * 
+		 * If no dictionary or not at dictionary, it returns an empty string.
+		 */
+		const std::string post(const std::string &key, const std::string &def=std::string()) const{
+			auto r=onion_request_get_post(ptr, key.c_str());
+			if (!r)
+				return def;
+			return r;
+		}
+		/**
 		 * @short Returns the query dictionary, AKA get dictionary.
 		 * 
 		 * Contains all elements encoded in the URL (?a=b&c=d...)
 		 */
 		const Dict query() const{
 			return Dict(onion_request_get_query_dict(ptr));
+		}
+		/**
+		 * @short Get a key from get query
+		 * 
+		 * If no dictionary or not at dictionary, it returns an empty string.
+		 */
+		const std::string query(const std::string &key, const std::string &def=std::string()) const{
+			auto r=onion_request_get_query(ptr, key.c_str());
+			if (!r)
+				return def;
+			return r;
 		}
 		/**
 		 * @short Returns the dictionary of the session.
@@ -82,6 +104,17 @@ namespace Onion{
 				return Dict(d);
 			else
 				return Dict();
+		}
+		/**
+		 * @short Get a key from session
+		 * 
+		 * If no dictionary or not at dictionary, it returns an empty string.
+		 */
+		const std::string session(const std::string &key, const std::string &def=std::string()) const{
+			auto r=onion_request_get_session(ptr, key.c_str());
+			if (!r)
+				return def;
+			return r;
 		}
 		/**
 		 * @short Returns a dictionary with the files. 

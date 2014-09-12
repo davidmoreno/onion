@@ -28,14 +28,14 @@
 #include <onion/handlers/exportlocal.h>
 
 static onion_connection_status onion_handler_call_operator(void *ptr, onion_request *_req, onion_response *_res){
+	Onion::Request req(_req);
+	Onion::Response res(_res);
 	try{
 		Onion::Handler *handler=(Onion::Handler*)ptr;
-		Onion::Request req(_req);
-		Onion::Response res(_res);
 		return (*handler)(req, res);
 	}
-	catch(const Onion::HttpInternalError &e){
-		return onion_shortcut_response(e.what(), HTTP_INTERNAL_ERROR, _req, _res);
+	catch(Onion::HttpException &e){
+		return e.handle(req, res);
 	}
 	catch(const std::exception &e){
 		ONION_ERROR("Catched exception: %s", e.what());
@@ -61,3 +61,18 @@ Onion::Handler::~Handler()
 onion_connection_status Onion::HandlerCFunction::operator()(Onion::Request &req, Onion::Response &res){
 	return fn(NULL, req.c_handler(), res.c_handler());
 }
+
+
+onion_connection_status Onion::HttpException::handle(Onion::Request& req, Onion::Response& res)
+{
+	return onion_shortcut_response(what(), code, req.c_handler(), res.c_handler());
+}
+
+onion_connection_status Onion::HttpRedirect::handle(Onion::Request& req, Onion::Response& res)
+{
+	return onion_shortcut_redirect(what(), req.c_handler(), res.c_handler());
+}
+
+
+
+
