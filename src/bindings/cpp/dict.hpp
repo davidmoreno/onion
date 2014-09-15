@@ -181,22 +181,25 @@ namespace Onion{
 		 * By defaults do a copy of everything, but can be tweaked. If user plans to do
 		 * low level onion_dict adding, its better to use the C onion_dict_add function.
 		 */
-		void add(const std::string &k, const std::string &v, int flags=OD_DUP_ALL){
+		Dict &add(const std::string &k, const std::string &v, int flags=OD_DUP_ALL){
 			onion_dict_add(ptr,k.c_str(),v.c_str(),flags);
+			return *this;
 		}
 		
 		/**
 		 * @short Adds a subdictionary to this dictionary.
 		 */
-		void add(const std::string &k, const Dict &v, int flags=OD_DUP_ALL){
+		Dict &add(const std::string &k, const Dict &v, int flags=OD_DUP_ALL){
 			onion_dict_add(ptr,k.c_str(),v.c_handler(),flags|OD_DICT);
+			return *this;
 		}
 		
 		/**
 		 * @short Removes an element from the dictionary.
 		 */
-		void remove(const std::string &k){
+		Dict &remove(const std::string &k){
 			onion_dict_remove(ptr, k.c_str());
+			return *this;
 		}
 		
 		/**
