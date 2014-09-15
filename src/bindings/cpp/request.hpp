@@ -117,6 +117,13 @@ namespace Onion{
 			return r;
 		}
 		/**
+		 * @short Removes current session
+		 */
+		void removeSession(){
+			onion_request_session_free(ptr);
+		}
+		
+		/**
 		 * @short Returns a dictionary with the files. 
 		 * 
 		 * This dictionary has the mapping from the field name to the file in the filesystem. The file name is on the post() dictionary.
