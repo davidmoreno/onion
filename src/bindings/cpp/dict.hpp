@@ -217,6 +217,25 @@ namespace Onion{
 		}
 		
 		/**
+		 * @short Convert a JSON string to an onion dictionary. 
+		 * 
+		 * This is not full JSON support, only dict side, and with strings.
+		 */
+		static ::Onion::Dict fromJSON(const std::string &jsondata){
+			return Dict(onion_dict_from_json(jsondata.c_str()));
+		}
+		
+		/**
+		 * @short Merges argument dict into current.
+		 * 
+		 * If there are repeated keys, they will repeated.
+		 */
+		Dict &merge(const ::Onion::Dict &other){
+			onion_dict_merge(ptr, other.ptr);
+			return *this;
+		}
+		
+		/**
 		 * @short Converts the dictionary to a std::map<string,string>.
 		 * 
 		 * If there are subdictionaries, they are ignored.
