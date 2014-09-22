@@ -68,6 +68,25 @@ namespace Onion{
 				add(I->first, I->second);
 			}
 		};
+#if __cplusplus >= 201103L
+		/**
+		 * @short Created directly from initializer list. Only for > C++11
+		 * 
+		 * Example
+		 * @code
+		 * 	Onion::Dict dict{{"hello","world"},{"this","is a test"}}
+		 * @endcode
+		 */
+		Dict(std::initializer_list<std::initializer_list<std::string>> &&init) : ptr(onion_dict_new()){
+			for (auto p:init){
+				auto I=p.begin();
+				auto k=*I;
+				++I;
+				auto v=*I;
+				add(k,v);
+			}
+		}
+#endif
 		/**
 		 * @short Creates an empty Onion::Dict
 		 */

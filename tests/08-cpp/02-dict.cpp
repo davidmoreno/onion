@@ -95,6 +95,7 @@ void t03_subdict(){
 #if __cplusplus >= 201103L
 		// C++11 Style add, if not using c++11, compile anyway.
 		Onion::Dict b( {{"Hello","World"},{"Another","item"}} );
+		b.add("test", {{"test", "init by initializer list"},{"test2", "Should work"}});
 #else
 		Onion::Dict b;
 		b.add("Hello","World");
