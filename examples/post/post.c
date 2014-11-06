@@ -32,6 +32,7 @@ onion_connection_status post_data(void *_, onion_request *req, onion_response *r
 	}
 	const char *user_data=onion_request_get_post(req,"text");
 	onion_response_printf(res, "The user wrote: %s", user_data);
+	free(user_data);
 	return OCS_PROCESSED;
 }
 
