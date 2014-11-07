@@ -160,6 +160,18 @@ typedef struct onion_listen_point_t onion_listen_point;
 struct onion_websocket_t;
 typedef struct onion_websocket_t onion_websocket;
 
+
+
+/**
+ * @short List of pointers.
+ * @memberof onion_ptr_list_t
+ * @struct onion_ptr_list_t
+ * 
+ * Used at least on onion_request to as a freelist;
+ */
+struct onion_ptr_list_t;
+typedef struct onion_ptr_list_t onion_ptr_list;
+
 /// Flags for the mode of operation of the onion server.
 enum onion_mode_e{
 	O_ONE=1,							///< Perform just one petition

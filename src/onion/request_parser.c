@@ -27,6 +27,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "dict.h"
 #include "request.h"
@@ -35,6 +36,7 @@
 #include "log.h"
 #include "block.h"
 #include "low.h"
+#include "ptr_list.h"
 
 /**
  * @short Known token types. This is merged with onion_connection_status as return value at token readers.
@@ -361,7 +363,8 @@ static onion_connection_status parse_PUT(onion_request *req, onion_buffer *data)
 	if (exit){
 		close (*fd);
 		onion_low_free(fd);
-		token->extra=NULL;
+		assert(token->extra==NULL);
+		//	token->extra=NULL; // Should be null
 		return onion_request_process(req);
 	}
 	
@@ -677,6 +680,7 @@ static onion_connection_status parse_POST_urlencode(onion_request *req, onion_bu
 	
 	req->POST=onion_dict_new();
 	onion_request_parse_query_to_dict(req->POST, token->extra);
+	token->extra=NULL; // At query to dict, it keeps the pointer and free it when POST is freed.
 
 	return onion_request_process(req);
 }
@@ -719,7 +723,7 @@ static onion_connection_status parse_headers_VALUE_multiline_if_space(onion_requ
 
 	ONION_DEBUG0("Adding header %s : %s",token->extra,p);
 	onion_dict_add(req->headers,token->extra,p, OD_DUP_VALUE|OD_FREE_KEY);
-	token->extra=NULL;
+	token->extra=NULL; // It will be freed at onion_dict_free.
 	
 	req->parser=parse_headers_KEY;
 	return OCS_NEED_MORE_DATA; // Get back recursion if any, to prevent too long callstack (on long headers) and stack overflow.
@@ -762,7 +766,7 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 		
 		return onion_request_process(req);
 	}
-	
+	assert(token->extra==NULL);
 	token->extra=onion_low_strdup(token->str);
 	
 	req->parser=parse_headers_VALUE;
@@ -991,8 +995,10 @@ static onion_connection_status prepare_POST(onion_request *req){
 			ONION_ERROR("Asked to send much POST data. Limit %d. Failing.",req->connection.listen_point->server->max_post_size);
 			return OCS_INTERNAL_ERROR;
 		}
+		assert(token->extra==NULL);
 		token->extra=onion_low_scalar_malloc(cl+1); // Cl + \0
 		token->extra_size=cl;
+		req->free_list=onion_ptr_list_add(req->free_list, token->extra); // Free when the request is freed.
 		
 		req->parser=parse_POST_urlencode;
 		return OCS_NEED_MORE_DATA;
@@ -1012,6 +1018,7 @@ static onion_connection_status prepare_POST(onion_request *req){
 	int mp_token_size=strlen(mp_token);
 	token->extra_size=cl; // Max size of the multipart->data
 	onion_multipart_buffer *multipart=onion_low_malloc(token->extra_size+sizeof(onion_multipart_buffer)+mp_token_size+2);
+	assert(token->extra==NULL);
 	token->extra=(char*)multipart;
 	
 	multipart->boundary=(char*)multipart+sizeof(onion_multipart_buffer)+1;
@@ -1052,7 +1059,8 @@ static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req){
 
 	req->data=onion_block_new();
 	
-	token->extra=NULL;
+	assert(token->extra==NULL);
+	//token->extra=NULL; // Should be already null, as should have no data.
 	token->extra_size=cl;
 	token->pos=0;
 
@@ -1107,6 +1115,7 @@ static onion_connection_status prepare_PUT(onion_request *req){
 	int *pfd=onion_low_scalar_malloc(sizeof(fd));
 	*pfd=fd;
 	
+	assert(token->extra==NULL);
 	token->extra=(char*)pfd;
 	token->extra_size=cl;
 	token->pos=0;

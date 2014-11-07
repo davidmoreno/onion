@@ -74,4 +74,5 @@ int main(int argc, char **argv){
 	onion_listen(o);
 
 	onion_free(o);
+	return 0;
 }
