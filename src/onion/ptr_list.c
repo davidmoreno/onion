@@ -34,22 +34,14 @@ onion_ptr_list* onion_ptr_list_new()
 }
 
 /**
- * @short Adds a ptr to the list. List may have changed, so must use return value as new list pointer.
+ * @short Adds a ptr to the list. Elements are added to the head, so must use return value as new list pointer.
  */
 onion_ptr_list* onion_ptr_list_add(onion_ptr_list* l, void* ptr)
 {
-	if (l==NULL){
-		l=onion_low_malloc(sizeof(onion_ptr_list));
-		l->next=NULL;
-		l->ptr=ptr;
-		return l;
-	}
-	onion_ptr_list *n=l;
-	while(n->next!=NULL){
-		n=n->next;
-	}
-	n->next=onion_ptr_list_add(NULL, ptr);
-	return l;
+	onion_ptr_list *n=onion_low_malloc(sizeof(onion_ptr_list));
+	n->next=l;
+	n->ptr=ptr;
+	return n;
 }
 
 /**
