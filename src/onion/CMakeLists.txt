@@ -4,7 +4,7 @@ include_directories (${PROJECT_SOURCE_DIR}/src/)
 
 
 SET(INCLUDES block.h codecs.h dict.h handler.h http.h https.h listen_point.h low.h log.h mime.h onion.h poller.h 
-	request.h response.h server.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ptr_list.h)
+	request.h response.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ptr_list.h)
 
 set(SOURCES onion.c codecs.c dict.c low.c request.c response.c handler.c log.c sessions.c sessions_mem.c shortcuts.c 
 	block.c mime.c url.c listen_point.c request_parser.c http.c websocket.c ptr_list.c
