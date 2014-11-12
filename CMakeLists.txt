@@ -181,6 +181,7 @@ endif (SYSTEMD_ENABLED)
 if (SQLITE3_ENABLED)
 	add_definitions(-DHAVE_SQLITE3)
 endif (SQLITE3_ENABLED)
+add_definitions(-D_BSD_SOURCE)
 add_definitions(-D_DEFAULT_SOURCE)
 add_definitions(-D_POSIX_C_SOURCE=200112L)
 
