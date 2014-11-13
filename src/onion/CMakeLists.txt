@@ -94,9 +94,9 @@ target_link_libraries(onion ${LIBRARIES})
 target_link_libraries(onion_static ${LIBRARIES})
 
 # Only if png by the moment, maybe later other functionalities there.
-if (${PNG_ENABLED})
+if (${PNG_ENABLED} OR ${JPEG_ENABLED})
 add_subdirectory(extras)
-endif (${PNG_ENABLED})
+endif (${PNG_ENABLED} OR ${JPEG_ENABLED})
 
 MESSAGE(STATUS "Found include files ${INCLUDES_ONION}")
 

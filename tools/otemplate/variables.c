@@ -37,7 +37,8 @@ void variable_write(parser_status *st, onion_block *b){
 	variable_solve(st, onion_block_data(b), "tmp", STRING);
 	function_add_code(st,
 "    if (tmp)\n"
-"      onion_response_write_html_safe(res, tmp);\n"
+//"      onion_response_write_html_safe(res, tmp);\n"
+"      onion_response_write0(res, tmp);\n"
 "  }\n");
 }
 
