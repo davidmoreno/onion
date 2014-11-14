@@ -95,6 +95,9 @@ onion_poller *onion_get_poller(onion *server);
 /// Set the maximum post size
 void onion_set_max_post_size(onion *server, size_t max_size);
 
+/// Set the maximum post FILE size
+void onion_set_max_file_size(onion *server, size_t max_size);
+
 /// Set a new session backend
 void onion_set_session_backend(onion *server, onion_sessions *sessions_backend);
 

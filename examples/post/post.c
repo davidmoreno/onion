@@ -16,6 +16,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#include <signal.h>
+#include <onion/log.h>
 #include <onion/onion.h>
 #include <onion/shortcuts.h>
 
@@ -35,12 +37,20 @@ onion_connection_status post_data(void *_, onion_request *req, onion_response *r
 	return OCS_PROCESSED;
 }
 
+onion *o=NULL;
+
+void onexit(int _){
+	ONION_INFO("Exit");
+	if (o)
+		onion_listen_stop(o);
+}
+
 /**
  * This example creates a onion server and adds two urls: the base one is a static content with a form, and the
  * "data" URL is the post_data handler.
  */
 int main(int argc, char **argv){
-	onion *o=onion_new(O_ONE_LOOP);
+	o=onion_new(O_ONE_LOOP);
 	onion_url *urls=onion_root_url(o);
 	
 	onion_url_add_static(urls, "", 
@@ -58,6 +68,11 @@ int main(int argc, char **argv){
 "</html>\n", HTTP_OK);
 
 	onion_url_add(urls, "data", post_data);
-	
+
+	signal(SIGTERM, onexit);	
+	signal(SIGINT, onexit);	
 	onion_listen(o);
+
+	onion_free(o);
+	return 0;
 }

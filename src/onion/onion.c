@@ -774,6 +774,22 @@ void onion_set_max_post_size(onion *server, size_t max_size){
 }
 
 /**
+ * @short Set the maximum FILE size on requests
+ * 
+ * By default its 1GB of file data. This files are stored in /tmp/, and deleted when the 
+ * request finishes. It can fill up your hard drive if not choosen carefully.
+ * 
+ * Internally its stored as a file_t size, so SIZE_MAX size limit applies, which may 
+ * depend on your architecture. (2^32-1, 2^64-1...).
+ * 
+ * @param server The onion server
+ * @param max_size The maximum desired size in bytes, by default 1GB. 
+ */
+void onion_set_max_file_size(onion *server, size_t max_size){
+	server->max_file_size=max_size;
+}
+
+/**
  * @short Sets a new sessions backend.
  * 
  * By default it uses in mem sessions, but it can be set to use sqlite sessions.
