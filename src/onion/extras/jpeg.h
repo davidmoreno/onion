@@ -4,9 +4,9 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
+
 	a. the Apache License Version 2.0. 
-	
+
 	b. the GNU General Public License as published by the 
 		Free Software Foundation; either version 2.0 of the License, 
 		or (at your option) any later version.
@@ -35,8 +35,8 @@ extern "C"{
 #include <onion/types.h>
 
 /// Writes image data to a response object
-int onion_jpeg_response ( unsigned char * image, 
-		int image_num_color_channels, 
+int onion_jpeg_response ( unsigned char * image,
+		int image_num_color_channels,
 		J_COLOR_SPACE image_color_space, /* See jpeglib.h for list of available color spaces. */
 		int image_width,
 		int image_height,

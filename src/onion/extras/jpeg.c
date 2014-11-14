@@ -83,31 +83,30 @@ void onion_init_destination(j_compress_ptr cinfo)
 	cinfo->dest->free_in_buffer = sizeof(d->res->buffer)-d->res->buffer_pos;
 }
 
-bool onion_empty_output_buffer(j_compress_ptr cinfo)
+boolean onion_empty_output_buffer(j_compress_ptr cinfo)
 {
 	onion_jpeg_data *d=(onion_jpeg_data*)cinfo->client_data;
+	d->res->buffer_pos = sizeof(d->res->buffer)-cinfo->dest->free_in_buffer;
 
 	if(onion_response_flush(d->res)<0){
 		// Flush failed.
-		return false;
+		return FALSE;
 	}
 
 	cinfo->dest->next_output_byte = (JOCTET *) &d->res->buffer[d->res->buffer_pos];
 	cinfo->dest->free_in_buffer = sizeof(d->res->buffer)-d->res->buffer_pos;
-	return true;
+	return TRUE;
 }
 
 void onion_term_destination(j_compress_ptr cinfo)
 {
 	onion_jpeg_data *d=(onion_jpeg_data*)cinfo->client_data;
 	d->res->buffer_pos = sizeof(d->res->buffer)-cinfo->dest->free_in_buffer;
-
-	// Flushing optional
-	//onion_response_flush(d->res);
+	onion_response_flush(d->res);
 }
 
-int onion_jpeg_response ( unsigned char * image, 
-		int image_num_color_channels, 
+int onion_jpeg_response ( unsigned char * image,
+		int image_num_color_channels,
 		J_COLOR_SPACE image_color_space, /* See jpeglib.h for list of available color spaces. */
 		int image_width,
 		int image_height,
@@ -147,6 +146,8 @@ int onion_jpeg_response ( unsigned char * image,
 	cinfo.client_data = (void *)&ojd;
 
 	// Set function handler to operate directly on response buffers
+	struct jpeg_destination_mgr dest;
+	cinfo.dest = &dest;
 	cinfo.dest->init_destination = &onion_init_destination;
 	cinfo.dest->empty_output_buffer = &onion_empty_output_buffer;
 	cinfo.dest->term_destination = &onion_term_destination;
@@ -170,6 +171,12 @@ int onion_jpeg_response ( unsigned char * image,
 	 * Here we just illustrate the use of quality (quantization table) scaling:
 	 */
 	jpeg_set_quality(&cinfo, output_quality, TRUE /* limit to baseline-JPEG values */);
+
+	// If header already sent, then there was an error.
+	if (ojd.sent){
+		return OCS_PROCESSED;
+	}
+	ojd.sent=1;
 
 	/* Step 4: Start compressor */
 

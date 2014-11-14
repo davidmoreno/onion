@@ -195,6 +195,13 @@ if (SQLITE3_ENABLED)
 endif (SQLITE3_ENABLED)
 add_definitions(-D_BSD_SOURCE)
 add_definitions(-D_POSIX_C_SOURCE=200112L)
+if(PNG_ENABLED)
+	add_definitions(-DPNG_ENABLED)
+endif(PNG_ENABLED)
+if(JPEG_ENABLED)
+	add_definitions(-DJPEG_ENABLED)
+endif(JPEG_ENABLED)
+
 
 add_definitions(-DONION_VERSION="${ONION_VERSION}")
 
