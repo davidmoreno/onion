@@ -86,7 +86,13 @@ void onion_init_destination(j_compress_ptr cinfo)
 boolean onion_empty_output_buffer(j_compress_ptr cinfo)
 {
 	onion_jpeg_data *d=(onion_jpeg_data*)cinfo->client_data;
+	/*
+	 * Note: It's not correct to substract free_in_buffer. This value
+	 * should be zero, but this depends on the implementation of libjpeg.
+	 * It's better to assume that all bytes of the buffer are used.
 	d->res->buffer_pos = sizeof(d->res->buffer)-cinfo->dest->free_in_buffer;
+	 */
+	d->res->buffer_pos = sizeof(d->res->buffer);
 
 	if(onion_response_flush(d->res)<0){
 		// Flush failed.

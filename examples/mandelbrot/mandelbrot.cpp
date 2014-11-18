@@ -33,8 +33,8 @@
 #include <onion/extras/jpeg.h>
 #endif
 
-#define MAX(X,Y) (((X)>(Y))?X:Y)
-#define MIN(X,Y) (((X)<(Y))?X:Y)
+#define MAX(X,Y) (((X)>(Y))?(X):(Y))
+#define MIN(X,Y) (((X)<(Y))?(X):(Y))
 
 /// Basic complex class, to ease the fractal calculation
 class Complex{
@@ -133,7 +133,7 @@ int mandelbrotJPEG(void *p, onion_request *req, onion_response *res){
 
 	int channels = 1;
 	if( color == 1)
-		channels = 4;
+		channels = 3;
 
 	unsigned char *image=new unsigned char[channels*width*height];
   int    i,j,n;
@@ -161,11 +161,10 @@ int mandelbrotJPEG(void *p, onion_request *req, onion_response *res){
 			if (n >= steps) P=255;
 			else P=(n*256)/steps;
 
-			if( channels == 4 ){
+			if( channels == 3 ){
 				*imagep++=P;
 				*imagep++=2*P+30;
 				*imagep++=255-P*3;
-				*imagep++=255;
 			}else{
 				*imagep++=P;
 			}
@@ -173,7 +172,7 @@ int mandelbrotJPEG(void *p, onion_request *req, onion_response *res){
   }
 
 	onion_jpeg_response(image, channels,
-			(channels==1?JCS_GRAYSCALE:JCS_EXT_RGBX)
+			(channels==1?JCS_GRAYSCALE:JCS_RGB)
 			, width, height, jpgQuality, res);
 
 	delete[] image;
