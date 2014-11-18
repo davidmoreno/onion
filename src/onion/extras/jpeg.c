@@ -96,6 +96,7 @@ boolean onion_empty_output_buffer(j_compress_ptr cinfo)
 
 	if(onion_response_flush(d->res)<0){
 		// Flush failed.
+		d->sent = 2;
 		return FALSE;
 	}
 
@@ -108,7 +109,10 @@ void onion_term_destination(j_compress_ptr cinfo)
 {
 	onion_jpeg_data *d=(onion_jpeg_data*)cinfo->client_data;
 	d->res->buffer_pos = sizeof(d->res->buffer)-cinfo->dest->free_in_buffer;
-	onion_response_flush(d->res);
+	if(onion_response_flush(d->res)<0){
+		// Flush failed.
+		d->sent = 2;
+	}
 }
 
 int onion_jpeg_response ( unsigned char * image,
@@ -182,7 +186,6 @@ int onion_jpeg_response ( unsigned char * image,
 	if (ojd.sent){
 		return OCS_PROCESSED;
 	}
-	ojd.sent=1;
 
 	/* Step 4: Start compressor */
 
@@ -208,7 +211,14 @@ int onion_jpeg_response ( unsigned char * image,
 		 */
 		row_pointer[0] = & image[cinfo.next_scanline * row_stride];
 		(void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
+
+		// Check if response creation was aborted.
+		if (ojd.sent){
+			break;
+		}
 	}
+
+	ojd.sent=1;
 
 	/* Step 6: Finish compression */
 	jpeg_finish_compress(&cinfo);
