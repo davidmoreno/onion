@@ -1,5 +1,7 @@
+<!doctype html>
 <html>
-<header>
+<head>
+<meta charset="utf-8" />
 <title>Mandelbrot explorer</title>
 <style>
 body{
@@ -9,13 +11,26 @@ a{
 	color: #FF2740;
 }
 </style>
-</header>
+</head>
 <body>
 
 <h1>Use mouse wheel to zoom in and out.</h1>
-<img src="mandel.png?width=512&height=512&zoom=1.0&X=-2.0&Y=-2.0" id="mandel" 
-		 onmousedown="mandelMoveDown(event)" onmouseup="mandelMoveUp(event)"  onmousewheel="mandelZoom(event)" style="float: left; margin-right: 2em;">
+<img src="mandel.jpg?width=512&height=512&zoom=1.0&X=-2.0&Y=-2.0" id="mandel" 
+onmousedown="mandelMoveDown(event)" onmouseup="mandelMoveUp(event)"  onmousewheel="mandelZoom(event)" style="float: left; margin-right: 2em;">
+<p>
 All data is processed at the server and sent back to the client.
+</p>
+<p>Format:
+<select id="format" onchange="mandelRefresh(event)" >
+	<option value="png" >PNG</option>
+	<option value="jpg" />JPG</option>
+</select> 
+Color:
+<select id="color" onchange="mandelRefresh(event)" >
+	<option value="0" >Grayscale</option>
+	<option value="1" />RGB</option>
+</select> 
+</p>
 <ul>
  <li> Zoom <b id="zoom">1.0</b></li>
  <li> Position (<b id="X">-2.0</b>, <b id="Y">2.0</b>)</li>
@@ -93,9 +108,31 @@ mandelZoom = function(ev){
 
 t=0
 mandelRefresh = function(){
+	elF = document.getElementById("format");
+	if( elF != null ){
+		F=elF.value;
+	}else{
+		F="png";
+	}
+	if( F == "jpg" ){
+		//set compress quality in percent
+		Q = 90;
+	}
+
+	elC = document.getElementById("color");
+	if( elC != null ){
+		C=elC.value;
+	}else{
+		C="0";
+	}
+
 	clearTimeout(t)
 	t=setTimeout(function(){
-		document.getElementById("mandel").src="mandel.png?width="+width+"&height="+height+"&W="+W+"&H="+H+"&X="+X+"&Y="+Y;
+		if( F == "png" ){
+			document.getElementById("mandel").src="mandel.png?width="+width+"&height="+height+"&W="+W+"&H="+H+"&X="+X+"&Y="+Y+"&C="+C;
+		}else{
+			document.getElementById("mandel").src="mandel.jpg?width="+width+"&height="+height+"&W="+W+"&H="+H+"&X="+X+"&Y="+Y+"&C="+C+"&Q="+Q;
+		}
 		document.getElementById("zoom").innerText=zoom
 		document.getElementById("X").innerText=X
 		document.getElementById("Y").innerText=Y
