@@ -30,6 +30,7 @@ extern "C"{
 #endif
 
 #include <stddef.h>
+#include <stdarg.h>
 #include "types.h"
 
 
@@ -41,7 +42,9 @@ void onion_websocket_set_callback(onion_websocket *ws, onion_websocket_callback_
 void onion_websocket_set_userdata(onion_websocket *ws, void *userdata, void (*free_userdata)(void *));
 int onion_websocket_read(onion_websocket *ws, char *buffer, size_t len);
 int onion_websocket_write(onion_websocket *ws, const char *buffer, size_t len);
-int onion_websocket_printf(onion_websocket *ws, const char *str, ...);
+int onion_websocket_vprintf(onion_websocket *ws, const char *fmt, va_list args)
+    __attribute__ ((format (printf, 2, 0)));
+int onion_websocket_printf(onion_websocket *ws, const char *str, ...)  __attribute__ ((format (printf, 2, 3)));;
 onion_connection_status onion_websocket_call(onion_websocket *ws);
 void onion_websocket_set_opcode(onion_websocket *ws, onion_websocket_opcode opcode);
 onion_websocket_opcode onion_websocket_get_opcode(onion_websocket *ws);
