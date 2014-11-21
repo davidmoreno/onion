@@ -685,20 +685,6 @@ static onion_connection_status parse_POST_urlencode(onion_request *req, onion_bu
 	return onion_request_process(req);
 }
 
-static onion_connection_status parse_POST_rawdata(onion_request *req, onion_buffer *data){
-  onion_token *token=req->parser_data;
-  int l=data->size-data->pos;
-  if (l > (token->extra_size-token->pos))
-    l=token->extra_size-token->pos;
-  memcpy(&token->extra[token->pos], &data->data[data->pos], l);
-  token->pos+=l;	//ONION_DEBUG0("Feed %d bytes",l);
-  if (token->extra_size==token->pos){
-    token->extra[token->pos]='\0';
-    return OCS_PROCESSED;
-  }
-  return OCS_NEED_MORE_DATA;
-}
-
 static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffer *data);
 static onion_connection_status parse_headers_VALUE(onion_request *req, onion_buffer *data);
 
@@ -1003,7 +989,7 @@ static onion_connection_status prepare_POST(onion_request *req){
 	if (cl==0)
 		return onion_request_process(req);
 	
-	ONION_DEBUG("Content type %s",content_type);
+	//ONION_DEBUG("Content type %s",content_type);
 	if (!content_type || (strstr(content_type, "application/x-www-form-urlencoded"))){
 		if (cl>req->connection.listen_point->server->max_post_size){
 			ONION_ERROR("Asked to send much POST data. Limit %d. Failing.",req->connection.listen_point->server->max_post_size);
@@ -1015,26 +1001,6 @@ static onion_connection_status prepare_POST(onion_request *req){
 		req->free_list=onion_ptr_list_add(req->free_list, token->extra); // Free when the request is freed.
 		
 		req->parser=parse_POST_urlencode;
-		return OCS_NEED_MORE_DATA;
-	}
-
-	// JSONRPC with HTTP transport POST request; see
-	// http://www.jsonrpc.org/specification &
-	// http://www.simple-is-better.org/json-rpc/transport_http.html
-	else if (strstr(content_type, "application/json") && (req->flags&OR_METHODS)==OR_POST) {
-		if (cl>req->connection.listen_point->server->max_post_size){
-		  ONION_ERROR("Asked to send too much POST JSONRPC data. Limit %d. Failing.",
-			      req->connection.listen_point->server->max_post_size);
-		  return OCS_INTERNAL_ERROR;
-		}
-		else if (cl==0){
-		  ONION_ERROR("POST JSONRPC with empty data. Failing.");
-		  return OCS_INTERNAL_ERROR;
-		}
-		token->extra=onion_low_scalar_malloc(cl+1); // Cl + \0
-		token->extra_size=cl;
-		///
-		req->parser=parse_POST_rawdata;
 		return OCS_NEED_MORE_DATA;
 	}
 	
