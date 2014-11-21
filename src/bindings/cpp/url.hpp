@@ -97,14 +97,16 @@ namespace Onion{
 		/**
 		 * @short Adds an url that calls an Onion::Handler-
 		 */
-		bool add(const std::string &url, Handler *h){
-			return onion_url_add_handler(ptr,url.c_str(),h->c_handler());
+		Url& add(const std::string &url, Handler *h){
+			onion_url_add_handler(ptr,url.c_str(),h->c_handler());
+			return *this;
 		}
 		/**
 		 * @short Adds an url that calls a C onion_handler.
 		 */
-		bool add(const std::string &url, onion_handler *h){
-			return onion_url_add_handler(ptr,url.c_str(), h);
+		Url& add(const std::string &url, onion_handler *h){
+			onion_url_add_handler(ptr,url.c_str(), h);
+			return *this;
 		}
 		/**
 		 * @short Adds an url that calls a C++ function.
@@ -113,8 +115,9 @@ namespace Onion{
 		 * 
 		 *   url.add("", [](Onion::Request &req, Onion::Response &res){ return OCS_INTERNAL_ERROR; });
 		 */
-		bool add(const std::string &url, HandlerFunction::fn_t fn){
-			return add(url,new HandlerFunction(fn));
+		Url& add(const std::string &url, HandlerFunction::fn_t fn){
+			add(url,new HandlerFunction(fn));
+			return *this;
 		}
 		/**
 		 * @short Adds an url that calls a C++ method.
@@ -137,21 +140,22 @@ namespace Onion{
 		 * \endcode
 		 */
 		template<class T>
-		bool add(const std::string &url, T *o, onion_connection_status (T::*fn)(Request &,Response &)){
+		Url& add(const std::string &url, T *o, onion_connection_status (T::*fn)(Request &,Response &)){
 			return add(url,new HandlerMethod<T>(o,fn));
 		}
 		/**
 		 * @short Adds an url with a static response.
 		 */
-		bool add(const std::string &url, const std::string &s, int http_code=200){
-			return onion_url_add_static(ptr,url.c_str(),s.c_str(),http_code);
+		Url &add(const std::string &url, const std::string &s, int http_code=200){
+			onion_url_add_static(ptr,url.c_str(),s.c_str(),http_code);
+			return *this;
 		}
 		/**
 		 * @short Adds an url that calls a C style onion handler.
 		 * 
 		 * With this method is possible to use the C handlers as onion_webdav.
 		 */
-		bool add(const std::string &url, onion_handler_handler handler){
+		Url &add(const std::string &url, onion_handler_handler handler){
 			return add(url, new HandlerCFunction(handler));
 		}
 		/**
@@ -160,7 +164,7 @@ namespace Onion{
 		 * With this method its possible to create Onion::Url hierachies, easing the modularization of
 		 * web applications.
 		 */
-		bool add(const std::string &url, Url &url_handler){
+		Url &add(const std::string &url, Url &url_handler){
 			return add(url, onion_url_to_handler(url_handler.c_handler()));
 		}
 		

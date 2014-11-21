@@ -202,6 +202,18 @@ void t06_tomap(){
 	END_LOCAL();
 }
 
+void t07_from_initializer_list(){
+	INIT_LOCAL();
+#if __cplusplus > 199711L
+	Onion::Dict b;
+	b.add("test", {{"test", "init by initializer list"},{"test2", "Should work"}});
+	
+	FAIL_IF_NOT_EQUAL_STRING(b.getDict("test").get("test"), "init by initializer list");
+	FAIL_IF_NOT_EQUAL_STRING(b.getDict("test").get("test2"), "Should work");
+#endif
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
   START();
 	INFO("Remember to check with valgrind");
@@ -211,6 +223,7 @@ int main(int argc, char **argv){
 	t04_langtest();
 	t05_context();
 	t06_tomap();
+	t07_from_initializer_list();
 	
 	END();
 }

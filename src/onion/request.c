@@ -38,6 +38,7 @@
 #include "listen_point.h"
 #include "websocket.h"
 #include "low.h"
+#include "ptr_list.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 
@@ -147,6 +148,10 @@ void onion_request_free(onion_request *req){
 	}
 	if (req->cookies)
 		onion_dict_free(req->cookies);
+	if (req->free_list){
+		onion_ptr_list_foreach(req->free_list, onion_low_free);
+		onion_ptr_list_free(req->free_list);
+	}
 	onion_low_free(req);
 }
 
@@ -204,6 +209,11 @@ void onion_request_clean(onion_request* req){
 	if (req->cookies){
 		onion_dict_free(req->cookies);
 		req->cookies=NULL;
+	}
+	if (req->free_list){
+		onion_ptr_list_foreach(req->free_list, onion_low_free);
+		onion_ptr_list_free(req->free_list);
+		req->free_list=NULL;
 	}
 }
 

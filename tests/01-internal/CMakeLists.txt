@@ -11,11 +11,11 @@ target_link_libraries(03-response onion)
 add_test(internal-response 03-response)
 
 add_executable(04-handler 04-handler.c buffer_listen_point.c)
-target_link_libraries(04-handler onion_handlers onion)
+target_link_libraries(04-handler onion)
 add_test(internal-handler 04-handler)
 
 add_executable(05-server 05-server.c buffer_listen_point.c)
-target_link_libraries(05-server onion_handlers onion)
+target_link_libraries(05-server onion)
 add_test(internal-server 05-server)
 
 if (GNUTLS_ENABLED)
@@ -35,7 +35,7 @@ add_custom_command(
 
 
 add_executable(06-onion 06-onion.c mycert.pem)
-target_link_libraries(06-onion onion_handlers onion curl)
+target_link_libraries(06-onion onion curl)
 add_test(internal-onion 06-onion)
 ELSE(CERTTOOL)
 message(STATUS "Not found certool not compiling 06-server")
@@ -44,7 +44,7 @@ ENDIF (CURL)
 endif(GNUTLS_ENABLED)
 
 add_executable(07-codecs 07-codecs.c)
-target_link_libraries(07-codecs onion_handlers onion)
+target_link_libraries(07-codecs onion)
 add_test(internal-codecs 07-codecs)
 
 add_executable(08-post 08-post.c buffer_listen_point.c)

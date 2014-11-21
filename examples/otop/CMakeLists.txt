@@ -7,6 +7,6 @@ add_custom_command(
    )
 
 add_executable(otop otop.c otop_data.c)
-target_link_libraries(otop onion_handlers onion  )
+target_link_libraries(otop onion  )
 
 install(TARGETS otop DESTINATION ${CMAKE_INSTALL_BINDIR})

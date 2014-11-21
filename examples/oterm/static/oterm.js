@@ -238,7 +238,7 @@ requestNewData = function(keyvalue){
 	}
 	if (!onpetitionOut){
 		onpetitionOut=true
-		$.get('out',{pos:readDataPos},updateRequestData,'plain')
+		$.get('out',{pos:readDataPos},updateRequestData,'text')
 	}
 }
 
@@ -300,7 +300,7 @@ $(document).ready(function(){
 	
 	// Ask for stored buffer data
 	onpetitionOut=true
-	$.get('out?initial',updateRequestData, 'plain')
+	$.get('out?initial',updateRequestData, 'text')
 	
 	$('#msg').fadeOut().html('')
 	showMsg('Ready')

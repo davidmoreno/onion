@@ -79,6 +79,10 @@ struct onion_t{
 #endif
 };
 
+struct onion_ptr_list_t{
+	void *ptr;
+	struct onion_ptr_list_t *next;
+};
 
 struct onion_request_t{
 	struct{
@@ -104,6 +108,7 @@ struct onion_request_t{
 	void *parser;         /// When recieving data, where to put it. Check at request_parser.c.
 	void *parser_data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
 	onion_websocket *websocket; /// Websocket handler. 
+	onion_ptr_list *free_list; /// Memory that should be freed when the request finishes. IT allows to have simpler onion_dict, which dont copy/free data, but just splits a long string inplace.
 };
 
 struct onion_response_t{

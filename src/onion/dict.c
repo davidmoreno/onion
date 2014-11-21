@@ -86,7 +86,22 @@ void onion_dict_set_flags(onion_dict *dict, int flags){
   }
 }
 
+/// Sameas onion_dict_add, but ensures duplicates all. Necesary to ensure consistency.
+static void onion_dict_add_merge(onion_dict *me, const char *key, void *value, int flags){
+	onion_dict_add(me, key, value, flags | OD_DUP_ALL);
+}
 
+/**
+ * @short memberof onion_dict_t
+ * 
+ * Meres the contents of other dictionary intro me.
+ * 
+ * @param me The current dictionary where keys: vlaues will be added
+ * @param other Dictionary with keys to add to me
+ */
+void onion_dict_merge(onion_dict *me, const onion_dict *other){
+	onion_dict_preorder(other, onion_dict_add_merge, me);
+}
 
 /**
  * @short Creates a duplicate of the dict
@@ -729,6 +744,13 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			}
 			onion_dict_add(ret, onion_block_data(key), sub, OD_DUP_KEY|OD_DICT|OD_FREE_VALUE);
 			data=*_data;
+		}
+		else if (isdigit(*data)){
+			while(isdigit(*data)){
+				onion_block_add_char(value, *data);
+				++data;
+			}
+			onion_dict_add(ret, onion_block_data(key), onion_block_data(value), OD_DUP_ALL);
 		}
 		else if (*data=='"'){
 			++data;

@@ -732,6 +732,24 @@ void t16_soft_dup_dict_in_dict(){
 	END_LOCAL();
 }
 
+void t17_merge(){
+	INIT_LOCAL();
+	
+	onion_dict *a=onion_dict_from_json("{\"hello\":\"world\"}");
+	onion_dict *b=onion_dict_from_json("{\"bye\":\"_world_\", \"sub\": { \"hello\": \"world!\" } }");
+	
+	onion_dict_merge(a,b);
+	
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(a,"bye"), "_world_");
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_rget(a,"sub","hello",NULL), "world!");
+	
+	onion_dict_free(b);
+	FAIL_IF_NOT_EQUAL_STR(onion_dict_rget(a,"sub","hello",NULL), "world!");
+	onion_dict_free(a);
+	
+	END_LOCAL();
+}
+
 
 int main(int argc, char **argv){
   START();
@@ -754,6 +772,7 @@ int main(int argc, char **argv){
   t14_dict_case_insensitive();
 	t15_hard_dup_dict_in_dict();
 	t16_soft_dup_dict_in_dict();
+	t17_merge();
 	
 	
 	END();
