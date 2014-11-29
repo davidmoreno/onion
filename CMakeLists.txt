@@ -66,7 +66,7 @@ if (${ONION_USE_SSL})
 		set(GNUTLS_ENABLED true)
 		message(STATUS "Gnutls found. SSL support is compiled in.")
 	else(GNUTLS_LIB AND GCRYPT_LIB)
-		message("Gnutls not found. SSL support is not compiled in.")
+		message("Gnutls or gcrypt not found. SSL support is not compiled in.")
 	endif(GNUTLS_LIB AND GCRYPT_LIB)
 endif(${ONION_USE_SSL})
 
