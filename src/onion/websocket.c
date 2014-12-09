@@ -260,11 +260,46 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
 	return r;
 }
 
+
+ /**
+  * @short Uses vprintf-style writing to the websocket
+  * @memberof onion_websocket_t
+  *
+  * It writes the message as a single fragment. Above 512 bytes, a
+  * scalar buffer is temporarily malloc-ed then free-d ...
+  *
+  * @param ws The websocket
+  * @param fmt printf-like format string, and args containing the arguments
+  * @returns Number of bytes written
+  */
+ int onion_websocket_vprintf(onion_websocket* ws, const char* fmt, va_list args)
+ {
+   char temp[512];
+   int l=vsnprintf(temp, sizeof(temp)-1, fmt, args);
+   if (l < sizeof(temp))
+     return onion_websocket_write(ws, temp, l);
+   else {
+     ssize_t s;
+     char*buf = onion_low_scalar_malloc(l+1);
+     if (!buf) {
+       // this cannot happen, since onion_low_scalar_malloc
+       // handles that error...
+       ONION_ERROR("Could not reserve %d bytes", l+1);
+       return -1;
+     }
+     vsnprintf(buf, l, fmt, args);
+     s = onion_websocket_write (ws, buf, l);
+     onion_low_free (buf);
+     return s;
+   }
+ }
+ 
+
 /**
  * @short Uses printf-style writing to the websocket
  * @memberof onion_websocket_t
  * 
- * It writes the message as a single fragment. Max size is 1024 bytes.
+ * It writes the message as a single fragment, using onion_websocket_vprintf ...
  * 
  * @param ws The websocket
  * @param fmt printf-like format string, and next parameters are the arguments
@@ -272,12 +307,11 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
  */
 int onion_websocket_printf(onion_websocket* ws, const char* fmt, ... )
 {
-	char temp[1024];
 	va_list ap;
 	va_start(ap, fmt);
-	int l=vsnprintf(temp, sizeof(temp)-1, fmt, ap);
+	int l= onion_websocket_vprintf(ws, fmt, ap);
 	va_end(ap);
-	return onion_websocket_write(ws, temp, l);
+	return l;
 }
 
 /**
