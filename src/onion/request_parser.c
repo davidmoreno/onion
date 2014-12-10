@@ -362,9 +362,8 @@ static onion_connection_status parse_PUT(onion_request *req, onion_buffer *data)
 	
 	if (exit){
 		close (*fd);
-		onion_low_free(fd);
-		assert(token->extra==NULL);
-		//	token->extra=NULL; // Should be null
+		onion_low_free(token->extra);
+		token->extra=NULL; 
 		return onion_request_process(req);
 	}
 	
