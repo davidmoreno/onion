@@ -262,12 +262,12 @@ void onion_free(onion *onion){
 	if (onion->threads)
 		onion_low_free(onion->threads);
 #endif
-	onion_low_free(onion);
 	if (!(onion->flags&O_NO_SIGTERM)){
 		signal(SIGINT,SIG_DFL);
 		signal(SIGTERM,SIG_DFL);
 	}
 	last_onion=NULL;
+	onion_low_free(onion);
 }
 
 static void shutdown_server(int _){
