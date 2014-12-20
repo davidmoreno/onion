@@ -127,6 +127,7 @@
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
+#include <stdbool.h>
 
 //#define HAVE_PTHREADS
 #ifdef HAVE_PTHREADS
@@ -155,6 +156,10 @@ ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 #ifndef SOCK_CLOEXEC
 # define SOCK_CLOEXEC 0
 #endif
+
+/// Used by onion_sigterm handler. Only takes into account last onion.
+static onion *last_onion=NULL;
+static void shutdown_server(int _);
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
@@ -212,6 +217,11 @@ onion *onion_new(int flags){
 	if (o->flags&O_THREADED)
 		o->flags|=O_THREADS_ENABLED;
 #endif
+	if (!(o->flags&O_NO_SIGTERM)){
+		signal(SIGINT,shutdown_server);
+		signal(SIGTERM,shutdown_server);
+	}
+	last_onion=o;
 	return o;
 }
 
@@ -253,6 +263,26 @@ void onion_free(onion *onion){
 		onion_low_free(onion->threads);
 #endif
 	onion_low_free(onion);
+	if (!(onion->flags&O_NO_SIGTERM)){
+		signal(SIGINT,SIG_DFL);
+		signal(SIGTERM,SIG_DFL);
+	}
+	last_onion=NULL;
+}
+
+static void shutdown_server(int _){
+	static bool first_call=true;
+	if (first_call){
+		if (last_onion){ 
+			onion_listen_stop(last_onion);
+			ONION_INFO("Exiting onion listening (SIG%s)", _==SIGTERM ? "TERM" : "INT");
+		}
+	}
+	else{
+		ONION_ERROR("Aborting as onion does not stop listening.");
+		abort();
+	}
+	first_call=false;
 }
 
 

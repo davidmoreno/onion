@@ -193,6 +193,7 @@ enum onion_mode_e{
 	O_POLL=0x020, ///< Use epoll for request read, then as other flags say.
   O_POOL=0x024, ///< Create some threads, and make them listen for ready file descriptors. It is O_POLL|O_THREADED
 	O_NO_SIGPIPE=0x040, ///< Since 0.7 by default onion ignores SIGPIPE signals, as they were a normal cause for program termination in undesired conditions.
+	O_NO_SIGTERM=0x080, ///< Since 0.7 by default onion connect SIGTERM/SIGINT to onion_listen_stop, sice normally thats what user needs. Double Crtl-C do an abort.
 	/// @{  @name From here on, they are internal. User may check them, but not set.
 	O_SSL_AVAILABLE=0x0100, ///< This is set by the library when creating the onion object, if SSL support is available.
 	O_SSL_ENABLED=0x0200,   ///< This is set by the library when setting the certificates, if SSL is available.
