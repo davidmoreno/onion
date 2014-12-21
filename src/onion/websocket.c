@@ -135,6 +135,9 @@ onion_websocket* onion_websocket_new(onion_request* req, onion_response *res)
  * @param ws
  */
 void onion_websocket_free(onion_websocket *ws){
+	if(ws->callback)
+		ws->callback(ws->user_data, ws, -1);
+	
 	if (ws->free_user_data)
 		ws->free_user_data(ws->user_data);
 
