@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2014 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -72,7 +72,10 @@ struct onion_t{
 	size_t max_post_size;					/// Maximum size of post data. This is the sum of posts, @see onion_request_write_post
 	size_t max_file_size;					/// Maximum size of files. @see onion_request_write_post
 	onion_sessions *sessions;			/// Storage for sessions.
+        void* client_data;
+        onion_client_data_free_sig*client_data_free;
 #ifdef HAVE_PTHREADS
+        pthread_mutex_t mutex;
 	pthread_t listen_thread;
 	pthread_t *threads;
 	int nthreads;

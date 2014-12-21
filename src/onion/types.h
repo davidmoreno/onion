@@ -82,6 +82,9 @@ typedef struct onion_server_t onion_server;
  */
 struct onion_t;
 typedef struct onion_t onion;
+  /* Signature of the onion client data destoyer. */
+typedef void (onion_client_data_free_sig) (void*);
+
 /**
  * @struct onion_sessions_t
  * @short Storage for all sessions known

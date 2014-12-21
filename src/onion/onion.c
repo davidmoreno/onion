@@ -135,6 +135,7 @@
 #endif
 
 #include "low.h"
+#include "types.h"
 #include "onion.h"
 #include "handler.h"
 #include "types_internal.h"
@@ -216,6 +217,7 @@ onion *onion_new(int flags){
 	o->nthreads=8;
 	if (o->flags&O_THREADED)
 		o->flags|=O_THREADS_ENABLED;
+	pthread_mutex_init (&o->mutex, NULL);
 #endif
 	if (!(o->flags&O_NO_SIGTERM)){
 		signal(SIGINT,shutdown_server);
@@ -258,6 +260,20 @@ void onion_free(onion *onion){
 	if (onion->sessions)
 		onion_sessions_free(onion->sessions);
 	
+	{
+#ifdef HAVE_PTHREADS
+	  pthread_mutex_lock (&onion->mutex);
+#endif
+	  void* data = onion->client_data;
+	  onion->client_data = NULL;
+	  if (data && onion->client_data_free)
+	     onion->client_data_free (data);
+	  onion->client_data_free = NULL;
+#ifdef HAVE_PTHREADS
+	  pthread_mutex_unlock (&onion->mutex);
+	  pthread_mutex_destroy (&onion->mutex);
+#endif
+	};
 #ifdef HAVE_PTHREADS
 	if (onion->threads)
 		onion_low_free(onion->threads);
@@ -268,6 +284,41 @@ void onion_free(onion *onion){
 	}
 	last_onion=NULL;
 	onion_low_free(onion);
+}
+
+
+void
+onion_set_client_data (onion*server, void*data, onion_client_data_free_sig* data_free)
+{
+#ifdef HAVE_PTHREADS
+  pthread_mutex_lock (&server->mutex);
+#endif
+  void *old = server->client_data;
+  server->client_data = NULL;
+  if (old && server->client_data_free)
+    server->client_data_free(old);
+  server->client_data = data;
+  server->client_data_free = data_free;
+#ifdef HAVE_PTHREADS
+  pthread_mutex_unlock (&server->mutex);
+#endif
+}
+
+
+void*
+onion_client_data (onion*server)
+{
+  void* data = NULL;
+  if (!server)
+    return NULL;
+#ifdef HAVE_PTHREADS
+  pthread_mutex_lock (&server->mutex);
+#endif
+  data = server->client_data;
+#ifdef HAVE_PTHREADS
+  pthread_mutex_unlock (&server->mutex);
+#endif
+  return data;
 }
 
 static void shutdown_server(int _){
