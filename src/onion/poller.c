@@ -437,7 +437,12 @@ void onion_poller_poll(onion_poller *p){
         onion_low_free(bs); /* This cannot be onion_low_free since from
 		     backtrace_symbols. */
 #endif
-				n=el->f(el->data);
+	/* Sometimes, el->f happens to be null. We want to remove this
+	   polling in that weird case. */
+	                        if (el->f)
+				  n= el->f(el->data);
+				else
+				  n= -1;
 				
 				ctime=time(NULL);
 				if (el->timeout>0)
