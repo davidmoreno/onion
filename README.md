@@ -258,12 +258,10 @@ You can set the following environment variables -e.g. with the export builtin of
 
 We try hard to keep binary compatibility, but sometimes its hard. Here is a list of ABI breaks:
 
->0.4.0 
-''''''
+### 0.4.0 
 
 * Onion object private flags have moved. If on your code you rely on them, must recompile. If 
   dont rely on them, everything should keep working.
 
-.. image:: https://cruel-carlota.pagodabox.com/e788af315b3d9517752db2e79553e346
-  :alt: Analytics.
+![Analytics](https://cruel-carlota.pagodabox.com/e788af315b3d9517752db2e79553e346)
 
