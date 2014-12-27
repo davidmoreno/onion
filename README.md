@@ -1,21 +1,20 @@
-Onion http server library
-=========================
+# Onion http server library
 
-.. image:: https://travis-ci.org/davidmoreno/onion.svg?branch=master#svg   
-   :target: https://travis-ci.org/davidmoreno/onion
+![Travis status](https://travis-ci.org/davidmoreno/onion.svg?branch=master#svg)[Travis status](https://travis-ci.org/davidmoreno/onion)
 
-.. image:: https://scan.coverity.com/projects/1815/badge.svg#svg   
-   :target: https://scan.coverity.com/projects/1815
+![Coverity status](https://scan.coverity.com/projects/1815/badge.svg#svg)[Coverity status](https://scan.coverity.com/projects/1815)
 
 
 Onion is a C library to create simple HTTP servers and Web Applications. 
 
-Present and future of libonion survey
--------------------------------------
+---
+**Present and future of libonion survey**
+
 Please if you use onion or are interested in it, fill it at https://es.surveymonkey.com/s/W3G9SK3 until 6th January 2015.
 
-Introduction
-------------
+---
+
+## Introduction
 
 The use case is an existing application, or a new one, that needs some HTTP interconnection 
 with the world. It uses the library to add some handlers for specific URLs and generate and 
@@ -36,8 +35,7 @@ API documentation is at http://coralbits.com/static/onion/.
 
 There is a mailing list at https://groups.google.com/a/coralbits.com/forum/?fromgroups=#!forum/onion-dev
 
-Colaborate!
------------
+## Colaborate!
 
 You can, and are encouraged, to branch at github, download and tweak onion to use it in your 
 projects.
@@ -50,8 +48,7 @@ to ask your questions and comment on your success using onion.
 
 There is also a blog to keep everybody informed about news on onion at http://blog.coralbits.com/.
 
-Download
---------
+## Download
 
 There are third party contributed packages:
 
@@ -63,13 +60,11 @@ If you know of any other packaged version, please send me a note.
  
 As always they may be outdated, if you want the latests and greatest, do a manual compile and install.
 
-Compile and Install
--------------------
+## Compile and Install
 
 Manual compile and install:
 
-    ::
-
+```bash
      $ git clone git@github.com:davidmoreno/onion.git
      $ cd onion
      $ mkdir build
@@ -77,24 +72,23 @@ Manual compile and install:
      $ cmake ..
      $ make
      $ sudo make install
-
+```
+     
 To compile with debugging enabled, use
 
-    ::
-
-     $ cmake -DCMAKE_BUILD_TYPE=Debug ..
+```bash
+    $ cmake -DCMAKE_BUILD_TYPE=Debug ..
+```
 
 To run with some debug messages, set the ONION_DEBUG and/or
 ONION_DEBUG0 environment variable containing some source file names,
 e.g.
 
-    ::
+```bash
+    $ export ONION_DEBUG0='request.c url.c'
+```
 
-     $ export ONION_DEBUG0='request.c url.c'
-
-
-Dependencies
-------------
+## Dependencies
 
 Required:
 
@@ -116,8 +110,7 @@ Optional for examples:
 * cairo
 * libpng2
 
-SSL Support
------------
+## SSL Support
 
 If at compile time it finds the gnutls libraries, SSL support is compiled in. It can be 
 deactivated anyway at ./CMakeLists.txt. 
@@ -134,8 +127,7 @@ this is this way, and not mandatory as ther may be moments where the program use
 want to support SSL for whatever reasons, for example speed.
 
 
-Threads support
----------------
+## Threads support
 
 Currently there are two threads modes. It can be set the server to be created as 
 threaded (O_THREADED), and it will create a new thread per connection. There is no
@@ -159,8 +151,7 @@ and using epoll the data is given to the threads. This is the highest performant
 up to 30k web-requests served on a Intel(R) Core(TM)2 Duo CPU T6500  @2.10GHz.
 
 
-Customizing low-level allocation and threads
---------------------------------------------
+## Customizing low-level allocation and threads
 
 Sometimes it may be needed to customize memory allocation and/or
 threads operation.  This could be useful when using an alternative
@@ -173,20 +164,18 @@ onion. Likewise, to customize threads operations, call
 program using Onion and Boehm's GC should first define a memory
 failure routine which should never return:
 
-   ::
-
+```C
     /* the memory failure routine should never return! */
     static void memory_failure(const char*msg) {
       perror(msg);
       exit(EXIT_FAILURE);
     };
-
+```
 
 Then, your program (using both onion and Boehm's GC) should initialize
 both memory routines and threads, like:
 
-   ::
-
+```C
     onion_low_initialize_memory_allocation
       (GC_malloc,  GC_malloc_atomic,  GC_calloc,
        GC_realloc, GC_strdup, GC_free,
@@ -195,7 +184,7 @@ both memory routines and threads, like:
       (GC_pthread_create, GC_pthread_join,
        GC_pthread_cancel, GC_pthread_detach,
        GC_pthread_exit, GC_pthread_sigmask);
-
+```
 
 You might need to define your `GC_calloc` using `GC_malloc` and
 `memset` if your version of Boehm's GC don't provide it. After these
@@ -207,17 +196,16 @@ wanted to name threads created by the onion library (using
 `pthread_setschedprio`), etc.
 
 
-ARM Support
------------
+## ARM Support
 
 It can be cross compiled for ARM directly from cmake. Just do:
-    
-    	::
-    	
+
+```bash
 	$ mkdir arm
 	$ cd arm
 	$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
 	$ make
+```
 
 It needs the current system opack and otemplate to compile some examples, so if you want to use
 the examples on your instalation, compile and install libonion for the current system first.
@@ -225,28 +213,24 @@ the examples on your instalation, compile and install libonion for the current s
 Tested on ubuntu 10.10, with gcc-4.5-arm-linux-gnueabi and g++-4.5-arm-linux-gnueabi installed.
 
 
-Templating support
-------------------
+## Templating support
 
 Starting on 0.3.0 development onion has templating support via otemplate. It is a template
 system similar to django templates (http://docs.djangoproject.com/en/dev/topics/templates/).
 
 Check more information on how to use them at tools/otemplate/README.rst.
 
-I18N
-----
+## I18N
 
 There is I18N support. Check wiki for details or fileserver_otemplate example.
 
-Systemd
--------
+## Systemd
 
 Systemd is integrated. If want to use it, just pass the flag O_SYSTEMD to the onion_new().
 
 Oterm has example socket and service files for oterm support.
 
-FreeBSD/Darwin
---------------
+## FreeBSD/Darwin
 
 Since september 2013 there is support for FreeBSD using libev or libevent. This work is not as tested 
 as the Linux version, but if some compilation error arises, please send the bug report and we will fix
@@ -256,8 +240,7 @@ OSX/Darwin support is also available on the darwin branch.
 
 Once this work stabilizes it will be merged back to master.
 
-Environment variables
----------------------
+## Environment variables
 
 You can set the following environment variables -e.g. with the export builtin of bash- to modify runtime behaviour of onion:
 
@@ -271,8 +254,7 @@ You can set the following environment variables -e.g. with the export builtin of
 * ONION_DEBUG0   -- Set the filename of a c source file, and DEBUG0 log messages are written. This is normally very verbose.
 * ONION_SENDFILE -- Set to 0 do disable sendfile. Under some file systems it does not work. Until a detection code is in place, it can be disabled with this.
 
-Binary compatibility breaks
----------------------------
+## Binary compatibility breaks
 
 We try hard to keep binary compatibility, but sometimes its hard. Here is a list of ABI breaks:
 
