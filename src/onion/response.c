@@ -239,7 +239,7 @@ int onion_response_write_headers(onion_response *res){
 	onion_dict_preorder(res->headers, write_header, res);
 	
 	if (res->request->session_id && (onion_dict_count(res->request->session)>0)) // I have session with something, tell user
-		onion_response_printf(res, "Set-Cookie: sessionid=%s; httponly\n", res->request->session_id);
+		onion_response_printf(res, "Set-Cookie: sessionid=%s; httponly; Path=/\n", res->request->session_id);
   
 	onion_response_write(res,"\r\n",2);
 	

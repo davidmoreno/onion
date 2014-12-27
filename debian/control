@@ -1,7 +1,7 @@
 Source: libonion
 Priority: extra
 Maintainer: David Moreno <dmoreno@coralbits.com>
-Build-Depends: debhelper (>= 9), cmake, libgnutls-dev, libpam0g-dev, libxml2-dev, libsqlite3-dev, libcurl-dev, gnutls-bin
+Build-Depends: debhelper (>= 9), cmake, libgnutls-dev, libpam0g-dev, libxml2-dev, libsqlite3-dev, libcurl-dev, gnutls-bin, libjs-jquery
 Standards-Version: 3.8.4
 Section: libs
 Homepage: http://github.com/davidmoreno/onion
@@ -9,7 +9,7 @@ Homepage: http://github.com/davidmoreno/onion
 Package: libonion-dev
 Section: libdevel
 Architecture: any
-Depends: libonion0 (= ${binary:Version})
+Depends: libonion0 (= ${binary:Version}), libgnutls-dev
 Description: HTTP server library - development package
  Onion plans to be a lightweight C library that facilitate to create simple 
  HTTP servers.
@@ -53,7 +53,7 @@ Description: HTTP server library
 Package: libonion-examples
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libjs-jquery
 Description: HTTP server library -- Examples
  Onion plans to be a lightweight C library that facilitate to create simple 
  HTTP servers.
@@ -74,7 +74,7 @@ Description: HTTP server library -- Examples
 Package: libonion-tools
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, inotify-tools
 Description: HTTP server library -- Tools
  Onion plans to be a lightweight C library that facilitate to create simple 
  HTTP servers.

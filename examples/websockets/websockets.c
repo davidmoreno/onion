@@ -71,7 +71,8 @@ int main(){
 	onion_url_add(urls, "", websocket_example);
 	
 	onion_listen(o);
-	
+
+	onion_free(o);
 	return 0;
 }
 

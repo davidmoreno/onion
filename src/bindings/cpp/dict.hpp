@@ -68,6 +68,25 @@ namespace Onion{
 				add(I->first, I->second);
 			}
 		};
+#if __cplusplus >= 201103L
+		/**
+		 * @short Created directly from initializer list. Only for > C++11
+		 * 
+		 * Example
+		 * @code
+		 * 	Onion::Dict dict{{"hello","world"},{"this","is a test"}}
+		 * @endcode
+		 */
+		Dict(std::initializer_list<std::initializer_list<std::string>> &&init) : ptr(onion_dict_new()){
+			for (auto p:init){
+				auto I=p.begin();
+				auto k=*I;
+				++I;
+				auto v=*I;
+				add(k,v);
+			}
+		}
+#endif
 		/**
 		 * @short Creates an empty Onion::Dict
 		 */
@@ -181,22 +200,25 @@ namespace Onion{
 		 * By defaults do a copy of everything, but can be tweaked. If user plans to do
 		 * low level onion_dict adding, its better to use the C onion_dict_add function.
 		 */
-		void add(const std::string &k, const std::string &v, int flags=OD_DUP_ALL){
+		Dict &add(const std::string &k, const std::string &v, int flags=OD_DUP_ALL){
 			onion_dict_add(ptr,k.c_str(),v.c_str(),flags);
+			return *this;
 		}
 		
 		/**
 		 * @short Adds a subdictionary to this dictionary.
 		 */
-		void add(const std::string &k, const Dict &v, int flags=OD_DUP_ALL){
+		Dict &add(const std::string &k, const Dict &v, int flags=OD_DUP_ALL){
 			onion_dict_add(ptr,k.c_str(),v.c_handler(),flags|OD_DICT);
+			return *this;
 		}
 		
 		/**
 		 * @short Removes an element from the dictionary.
 		 */
-		void remove(const std::string &k){
+		Dict &remove(const std::string &k){
 			onion_dict_remove(ptr, k.c_str());
+			return *this;
 		}
 		
 		/**
@@ -214,6 +236,25 @@ namespace Onion{
 			std::string str=onion_block_data(bl);
 			onion_block_free(bl);
 			return str;
+		}
+		
+		/**
+		 * @short Convert a JSON string to an onion dictionary. 
+		 * 
+		 * This is not full JSON support, only dict side, and with strings.
+		 */
+		static ::Onion::Dict fromJSON(const std::string &jsondata){
+			return Dict(onion_dict_from_json(jsondata.c_str()));
+		}
+		
+		/**
+		 * @short Merges argument dict into current.
+		 * 
+		 * If there are repeated keys, they will repeated.
+		 */
+		Dict &merge(const ::Onion::Dict &other){
+			onion_dict_merge(ptr, other.ptr);
+			return *this;
 		}
 		
 		/**

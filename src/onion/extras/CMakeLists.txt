@@ -1,5 +1,5 @@
 
-include_directories (${PROJECT_SOURCE_DIR}/src/) 
+include_directories (${PROJECT_SOURCE_DIR}/src/)
 
 
 if (${PNG_ENABLED})
@@ -8,14 +8,23 @@ else (${PNG_ENABLED})
 	set(PNG "")
 endif  (${PNG_ENABLED})
 
+if (${JPEG_ENABLED})
+	set(JPEG jpeg.c)
+else (${JPEG_ENABLED})
+	set(JPEG "")
+endif  (${JPEG_ENABLED})
 
-add_library(onion_extras STATIC ${PNG})
+add_library(onion_extras STATIC ${PNG} ${JPEG})
 
 if (${PNG_ENABLED})
 target_link_libraries(onion_extras ${PNG_LIB})
 endif (${PNG_ENABLED})
 
-SET(INCLUDES_EXTRAS png.h)
+if (${JPEG_ENABLED})
+target_link_libraries(onion_extras ${JPEG_LIB})
+endif (${JPEG_ENABLED})
+
+SET(INCLUDES_EXTRAS png.h jpeg.h)
 MESSAGE(STATUS "Found include files ${INCLUDES_EXTRAS}")
 
 

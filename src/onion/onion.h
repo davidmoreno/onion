@@ -27,9 +27,8 @@
 #include "request.h"
 #include "response.h"
 #include "handler.h"
-#include "url.h"
-
 #include "types.h"
+#include "url.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -38,13 +37,19 @@ extern "C"{
 /// Creates the onion structure to fill with the server data, and later do the onion_listen()
 onion *onion_new(int flags);
 
+/// set a client data in the onion, freeing the previous one if it exists.  Thread-safe.
+void onion_set_client_data (onion*server, void*data, onion_client_data_free_sig* data_free);
+
+/// Retrieve the client data in the onion server.  Thread-safe.
+void* onion_client_data (onion*server);
+
 /// Performs the listening with the given mode
 int onion_listen(onion *server);
 
 /// Stops the listening
 void onion_listen_stop(onion *server);
 
-/// Removes the allocated data
+/// Removes the allocated data (also free the client data, if one was given).
 void onion_free(onion *onion);
 
 /// Sets the root handler
@@ -94,6 +99,9 @@ onion_poller *onion_get_poller(onion *server);
 
 /// Set the maximum post size
 void onion_set_max_post_size(onion *server, size_t max_size);
+
+/// Set the maximum post FILE size
+void onion_set_max_file_size(onion *server, size_t max_size);
 
 /// Set a new session backend
 void onion_set_session_backend(onion *server, onion_sessions *sessions_backend);

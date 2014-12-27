@@ -135,6 +135,9 @@ onion_websocket* onion_websocket_new(onion_request* req, onion_response *res)
  * @param ws
  */
 void onion_websocket_free(onion_websocket *ws){
+	if(ws->callback)
+		ws->callback(ws->user_data, ws, -1);
+	
 	if (ws->free_user_data)
 		ws->free_user_data(ws->user_data);
 
@@ -260,11 +263,46 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
 	return r;
 }
 
+
+ /**
+  * @short Uses vprintf-style writing to the websocket
+  * @memberof onion_websocket_t
+  *
+  * It writes the message as a single fragment. Above 512 bytes, a
+  * scalar buffer is temporarily malloc-ed then free-d ...
+  *
+  * @param ws The websocket
+  * @param fmt printf-like format string, and args containing the arguments
+  * @returns Number of bytes written
+  */
+ int onion_websocket_vprintf(onion_websocket* ws, const char* fmt, va_list args)
+ {
+   char temp[512];
+   int l=vsnprintf(temp, sizeof(temp)-1, fmt, args);
+   if (l < sizeof(temp))
+     return onion_websocket_write(ws, temp, l);
+   else {
+     ssize_t s;
+     char*buf = onion_low_scalar_malloc(l+1);
+     if (!buf) {
+       // this cannot happen, since onion_low_scalar_malloc
+       // handles that error...
+       ONION_ERROR("Could not reserve %d bytes", l+1);
+       return -1;
+     }
+     vsnprintf(buf, l, fmt, args);
+     s = onion_websocket_write (ws, buf, l);
+     onion_low_free (buf);
+     return s;
+   }
+ }
+ 
+
 /**
  * @short Uses printf-style writing to the websocket
  * @memberof onion_websocket_t
  * 
- * It writes the message as a single fragment. Max size is 1024 bytes.
+ * It writes the message as a single fragment, using onion_websocket_vprintf ...
  * 
  * @param ws The websocket
  * @param fmt printf-like format string, and next parameters are the arguments
@@ -272,12 +310,11 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
  */
 int onion_websocket_printf(onion_websocket* ws, const char* fmt, ... )
 {
-	char temp[1024];
 	va_list ap;
 	va_start(ap, fmt);
-	int l=vsnprintf(temp, sizeof(temp)-1, fmt, ap);
+	int l= onion_websocket_vprintf(ws, fmt, ap);
 	va_end(ap);
-	return onion_websocket_write(ws, temp, l);
+	return l;
 }
 
 /**
@@ -327,11 +364,11 @@ void onion_websocket_set_userdata(onion_websocket *ws, void *userdata, void (*fr
 /**
  * @short Reads a packet header.
  */
-static int onion_websocket_read_packet_header(onion_websocket *ws){
+static onion_connection_status onion_websocket_read_packet_header(onion_websocket *ws){
 	char tmp[8];
 	unsigned char *utmp=(unsigned char*)tmp;
 	int r=ws->req->connection.listen_point->read(ws->req, tmp, 2);
-	if (r!=2){ ONION_DEBUG("Error reading header"); return -1; }
+	if (r!=2){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 	
 	ws->flags=0;
 	if (tmp[0]&0x80)
@@ -342,14 +379,14 @@ static int onion_websocket_read_packet_header(onion_websocket *ws){
 	ws->data_left=tmp[1]&0x7F;
 	if (ws->data_left==126){
 		r=ws->req->connection.listen_point->read(ws->req, tmp, 2);
-		if (r!=2){ ONION_DEBUG("Error reading header"); return -1; }
+		if (r!=2){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 		ONION_DEBUG("%d %d", utmp[0], utmp[1]);
 		ws->data_left=utmp[0] + utmp[1]*256;
 	}
 	else if (ws->data_left==127){
 		r=ws->req->connection.listen_point->read(ws->req, tmp, 8);
 		ONION_DEBUG("%d %d %d %d %d %d %d", utmp[0], utmp[1], utmp[2], utmp[3], utmp[4], utmp[5], utmp[6], utmp[7]);
-		if (r!=8){ ONION_DEBUG("Error reading header"); return -1; }
+		if (r!=8){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 		ws->data_left=0;
 		int i;
 		for(i=0;i<8;i++)
@@ -358,7 +395,7 @@ static int onion_websocket_read_packet_header(onion_websocket *ws){
 	ONION_DEBUG("Data left %d", ws->data_left);
 	if (ws->flags&WS_MASK){
 		r=ws->req->connection.listen_point->read(ws->req, ws->mask, 4);
-		if (r!=4){ ONION_DEBUG("Error reading header"); return -1; }
+		if (r!=4){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 		ws->mask_pos=0;
 	}
 	
@@ -369,8 +406,11 @@ static int onion_websocket_read_packet_header(onion_websocket *ws){
 		
 		onion_websocket_write(ws, data, r);
 	}
-	
-	return 0;
+	if (ws->opcode==OWS_PING){ // I do answer ping myself.
+		onion_websocket_close(ws);
+		return OCS_CLOSE_CONNECTION;
+	}	
+	return OCS_NEED_MORE_DATA;
 	//ONION_DEBUG("Mask %02X %02X %02X %02X", ws->mask[0]&0x0FF, ws->mask[1]&0x0FF, ws->mask[2]&0x0FF, ws->mask[3]&0x0FF);
 }
 
@@ -393,13 +433,15 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 			//ONION_DEBUG("waited for data fd %d -- res %d -- events %d", ws->req->fd, r, pfd.events);
 		}
 		else
-			sleep(1); // Worst possible solution. But solution anyway to the problem of not know when new data is available.
+			sleep(1); // FIXME Worst possible solution. But solution anyway to the problem of not know when new data is available.
 		if (ws->callback){
-			if (ws->data_left==0)
-				if (onion_websocket_read_packet_header(ws)<0){
+			if (ws->data_left==0){
+				onion_connection_status err=onion_websocket_read_packet_header(ws);
+				if (err<0){
 					ONION_ERROR("Error reading websocket header");
-					return OCS_INTERNAL_ERROR;
+					return err;
 				}
+			}
 			
 			size_t last_d_l;
 			do{
@@ -416,6 +458,15 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 		return ret;
 	return OCS_INTERNAL_ERROR;
 }
+
+/**
+ * @short Closes the websocket sending the close opcode (8)
+ */
+void onion_websocket_close(onion_websocket *ws){
+	onion_websocket_set_opcode(ws, OWS_CONNECTION_CLOSE);
+	onion_websocket_write(ws, NULL, 0);
+}
+
 
 /**
  * @short Sets the opcode for the websocket

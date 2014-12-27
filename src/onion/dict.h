@@ -68,6 +68,9 @@ int onion_dict_remove(onion_dict *dict, const char *key);
 /// Removes the full dict struct form mem.
 void onion_dict_free(onion_dict *dict);
 
+/// Merges argument dictionary into current
+void onion_dict_merge(onion_dict *me, const onion_dict *other);
+
 /// Creates a soft duplicate of the dict.
 onion_dict *onion_dict_dup(onion_dict *dict);
 

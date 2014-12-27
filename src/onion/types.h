@@ -82,6 +82,9 @@ typedef struct onion_server_t onion_server;
  */
 struct onion_t;
 typedef struct onion_t onion;
+  /* Signature of the onion client data destoyer. */
+typedef void (onion_client_data_free_sig) (void*);
+
 /**
  * @struct onion_sessions_t
  * @short Storage for all sessions known
@@ -169,6 +172,18 @@ typedef struct onion_listen_point_t onion_listen_point;
 struct onion_websocket_t;
 typedef struct onion_websocket_t onion_websocket;
 
+
+
+/**
+ * @short List of pointers.
+ * @memberof onion_ptr_list_t
+ * @struct onion_ptr_list_t
+ * 
+ * Used at least on onion_request to as a freelist;
+ */
+struct onion_ptr_list_t;
+typedef struct onion_ptr_list_t onion_ptr_list;
+
 /// Flags for the mode of operation of the onion server.
 enum onion_mode_e{
 	O_ONE=1,							///< Perform just one petition
@@ -190,6 +205,7 @@ enum onion_mode_e{
 	O_POLL=0x020, ///< Use epoll for request read, then as other flags say.
   O_POOL=0x024, ///< Create some threads, and make them listen for ready file descriptors. It is O_POLL|O_THREADED
 	O_NO_SIGPIPE=0x040, ///< Since 0.7 by default onion ignores SIGPIPE signals, as they were a normal cause for program termination in undesired conditions.
+	O_NO_SIGTERM=0x080, ///< Since 0.7 by default onion connect SIGTERM/SIGINT to onion_listen_stop, sice normally thats what user needs. Double Crtl-C do an abort.
 	/// @{  @name From here on, they are internal. User may check them, but not set.
 	O_SSL_AVAILABLE=0x0100, ///< This is set by the library when creating the onion object, if SSL support is available.
 	O_SSL_ENABLED=0x0200,   ///< This is set by the library when setting the certificates, if SSL is available.

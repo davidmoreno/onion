@@ -127,6 +127,7 @@
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
+#include <stdbool.h>
 
 //#define HAVE_PTHREADS
 #ifdef HAVE_PTHREADS
@@ -134,6 +135,7 @@
 #endif
 
 #include "low.h"
+#include "types.h"
 #include "onion.h"
 #include "handler.h"
 #include "types_internal.h"
@@ -155,6 +157,10 @@ ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 #ifndef SOCK_CLOEXEC
 # define SOCK_CLOEXEC 0
 #endif
+
+/// Used by onion_sigterm handler. Only takes into account last onion.
+static onion *last_onion=NULL;
+static void shutdown_server(int _);
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
@@ -211,7 +217,13 @@ onion *onion_new(int flags){
 	o->nthreads=8;
 	if (o->flags&O_THREADED)
 		o->flags|=O_THREADS_ENABLED;
+	pthread_mutex_init (&o->mutex, NULL);
 #endif
+	if (!(o->flags&O_NO_SIGTERM)){
+		signal(SIGINT,shutdown_server);
+		signal(SIGTERM,shutdown_server);
+	}
+	last_onion=o;
 	return o;
 }
 
@@ -248,11 +260,80 @@ void onion_free(onion *onion){
 	if (onion->sessions)
 		onion_sessions_free(onion->sessions);
 	
+	{
+#ifdef HAVE_PTHREADS
+	  pthread_mutex_lock (&onion->mutex);
+#endif
+	  void* data = onion->client_data;
+	  onion->client_data = NULL;
+	  if (data && onion->client_data_free)
+	     onion->client_data_free (data);
+	  onion->client_data_free = NULL;
+#ifdef HAVE_PTHREADS
+	  pthread_mutex_unlock (&onion->mutex);
+	  pthread_mutex_destroy (&onion->mutex);
+#endif
+	};
 #ifdef HAVE_PTHREADS
 	if (onion->threads)
 		onion_low_free(onion->threads);
 #endif
+	if (!(onion->flags&O_NO_SIGTERM)){
+		signal(SIGINT,SIG_DFL);
+		signal(SIGTERM,SIG_DFL);
+	}
+	last_onion=NULL;
 	onion_low_free(onion);
+}
+
+
+void
+onion_set_client_data (onion*server, void*data, onion_client_data_free_sig* data_free)
+{
+#ifdef HAVE_PTHREADS
+  pthread_mutex_lock (&server->mutex);
+#endif
+  void *old = server->client_data;
+  server->client_data = NULL;
+  if (old && server->client_data_free)
+    server->client_data_free(old);
+  server->client_data = data;
+  server->client_data_free = data_free;
+#ifdef HAVE_PTHREADS
+  pthread_mutex_unlock (&server->mutex);
+#endif
+}
+
+
+void*
+onion_client_data (onion*server)
+{
+  void* data = NULL;
+  if (!server)
+    return NULL;
+#ifdef HAVE_PTHREADS
+  pthread_mutex_lock (&server->mutex);
+#endif
+  data = server->client_data;
+#ifdef HAVE_PTHREADS
+  pthread_mutex_unlock (&server->mutex);
+#endif
+  return data;
+}
+
+static void shutdown_server(int _){
+	static bool first_call=true;
+	if (first_call){
+		if (last_onion){ 
+			onion_listen_stop(last_onion);
+			ONION_INFO("Exiting onion listening (SIG%s)", _==SIGTERM ? "TERM" : "INT");
+		}
+	}
+	else{
+		ONION_ERROR("Aborting as onion does not stop listening.");
+		abort();
+	}
+	first_call=false;
 }
 
 
@@ -771,6 +852,22 @@ int onion_set_certificate_va(onion *onion, onion_ssl_certificate_type type, cons
  */
 void onion_set_max_post_size(onion *server, size_t max_size){
 	server->max_post_size=max_size;
+}
+
+/**
+ * @short Set the maximum FILE size on requests
+ * 
+ * By default its 1GB of file data. This files are stored in /tmp/, and deleted when the 
+ * request finishes. It can fill up your hard drive if not choosen carefully.
+ * 
+ * Internally its stored as a file_t size, so SIZE_MAX size limit applies, which may 
+ * depend on your architecture. (2^32-1, 2^64-1...).
+ * 
+ * @param server The onion server
+ * @param max_size The maximum desired size in bytes, by default 1GB. 
+ */
+void onion_set_max_file_size(onion *server, size_t max_size){
+	server->max_file_size=max_size;
 }
 
 /**
