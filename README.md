@@ -7,13 +7,6 @@
 
 Onion is a C library to create simple HTTP servers and Web Applications. 
 
----
-**Present and future of libonion survey**
-
-Please if you use onion or are interested in it, fill it at https://es.surveymonkey.com/s/W3G9SK3 until 6th January 2015.
-
----
-
 ## Introduction
 
 The use case is an existing application, or a new one, that needs some HTTP interconnection 
