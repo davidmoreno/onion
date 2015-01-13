@@ -164,7 +164,7 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
         typedef ssize_t (lpwriter_sig_t)(onion_request *req, const char *data, size_t len);
         lpwriter_sig_t* lpwriter
 	  = ws->req->connection.listen_point->write;
-	int len=_len; // I need it signed here
+	ssize_t len=_len; // I need it signed here
 	if (!lpwriter)
 	  return -1;
 	//ONION_DEBUG("Write %d bytes",len);
