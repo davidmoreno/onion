@@ -278,18 +278,20 @@ typedef void (*onion_handler_private_data_free)(void *privdata);
  * 
  * The callbacks are the functions to be called when new data is available on websockets.
  * 
- * They are not mandatory, but when used they can be changed from the callback itself, using
- * onion_websocket_set_callback. If data is left for read after a callback call, next callback is 
- * called with that data. If same callback stays, and no data has been consumed, it will not 
- * be called until new data is available. 
+ * They are not mandatory, but when used they can be changed from the
+ * callback itself, using onion_websocket_set_callback. If data is
+ * left for read after a callback call, next callback is called with
+ * that data. If same callback stays, and no data has been consumed,
+ * it will not be called until new data is available.  End of input,
+ * or websocket removal is notified with a negative data_ready_length.
  * 
- * The privte data is that of the original request handler.
+ * The private data is that of the original request handler.
  * 
  * This chaining of callbacks allows easy creation of state machines. 
  * 
  * @returns OCS_INTERNAL_ERROR | OCS_CLOSE_CONNECTION | OCS_NEED_MORE_DATA. Other returns result in OCS_INTERNAL_ERROR.
  */
-typedef onion_connection_status (*onion_websocket_callback_t)(void *privdata, onion_websocket *ws, size_t data_ready_length);
+typedef onion_connection_status (*onion_websocket_callback_t)(void *privdata, onion_websocket *ws, ssize_t data_ready_length);
 
 
 #ifdef __cplusplus
