@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-onion_connection_status websocket_example_cont(void *data, onion_websocket *ws, size_t data_ready_len);
+onion_connection_status websocket_example_cont(void *data, onion_websocket *ws, ssize_t data_ready_len);
 
 onion_connection_status websocket_example(void *data, onion_request *req, onion_response *res){
 	onion_websocket *ws=onion_websocket_new(req, res);
@@ -45,7 +45,7 @@ onion_connection_status websocket_example(void *data, onion_request *req, onion_
 	return OCS_WEBSOCKET;
 }
 
-onion_connection_status websocket_example_cont(void *data, onion_websocket *ws, size_t data_ready_len){
+onion_connection_status websocket_example_cont(void *data, onion_websocket *ws, ssize_t data_ready_len){
 	char tmp[256];
 	if (data_ready_len>sizeof(tmp))
 		data_ready_len=sizeof(tmp)-1;
