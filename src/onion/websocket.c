@@ -159,7 +159,14 @@ void onion_websocket_free(onion_websocket *ws){
  */
 int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 {
-	int len=_len; // I need it singed here
+
+        // signature of writer in listen point.
+        typedef ssize_t (lpwriter_sig_t)(onion_request *req, const char *data, size_t len);
+        lpwriter_sig_t* lpwriter
+	  = ws->req->connection.listen_point->write;
+	int len=_len; // I need it signed here
+	if (!lpwriter)
+	  return -1;
 	//ONION_DEBUG("Write %d bytes",len);
 	{
 		char header[16];
@@ -192,7 +199,7 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 		}
 		*/
 		
-		ws->req->connection.listen_point->write(ws->req, header, hlen);
+		lpwriter(ws->req, header, hlen);
 	}
 	/// FIXME! powerup using int32_t as basic type.
 	int ret=0;
@@ -203,14 +210,14 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 			//ONION_DEBUG("At %d, %02X ^ %02X = %02X", (i+j)&1023, buffer[i+j]&0x0FF, mask[j&3]&0x0FF, (buffer[i]^mask[j&3])&0x0FF);
 			tout[j]=buffer[i+j];
 		}
-		ret+=ws->req->connection.listen_point->write(ws->req, tout, sizeof(tout));
+		ret+= lpwriter(ws->req, tout, sizeof(tout));
 	}
 	for(;i<len;i++){
 		//ONION_DEBUG("At %d, %02X ^ %02X = %02X", i&1023, buffer[i]&0x0FF, mask[i&3]&0x0FF, (buffer[i]^mask[i&3])&0x0FF);
 		tout[i&1023]=buffer[i];
 	}
 	
-	return ret+ws->req->connection.listen_point->write(ws->req, tout, len&1023);
+	return lpwriter(ws->req, tout, len&1023);
 }
 
 /**
