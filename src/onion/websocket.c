@@ -42,6 +42,14 @@ enum onion_websocket_flags_e{
 	WS_MASK=2,
 };
 
+
+// signature of writer in listen point.
+typedef ssize_t (lpwriter_sig_t)(onion_request *req, const char *data, size_t len);
+
+// signature of writer in listen point.
+typedef ssize_t (lpreader_sig_t)(onion_request *req, char *data, size_t len);
+
+
 static int onion_websocket_read_packet_header(onion_websocket *ws);
 
 const static char *websocket_magic_13="258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -159,14 +167,16 @@ void onion_websocket_free(onion_websocket *ws){
  */
 int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 {
-
-        // signature of writer in listen point.
-        typedef ssize_t (lpwriter_sig_t)(onion_request *req, const char *data, size_t len);
-        lpwriter_sig_t* lpwriter
-	  = ws->req->connection.listen_point->write;
-	ssize_t len=_len; // I need it signed here
-	if (!lpwriter)
+        if (!ws->req) { // should not happen....
+	  ONION_DEBUG ("no request in websocket@%p", ws);
 	  return -1;
+	}
+        lpwriter_sig_t* lpwriter = ws->req->connection.listen_point->write;
+	ssize_t len=_len; // I need it signed here
+	if (!lpwriter) {
+	  ONION_DEBUG ("no listen point writer for websocket@%p", ws);
+	  return -1;
+	}
 	//ONION_DEBUG("Write %d bytes",len);
 	{
 		char header[16];
@@ -199,7 +209,7 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 		}
 		*/
 		
-		lpwriter(ws->req, header, hlen);
+		(*lpwriter) (ws->req, header, hlen);
 	}
 	/// FIXME! powerup using int32_t as basic type.
 	int ret=0;
@@ -210,14 +220,14 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
 			//ONION_DEBUG("At %d, %02X ^ %02X = %02X", (i+j)&1023, buffer[i+j]&0x0FF, mask[j&3]&0x0FF, (buffer[i]^mask[j&3])&0x0FF);
 			tout[j]=buffer[i+j];
 		}
-		ret+= lpwriter(ws->req, tout, sizeof(tout));
+		ret+= (*lpwriter) (ws->req, tout, sizeof(tout));
 	}
 	for(;i<len;i++){
 		//ONION_DEBUG("At %d, %02X ^ %02X = %02X", i&1023, buffer[i]&0x0FF, mask[i&3]&0x0FF, (buffer[i]^mask[i&3])&0x0FF);
 		tout[i&1023]=buffer[i];
 	}
 	
-	return lpwriter(ws->req, tout, len&1023);
+	return (*lpwriter) (ws->req, tout, len&1023);
 }
 
 /**
@@ -231,11 +241,20 @@ int onion_websocket_write(onion_websocket* ws, const char* buffer, size_t _len)
  * 
  * @param ws Wbsocket object
  * @param buffer Data to write
- * @param len Lenght of buffer to write
+ * @param len Length of buffer to write
  * @returns number of bytes written or <0 if error.
  */
 int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
 {
+        if (!ws->req) {
+          ONION_DEBUG("no request in websocket@%p", ws);
+	  return -1;
+	}
+        lpreader_sig_t* lpreader = ws->req->connection.listen_point->read;
+	if (!lpreader) {
+	  ONION_DEBUG("no listen point reader in websocket@%p", ws);
+	  return -1;
+	}
 	//ONION_DEBUG("Please, read %d bytes, %d ready", len, ws->data_left);
 	if (ws->data_left==0){
 		if (onion_websocket_read_packet_header(ws)<0){
@@ -250,7 +269,7 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
 		len=ws->data_left;
 		//ONION_DEBUG("Read %d bytes now, %d bytes later", len, left_len);
 	}
-	int r=ws->req->connection.listen_point->read(ws->req, buffer, len);
+	int r= (*lpreader) (ws->req, buffer, len);
 	if (ws->flags&WS_MASK){
 		char *p=buffer;
 		int i;
@@ -374,7 +393,16 @@ void onion_websocket_set_userdata(onion_websocket *ws, void *userdata, void (*fr
 static onion_connection_status onion_websocket_read_packet_header(onion_websocket *ws){
 	char tmp[8];
 	unsigned char *utmp=(unsigned char*)tmp;
-	int r=ws->req->connection.listen_point->read(ws->req, tmp, 2);
+	if (!ws->req) { // should not happen....
+	  ONION_DEBUG("no request in websocket@%p", ws);
+	  return OCS_CLOSE_CONNECTION;
+	} 
+        lpreader_sig_t* lpreader = ws->req->connection.listen_point->read;
+	if (!lpreader) {
+	  ONION_DEBUG("no listen point reader in websocket@%p", ws);
+	  return OCS_CLOSE_CONNECTION;
+	}
+	int r= (*lpreader) (ws->req, tmp, 2);
 	if (r!=2){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 	
 	ws->flags=0;
@@ -385,13 +413,13 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	ws->opcode=tmp[0]&0x0F;
 	ws->data_left=tmp[1]&0x7F;
 	if (ws->data_left==126){
-		r=ws->req->connection.listen_point->read(ws->req, tmp, 2);
+	  r= (*lpreader) (ws->req, tmp, 2);
 		if (r!=2){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 		ONION_DEBUG("%d %d", utmp[0], utmp[1]);
 		ws->data_left=utmp[0] + utmp[1]*256;
 	}
 	else if (ws->data_left==127){
-		r=ws->req->connection.listen_point->read(ws->req, tmp, 8);
+	  r= (*lpreader) (ws->req, tmp, 8);
 		ONION_DEBUG("%d %d %d %d %d %d %d", utmp[0], utmp[1], utmp[2], utmp[3], utmp[4], utmp[5], utmp[6], utmp[7]);
 		if (r!=8){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 		ws->data_left=0;
@@ -401,7 +429,7 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	}
 	ONION_DEBUG("Data left %d", ws->data_left);
 	if (ws->flags&WS_MASK){
-		r=ws->req->connection.listen_point->read(ws->req, ws->mask, 4);
+	        r= (*lpreader) (ws->req, ws->mask, 4);
 		if (r!=4){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 		ws->mask_pos=0;
 	}
