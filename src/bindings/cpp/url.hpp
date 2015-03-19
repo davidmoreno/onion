@@ -116,7 +116,7 @@ namespace Onion{
 		 *   url.add("", [](Onion::Request &req, Onion::Response &res){ return OCS_INTERNAL_ERROR; });
 		 */
 		Url& add(const std::string &url, HandlerFunction::fn_t fn){
-			add(url, make_handler<HandlerFunction>(fn));
+			add(url, Handler::make<HandlerFunction>(fn));
 			return *this;
 		}
 		/**
@@ -141,7 +141,7 @@ namespace Onion{
 		 */
 		template<class T>
 		Url& add(const std::string &url, T *o, onion_connection_status (T::*fn)(Request &,Response &)){
-			return add(url, make_handler<HandlerMethod<T>>(o,fn));
+			return add(url, Handler::make<HandlerMethod<T>>(o,fn));
 		}
 		/**
 		 * @short Adds an url with a static response.
@@ -156,7 +156,7 @@ namespace Onion{
 		 * With this method is possible to use the C handlers as onion_webdav.
 		 */
 		Url &add(const std::string &url, onion_handler_handler handler){
-			return add(url, make_handler<HandlerCFunction>(handler));
+			return add(url, Handler::make<HandlerCFunction>(handler));
 		}
 		/**
 		 * @short Adds an url that calls another Onion::Url.

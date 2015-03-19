@@ -47,17 +47,30 @@ namespace Onion{
 		HandlerBase(){};
 		virtual ~HandlerBase(){};
 		virtual onion_connection_status operator()(Onion::Request &, Onion::Response &) = 0;
-		
+	
 		HandlerBase(HandlerBase &) = delete;
 		HandlerBase &operator=(HandlerBase &o) = delete;
 	};
 
-	using Handler=std::unique_ptr<HandlerBase>;
+	//using Handler=std::unique_ptr<HandlerBase>;
 	
-	template<typename T, typename ...Args>
-	std::unique_ptr<T> make_handler(Args&&... args){
-		return std::unique_ptr<T>(new T(args...));
-	}
+	class Handler{
+		std::unique_ptr<HandlerBase> ptr;
+	public:
+		Handler(HandlerBase *o){
+			ptr=std::unique_ptr<HandlerBase>(o);
+		}
+		template<typename T>
+		Handler(std::unique_ptr<T> &&o){
+			ptr=std::move(o);
+		}
+		HandlerBase *release(){ return ptr.release(); }
+
+		template<typename T, typename ...Args>
+		static std::unique_ptr<T> make(Args&&... args){
+			return std::unique_ptr<T>(new T(args...));
+		}
+	};
 	
 	/// Converts a C++ handler to C
 	onion_handler *onion_handler_cpp_to_c(Handler handler);

@@ -21,6 +21,7 @@
 #include "url.hpp"
 #include "request.hpp"
 #include "response.hpp"
+#include "shortcuts.hpp"
 
 void t01_url(){
 	INIT_LOCAL();
@@ -33,7 +34,7 @@ void t01_url(){
 	Onion::Url more_url2;
 	
 	// Set the main handler, does nothing if not called as ?go, if so, uses the url handler.
-	o.setRootHandler(Onion::make_handler<Onion::HandlerFunction>([&url](Onion::Request &req, Onion::Response &res) -> onion_connection_status{
+	o.setRootHandler(Onion::Handler::make<Onion::HandlerFunction>([&url](Onion::Request &req, Onion::Response &res) -> onion_connection_status{
 		if (req.query().has("go"))
 			return url(req, res);
 		res<<"<html><body>Go to <a href=\"?go\">?go</a>";
@@ -69,6 +70,10 @@ void t01_url(){
 	// /more (at url -> more_url)
 	// /more/less (at url -> more_url)
 	// /less/more (at url -> more_url2)
+	
+	// from BUG #105. 
+	auto onionlocalwebdir=Onion::ExportLocal(".");
+  url.add("^webdir/", std::move(onionlocalwebdir));
 	
 	o.listen();
 	

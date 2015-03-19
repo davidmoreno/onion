@@ -44,7 +44,6 @@ Handler Onion::onion_handler_c_to_cpp(onion_handler *h){
 	return std::unique_ptr<HandlerBase>(new HandlerCBridge(h)); // Converted to unique
 }
 
-
 static onion_connection_status onion_handler_call_operator(void *ptr, onion_request *_req, onion_response *_res){
 	Onion::Request req(_req);
 	Onion::Response res(_res);

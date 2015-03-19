@@ -63,7 +63,7 @@ void t01_basic(){
   url.add("static", std::string("Static data"));
   url.add<MyHandler>("m", &m, &MyHandler::index);
   
-  o.setInternalErrorHandler( Onion::make_handler<Onion::HandlerMethod<MyHandler>>(&m, &MyHandler::error) );
+  o.setInternalErrorHandler( Onion::Handler::make<Onion::HandlerMethod<MyHandler>>(&m, &MyHandler::error) );
   
   o.listen();
   

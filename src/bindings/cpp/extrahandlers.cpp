@@ -32,21 +32,21 @@ using namespace Onion;
 
 Handler Shortcuts::static_file(const std::string& path)
 {
-	return make_handler<HandlerFunction>([path](Onion::Request &req, Onion::Response &res){
+	return Handler::make<HandlerFunction>([path](Onion::Request &req, Onion::Response &res){
 		return onion_shortcut_response_file(path.c_str(), req.c_handler(), res.c_handler()); 
 	});
 }
 
 Handler Shortcuts::internal_redirect(const std::string& uri)
 {
-	return make_handler<HandlerFunction>([uri](Onion::Request &req, Onion::Response &res){
+	return Handler::make<HandlerFunction>([uri](Onion::Request &req, Onion::Response &res){
 		return onion_shortcut_internal_redirect(uri.c_str(), req.c_handler(), res.c_handler());
 	});
 }
 
 Handler Shortcuts::redirect(const std::string& uri)
 {
-	return make_handler<HandlerFunction>([uri](Onion::Request &req, Onion::Response &res){
+	return new HandlerFunction([uri](Onion::Request &req, Onion::Response &res){
 		return onion_shortcut_redirect(uri.c_str(), req.c_handler(), res.c_handler());
 	});
 }
