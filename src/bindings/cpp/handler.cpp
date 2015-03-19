@@ -41,7 +41,7 @@ onion_handler *Onion::onion_handler_cpp_to_c(Handler handler){
 
 /// Converts a C handler to C++
 Handler Onion::onion_handler_c_to_cpp(onion_handler *h){
-	return std::unique_ptr<HandlerBase>(new HandlerCBridge(h)); // Converted to unique
+	return Handler::make<HandlerCBridge>(h); 
 }
 
 static onion_connection_status onion_handler_call_operator(void *ptr, onion_request *_req, onion_response *_res){

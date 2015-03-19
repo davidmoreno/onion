@@ -147,7 +147,9 @@ namespace Onion{
 		onion_handler *ptr;
 	public:
 		HandlerCBridge(onion_handler *handler) : ptr(handler){};
-		virtual ~HandlerCBridge(){};
+		virtual ~HandlerCBridge(){
+			onion_handler_free(ptr);
+		};
 		virtual onion_connection_status operator()(Request &req, Response &res);
 	};
 };

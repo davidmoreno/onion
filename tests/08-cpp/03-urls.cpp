@@ -28,7 +28,7 @@ void t01_url(){
 	
 	Onion::Onion o;
 
-	// Create an empty url handler
+	// Create an empty url handler. These are not directly used by onion, and must me freed.
 	Onion::Url url;
 	Onion::Url more_url;
 	Onion::Url more_url2;
@@ -61,7 +61,7 @@ void t01_url(){
 		return OCS_PROCESSED;
 	});
 	
-	url.add("^less/", more_url2);
+	url.add("^less/", std::move(more_url2));
 	
 	more_url2.add("more", std::string("Yes, the saying is that <a href=\"http://bit.ly/1fdCbP0\">Less is more</a>"));
 	

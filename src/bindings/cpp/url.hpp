@@ -27,6 +27,7 @@
 #include "onion.hpp"
 #include "handler.hpp"
 #include <onion/url.h>
+#include <onion/log.h>
 #include <onion/onion.h>
 
 namespace Onion{
@@ -67,28 +68,46 @@ namespace Onion{
 	 */
 	class Url{
 		onion_url *ptr;
+		bool owner;
 	public:
 		/**
 		 * @short Creates an empty url handler.
 		 */
-		Url() : ptr(onion_url_new()){};
+		Url() : ptr(onion_url_new()), owner(true){};
 		/**
 		 * @short Creates an url handler from the C url handler.
 		 */
-		Url(onion_url *_ptr) : ptr(_ptr){};
+		Url(onion_url *_ptr) : ptr(_ptr), owner(true){};
 		/**
 		 * @short Creates the onion_root_handler as an Url object.
 		 */
-		Url(Onion *o) {
+		Url(Onion *o) : owner(false) {
 			ptr=onion_root_url(o->c_handler());
 		}
 		/**
 		 * @short Creates the onion_root_handler as an Url object, from a onion reference.
 		 */
-		Url(Onion &o) {
+		Url(Onion &o) : owner(false) {
 			ptr=onion_root_url(o.c_handler());
 		}
+		/**
+		 * @short Move constructor
+		 * 
+		 * Its slightly diferent from standard as it allows to keep using the original to add data; normally the state is undefined.
+		 */
+		Url(Url &&o){
+			ptr=o.ptr;
+			owner=o.owner;
+			o.owner=false;
+		}
+		Url(Url &) = delete;
+		Url &operator=(Url &o) = delete;
 
+		virtual ~Url(){
+			if (owner){
+				onion_url_free(ptr);
+			}
+		}
 		/**
 		 * @short Returns the C handler to use onion_url C functions.
 		 */
@@ -164,8 +183,10 @@ namespace Onion{
 		 * With this method its possible to create Onion::Url hierachies, easing the modularization of
 		 * web applications.
 		 */
-		Url &add(const std::string &url, Url &url_handler){
-			return add(url, onion_url_to_handler(url_handler.c_handler()));
+		Url &add(const std::string &url, Url url_handler){
+			add(url, onion_url_to_handler(url_handler.c_handler()));
+			url_handler.owner=false;
+			return *this;
 		}
 		
 		/**
