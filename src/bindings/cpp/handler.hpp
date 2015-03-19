@@ -26,32 +26,46 @@
 
 #include <onion/handler.h>
 #include <onion/response.h>
-#include <exception>
 #include <string>
 #include <functional>
+#include <memory>
 
 namespace Onion{
 	class Request;
 	class Response;
-	
+
 	/**
 	* @short Base class to create new handlers. 
 	* 
 	* All onion C++ handlers must inherit from this class and provide a () operator. It will be 
 	* called when the handler should be called.
 	* 
-	* This is a low level way to create handlers; normally you want to use Onion::Url.
+	* A handler is not copyable, only movable.
 	*/
-	class Handler{
-		onion_handler *ptr;
+	class HandlerBase{
 	public:
-		Handler();
-		virtual ~Handler();
-		
+		HandlerBase(){};
+		virtual ~HandlerBase(){};
 		virtual onion_connection_status operator()(Onion::Request &, Onion::Response &) = 0;
 		
-		onion_handler *c_handler(){ return ptr; }
+		HandlerBase(HandlerBase &) = delete;
+		HandlerBase &operator=(HandlerBase &o) = delete;
 	};
+
+	using Handler=std::unique_ptr<HandlerBase>;
+	
+	template<typename T, typename ...Args>
+	std::unique_ptr<T> make_handler(Args&&... args){
+		return std::unique_ptr<T>(new T(args...));
+	}
+	
+	/// Converts a C++ handler to C
+	onion_handler *onion_handler_cpp_to_c(Handler handler);
+	
+	/// Converts a C handler to C++
+	Handler onion_handler_c_to_cpp(onion_handler *);
+	
+	
 	
 	/**
 	* @short Creates a handler that calls a method in an object.
@@ -69,7 +83,7 @@ namespace Onion{
 	*   new Onion::HandlerMethod(&class, MyClass::index);
 	*/
 	template<class T>
-	class HandlerMethod : public Handler{
+	class HandlerMethod : public HandlerBase{
 	public:
 		typedef onion_connection_status (T::*fn_t)(Onion::Request&,Onion::Response&);
 	private:
@@ -87,7 +101,7 @@ namespace Onion{
 	* 
 	* The function signature is onion_connection_status (Onion::Request&,Onion::Response&);
 	*/
-	class HandlerFunction : public Handler{
+	class HandlerFunction : public HandlerBase{
 	public:
 		typedef std::function<onion_connection_status (Onion::Request&,Onion::Response&)> fn_t;
 	private:
@@ -100,12 +114,12 @@ namespace Onion{
 	};
 	
 	/**
-	* @short Creates a Handler that calss a C function.
+	* @short Creates a Handler that calls a C function.
 	* 
 	* The C function needs the signature onion_handler_handler, which is
 	* onion_connection_status handler(void *data, onion_request *req, onion_response *res);
 	*/
-	class HandlerCFunction : public Handler{
+	class HandlerCFunction : public HandlerBase{
 	private:
 		onion_handler_handler fn;
 	public:
@@ -114,52 +128,15 @@ namespace Onion{
 	};
 	
 	/**
-	* @short Exception to throw if your handler failed.
-	* 
-	* If your handler fails and you need to signal inmediate failure, you can throw this exception.
-	* 
-	* This is a facility to avoid returning the onion_connection_status flags in case of error.
-	*/
-	class HttpException : public std::exception{
-		std::string str;
-		onion_response_codes code;
+	 * @short Calls a C handler.
+	 */
+	class HandlerCBridge : public HandlerBase{
+		onion_handler *ptr;
 	public:
-		HttpException(const std::string &str, onion_response_codes code=HTTP_INTERNAL_ERROR) : str(str), code(code){}
-		virtual ~HttpException() throw(){}
-		const char *what() const throw(){ return str.c_str(); }
-		const std::string &message(){ return str; }
-		/// How to handle this exception type. May be a redirect, or just plain show this message.
-		virtual onion_connection_status handle(Onion::Request &req, Onion::Response &res);
+		HandlerCBridge(onion_handler *handler) : ptr(handler){};
+		virtual ~HandlerCBridge(){};
+		virtual onion_connection_status operator()(Request &req, Response &res);
 	};
-	
-	/**
-	* @short Exception to throw in case of internal errors.
-	*/
-	class HttpInternalError : public HttpException{
-	public:
-		HttpInternalError(const std::string &str) : HttpException(str){};
-		virtual ~HttpInternalError() throw(){}
-	};
-	
-	/**
-	* @short Exception to throw when resource is not found, and can not be found.
-	*/
-	class HttpNotFound : public HttpException{
-	public:
-		HttpNotFound(const std::string &str) : HttpException(str){};
-		virtual ~HttpNotFound() throw(){}
-	};
-
-	/**
-	* @short Exception to throw to signal inmediatly that there should be a redirection.
-	*/
-	class HttpRedirect : public HttpException{
-	public:
-		HttpRedirect(const std::string &url) : HttpException(url){};
-		virtual ~HttpRedirect() throw(){}
-		virtual onion_connection_status handle(Request& req, Response& res);
-	};
-	
 };
 
 #endif

@@ -24,21 +24,31 @@
 #include "extrahandlers.hpp"
 #include "request.hpp"
 #include "response.hpp"
+#include "response.hpp"
+
 #include <onion/shortcuts.h>
 
 using namespace Onion;
 
-StaticHandler::StaticHandler(const std::string& _path) : path(_path)
+Handler Shortcuts::static_file(const std::string& path)
 {
-	
+	return make_handler<HandlerFunction>([path](Onion::Request &req, Onion::Response &res){
+		return onion_shortcut_response_file(path.c_str(), req.c_handler(), res.c_handler()); 
+	});
 }
 
-StaticHandler::~StaticHandler()
+Handler Shortcuts::internal_redirect(const std::string& uri)
 {
-
+	return make_handler<HandlerFunction>([uri](Onion::Request &req, Onion::Response &res){
+		return onion_shortcut_internal_redirect(uri.c_str(), req.c_handler(), res.c_handler());
+	});
 }
 
-onion_connection_status StaticHandler::operator()(Request &req, Response &res)
+Handler Shortcuts::redirect(const std::string& uri)
 {
-	return onion_shortcut_response_file((path+req.path()).c_str(), req.c_handler(), res.c_handler());
+	return make_handler<HandlerFunction>([uri](Onion::Request &req, Onion::Response &res){
+		return onion_shortcut_redirect(uri.c_str(), req.c_handler(), res.c_handler());
+	});
 }
+
+

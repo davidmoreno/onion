@@ -21,6 +21,6 @@
 
 int main(int argc, char **argv){
 	Onion::Onion onion;
-	onion.setRootHandler(new Onion::ExportLocal("."));
+	onion.setRootHandler(Onion::ExportLocal("."));
 	onion.listen();
 };

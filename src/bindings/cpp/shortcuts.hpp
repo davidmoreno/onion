@@ -38,6 +38,7 @@ namespace Onion{
 	/// Redirects to an given url
 	onion_connection_status redirect(const std::string &url, Request &req, Response &res);
 	
+	
 	/**
 	 * @short Exports local data as a handler
 	 * 
@@ -51,11 +52,5 @@ namespace Onion{
 	 * o.listen();
 	 * @endcode
 	 */
-	class ExportLocal : public Handler{
-		onion_handler *export_local;
-	public:
-		ExportLocal(const std::string &path);
-		virtual ~ExportLocal();
-		onion_connection_status operator()(Request&, Response&);
-	};
+	Handler ExportLocal(const std::string &path);
 }

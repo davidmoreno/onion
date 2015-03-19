@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2015 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -21,29 +21,21 @@
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
-#ifndef ONION_EXTRAHANDLERS_HPP
-#define ONION_EXTRAHANDLERS_HPP
-
-#include <string>
-#include <string.h>
 #include <onion/shortcuts.h>
 
-#include "handler.hpp"
-#include "request.hpp"
+#include "exceptions.hpp"
 #include "response.hpp"
+#include "request.hpp"
 
-namespace Onion{
+using namespace Onion;
 
-	namespace Shortcuts{
-		Handler static_file(const std::string &path);
-		Handler internal_redirect(const std::string &uri);
-		Handler redirect(const std::string &uri);
-	};
+onion_connection_status Onion::HttpException::handle(Onion::Request& req, Onion::Response& res)
+{
+	return onion_shortcut_response(what(), code, req.c_handler(), res.c_handler());
+}
 
-	Handler StaticHandler(const std::string &path){ return Shortcuts::static_file(path); };
-	Handler InternalRedirectHandler(const std::string &uri){ return Shortcuts::internal_redirect(uri); };
-	Handler RedirectHandler(const std::string &uri){ return Shortcuts::redirect(uri); };
-};
-
-#endif
+onion_connection_status Onion::HttpRedirect::handle(Onion::Request& req, Onion::Response& res)
+{
+	return onion_shortcut_redirect(what(), req.c_handler(), res.c_handler());
+}
 

@@ -22,16 +22,34 @@
 	*/
 
 #include "handler.hpp"
+#include "exceptions.hpp"
 #include "request.hpp"
 #include "response.hpp"
 #include <onion/shortcuts.h>
 #include <onion/handlers/exportlocal.h>
 
+using namespace Onion;
+
+static onion_connection_status onion_handler_call_operator(void *ptr, onion_request *_req, onion_response *_res);
+static void onion_handler_delete_operator(void *ptr);
+
+/// Converts a C++ handler to C
+onion_handler *Onion::onion_handler_cpp_to_c(Handler handler){
+	HandlerBase *handl=handler.release();
+	return onion_handler_new(onion_handler_call_operator, handl, onion_handler_delete_operator);
+}
+
+/// Converts a C handler to C++
+Handler Onion::onion_handler_c_to_cpp(onion_handler *h){
+	return std::unique_ptr<HandlerBase>(new HandlerCBridge(h)); // Converted to unique
+}
+
+
 static onion_connection_status onion_handler_call_operator(void *ptr, onion_request *_req, onion_response *_res){
 	Onion::Request req(_req);
 	Onion::Response res(_res);
 	try{
-		Onion::Handler *handler=(Onion::Handler*)ptr;
+		Onion::HandlerBase *handler=(HandlerBase*)(ptr);
 		return (*handler)(req, res);
 	}
 	catch(Onion::HttpException &e){
@@ -44,35 +62,18 @@ static onion_connection_status onion_handler_call_operator(void *ptr, onion_requ
 }
 
 static void onion_handler_delete_operator(void *ptr){
-	Onion::Handler *handler=(Onion::Handler*)ptr;
+	Onion::HandlerBase *handler=(Onion::HandlerBase*)ptr;
 	delete handler;
 }
 
-Onion::Handler::Handler()
-{
-	ptr=onion_handler_new(onion_handler_call_operator, this, onion_handler_delete_operator);
-}
-
-Onion::Handler::~Handler()
-{
-
-}
 
 onion_connection_status Onion::HandlerCFunction::operator()(Onion::Request &req, Onion::Response &res){
 	return fn(NULL, req.c_handler(), res.c_handler());
 }
 
 
-onion_connection_status Onion::HttpException::handle(Onion::Request& req, Onion::Response& res)
+onion_connection_status HandlerCBridge::operator()(Request& req, Response& res)
 {
-	return onion_shortcut_response(what(), code, req.c_handler(), res.c_handler());
+	return onion_handler_handle(ptr, req.c_handler(), res.c_handler());
 }
-
-onion_connection_status Onion::HttpRedirect::handle(Onion::Request& req, Onion::Response& res)
-{
-	return onion_shortcut_redirect(what(), req.c_handler(), res.c_handler());
-}
-
-
-
 

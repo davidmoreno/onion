@@ -33,7 +33,7 @@ void t01_url(){
 	Onion::Url more_url2;
 	
 	// Set the main handler, does nothing if not called as ?go, if so, uses the url handler.
-	o.setRootHandler(new Onion::HandlerFunction([&url](Onion::Request &req, Onion::Response &res) -> onion_connection_status{
+	o.setRootHandler(Onion::make_handler<Onion::HandlerFunction>([&url](Onion::Request &req, Onion::Response &res) -> onion_connection_status{
 		if (req.query().has("go"))
 			return url(req, res);
 		res<<"<html><body>Go to <a href=\"?go\">?go</a>";

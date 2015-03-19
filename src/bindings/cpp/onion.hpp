@@ -119,15 +119,15 @@ namespace Onion{
 		* Normally user dont set this handler manually, but use the Onion::Url constructor to set a Url handler as
 		* the root one.
 		*/
-		void setRootHandler(Handler *handler){
-			onion_set_root_handler(ptr, handler->c_handler());
+		void setRootHandler(Handler handler){
+			onion_set_root_handler(ptr, onion_handler_cpp_to_c(std::move(handler)));
 		}
 		
 		/**
 		* @short Sets the internal error handler, to be called in case of internal errors, not found and so on.
 		*/
-		void setInternalErrorHandler(Handler *handler){
-			onion_set_internal_error_handler(ptr, handler->c_handler());
+		void setInternalErrorHandler(Handler handler){
+			onion_set_internal_error_handler(ptr, onion_handler_cpp_to_c(std::move(handler)));
 		}
 		
 		/**
