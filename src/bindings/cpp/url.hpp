@@ -68,7 +68,7 @@ namespace Onion{
 	 */
 	class Url{
 		onion_url *ptr;
-		bool owner;
+		bool owner; ///< true if this instance is the owner of the onion_url *ptr. Needed to allow passing the ownership of the C handler tp the C code.
 	public:
 		/**
 		 * @short Creates an empty url handler.
