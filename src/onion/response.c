@@ -154,6 +154,9 @@ onion_connection_status onion_response_free(onion_response *res){
 	if (!(res->flags&OR_HEADER_SENT) && res->buffer_pos<sizeof(res->buffer))
 		onion_response_set_length(res, res->buffer_pos);
 	
+	if (!(res->flags&OR_HEADER_SENT))
+		onion_response_write_headers(res);
+	
 	onion_response_flush(res);
 	onion_request *req=res->request;
 	
@@ -254,6 +257,11 @@ static void write_header(onion_response *res, const char *key, const char *value
  * @returns 0 if should procced to normal data write, or OR_SKIP_CONTENT if should not write content.
  */
 int onion_response_write_headers(onion_response *res){
+	if (!res->request){
+		ONION_ERROR("Bad formed response. Need a request at creation. Will not write headers.");
+		return -1;
+	}
+	
 	res->flags|=OR_HEADER_SENT; // I Set at the begining so I can do normal writing.
 	res->request->flags|=OR_HEADER_SENT;
 	char chunked=0;

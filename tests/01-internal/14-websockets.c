@@ -28,7 +28,7 @@ struct ws_status_t{
 };
 struct ws_status_t ws_status;
 
-onion_connection_status ws_callback(void *privadata, onion_websocket *ws, size_t nbytes_ready){
+onion_connection_status ws_callback(void *privadata, onion_websocket *ws, ssize_t nbytes_ready){
 	return OCS_NEED_MORE_DATA;
 }
 

@@ -199,6 +199,36 @@ void t05_printf(){
 	END_LOCAL();
 }
 
+void t06_empty(){
+	INIT_LOCAL();
+
+	onion *server=onion_new(0);
+	onion_add_listen_point(server,NULL,NULL,onion_buffer_listen_point_new());
+	onion_request *request;
+	char buffer[4096];
+	memset(buffer,0,sizeof(buffer));
+	
+	request=onion_request_new(server->listen_points[0]);
+	onion_response *response=onion_response_new(request);
+	
+// 	onion_response_write_headers(response);
+	
+	onion_response_flush(response);
+	onion_response_free(response);
+
+	buffer[sizeof(buffer)-1]=0;
+	strncpy(buffer,onion_buffer_listen_point_get_buffer_data(request),sizeof(buffer)-1);
+	onion_request_free(request);
+	onion_free(server);
+	
+	FAIL_IF_NOT_STRSTR(buffer, "Server:");
+	FAIL_IF_NOT_STRSTR(buffer, "Content-Type:");
+	
+// 	ONION_DEBUG(buffer);
+
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	START();
 	
@@ -207,6 +237,7 @@ int main(int argc, char **argv){
 	t03_full_cycle_http11();
 	t04_cookies();
 	t05_printf();
+	t06_empty();
 	
 	END();
 }

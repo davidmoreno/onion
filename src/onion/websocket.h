@@ -36,6 +36,7 @@ extern "C"{
 
 /// Get the current websocket handler, or create it. If not a websocket request, returns NULL
 onion_websocket *onion_websocket_new(onion_request *req, onion_response *res);
+/// When freed, the callback is invoked with a negative data length.
 void onion_websocket_free(onion_websocket *ws);
 void onion_websocket_close(onion_websocket *ws);
 
