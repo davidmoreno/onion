@@ -211,7 +211,7 @@ void t06_empty(){
 	request=onion_request_new(server->listen_points[0]);
 	onion_response *response=onion_response_new(request);
 	
-	onion_response_write_headers(response);
+// 	onion_response_write_headers(response);
 	
 	onion_response_flush(response);
 	onion_response_free(response);
