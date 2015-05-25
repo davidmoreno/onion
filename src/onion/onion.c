@@ -4,20 +4,20 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -25,101 +25,101 @@
 /**
  * @mainpage libonion - HTTP server library
  * @author David Moreno Montero - Coralbits S.L. - http://www.coralbits.com
- * 
+ *
  * @section Introduction
- *  
+ *
  * libonion is a simple library to add HTTP functionality to your program. Be it a new program or to add HTTP
  * functionality to an exisitng program, libonion makes it as easy as possible.
- * 
+ *
  * @note Best way to navigate through this documentation is going to Files / Globals / Functions, or using the search button on the corner.
- * 
+ *
  * @note To Check the C++ bindings check at the Onion namespace.
- * 
+ *
  * There are many documented examples at the examples directory (https://github.com/davidmoreno/onion/tree/master/examples/).
- * 
+ *
  * A basic example of a server with authentication, SSL support that serves a static directory is:
- * 
+ *
  * @include examples/basic/basic.c
- * 
+ *
  * To be compiled as
- * 
+ *
 @verbatim
-  gcc -o a a.c -I$ONION_DIR/src/ -L$ONION_DIR/src/onion/ -L$ONION_DIR/src/handlers/  -lonion_handlers -lonion_static -lpam -lgnutls -lgcrypt -lpthread
+  gcc -o a a.c -I$ONION_DIR/src/ -L$ONION_DIR/src/onion/ -lonion_static -lpam -lgnutls -lgcrypt -lpthread
 @endverbatim
  *
  * please modify -I and -L as appropiate to your installation.
- * 
+ *
  * pam, gnutls and pthread are necesary for pam auth, ssl and pthread support respectively.
- * 
+ *
  * @section Handlers Onion request handlers
- * 
+ *
  * libonion is based on request handlers to process all its request. The handlers may be nested creating onion
- * like layers. The first layer may be checking the server name, the second some authentication, the third 
+ * like layers. The first layer may be checking the server name, the second some authentication, the third
  * checks if you ask for the right path and the last returns a fixed message.
- * 
- * Handlers have always a next handler that is the handler that will be called if current handler do not want 
- * to process current petition.
- * 
+ *
+ * Handlers have always a next handler that is the handler that will be called if current handler do not want
+ * to process current request.
+ *
  * Normally for simple servers its much easier, as in the upper example.
- * 
+ *
  * @subsection Custom_handlers Create your custom handlers
- * 
+ *
  * Creating a custom handler is just to create a couple of functions with this signature:
- * 
+ *
  * @code
  * int custom_handler(custom_handler_data *d, onion_request *request, onion_response *response);
  * void custom_handler_free(custom_handler_data *d);
  * @endcode
- * 
+ *
  * Then create a onion_handler object with
- * 
+ *
  * @code
  * onion_handler *ret=onion_handler_new((onion_handler_handler)custom_handler,
  *                                       priv_data,(onion_handler_private_data_free) custom_handler_free);
  *
  * @endcode
- * 
+ *
  * Normally this creation is encapsulated in a function that also sets up the private data, and that returns
  * the onion_handler to be used where necesary.
- * 
+ *
  * As you can be seen it have its own private data that is passed at creation time, and that should be freed
- * using the custom_handler_free when libonion feels its time. 
- * 
+ * using the custom_handler_free when libonion feels its time.
+ *
  * The custom_handler must then make use of the onion_response object, created from the onion_request. For example:
- * 
+ *
  * @code
  * int custom_handler(custom_handler_data *d, onion_request *request, onion_response *response){
  *   onion_response_printf(response,"Hello %s","world");
  *   return OCS_PROCESSED;
  * }
  * @endcode
- * 
+ *
  * @section Optional Optional library support
- * 
+ *
  * libonion has support for some external library very usefull addons. Make sure you have the development
  * libraries when compiling libonion to have support for it.
- * 
+ *
  * @subsection SSL SSL support
- * 
- * libonion has SSL support by using GNUTLS. This is however optional, and you can disable compilation by 
+ *
+ * libonion has SSL support by using GNUTLS. This is however optional, and you can disable compilation by
  * not having the development libraries, or modifing /CMakeLists.txt.
- * 
+ *
  * Once you have support most basic use is just to set a certificate and key file (can be be on the same PEM file).
  * With just that you have SSL support on your server.
- * 
+ *
  * @subsection Threads Thread support
- * 
+ *
  * libonion has threads support. It is not heavily mutexed as this impacts performace, but basic structures that
- * are used normally are properly mutexed. 
- * 
+ * are used normally are properly mutexed.
+ *
  * Anyway its on your own handlers where you have to set your own mutex areas. See examples/oterm/oterm_handler.c for
  * an example on how to do it.
- * 
+ *
  * Specifically its not mutexed the handler tree, as its designed to be ready on startup, and not modified in
  * all its lifespan.
- * 
+ *
  * Also there is an option to listen on another thread, using the O_DETACH_LISTEN flag on onion creation.
- * 
+ *
  */
 
 #include <stdlib.h>
@@ -165,24 +165,24 @@ static void shutdown_server(int _);
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
  * @memberof onion_t
- * 
- * Creates an onion structure that can be used to set the server, port, SSL and similar parameters. It works over 
+ *
+ * Creates an onion structure that can be used to set the server, port, SSL and similar parameters. It works over
  * the onion structure, which is the main structure to control the listening of new connections throught TCP/IP.
- * 
+ *
  * A normal usage would be like this:
- * 
+ *
  * @code
- * 
+ *
  * onion *o=onion_new(O_THREADED);
  * onion_set_root_handler(o, onion_handler_directory("."));
  * onion_listen(o);
- * 
+ *
  * @endcode
- * 
+ *
  * @param flags Or'ed flags to use at the listening daemon. Normally one of O_ONE, O_ONE_LOOP or O_THREADED.
- * 
+ *
  * @returns The onion structure.
- * 
+ *
  * @see onion_mode_e onion_t
  */
 onion *onion_new(int flags){
@@ -190,12 +190,12 @@ onion *onion_new(int flags){
 	if(SOCK_CLOEXEC == 0){
 		ONION_WARNING("There is no support for SOCK_CLOEXEC compiled in libonion. This may be a SECURITY PROBLEM as connections may leak into executed programs.");
 	}
-	
+
 	if (!(flags&O_NO_SIGPIPE)){
 		ONION_DEBUG("Ignoring SIGPIPE");
 		signal(SIGPIPE, SIG_IGN);
 	}
-	
+
 
 	onion *o=onion_low_calloc(1,sizeof(onion));
 	if (!o){
@@ -234,16 +234,16 @@ onion *onion_new(int flags){
  */
 void onion_free(onion *onion){
 	ONION_DEBUG("Onion free");
-	
+
 	if (onion->flags&O_LISTENING)
 		onion_listen_stop(onion);
-	
+
 	if (onion->poller)
 		onion_poller_free(onion->poller);
-	
+
 	if (onion->username)
 		onion_low_free(onion->username);
-	
+
 	if (onion->listen_points){
 		onion_listen_point **p=onion->listen_points;
 		while(*p!=NULL){
@@ -259,7 +259,7 @@ void onion_free(onion *onion){
 	onion_mime_set(NULL);
 	if (onion->sessions)
 		onion_sessions_free(onion->sessions);
-	
+
 	{
 #ifdef HAVE_PTHREADS
 	  pthread_mutex_lock (&onion->mutex);
@@ -324,7 +324,7 @@ onion_client_data (onion*server)
 static void shutdown_server(int _){
 	static bool first_call=true;
 	if (first_call){
-		if (last_onion){ 
+		if (last_onion){
 			onion_listen_stop(last_onion);
 			ONION_INFO("Exiting onion listening (SIG%s)", _==SIGTERM ? "TERM" : "INT");
 		}
@@ -347,13 +347,13 @@ static void* onion_listen_start (void* data)
   pthread_mutex_lock (&count_mtx);
   listen_counter++;
 #ifdef __DEBUG__
-#ifdef __USE_GNU 
+#ifdef __USE_GNU
   long cnt = listen_counter;
 #endif /*__USE_GNU */
 #endif /*__DEBUG__*/
   pthread_mutex_unlock (&count_mtx);
 #ifdef __DEBUG__
-#ifdef __USE_GNU 
+#ifdef __USE_GNU
   /* GNU systems such as Linux with GNU glibc have the non-standard pthread_setname_np */
   {
     char thrname[16];
@@ -382,13 +382,13 @@ static void* onion_poller_poll_start (void* data)
   pthread_mutex_lock (&count_mtx);
   poller_counter++;
 #ifdef __DEBUG__
-#ifdef __USE_GNU 
+#ifdef __USE_GNU
   long cnt = poller_counter;
 #endif /*__USE_GNU */
 #endif /*__DEBUG__*/
   pthread_mutex_unlock (&count_mtx);
 #ifdef __DEBUG__
-#ifdef __USE_GNU 
+#ifdef __USE_GNU
   /* GNU systems such as Linux with GNU glibc have the non-standard pthread_setname_np */
   {
     char thrname[16];
@@ -417,7 +417,7 @@ long onion_count_poller_threads(void)
  * @memberof onion_t
  *
  * This is the main loop for the onion server.
- * 
+ *
  * It initiates the listening on all the selected ports and addresses.
  *
  * @returns !=0 if there is any error. It returns actualy errno from the network operations. See socket for more information.
@@ -432,7 +432,7 @@ int onion_listen(onion *o){
 		return 0;
 	}
 #endif
-	
+
 	if (!o->listen_points){
 		onion_add_listen_point(o,NULL,NULL,onion_http_new());
 		ONION_DEBUG("Created default HTTP listen port");
@@ -452,10 +452,10 @@ int onion_listen(onion *o){
 		ONION_ERROR("There are no available listen points");
 		return 1;
 	}
-	
+
 	o->flags|=O_LISTENING;
 
-	
+
 	if (o->flags&O_ONE){
 		onion_listen_point **listen_points=o->listen_points;
 		if (listen_points[1]!=NULL){
@@ -496,11 +496,11 @@ int onion_listen(onion *o){
 			for (i=0;i<o->nthreads-1;i++){
 				onion_low_pthread_create(&o->threads[i],NULL,onion_poller_poll_start, o->poller);
 			}
-			
+
 			// Here is where it waits.. but eventually it will exit at onion_listen_stop
 			onion_poller_poll(o->poller);
 			ONION_DEBUG("Closing onion_listen");
-			
+
 			for (i=0;i<o->nthreads-1;i++){
 				onion_low_pthread_join(o->threads[i],NULL);
 			}
@@ -519,31 +519,31 @@ int onion_listen(onion *o){
 			listen_points++;
 		}
 	}
-	
+
 	o->flags=o->flags & ~O_LISTENING;
-	
+
 	return 0;
 }
 
 /**
  * @short Advises the listener to stop.
- * 
+ *
  * The listener is advised to stop listening. After this call no listening is still open, and listen could be
  * called again, or the onion server freed.
- * 
+ *
  * If there is any pending connection, it can finish if onion not freed before.
  */
 void onion_listen_stop(onion* server){
 	/// Not listening
 	if ((server->flags & O_LISTENING)==0)
 		return;
-	
+
 	/// Stop listening
 	onion_listen_point **lp=server->listen_points;
 	while (*lp){
 		onion_listen_point_listen_stop(*lp);
 		lp++;
-	}	
+	}
 	if (server->poller){
 		ONION_DEBUG("Stop listening");
 		onion_poller_stop(server->poller);
@@ -564,12 +564,12 @@ void onion_set_root_handler(onion *onion, onion_handler *handler){
 }
 
 /**
- * @short Returns current root handler. 
+ * @short Returns current root handler.
  * @memberof onion_t
- * 
+ *
  * For example when changing root handler, the old one is not deleted (as oposed that when deleting the onion*
  * object it is). So user may use onion_handler_free(onion_get_root_handler(o));
- * 
+ *
  * @param server The onion server
  * @returns onion_handler currently at root.
  */
@@ -589,9 +589,9 @@ void onion_set_internal_error_handler(onion* server, onion_handler* handler){
 /**
  * @short Sets the port to listen to.
  * @memberof onion_t
- * 
+ *
  * Default listen point is HTTP at localhost:8080.
- * 
+ *
  * @param server The onion server to act on.
  * @param port The number of port to listen to, or service name, as string always.
  */
@@ -600,13 +600,13 @@ int onion_add_listen_point(onion* server, const char* hostname, const char* port
 		ONION_ERROR("Trying to add an invalid entry point. Ignoring.");
 		return -1;
 	}
-	
+
 	protocol->server=server;
 	if (hostname)
 		protocol->hostname=onion_low_strdup(hostname);
 	if (port)
 		protocol->port=onion_low_strdup(port);
-	
+
 	if (server->listen_points){
 		onion_listen_point **p=server->listen_points;
 		int protcount=0;
@@ -622,15 +622,15 @@ int onion_add_listen_point(onion* server, const char* hostname, const char* port
 		server->listen_points[0]=protocol;
 		server->listen_points[1]=NULL;
 	}
-	
+
 	ONION_DEBUG("add %p listen_point (%p, %p, %p)", protocol, server->listen_points, *server->listen_points, *(server->listen_points+1));
 	return 0;
 }
 
 /**
  * @short Returns the listen point n.
- * 
- * 
+ *
+ *
  * @param server The onion server
  * @param nlisten_point Listen point index.
  * @returns The listen point, or NULL if not that many listen points.
@@ -649,9 +649,9 @@ onion_listen_point *onion_get_listen_point(onion *server, int nlisten_point){
 /**
  * @short Sets the timeout, in milliseconds
  * @memberof onion_t
- * 
+ *
  * The default timeout is 5000 milliseconds.
- * 
+ *
  * @param timeout 0 dont wait for incomming data (too strict maybe), -1 forever, clients closes connection
  */
 void onion_set_timeout(onion *onion, int timeout){
@@ -661,10 +661,10 @@ void onion_set_timeout(onion *onion, int timeout){
 /**
  * @short Sets the maximum number of threads to use for requests. default 16.
  * @memberof onion_t
- * 
- * Can only be tweaked before listen. 
- * 
- * If its modified after listen, the behaviour can be unexpected, on the sense that it may server 
+ *
+ * Can only be tweaked before listen.
+ *
+ * If its modified after listen, the behaviour can be unexpected, on the sense that it may server
  * an undetermined number of request on the range [new_max_threads, current max_threads + new_max_threads]
  */
 void onion_set_max_threads(onion *onion, int max_threads){
@@ -685,9 +685,9 @@ int onion_flags(onion *onion){
 /**
  * @short User to which drop priviledges when listening
  * @memberof onion_t
- * 
+ *
  * Drops the priviledges of current program as soon as it starts listening.
- * 
+ *
  * This is the easiest way to allow low ports and other sensitive info to be used,
  * but the proper way should be use capabilities and/or SELinux.
  */
@@ -700,7 +700,7 @@ void onion_url_free_data(onion_url_data **d);
 /**
  * @short If no root handler is set, creates an url handler and returns it.
  * @memberof onion_t
- * 
+ *
  * It can also check if the current root handler is a url handler, and if it is, returns it. Else returns NULL.
  */
 onion_url *onion_root_url(onion *server){
@@ -729,9 +729,9 @@ onion_poller *onion_get_poller(onion *server){
 #define ERROR_505 "<h1>505 - Not implemented</h1>"
 
 /**
- * @short Default error printer. 
+ * @short Default error printer.
  * @memberof onion_server_t
- * 
+ *
  * Ugly errors, that can be reimplemented setting a handler with onion_server_set_internal_error_handler.
  */
 static int onion_default_error(void *handler, onion_request *req, onion_response *res){
@@ -816,9 +816,9 @@ int onion_set_certificate_va(onion *onion, onion_ssl_certificate_type type, cons
 				return -1;
 			}
 			ONION_DEBUG("Promoting from HTTP to HTTPS");
-			char *port=first_listen_point->port 
+			char *port=first_listen_point->port
 			  ? onion_low_strdup(first_listen_point->port) : NULL;
-			char *hostname=first_listen_point->hostname 
+			char *hostname=first_listen_point->hostname
 			  ? onion_low_strdup(first_listen_point->hostname) : NULL;
 			onion_listen_point_free(first_listen_point);
 			onion_listen_point *https=onion_https_new();
@@ -843,10 +843,10 @@ int onion_set_certificate_va(onion *onion, onion_ssl_certificate_type type, cons
 
 /**
  * @short Set the maximum POST size on requests
- * 
+ *
  * By default its 1MB of post data. This data has to be chossen carefully as this
  * data is stored in memory, and can be abused.
- * 
+ *
  * @param server The onion server
  * @param max_size The maximum desired size in bytes, by default 1MB.
  */
@@ -856,15 +856,15 @@ void onion_set_max_post_size(onion *server, size_t max_size){
 
 /**
  * @short Set the maximum FILE size on requests
- * 
- * By default its 1GB of file data. This files are stored in /tmp/, and deleted when the 
+ *
+ * By default its 1GB of file data. This files are stored in /tmp/, and deleted when the
  * request finishes. It can fill up your hard drive if not choosen carefully.
- * 
- * Internally its stored as a file_t size, so SIZE_MAX size limit applies, which may 
+ *
+ * Internally its stored as a file_t size, so SIZE_MAX size limit applies, which may
  * depend on your architecture. (2^32-1, 2^64-1...).
- * 
+ *
  * @param server The onion server
- * @param max_size The maximum desired size in bytes, by default 1GB. 
+ * @param max_size The maximum desired size in bytes, by default 1GB.
  */
 void onion_set_max_file_size(onion *server, size_t max_size){
 	server->max_file_size=max_size;
@@ -872,15 +872,15 @@ void onion_set_max_file_size(onion *server, size_t max_size){
 
 /**
  * @short Sets a new sessions backend.
- * 
+ *
  * By default it uses in mem sessions, but it can be set to use sqlite sessions.
- * 
+ *
  * Example:
- * 
+ *
  * @code
  *   onion_set_session_backend(server, onion_sessions_sqlite3_new("sessions.sqlite"));
  * @endcode
- * 
+ *
  * @param server The onion server
  * @param sessions_backend The new backend
  */
