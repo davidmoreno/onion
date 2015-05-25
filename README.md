@@ -28,7 +28,7 @@ API documentation is at http://coralbits.com/static/onion/.
 
 There is a mailing list at https://groups.google.com/a/coralbits.com/forum/?fromgroups=#!forum/onion-dev
 
-## Colaborate!
+## Collaborate!
 
 You can, and are encouraged, to branch at github, download and tweak onion to use it in your 
 projects.
