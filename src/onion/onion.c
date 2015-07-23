@@ -726,7 +726,7 @@ onion_poller *onion_get_poller(onion *server){
 #define ERROR_500 "<h1>500 - Internal error</h1> Check server logs or contact administrator."
 #define ERROR_403 "<h1>403 - Forbidden</h1>"
 #define ERROR_404 "<h1>404 - Not found</h1>"
-#define ERROR_505 "<h1>505 - Not implemented</h1>"
+#define ERROR_501 "<h1>501 - Not implemented</h1>"
 
 /**
  * @short Default error printer.
@@ -745,8 +745,8 @@ static int onion_default_error(void *handler, onion_request *req, onion_response
 			code=HTTP_INTERNAL_ERROR;
 			break;
 		case OR_NOT_IMPLEMENTED:
-			msg=ERROR_505;
-			l=sizeof(ERROR_505)-1;
+			msg=ERROR_501;
+			l=sizeof(ERROR_501)-1;
 			code=HTTP_NOT_IMPLEMENTED;
 			break;
     case OR_FORBIDDEN:
