@@ -186,7 +186,7 @@ void t07_codecs_html(){
 	free(encoded);
 
 	encoded=onion_html_quote("foo");
-	FAIL_IF_NOT_EQUAL_STR( encoded, "foo");
+	FAIL_IF_NOT_EQUAL( encoded, NULL );
 	free(encoded);
 
 	END_LOCAL();
