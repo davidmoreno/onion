@@ -595,5 +595,5 @@ void onion_response_add_cookie(onion_response *res, const char *cookiename, cons
 		pos+=snprintf(data+pos, sizeof(data)-pos, "; Secure");
 
 	onion_response_set_header(res, "Set-Cookie",data);
-	ONION_DEBUG("Set cookie %s=%s", cookiename, data);
+	ONION_DEBUG("Set cookie %s", data);
 }
