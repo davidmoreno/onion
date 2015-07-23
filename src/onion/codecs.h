@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2015 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -56,6 +56,8 @@ void onion_sha1(const char *data, int length, char *result);
 /// Calculates the HTML encoding of a string. Returned value must be freed. If no encoding needed, returns NULL.
 char *onion_html_quote(const char *str);
 
+/// Always return a freshly allocated string, to be later freed.
+const char* onion_html_quote_dup(const char*str);  
 
 #ifdef __cplusplus
 }

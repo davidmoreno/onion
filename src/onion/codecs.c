@@ -1,25 +1,25 @@
-/*
-	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+/***
+      Onion HTTP server library
+      Copyright (C) 2010-2015 David Moreno Montero and others
 
-	This library is free software; you can redistribute it and/or
-	modify it under the terms of, at your choice:
+      This library is free software; you can redistribute it and/or
+      modify it under the terms of, at your choice:
 
-	a. the Apache License Version 2.0.
+      a. the Apache License Version 2.0.
 
-	b. the GNU General Public License as published by the
-		Free Software Foundation; either version 2.0 of the License,
-		or (at your option) any later version.
+      b. the GNU General Public License as published by the
+              Free Software Foundation; either version 2.0 of the License,
+              or (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+      This program is distributed in the hope that it will be useful,
+      but WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+      GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see
-	<http://www.gnu.org/licenses/> and
-	<http://www.apache.org/licenses/LICENSE-2.0>.
-	*/
+      You should have received a copy of both libraries, if not see
+      <http://www.gnu.org/licenses/> and
+      <http://www.apache.org/licenses/LICENSE-2.0>.
+***/
 
 #include <string.h>
 #include <stdlib.h>
@@ -479,4 +479,22 @@ char *onion_html_quote(const char *str){
 	}
 	*t='\0';
 	return ret;
+}
+
+/**
+ * @short Calculates as a freshly allocated string the HTML encoding
+ * of a given string
+ *
+ * Returns a new string that should be freed, or else NULL when given
+ * a null argument.
+ */
+const char*
+onion_html_quote_dup (const char* str) {
+  if (!str)
+    return NULL;
+  const char* quostr = onion_html_quote (str);
+  if (quostr != NULL)
+    return quostr;
+  else
+    return onion_low_strdup(quostr);
 }
