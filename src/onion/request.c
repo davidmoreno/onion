@@ -4,20 +4,20 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -27,6 +27,7 @@
 #include <ctype.h>
 #include <netdb.h>
 
+#include "onion.h"
 #include "dict.h"
 #include "request.h"
 #include "response.h"
@@ -39,41 +40,42 @@
 #include "websocket.h"
 #include "low.h"
 #include "ptr_list.h"
+#include "poller.h"
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 
 /**
  * @memberof onion_request_t
  * These are the methods allowed to ask data to the server (or push or whatever). Only 16.
- * 
+ *
  * NULL means this space is vacant.
- * 
+ *
  * They are in order of probability, with GET the most common.
  */
-const char *onion_request_methods[16]={ 
-	"GET", "POST", "HEAD", "OPTIONS", 
-	"PROPFIND", "PUT", "DELETE", "MOVE", 
-	"MKCOL", "PROPPATCH", "PATCH", NULL, 
+const char *onion_request_methods[16]={
+	"GET", "POST", "HEAD", "OPTIONS",
+	"PROPFIND", "PUT", "DELETE", "MOVE",
+	"MKCOL", "PROPPATCH", "PATCH", NULL,
 	NULL, NULL, NULL, NULL };
 
 /**
  *  @short Creates a request object
  * @memberof onion_request_t
- * 
+ *
  * @param op Listen point this request is listening to, to be able to read and write data
  */
 onion_request *onion_request_new(onion_listen_point *op){
 	onion_request *req;
 	req=onion_low_calloc(1, sizeof(onion_request));
-	
+
 	req->connection.listen_point=op;
 	req->connection.fd=-1;
-	
+
 	//req->connection=con;
 	req->headers=onion_dict_new();
 	onion_dict_set_flags(req->headers, OD_ICASE);
 	ONION_DEBUG0("Create request %p", req);
-	
+
 	if (op){
 		if (op->request_init){
 			if (op->request_init(req)<0){
@@ -113,7 +115,7 @@ static void unlink_files(void *p, const char *key, const char *value, int flags)
 void onion_request_free(onion_request *req){
   ONION_DEBUG0("Free request %p", req);
 	onion_dict_free(req->headers);
-	
+
 	if (req->connection.listen_point!=NULL && req->connection.listen_point->close)
 		req->connection.listen_point->close(req);
 	if (req->fullpath)
@@ -139,10 +141,10 @@ void onion_request_free(onion_request *req){
 		onion_block_free(req->data);
 	if (req->connection.cli_info)
 		onion_low_free(req->connection.cli_info);
-	
+
 	if (req->websocket)
 		onion_websocket_free(req->websocket);
-	
+
 	if (req->parser_data){
 		onion_low_free(req->parser_data);
 	}
@@ -234,7 +236,7 @@ const char *onion_request_get_fullpath(onion_request *req){
 	return req->fullpath;
 }
 
-/** 
+/**
  * @short Gets the current flags, as in onion_request_flags_e
  * @memberof onion_request_t
  */
@@ -353,7 +355,7 @@ void onion_request_guess_session_id(onion_request *req){
 	ONION_DEBUG("Session ID, maybe from %s",v);
 	char *r=NULL;
 	onion_dict *session=NULL;
-	
+
 	do{ // Check all possible sessions
 		if (r) {
 		  onion_low_free(r);
@@ -378,7 +380,7 @@ void onion_request_guess_session_id(onion_request *req){
       session=onion_sessions_get(req->connection.listen_point->server->sessions, r);
     }
 	}while(!session);
-	
+
 	req->session_id=r;
 	req->session=session;
 	ONION_DEBUG("Session ID, from cookie, is %s",req->session_id);
@@ -387,18 +389,18 @@ void onion_request_guess_session_id(onion_request *req){
 /**
  * @short Returns the session dict.
  * @memberof onion_request_t
- * 
- * If it does not exists it creates it. If there is a cookie with a proper name it is used, 
+ *
+ * If it does not exists it creates it. If there is a cookie with a proper name it is used,
  * even for creation.
- * 
+ *
  * Sessions HAVE TO be gotten before sending any header, or user may face double sessionid, ghost sessions and some other
  * artifacts, as the cookie is not set if session is not used. If this condition happen (send headers and then ask for session) a
- * WARNING is written. 
- * 
+ * WARNING is written.
+ *
  * Session is not automatically retrieved as it is a slow operation and not used normally, only on "active" handlers.
- * 
+ *
  * Returned dictionary can be freely managed (added new keys...) and this is the session data.
- * 
+ *
  * @return session dictionary for current request.
  */
 onion_dict *onion_request_get_session_dict(onion_request *req){
@@ -419,7 +421,7 @@ onion_dict *onion_request_get_session_dict(onion_request *req){
 /**
  * @short Forces the request to process only one request, not doing the keep alive.
  * @memberof onion_request_t
- * 
+ *
  * This is useful on non threaded modes, as the keep alive blocks the loop.
  */
 void onion_request_set_no_keep_alive(onion_request *req){
@@ -430,7 +432,7 @@ void onion_request_set_no_keep_alive(onion_request *req){
 /**
  * @short Returns if current request wants to keep alive.
  * @memberof onion_request_t
- * 
+ *
  * It is a complex set of circumstances: HTTP/1.1 and no connection: close, or HTTP/1.0 and connection: keep-alive
  * and no explicit set that no keep alive.
  */
@@ -451,12 +453,12 @@ int onion_request_keep_alive(onion_request *req){
 }
 
 
-/** 
+/**
  * @short Frees the session dictionary.
  * @memberof onion_request_t
- * 
+ *
  * It removes the session from the sessions dictionary, so this session does not exist anymore.
- * 
+ *
  * If data is under onion_dict scope (just dicts into dicts and strings), all data is freed.
  * If the user has set some custom data, THAT MEMORY IS LEAKED.
  */
@@ -476,12 +478,12 @@ void onion_request_session_free(onion_request *req){
 /**
  * @short Returns the language code of the current request
  * @memberof onion_request_t
- * 
- * Returns the language code for the current request, from the header. 
- * If none the returns "C". 
- * 
+ *
+ * Returns the language code for the current request, from the header.
+ * If none the returns "C".
+ *
  * Language code is short code. No localization by the moment.
- * 
+ *
  * @returns The language code for this request or C. Data must be freed.
  */
 const char *onion_request_get_language_code(onion_request *req){
@@ -512,21 +514,21 @@ const onion_block *onion_request_get_data(onion_request *req){
 
 /**
  * @short Launches one handler for the given request
- * 
+ *
  * Once the request is ready, launch it.
- * 
+ *
  * @returns The connection status: if it should be closed, error codes...
  */
 onion_connection_status onion_request_process(onion_request *req){
 	onion_response *res=onion_response_new(req);
-	if (!req->path){ 
+	if (!req->path){
     onion_request_polish(req);
-  }  
+  }
 	// Call the main handler.
 	onion_connection_status hs=onion_handler_handle(req->connection.listen_point->server->root_handler, req, res);
 
-	if (hs==OCS_INTERNAL_ERROR || 
-		hs==OCS_NOT_IMPLEMENTED || 
+	if (hs==OCS_INTERNAL_ERROR ||
+		hs==OCS_NOT_IMPLEMENTED ||
 		hs==OCS_NOT_PROCESSED){
 		if (hs==OCS_INTERNAL_ERROR)
 			req->flags|=OR_INTERNAL_ERROR;
@@ -536,24 +538,30 @@ onion_connection_status onion_request_process(onion_request *req){
 			req->flags|=OR_NOT_FOUND;
     if (hs==OCS_FORBIDDEN)
       req->flags|=OR_FORBIDDEN;
-		
+
 		hs=onion_handler_handle(req->connection.listen_point->server->internal_error_handler, req, res);
 	}
 
-	
+	if (hs==OCS_YIELD){
+		// Remove from the poller, and yield thread to poller. From now on it will be processed somewhere else (longpoll thread).
+		onion_poller *poller=onion_get_poller(req->connection.listen_point->server);
+		onion_poller_slot *slot=onion_poller_get(poller, req->connection.fd);
+		onion_poller_slot_set_shutdown(slot, NULL, NULL);
+
+		return hs;
+	}
 	int rs=onion_response_free(res);
 	if (hs>=0 && rs==OCS_KEEP_ALIVE) // if keep alive, reset struct to get the new petition.
 		onion_request_clean(req);
-	
 	return hs>0 ? rs : hs;
 }
 
 /**
  * @short Performs the final touches do the request is ready to be handled.
  * @memberof onion_request_t
- * 
+ *
  * After parsing the request, some final touches are needed to set the current path.
- * 
+ *
  * @param req The request.
  */
 void onion_request_polish(onion_request *req){
@@ -566,7 +574,7 @@ void onion_request_polish(onion_request *req){
 /**
  * @short Returns a string with the client's description.
  * @memberof onion_request_t
- * 
+ *
  * @return A const char * with the client description
  */
 const char *onion_request_get_client_description(onion_request *req){
@@ -586,7 +594,7 @@ const char *onion_request_get_client_description(onion_request *req){
 /**
  * @short Returns the sockaddr_storage pointer to the data client data as stored here.
  * @memberof onion_request_t
- * 
+ *
  * @param req Request to get data from
  * @param client_len The lenght of the returned sockaddr_storage
  * @returns Pointer to the stored sockaddr_storage.
@@ -602,19 +610,19 @@ struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, s
 /**
  * @short Gets the dict with the cookies
  * @memberof onion_request_t
- * 
+ *
  * @param req Request to get the cookies from
- * 
+ *
  * @returns A dict with all the cookies. It might be empty.
- * 
+ *
  * First call it generates the dict.
  */
 onion_dict* onion_request_get_cookies_dict(onion_request* req){
 	if (req->cookies)
 		return req->cookies;
-	
+
 	req->cookies=onion_dict_new();
-	
+
 	const char *ccookies=onion_request_get_header(req, "Cookie");
 	if (!ccookies)
 		return req->cookies;
@@ -622,7 +630,7 @@ onion_dict* onion_request_get_cookies_dict(onion_request* req){
 	char *val=NULL;
 	char *key=NULL;
 	char *p=cookies;
-	
+
 	int first=1;
 	while(*p){
 		if (*p!=' ' && !key && !val){
@@ -635,9 +643,9 @@ onion_dict* onion_request_get_cookies_dict(onion_request* req){
 		else if (*p==';' && key && val){
 			*p=0;
 			if (first){
-				// The first cookie is special as it is the pointer to the reserved area for all the keys and values 
+				// The first cookie is special as it is the pointer to the reserved area for all the keys and values
 				// for all th eother cookies, to free at dict free.
-				onion_dict_add(req->cookies, cookies, val, OD_FREE_KEY); 
+				onion_dict_add(req->cookies, cookies, val, OD_FREE_KEY);
 				first=0;
 			}
 			else
@@ -655,17 +663,17 @@ onion_dict* onion_request_get_cookies_dict(onion_request* req){
 			onion_dict_add(req->cookies, key, val, 0);
 		ONION_DEBUG0("Add cookie <%s>=<%s> %d", key, val, first);
 	}
-	
+
 	return req->cookies;
 }
 
 /**
  * @short Gets a Cookie value by name
  * @memberof onion_request_t
- * 
+ *
  * @param req Reqeust to get the cookie from
  * @param cookiename Name of the cookie
- * 
+ *
  * @returns The cookie value, or NULL
  */
 const char* onion_request_get_cookie(onion_request* req, const char* cookiename)

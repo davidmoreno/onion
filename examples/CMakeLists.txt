@@ -1,4 +1,4 @@
-include_directories (${PROJECT_SOURCE_DIR}/src/) 
+include_directories (${PROJECT_SOURCE_DIR}/src/)
 
 if (PAM_ENABLED)
 	if (OPACK)
@@ -57,3 +57,4 @@ if (${ONION_USE_BINDINGS_CPP})
 endif (${ONION_USE_BINDINGS_CPP})
 
 add_subdirectory(jsonrpc)
+add_subdirectory(longpoll)

@@ -502,7 +502,7 @@ ssize_t onion_response_vprintf(onion_response *res, const char *fmt, va_list arg
 const char *onion_response_code_description(int code){
 	switch(code){
 		case HTTP_OK:
-			return "Ok";
+			return "OK";
 		case HTTP_CREATED:
 			return "Created";
 		case HTTP_PARTIAL_CONTENT:

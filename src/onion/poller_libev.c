@@ -4,20 +4,20 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -53,7 +53,7 @@ onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
 	ret->f=f;
 	ret->data=data;
 	ret->type=EV_READ | EV_WRITE;
-	
+
 	return ret;
 }
 
@@ -107,11 +107,11 @@ static void event_callback(struct ev_loop *loop, ev_io *w, int revents){
 int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 	el->poller=poller;
 
-	// normally would use ev_io_init bellow, but gcc on F18+ give a 
+	// normally would use ev_io_init bellow, but gcc on F18+ give a
 	// "dereferencing type-punned pointer will break strict-aliasing rules" error
 	// So the macro must be expanded and this is what we get. In the future this may
 	// give bugs on libevent if this changes.
-	
+
 	//ev_io_init(&el->ev, event_callback, el->fd, el->type);
 	// expands to ev_init + ev_io_set. ev_init expand more or less as bellow
 
@@ -119,13 +119,13 @@ int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 	{
 		ev_watcher *ew=(void *)(&el->ev); // ew must exit to prevent the before mentioned error.
 		ew->active  = 0;
-		ew->pending = 0;	
+		ew->pending = 0;
 		ew->priority = 0;
 		el->ev.cb = event_callback;
 	}
-	
+
 	ev_io_set(&el->ev, el->fd, el->type);
-	
+
 	el->ev.data=el;
 // 	if (el->timeout>0){
 // 		event_add(el->ev, &tv);
@@ -141,6 +141,12 @@ int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 int onion_poller_remove(onion_poller *poller, int fd){
 	ONION_ERROR("FIXME!! not removing fd %d", fd);
 	return -1;
+}
+
+/// Gets the poller to do some modifications as change shutdown
+onion_poller_slot *onion_poller_get(onion_poller *poller, int fd){
+	ONION_ERROR("Not implemented! Use epoll poller.");
+	return NULL;
 }
 
 /// Do the polling. If on several threads, this is done in every thread.
