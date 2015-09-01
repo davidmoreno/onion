@@ -118,4 +118,5 @@ int main(){
 	pthread_join(long_process_thread, NULL);
 
 	onion_free(o);
+	return 0;
 }
