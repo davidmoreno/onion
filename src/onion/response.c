@@ -29,7 +29,7 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_PTHREADS
 # include <pthread.h>
 #endif
 
@@ -48,7 +48,7 @@ const char *onion_response_code_description(int code);
 #ifndef DONT_USE_DATE_HEADER
 static volatile time_t onion_response_last_time=0;
 static char *onion_response_last_date_header=NULL;
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_PTHREADS
 pthread_rwlock_t onion_response_date_lock=PTHREAD_RWLOCK_INITIALIZER;
 #endif
 #endif
@@ -109,25 +109,24 @@ onion_response *onion_response_new(onion_request *req){
 					fprintf(stderr, "strftime returned 0");
 					exit(EXIT_FAILURE);
 			}
-			// Risky, not using mutex...
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_PTHREADS
 			pthread_rwlock_wrlock(&onion_response_date_lock);
 #endif
 			onion_response_last_time=t;
 			if (onion_response_last_date_header)
 				onion_low_free(onion_response_last_date_header);
 			onion_response_last_date_header=onion_low_strdup(current_datetime);
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_PTHREADS
 			pthread_rwlock_unlock(&onion_response_date_lock);
 #endif
 		}
 	}
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_PTHREADS
 	pthread_rwlock_rdlock(&onion_response_date_lock);
 #endif
 	assert(onion_response_last_date_header);
 	onion_dict_add(res->headers, "Date", onion_response_last_date_header, OD_DUP_VALUE);
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_PTHREADS
 	pthread_rwlock_unlock(&onion_response_date_lock);
 #endif
 #endif // USE_DATE_HEADER
