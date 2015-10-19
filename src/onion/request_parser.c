@@ -349,6 +349,10 @@ static onion_connection_status parse_PUT(onion_request *req, onion_buffer *data)
 	int *fd=(int*)token->extra;
 	ssize_t w=write(*fd, &data->data[data->pos], length);
 	if (w<0){
+        // cleanup
+		close (*fd);
+		onion_low_free(token->extra);
+		token->extra=NULL; 
 		ONION_ERROR("Could not write all data to temporal file.");
 		return OCS_INTERNAL_ERROR;
 	}
