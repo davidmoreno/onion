@@ -28,6 +28,7 @@
 
 #include <string>
 #include <onion/request.h>
+#include <onion/low.h>
 
 namespace Onion{
 	/**
@@ -160,7 +161,59 @@ namespace Onion{
 		std::string fullpath() const{
 			return onion_request_get_fullpath(ptr);
 		}
-		
+
+		/**
+		 * @short Returns the request flags
+		 */
+		onion_request_flags flags() const{
+			return onion_request_get_flags(ptr);
+		}
+
+		/**
+		 * @short Returns the cookies
+		 */
+		Dict cookies() const{
+			onion_dict* d = onion_request_get_cookies_dict(ptr);
+			return Dict(d);
+		}
+
+		/**
+		 * @short Get a cookie
+		 *
+		 * If no cookie or not a dictonary, it returns an empty string.
+		 */
+		const std::string cookies(const std::string &key, const std::string &def=std::string()) const{
+			auto r=onion_request_get_cookie(ptr, key.c_str());
+			if (!r)
+				return def;
+			return r;
+		}
+
+		/**
+		 * @short Returns a string with the client description
+		 */
+		const std::string clientDescription() const{
+			return onion_request_get_client_description(ptr);
+		}
+
+		/**
+		 * @short Returns the language code for the current request.
+                 * If none, returns "C".
+                 *
+                 * Language code is short code, no localization at this time.
+		 */
+		const std::string languageCode() const{
+                        /* This has code smell, but according to docs from
+                         * onion/request.c, the returned value must be freed.
+                         * So, initialize a new string which copies the data,
+                         * free the returned value, and return the new string.
+                         */
+			const char* r = onion_request_get_language_code(ptr);
+			std::string retval(r);
+			free(const_cast<char*>(r));
+			return retval;
+		}
+
 		/**
 		 * @short Returns the C handler, to use C functions.
 		 */
