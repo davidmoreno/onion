@@ -4,6 +4,8 @@ compiler:
   - g++
   - clang++
 
+sudo: false
+
 git:
   depth: 1
 
