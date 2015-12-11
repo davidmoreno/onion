@@ -1,8 +1,8 @@
-language: c
+language: cpp
 
 compiler:
-  - g++
-  - clang++
+  - gcc
+  - clang
 
 sudo: false
 
