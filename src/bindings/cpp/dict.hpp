@@ -30,6 +30,7 @@
 #include <onion/log.h>
 #include <onion/block.h>
 #include <map>
+#include <memory>
 
 namespace Onion{
 	/**
@@ -45,30 +46,28 @@ namespace Onion{
 	 * it ensures copy of data and more memory use.
 	 */
 	class Dict{
-		onion_dict *ptr;
+		using internal_pointer = std::unique_ptr<onion_dict, decltype(onion_dict_free)*>;
+		internal_pointer ptr;
+
 	public:
 		/**
 		 * @short The asked key does not exist.
 		 */
-		class key_not_found : public std::exception{
-			std::string msg;
+		class key_not_found : public std::exception
+		{
 		public:
-			key_not_found(const std::string &key) : msg("Key "+key+" not found"){}
-			virtual ~key_not_found() throw(){}
-			const char *what() const throw(){ return msg.c_str(); }
+			key_not_found(const std::string& key);
+			virtual ~key_not_found() noexcept;
+			const char* what() const noexcept;
+		private:
+			std::string msg;
 		};
 		
 		/**
 		 * @short Converts from a std::map<string,string> to a Dict. It copies all values.
 		 */
-		Dict(const std::map<std::string, std::string> &values) : ptr(onion_dict_new()){
-// 			ONION_DEBUG0("Dict %p:%p", this, ptr);
-			std::map<std::string, std::string>::const_iterator I=values.begin(), endI=values.end();
-			for(;I!=endI;++I){
-				add(I->first, I->second);
-			}
-		};
-#if __cplusplus >= 201103L
+		Dict(const std::map<std::string, std::string> &values);
+
 		/**
 		 * @short Created directly from initializer list. Only for > C++11
 		 * 
@@ -77,89 +76,51 @@ namespace Onion{
 		 * 	Onion::Dict dict{{"hello","world"},{"this","is a test"}}
 		 * @endcode
 		 */
-		Dict(std::initializer_list<std::initializer_list<std::string>> &&init) : ptr(onion_dict_new()){
-			for (auto p:init){
-				auto I=p.begin();
-				auto k=*I;
-				++I;
-				auto v=*I;
-				add(k,v);
-			}
-		}
-#endif
+		Dict(std::initializer_list<std::initializer_list<std::string>> &&init);
+
 		/**
 		 * @short Creates an empty Onion::Dict
 		 */
-    Dict() : ptr(onion_dict_new()){
-// 			ONION_DEBUG0("Dict %p:%p", this, ptr);
-		}
-    /**
+	    Dict(); 
+
+		/**
 		 * @short Creates a Onion::Dict from a c onion_dict.
 		 * 
 		 * WARNING Losts constness. I found no way to keep it.
 		 */
-		Dict(const onion_dict *_ptr, bool owner=false) : ptr((onion_dict*)_ptr){
-// 			ONION_DEBUG0("Dict %p:%p", this, ptr);
-			if (!owner)
-				onion_dict_dup(ptr);
-		}
+        explicit Dict(const onion_dict *_ptr, bool owner = false);
+
 		/**
 		 * @short Creates a new reference to the dict.
 		 * 
 		 * WARNING: As Stated it is a reference, not a copy. For that see Onion::Dict::hard_dup.
 		 */
-		Dict(const Dict &d) : ptr(d.ptr){
-			onion_dict_dup(ptr);
-// 			ONION_DEBUG0("Dict %p:%p", this, ptr);
-		}
+		Dict(const Dict &d); 
 		
 		/**
 		 * @short Frees this reference.
 		 */
-    ~Dict(){
-// 			ONION_DEBUG0("~Dict %p:%p", this, ptr);
-			onion_dict_free(ptr);
-		}
+	    ~Dict();
     
-    /**
+	    /**
 		 * @short Try to get a key, if not existant, throws an key_not_found exception.
 		 */
-		std::string operator[](const std::string &k) const{
-			const char *ret=onion_dict_get(ptr, k.c_str());
-			if (!ret)
-				throw(key_not_found(k));
-			return onion_dict_get(ptr, k.c_str());
-		}
+		std::string operator[](const std::string &k) const;
 		
 		/**
 		 * @short Assings the reference to the dictionary.
 		 */
-		Dict &operator=(const Dict &o){
-// 			ONION_DEBUG0("= %p:%p (~%p:%p)", &o, o.ptr, this, ptr);
-			onion_dict *ptr2=ptr;
-			ptr=onion_dict_dup((onion_dict*)(o.ptr));
-			onion_dict_free(ptr2);
-// 			ONION_DEBUG0("Done");
-			return *this;
-		}
+		Dict &operator=(const Dict &o);
 
 		/**
 		 * @short Assigns the reference to the ditionary, from a C onion_dict.
 		 */
-		Dict &operator=(const onion_dict *o){
-// 			ONION_DEBUG0("%p = %p (~%p)", this, o, ptr);
-			onion_dict *ptr2=ptr;
-			ptr=onion_dict_dup((onion_dict*)(o));
-			onion_dict_free(ptr2);
-			return *this;
-		}
+		Dict &operator=(onion_dict *o);
 
 		/**
 		 * @short Creates a real copy of all the elements on the dictionary.
 		 */
-		Dict hard_dup() const{
-			return Dict(onion_dict_hard_dup(ptr), true);
-		}
+		Dict hard_dup() const;
 		
 		/**
 		 * @short Checks if an element is contained on the dictionary. 
@@ -168,18 +129,14 @@ namespace Onion{
 		 * with a default value is more efficient, or depending on your case, 
 		 * a try catch block.
 		 */
-		bool has(const std::string &k) const{
-			return onion_dict_get(ptr, k.c_str())!=NULL;
-		}
+		bool has(const std::string &k) const noexcept;
 		
 		/**
 		 * @short Returns a subdictionary.
 		 * 
 		 * For a given key, returns the subdictionary.
 		 */
-		Dict getDict(const std::string &k) const{
-			return Dict(onion_dict_get_dict(ptr, k.c_str()));
-		}
+		Dict getDict(const std::string &k) const noexcept;
 		
 		/**
 		 * @short Returns a value on the dictionary, or a default value.
@@ -187,12 +144,7 @@ namespace Onion{
 		 * For the given key, if possible returns the value, and if its 
 		 * not contained, returns a default value.
 		 */
-		std::string get(const std::string &k, const std::string &def="") const{
-			const char *r=onion_dict_get(ptr, k.c_str());
-			if (!r)
-				return def;
-			return r;
-		}
+		std::string get(const std::string &k, const std::string &def="") const noexcept;
 		
 		/**
 		 * @short Adds a string value to the dictionary.
@@ -200,62 +152,41 @@ namespace Onion{
 		 * By defaults do a copy of everything, but can be tweaked. If user plans to do
 		 * low level onion_dict adding, its better to use the C onion_dict_add function.
 		 */
-		Dict &add(const std::string &k, const std::string &v, int flags=OD_DUP_ALL){
-			onion_dict_add(ptr,k.c_str(),v.c_str(),flags);
-			return *this;
-		}
+		Dict &add(const std::string &k, const std::string &v, int flags=OD_DUP_ALL) noexcept;
 		
 		/**
 		 * @short Adds a subdictionary to this dictionary.
 		 */
-		Dict &add(const std::string &k, const Dict &v, int flags=OD_DUP_ALL){
-			onion_dict_add(ptr,k.c_str(),v.c_handler(),flags|OD_DICT);
-			return *this;
-		}
+		Dict &add(const std::string &k, const Dict &v, int flags=OD_DUP_ALL) noexcept;
 		
 		/**
 		 * @short Removes an element from the dictionary.
 		 */
-		Dict &remove(const std::string &k){
-			onion_dict_remove(ptr, k.c_str());
-			return *this;
-		}
+		Dict &remove(const std::string &k) noexcept;
 		
 		/**
 		 * @short Count of elements on the dictionary.
 		 */
-		size_t count() const{
-			return onion_dict_count(ptr);
-		}
+		size_t count() const noexcept; 
 		
 		/**
 		 * @short Converts the dictionary to a JSON string.
 		 */
-		std::string toJSON() const{
-			onion_block *bl=onion_dict_to_json(ptr);
-			std::string str=onion_block_data(bl);
-			onion_block_free(bl);
-			return str;
-		}
+		std::string toJSON() const noexcept;
 		
 		/**
 		 * @short Convert a JSON string to an onion dictionary. 
 		 * 
 		 * This is not full JSON support, only dict side, and with strings.
 		 */
-		static ::Onion::Dict fromJSON(const std::string &jsondata){
-			return Dict(onion_dict_from_json(jsondata.c_str()));
-		}
+		static Dict fromJSON(const std::string &jsondata) noexcept;
 		
 		/**
 		 * @short Merges argument dict into current.
 		 * 
 		 * If there are repeated keys, they will repeated.
 		 */
-		Dict &merge(const ::Onion::Dict &other){
-			onion_dict_merge(ptr, other.ptr);
-			return *this;
-		}
+		Dict &merge(const ::Onion::Dict &other) noexcept;
 		
 		/**
 		 * @short Converts the dictionary to a std::map<string,string>.
@@ -267,9 +198,7 @@ namespace Onion{
 		/**
 		 * @short Returns the C onion_dict handler, to be able to use C functions.
 		 */
-		onion_dict *c_handler() const{
-			return ptr;
-		}
+		onion_dict *c_handler() const noexcept;
 	};
 }
 
