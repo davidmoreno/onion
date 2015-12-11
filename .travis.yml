@@ -21,7 +21,6 @@ addons:
 
 install:
   # install some packages from Ubuntu's default sources
-  - sudo apt-get -qq update
   - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
   - if [ "$CXX" = "clang++" ]; then export CXX="clang++3.7" CC="clang-3.7"; fi
 
