@@ -81,7 +81,7 @@ namespace Onion{
 		/**
 		 * @short Creates an empty Onion::Dict
 		 */
-	    Dict(); 
+	    Dict() : ptr { onion_dict_new(), &onion_dict_free } {}
 
 		/**
 		 * @short Creates a Onion::Dict from a c onion_dict.
@@ -95,17 +95,23 @@ namespace Onion{
 		 * 
 		 * WARNING: As Stated it is a reference, not a copy. For that see Onion::Dict::hard_dup.
 		 */
-		Dict(const Dict &d); 
+		Dict(const Dict &d);
 		
 		/**
 		 * @short Frees this reference.
 		 */
-	    ~Dict();
+	    ~Dict() {}
     
 	    /**
 		 * @short Try to get a key, if not existant, throws an key_not_found exception.
 		 */
-		std::string operator[](const std::string &k) const;
+		std::string operator[](const std::string &k) const
+		{
+			const char* r = onion_dict_get(ptr.get(), k.c_str());
+			if(!r)
+				throw key_not_found { k };
+			return r;
+		}
 		
 		/**
 		 * @short Assings the reference to the dictionary.
@@ -144,7 +150,11 @@ namespace Onion{
 		 * For the given key, if possible returns the value, and if its 
 		 * not contained, returns a default value.
 		 */
-		std::string get(const std::string &k, const std::string &def="") const noexcept;
+		std::string get(const std::string &k, const std::string &def="") const noexcept
+		{
+			const char *r = onion_dict_get(ptr.get(), k.c_str());
+			return (!r) ? def : r;
+		}
 		
 		/**
 		 * @short Adds a string value to the dictionary.
@@ -167,7 +177,10 @@ namespace Onion{
 		/**
 		 * @short Count of elements on the dictionary.
 		 */
-		size_t count() const noexcept; 
+		size_t count() const noexcept
+		{
+			return onion_dict_count(ptr.get());
+		}
 		
 		/**
 		 * @short Converts the dictionary to a JSON string.

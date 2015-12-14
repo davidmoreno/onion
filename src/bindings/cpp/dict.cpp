@@ -59,11 +59,6 @@ Onion::Dict::Dict(std::initializer_list<std::initializer_list<std::string>> &&in
 	}
 }
 
-Onion::Dict::Dict()
-	: ptr { onion_dict_new(), &onion_dict_free }
-{
-}
-
 Onion::Dict::Dict(const onion_dict *_ptr, bool owner)
 	: ptr { nullptr, &do_nothing }
 {
@@ -77,18 +72,6 @@ Onion::Dict::Dict(const Dict& d)
 	: ptr { d.ptr.get(), &onion_dict_free }
 {
 	onion_dict_dup(ptr.get());
-}
-
-Onion::Dict::~Dict()
-{
-}
-
-std::string Onion::Dict::operator[](const std::string &k) const
-{
-	const char* ret = onion_dict_get(ptr.get(), k.c_str());
-	if(!ret)
-		throw key_not_found { k };
-	return ret;
 }
 
 Onion::Dict& Onion::Dict::operator=(const Dict &o)
@@ -120,14 +103,6 @@ Onion::Dict Onion::Dict::getDict(const std::string& k) const noexcept
 	return Dict(onion_dict_get_dict(ptr.get(), k.c_str()));
 }
 
-std::string Onion::Dict::get(const std::string& k, const std::string& def) const noexcept
-{
-	const char *r = onion_dict_get(ptr.get(), k.c_str());
-	if(!r)
-		return def;
-	return r;
-}
-
 Onion::Dict& Onion::Dict::add(const std::string &k, const std::string &v, int flags) noexcept
 {
 	onion_dict_add(ptr.get(), k.c_str(), v.c_str(), flags);
@@ -144,11 +119,6 @@ Onion::Dict& Onion::Dict::remove(const std::string& k) noexcept
 {
 	onion_dict_remove(ptr.get(), k.c_str());
 	return *this;
-}
-
-size_t Onion::Dict::count() const noexcept
-{
-	return onion_dict_count(ptr.get());
 }
 
 std::string Onion::Dict::toJSON() const noexcept
