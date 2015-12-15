@@ -25,7 +25,81 @@
 #include "request.hpp"
 #include "response.hpp"
 
-onion_connection_status Onion::Url::operator()(::Onion::Request& req, ::Onion::Response& res){
+void do_nothing(onion_url* url) {}
+
+Onion::Url::Url()
+	: ptr { onion_url_new(), &onion_url_free }
+{
+}
+
+Onion::Url::Url(onion_url* _ptr)
+	: ptr { _ptr, &onion_url_free }
+{
+}
+
+Onion::Url::Url(Onion* o)
+	: ptr { onion_root_url(o->c_handler()), &do_nothing }
+{
+}
+
+Onion::Url::Url(Onion& o)
+	: ptr { onion_root_url(o.c_handler()), &do_nothing }
+{
+}
+
+Onion::Url::Url(Url &&o)
+	: ptr { std::move(o.ptr) }
+{
+}
+
+Onion::Url::~Url()
+{
+}
+
+onion_url* Onion::Url::c_handler()
+{
+	return ptr.get();
+}
+
+Onion::Url& Onion::Url::add(const std::string& url, Handler &&h)
+{
+	onion_url_add_handler(ptr.get(), url.c_str(), onion_handler_cpp_to_c(std::move(h)));
+	return *this;
+}
+
+Onion::Url& Onion::Url::add(const std::string& url, onion_handler *h)
+{
+	onion_url_add_handler(ptr.get(), url.c_str(), h);
+	return *this;
+}
+
+Onion::Url& Onion::Url::add(const std::string& url, HandlerFunction::fn_t fn)
+{
+	add(url, static_cast<Handler&&>(Handler::make<HandlerFunction>(fn)));
+	return *this;
+}
+
+Onion::Url& Onion::Url::add(const std::string &url, const std::string& s, int http_code)
+{
+	onion_url_add_static(ptr.get(), url.c_str(), s.c_str(), http_code);
+	return *this;
+}
+
+Onion::Url& Onion::Url::add(const std::string& url, onion_handler_handler handler)
+{
+	return add(url, static_cast<Handler&&>(Handler::make<HandlerCFunction>(handler)));
+}
+
+//FIXME: Make sure this is correct
+Onion::Url& Onion::Url::add(const std::string& url, Url url_handler)
+{
+	add(url, onion_url_to_handler(url_handler.c_handler()));
+	url_handler.ptr.get_deleter() = &do_nothing;
+	return *this;
+}
+
+onion_connection_status Onion::Url::operator()(::Onion::Request& req, ::Onion::Response& res)
+{
 	return onion_handler_handle(onion_url_to_handler(c_handler()), req.c_handler(), res.c_handler());
 }
 

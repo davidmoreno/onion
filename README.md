@@ -21,8 +21,8 @@ Its not a web server per se, as it is not an executable.
 If you want to compare to a web server, a web server would use a module or plugin to add 
 some functionality. With libonion you have the functionality and add the webserver as a plugin.
 
-There is a wiki available at https://github.com/davidmoreno/onion/wiki, with many useful 
-information on how to start and internal workings.
+There is a wiki available at https://github.com/davidmoreno/onion/wiki, with useful
+information on how to get started using Onion and it's internal workings.
 
 API documentation is at http://coralbits.com/static/onion/.
 
@@ -43,7 +43,7 @@ There is also a blog to keep everybody informed about news on onion at http://bl
 
 ## Download
 
-There are third party contributed packages:
+There are third party packages available:
 
  * RPM based: http://software.opensuse.org/download.html?project=home%3Admoreno&package=onion
  * Raspberry pi: http://packages.aisoy.com/debian/pool/unstable/libo/libonion/
@@ -51,7 +51,7 @@ There are third party contributed packages:
 
 If you know of any other packaged version, please send me a note.
  
-As always they may be outdated, if you want the latests and greatest, do a manual compile and install.
+As always they may be outdated, if you want the latest and greatest, do a manual compile and install.
 
 Thanks to Ruediger Meier for helping for so long with the RPM packages.
 
@@ -107,41 +107,41 @@ Optional for examples:
 
 ## SSL Support
 
-If at compile time it finds the gnutls libraries, SSL support is compiled in. It can be 
+If at compile time the build script finds the gnutls libraries, SSL support will be compiled in. It can be
 deactivated anyway at ./CMakeLists.txt. 
 
 To use it you have to set the certificates, and you can check if its on, checking the flag
 O_SSL_ACTIVATED.
 
-If support is not in, then the library will not use, but for the user of the library the
+If support is not compiled in, then the library will not use SSL, but for the user of the library the
 interface is the same; it will only change that when trying to set the certificates it 
 will fail. Anwyay for clients its just to use the interface and they dont care at all
 if suport is in or not. No more than being able to use SSL.
 
-this is this way, and not mandatory as ther may be moments where the program user do not
+This is not mandatory because there may be moments when the program's users do not
 want to support SSL for whatever reasons, for example speed.
 
 
 ## Threads support
 
-Currently there are two threads modes. It can be set the server to be created as 
+Currently there are two threading modes. It can be set so the server is created as
 threaded (O_THREADED), and it will create a new thread per connection. There is no
 data protection as on the listen phase there should not be any change to onion structures.
 
 Nevertheless if new handlers are created they must set their own threading support
-as necesary.
+as neccesary.
 
 It can be deactivated at CMakeLists.txt. If no pthreads lib is found on the system, it
 is not compiled in.
 
-Also when thread support is on, onion server can set to work on another (non-main) thread. 
+Also when thread support is on, onion server can be set to work on another (non-main) thread.
 This is independant from O_THREADED operation; it can have one thread with your normal 
 application and another thread that listens and processes web-requests. Its set with the 
 O_DETACH_LISTEN flag. This is very useful when adding an extra web server to your application
-as it can be added without changes to the flow of your application, but you will need to
+so it can be added without changes to the flow of your application, but you will need to
 thread protect your data if you access to it from the web server.
 
-Finally there is a pool mode. User can set a default number of threads (onion_set_max_threads), 
+Finally there is a pool mode. Users can set a default number of threads (onion_set_max_threads),
 and using epoll the data is given to the threads. This is the highest performant method, with
 up to 30k web-requests served on a Intel(R) Core(TM)2 Duo CPU T6500  @2.10GHz.
 

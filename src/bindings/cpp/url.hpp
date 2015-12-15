@@ -67,66 +67,52 @@ namespace Onion{
 	 * As it can se regex without full matching, be careful or its possible to just match substrings: "o$" matches "Hello", "Hello/World/o" and so on.
 	 */
 	class Url{
-		onion_url *ptr;
-		bool owner; ///< true if this instance is the owner of the onion_url *ptr. Needed to allow passing the ownership of the C handler tp the C code.
+		using internal_pointer = std::unique_ptr<onion_url, decltype(onion_url_free)*>;
+		internal_pointer ptr;
 	public:
 		/**
 		 * @short Creates an empty url handler.
 		 */
-		Url() : ptr(onion_url_new()), owner(true){};
+		Url();
 		/**
 		 * @short Creates an url handler from the C url handler.
 		 */
-		Url(onion_url *_ptr) : ptr(_ptr), owner(true){};
+		Url(onion_url *_ptr);
 		/**
 		 * @short Creates the onion_root_handler as an Url object.
 		 */
-		Url(Onion *o) : owner(false) {
-			ptr=onion_root_url(o->c_handler());
-		}
+		Url(Onion *o);
 		/**
 		 * @short Creates the onion_root_handler as an Url object, from a onion reference.
 		 */
-		Url(Onion &o) : owner(false) {
-			ptr=onion_root_url(o.c_handler());
-		}
+		Url(Onion &o);
 		/**
 		 * @short Move constructor
 		 * 
 		 * Its slightly diferent from standard as it allows to keep using the original to add data; normally the state is undefined.
 		 */
-		Url(Url &&o){
-			ptr=o.ptr;
-			owner=o.owner;
-			o.owner=false;
-		}
+		Url(Url &&o);
+
 		Url(Url &) = delete;
 		Url &operator=(Url &o) = delete;
 
-		virtual ~Url(){
-			if (owner){
-				onion_url_free(ptr);
-			}
-		}
+		virtual ~Url();
+
 		/**
 		 * @short Returns the C handler to use onion_url C functions.
 		 */
-		onion_url *c_handler(){ return ptr;  }
+		onion_url *c_handler();
 		
 		/**
 		 * @short Adds an url that calls an Onion::Handler-
 		 */
-		Url& add(const std::string &url, Handler &&h){
-			onion_url_add_handler(ptr,url.c_str(), onion_handler_cpp_to_c(std::move(h)));
-			return *this;
-		}
+		Url& add(const std::string &url, Handler &&h);
+
 		/**
 		 * @short Adds an url that calls a C onion_handler.
 		 */
-		Url& add(const std::string &url, onion_handler *h){
-			onion_url_add_handler(ptr,url.c_str(), h);
-			return *this;
-		}
+		Url& add(const std::string &url, onion_handler *h);
+		
 		/**
 		 * @short Adds an url that calls a C++ function.
 		 * 
@@ -134,10 +120,8 @@ namespace Onion{
 		 * 
 		 *   url.add("", [](Onion::Request &req, Onion::Response &res){ return OCS_INTERNAL_ERROR; });
 		 */
-		Url& add(const std::string &url, HandlerFunction::fn_t fn){
-			add(url, (Handler&&)Handler::make<HandlerFunction>(fn));
-			return *this;
-		}
+		Url& add(const std::string &url, HandlerFunction::fn_t fn);
+
 		/**
 		 * @short Adds an url that calls a C++ method.
 		 * 
@@ -165,29 +149,21 @@ namespace Onion{
 		/**
 		 * @short Adds an url with a static response.
 		 */
-		Url &add(const std::string &url, const std::string &s, int http_code=200){
-			onion_url_add_static(ptr,url.c_str(),s.c_str(),http_code);
-			return *this;
-		}
+		Url &add(const std::string &url, const std::string &s, int http_code=200);
+
 		/**
 		 * @short Adds an url that calls a C style onion handler.
 		 * 
 		 * With this method is possible to use the C handlers as onion_webdav.
 		 */
-		Url &add(const std::string &url, onion_handler_handler handler){
-			return add(url, (Handler&&)Handler::make<HandlerCFunction>(handler));
-		}
+		Url &add(const std::string &url, onion_handler_handler handler);
 		/**
 		 * @short Adds an url that calls another Onion::Url.
 		 * 
 		 * With this method its possible to create Onion::Url hierachies, easing the modularization of
 		 * web applications.
 		 */
-		Url &add(const std::string &url, Url url_handler){
-			add(url, onion_url_to_handler(url_handler.c_handler()));
-			url_handler.owner=false;
-			return *this;
-		}
+		Url &add(const std::string &url, Url url_handler);
 		
 		/**
 		 * @short Allows to call am Onion::Url to continue the processing of this request.

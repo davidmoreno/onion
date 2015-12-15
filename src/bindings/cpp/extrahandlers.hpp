@@ -40,9 +40,9 @@ namespace Onion{
 		Handler redirect(const std::string &uri);
 	};
 
-	Handler StaticHandler(const std::string &path){ return Shortcuts::static_file(path); };
-	Handler InternalRedirectHandler(const std::string &uri){ return Shortcuts::internal_redirect(uri); };
-	Handler RedirectHandler(const std::string &uri){ return Shortcuts::redirect(uri); };
+	Handler StaticHandler(const std::string &path);
+	Handler InternalRedirectHandler(const std::string &uri);
+	Handler RedirectHandler(const std::string &uri);
 };
 
 #endif
