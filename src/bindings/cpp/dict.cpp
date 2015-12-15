@@ -145,6 +145,19 @@ onion_dict* Onion::Dict::c_handler() const noexcept
 	return ptr.get();
 }
 
+void Onion::Dict::lock(bool write) const noexcept
+{
+	if(write)
+		onion_dict_lock_write(ptr.get());
+	else
+		onion_dict_lock_read(ptr.get());
+}
+
+void Onion::Dict::unlock() const noexcept
+{
+	onion_dict_unlock(ptr.get());
+}
+
 namespace Onion{
 	void add_to_map(std::map<std::string, std::string> *ret, const char *key, const char *value, int flags){
 		if ((flags & OD_DICT)==0)

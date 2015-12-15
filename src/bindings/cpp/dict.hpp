@@ -207,7 +207,17 @@ namespace Onion{
 		 * If there are subdictionaries, they are ignored.
 		 */
 		operator std::map<std::string, std::string>();
-		
+
+		/**
+		 * @short Lock the dictionary for reading/writing
+		 */
+		void lock(bool write = false) const noexcept;
+
+		/**
+		 * @short Unlock the dictionary
+		 */
+		void unlock() const noexcept;
+
 		/**
 		 * @short Returns the C onion_dict handler, to be able to use C functions.
 		 */
