@@ -25,8 +25,6 @@
 #include "request.hpp"
 #include "response.hpp"
 
-void do_nothing(onion_url* url) {}
-
 Onion::Url::Url()
 	: ptr { onion_url_new(), &onion_url_free }
 {
@@ -38,12 +36,12 @@ Onion::Url::Url(onion_url* _ptr)
 }
 
 Onion::Url::Url(Onion* o)
-	: ptr { onion_root_url(o->c_handler()), &do_nothing }
+	: ptr { onion_root_url(o->c_handler()), [](onion_url*) -> void {} }
 {
 }
 
 Onion::Url::Url(Onion& o)
-	: ptr { onion_root_url(o.c_handler()), &do_nothing }
+	: ptr { onion_root_url(o.c_handler()), [](onion_url*) -> void {} }
 {
 }
 
@@ -94,7 +92,7 @@ Onion::Url& Onion::Url::add(const std::string& url, onion_handler_handler handle
 Onion::Url& Onion::Url::add(const std::string& url, Url url_handler)
 {
 	add(url, onion_url_to_handler(url_handler.c_handler()));
-	url_handler.ptr.get_deleter() = &do_nothing;
+	url_handler.ptr.get_deleter() = [](onion_url*) -> void {};
 	return *this;
 }
 

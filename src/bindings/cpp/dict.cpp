@@ -24,8 +24,6 @@
 #include "dict.hpp"
 #include <map>
 
-void do_nothing(onion_dict*) { }
-
 Onion::Dict::key_not_found::key_not_found(const std::string& key)
 	: msg("Key " + key + " not found")
 {}
@@ -60,10 +58,10 @@ Onion::Dict::Dict(std::initializer_list<std::initializer_list<std::string>> &&in
 }
 
 Onion::Dict::Dict(const onion_dict *_ptr, bool owner)
-	: ptr { nullptr, &do_nothing }
+	: ptr { nullptr, [](onion_dict*) -> void {}  }
 {
 	if(!owner)
-		ptr = internal_pointer { const_cast<onion_dict*>(_ptr), &do_nothing };
+		ptr = internal_pointer { const_cast<onion_dict*>(_ptr), [](onion_dict*) -> void {} };
 	else
 		ptr = internal_pointer { const_cast<onion_dict*>(_ptr), &onion_dict_free };
 }
