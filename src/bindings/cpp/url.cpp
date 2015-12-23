@@ -46,8 +46,9 @@ Onion::Url::Url(Onion& o)
 }
 
 Onion::Url::Url(Url &&o)
-	: ptr { std::move(o.ptr) }
+	: ptr { o.ptr.get(), &onion_url_free }
 {
+  o.ptr.get_deleter() = [](onion_url*) -> void {};
 }
 
 Onion::Url::~Url()
