@@ -242,7 +242,7 @@ namespace Onion{
 		 * //The lock should be released by this point.
 		 * @endcode
 		 */
-		lock getReadLock() const noexcept
+		lock readLock() const noexcept
 		{
 			onion_dict_lock_read(ptr.get());
 			return lock { ptr.get() };
@@ -253,7 +253,7 @@ namespace Onion{
 		 *
 		 * The lock is released automatically when the scope is exited.
 		 */
-		lock getWriteLock() const noexcept
+		lock writeLock() const noexcept
 		{
 			onion_dict_lock_write(ptr.get());
 			return lock { ptr.get() };
