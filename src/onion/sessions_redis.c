@@ -68,6 +68,9 @@ static onion_dict* onion_sessions_redis_get(onion_sessions* sessions, const char
 	pthread_mutex_lock(&p->mutex);
 #endif
 
+        // When commands are sent via redisCommand, they are interpolated by the library
+        // so it will avoid any type of command injection. No need to worry about sending
+        // the session_id directly to redis.
 	redisReply* reply = redisCommand(p->context, "HEXISTS SESSIONS %s", session_id);
 
 	if(reply->type != REDIS_REPLY_INTEGER)

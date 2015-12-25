@@ -12,7 +12,6 @@ SET(ONION_USE_XML2 true CACHE BOOL "Adds support for XML2 lib, which is needed f
 SET(ONION_USE_SYSTEMD true CACHE BOOL "Adds simple support for systemd")
 SET(ONION_USE_SQLITE3 true CACHE BOOL "Adds support for sqlite3 sessions")
 SET(ONION_USE_REDIS true CACHE BOOL "Adds support for redis sessions")
-SET(ONION_USE_REDIS true CACHE BOOL "Adds support for redis sessions")
 SET(ONION_USE_GC true CACHE BOOL "Compile Boehm GC examples")
 SET(ONION_USE_TESTS false CACHE BOOL "Compile the tests")
 SET(ONION_EXAMPLES true CACHE BOOL "Compile the examples")
