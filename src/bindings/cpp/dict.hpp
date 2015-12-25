@@ -60,7 +60,27 @@ namespace Onion{
 			virtual ~key_not_found() noexcept;
 			const char* what() const noexcept;
 		private:
-			std::string msg;
+		std::string msg;
+		};
+
+		/**
+		 * @short Represents a lock on a Dict instance.
+		 */
+		class lock
+		{
+		public:
+			/**
+			 * @short Create a lock object from a Dict.
+			 */
+			explicit lock(onion_dict* d) : dict(d) { }
+			lock(lock&& l) : dict(l.dict) { l.dict = nullptr; }
+
+			/**
+			 * @short Automatically releases a lock when the scope is exited.
+			 */
+			~lock() { onion_dict_unlock(dict); }
+		private:
+			onion_dict* dict;
 		};
 		
 		/**
@@ -207,6 +227,37 @@ namespace Onion{
 		 * If there are subdictionaries, they are ignored.
 		 */
 		operator std::map<std::string, std::string>();
+
+		/**
+		 * @short Get a read lock on this Dict
+		 *
+		 * The lock is released automatically when the scope is exited. An example of usage:
+		 * @code
+		 * Onion::Dict d;
+		 *
+		 *	{
+		 *	  auto lock = d.getReadLock();
+		 *	  d.get("test");
+		 *	}
+		 * //The lock should be released by this point.
+		 * @endcode
+		 */
+		lock readLock() const noexcept
+		{
+			onion_dict_lock_read(ptr.get());
+			return lock { ptr.get() };
+		}
+
+		/**
+		 * @short Get a write lock on this Dict
+		 *
+		 * The lock is released automatically when the scope is exited.
+		 */
+		lock writeLock() const noexcept
+		{
+			onion_dict_lock_write(ptr.get());
+			return lock { ptr.get() };
+		}
 		
 		/**
 		 * @short Returns the C onion_dict handler, to be able to use C functions.
