@@ -167,6 +167,13 @@ namespace Onion{
 			va_end(va);
 			return r;
 		}
+
+		/**
+		 * @short Sets the session backend
+		 */
+		void setSessionBackend(onion_sessions* session_backend) {
+			onion_set_session_backend(ptr, session_backend);
+		}
 		
 		/**
 		* @short Returns the current flags.
