@@ -71,7 +71,7 @@ static onion_dict* onion_sessions_redis_get(onion_sessions* sessions, const char
         // When commands are sent via redisCommand, they are interpolated by the library
         // so it will avoid any type of command injection. No need to worry about sending
         // the session_id directly to redis.
-	redisReply* reply = redisCommand(p->context, "HEXISTS SESSIONS %b", session_id);
+	redisReply* reply = redisCommand(p->context, "HEXISTS SESSIONS %b", session_id, strlen(session_id));
 
 	if(reply->type != REDIS_REPLY_INTEGER)
 	{
@@ -84,7 +84,7 @@ static onion_dict* onion_sessions_redis_get(onion_sessions* sessions, const char
 		if(reply->integer == 1)
 		{
 			freeReplyObject(reply);
-			reply = redisCommand(p->context, "HGET SESSIONS %b", session_id);
+			reply = redisCommand(p->context, "HGET SESSIONS %b", session_id, strlen(session_id));
 
 			if(reply->type != REDIS_REPLY_STRING)
 			{
@@ -126,7 +126,7 @@ void onion_sessions_redis_save(onion_sessions *sessions, const char *session_id,
 
 	if(p == NULL)
 	{
-		redisReply* reply = redisCommand(p->context, "HDEL SESSIONS %b", session_id);
+		redisReply* reply = redisCommand(p->context, "HDEL SESSIONS %b", session_id, strlen(session_id));
 
 		if(reply->type != REDIS_REPLY_INTEGER)
 		{
@@ -136,7 +136,7 @@ void onion_sessions_redis_save(onion_sessions *sessions, const char *session_id,
 	} else 
     {
 		const char* json = onion_block_data(bl);
-		redisReply* reply = redisCommand(p->context, "HSET SESSIONS %b %b", session_id, json);
+		redisReply* reply = redisCommand(p->context, "HSET SESSIONS %b %b", session_id, strlen(session_id), json, strlen(json));
 
 		if(reply->type != REDIS_REPLY_INTEGER)
 		{
