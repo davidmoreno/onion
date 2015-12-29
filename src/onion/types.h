@@ -201,7 +201,7 @@ enum onion_mode_e{
 	O_SSL_AVAILABLE=0x0100, ///< This is set by the library when creating the onion object, if SSL support is available.
 	O_SSL_ENABLED=0x0200,   ///< This is set by the library when setting the certificates, if SSL is available.
 
-	O_THREADS_AVALIABLE=0x0400, ///< Threads are available on this onion build
+	O_THREADS_AVAILABLE=0x0400, ///< Threads are available on this onion build
 	O_THREADS_ENABLED=0x0800,   ///< Threads are enabled on this onion object. It difers from O_THREADED as this is set by the library, so it states a real status, not a desired one.
 
 	O_DETACHED=0x01000,		///< Currently listening on another thread.
