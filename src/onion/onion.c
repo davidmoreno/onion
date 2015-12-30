@@ -213,7 +213,7 @@ onion *onion_new(int flags){
 	o->max_post_size=1024*1024; // 1MB
 	o->max_file_size=1024*1024*1024; // 1GB
 #ifdef HAVE_PTHREADS
-	o->flags|=O_THREADS_AVALIABLE;
+	o->flags|=O_THREADS_AVAILABLE;
 	o->nthreads=8;
 	if (o->flags&O_THREADED)
 		o->flags|=O_THREADS_ENABLED;
