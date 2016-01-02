@@ -27,7 +27,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>
-
+#include <stdbool.h>
 #include "types.h"
 
 #ifdef HAVE_GNUTLS
@@ -163,6 +163,7 @@ struct onion_listen_point_t{
 	char *hostname; ///< Stated hostname, as a string. If NULL tries to attach to any hostname, normally 0.0.0.0 (ipv4 and ipv6)
 	char *port;     ///< Stated port, if none then 8080
 	int listenfd;   ///< For socket listening listen points, the listen fd. For others may be -1 as not used, or an fd to watch and when changed calls the request_init with a new request.
+	bool secure;    ///< Is this listen point secure?
 	
 	/// Internal data used by the listen point, for example in HTTPS is the certificate loaded data.
 	void *user_data; 
