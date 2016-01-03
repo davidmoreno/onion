@@ -26,7 +26,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-
+#include <stdbool.h>
 #include "types.h"
 
 #ifdef __cplusplus
@@ -172,6 +172,8 @@ const char *onion_request_get_client_description(onion_request *req);
 /// Get the sockaddr_storage from the client, if any.
 struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, socklen_t *client_len);
 
+/// Determine if the request was sent over a secure listen point
+bool onion_request_is_secure(onion_request *req);
 #ifdef __cplusplus
 }
 #endif

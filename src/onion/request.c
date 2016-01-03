@@ -681,3 +681,8 @@ const char* onion_request_get_cookie(onion_request* req, const char* cookiename)
 	const onion_dict *cookies=onion_request_get_cookies_dict(req);
 	return onion_dict_get(cookies, cookiename);
 }
+
+bool onion_request_is_secure(onion_request* req)
+{
+	return req->connection.listen_point->secure;
+}
