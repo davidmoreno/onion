@@ -215,6 +215,13 @@ namespace Onion{
 		}
 
 		/**
+		 * @short Returns the secure status of the request
+		 */
+		bool isSecure() const {
+			return onion_request_is_secure(ptr);
+		}
+
+		/**
 		 * @short Returns the C handler, to use C functions.
 		 */
 		onion_request *c_handler(){
