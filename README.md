@@ -93,17 +93,21 @@ Required:
  
 Optional; Onion will compile but some functionality will not be available:
 
-* gnutls
-* pthreads
-* libxml2
-* libpam
+* gnutls and gcrypt (SSL support)
+* pthreads (threading support)
+* libxml2 (WebDAV support)
+* libpam (HTTP Basic Auth support using PAM)
 * C++ compiler
-* Systemd
+* Systemd (support for listening on systemd sockets)
+* sqlite3 (sqlite3 session backend)
+* hiredis (Redis session backend)
 
 Optional for examples:
 
 * cairo
 * libpng2
+* boehm gc
+* libjpeg
 
 ## SSL Support
 
