@@ -822,6 +822,7 @@ int onion_set_certificate_va(onion *onion, onion_ssl_certificate_type type, cons
 			  ? onion_low_strdup(first_listen_point->hostname) : NULL;
 			onion_listen_point_free(first_listen_point);
 			onion_listen_point *https=onion_https_new();
+			https->server = onion;
 			if (NULL==https){
 				ONION_ERROR("Could not promote from HTTP to HTTPS. Certificate not set.");
 			}
