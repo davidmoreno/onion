@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <onion/log.h>
 #include <onion/dict.h>
