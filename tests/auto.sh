@@ -1,3 +1,5 @@
+#!/bin/sh
+
 FAILED=""
 
 for d in 01-internal 02-fullserver; do 
