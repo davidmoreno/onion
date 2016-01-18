@@ -36,7 +36,7 @@ onion_connection_status ws_handler(void *priv, onion_request *req, onion_respons
 	onion_websocket *ws=onion_websocket_new(req, res);
 	ws_status.connected++;
 	ws_status.is_connected=(ws!=NULL);
-	
+
 	if (ws_status.is_connected){
 		onion_websocket_set_callback(ws, ws_callback);
 		return OCS_WEBSOCKET;
@@ -48,10 +48,10 @@ onion *websocket_server_new(){
 	onion *o=onion_new(0);
 	onion_url *urls=onion_root_url(o);
 	onion_url_add(urls, "", ws_handler);
-	
+
 	onion_listen_point *lp=onion_buffer_listen_point_new();
 	onion_add_listen_point(o,NULL,NULL,lp);
-	
+
 	return o;
 }
 
@@ -61,42 +61,44 @@ int onion_request_write0(onion_request *req, const char *data){
 
 void t01_websocket_server_no_ws(){
 	INIT_LOCAL();
-	
+
 	memset(&ws_status,0,sizeof(ws_status));
 	onion *o=websocket_server_new();
 	onion_request *req=onion_request_new(onion_get_listen_point(o, 0));
 	onion_request_write0(req,"GET /\n\n");
+	onion_request_process(req);
 	FAIL_IF(ws_status.is_connected);
 	FAIL_IF_NOT_EQUAL_INT(ws_status.connected,1);
-	
+
 	onion_request_free(req);
 	onion_free(o);
-	
+
 	END_LOCAL();
 }
 
 void t02_websocket_server_w_ws(){
 	INIT_LOCAL();
-	
+
 	memset(&ws_status,0,sizeof(ws_status));
 	onion *o=websocket_server_new();
 	onion_request *req=onion_request_new(onion_get_listen_point(o, 0));
 	onion_request_write0(req,"GET /\nUpgrade: websocket\nSec-Websocket-Version: 13\nSec-Websocket-Key: My-key\n\n");
+	onion_request_process(req);
 	FAIL_IF_NOT(ws_status.is_connected);
 	FAIL_IF_NOT_EQUAL_INT(ws_status.connected,1);
-	
+
 	onion_request_free(req);
 	onion_free(o);
-	
+
 	END_LOCAL();
 }
 
 
 int main(int argc, char **argv){
 	START();
-	
+
 	t01_websocket_server_no_ws();
 	t02_websocket_server_w_ws();
-	
+
 	END();
 }
