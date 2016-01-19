@@ -53,7 +53,9 @@ void t00_server_empty(){
 	onion_request_write(req, "GET ",4);
 	onion_request_write(req, "/",1);
 	onion_request_write(req, " HTTP/1.1\r\n",11);
-	onion_request_write(req, "\r\n",2);
+	int rs=onion_request_write(req, "\r\n",2);
+	FAIL_IF_NOT_EQUAL_INT(rs, OCS_REQUEST_READY);
+	onion_request_process(req);
 
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 
@@ -79,7 +81,9 @@ void t01_server_min(){
 	onion_request_write(req, "/",1);
 	onion_request_write(req, " HTTP/1.1\r\n",11);
 
-	onion_request_write(req, "\r\n",2);
+	int rs=onion_request_write(req, "\r\n",2);
+	FAIL_IF_NOT_EQUAL_INT(rs, OCS_REQUEST_READY);
+	onion_request_process(req);
 
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 
@@ -107,7 +111,9 @@ void t02_server_full(){
 #undef S
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	int rs=onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	FAIL_IF_NOT_EQUAL_INT(rs, OCS_REQUEST_READY);
+	onion_request_process(req);
 
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 
@@ -141,7 +147,9 @@ void t03_server_no_overflow(){
 	onion_request_write(req, onion_block_data(long_req),onion_block_size(long_req)); // send it all, but the final 0.
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	int rs=onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
+	FAIL_IF_NOT_EQUAL_INT(rs, OCS_REQUEST_READY);
+	onion_request_process(req);
 
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
@@ -175,7 +183,9 @@ void t04_server_overflow(){
 	onion_request_write(req, onion_block_data(long_req),onion_block_size(long_req)-1); // send it all, but the final 0.
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
-	onion_request_write(req, "\n\n",2); // finish this request. no \n\n before to check possible bugs.
+	int rs=onion_request_write(req, "\n\n",2); // finish this request. no \n\n before to check possible bugs.
+	FAIL_IF_NOT_EQUAL_INT(rs, OCS_REQUEST_READY);
+	onion_request_process(req);
 
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
@@ -261,7 +271,9 @@ void t06_server_with_error_500(){
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	int rs=onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	FAIL_IF_NOT_EQUAL_INT(rs, OCS_REQUEST_READY);
+	onion_request_process(req);
 
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
@@ -294,7 +306,9 @@ void t07_server_with_error_501(){
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	int rs=onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	FAIL_IF_NOT_EQUAL_INT(rs, OCS_REQUEST_READY);
+	onion_request_process(req);
 
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
@@ -322,7 +336,9 @@ void t08_server_with_error_404(){
 	const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"");
 	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs.
-	onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	int rs=onion_request_write(req, "\n",1); // finish this request. no \n\n before to check possible bugs. The last \n was not processed, as was overflowing.
+	FAIL_IF_NOT_EQUAL_INT(rs, OCS_REQUEST_READY);
+	onion_request_process(req);
 
 	buffer=onion_buffer_listen_point_get_buffer_data(req);
 	FAIL_IF_EQUAL_STR(buffer,"");
