@@ -87,6 +87,7 @@ onion_listen_point *onion_https_new(){
 	op->write=onion_https_write;
 	op->close=onion_https_close;
 	op->read_ready=onion_http_read_ready;
+	op->secure = true;
 	
 	op->user_data=onion_low_calloc(1,sizeof(onion_https));
 	onion_https *https=(onion_https*)op->user_data;

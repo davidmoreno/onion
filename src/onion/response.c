@@ -540,7 +540,7 @@ const char *onion_response_code_description(int code){
 			return "Not Implemented";
 		case HTTP_BAD_GATEWAY:
 			return "Bad Gateway";
-		case HTTP_SERVICE_UNAVALIABLE:
+		case HTTP_SERVICE_UNAVAILABLE:
 			return "Service Unavailable";
 	}
 	return "CODE UNKNOWN";

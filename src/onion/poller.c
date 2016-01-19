@@ -495,6 +495,7 @@ void onion_poller_stop(onion_poller *p){
   char data[8]={0,0,0,0, 0,0,0,1};
   int __attribute__((unused)) r=read(p->eventfd, data, 8); // Flush eventfd data, discard data
 
+#ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&p->mutex);
   int n=p->npollers;
 	pthread_mutex_unlock(&p->mutex);
@@ -507,4 +508,5 @@ void onion_poller_stop(onion_poller *p){
 	}
 	else
 		ONION_DEBUG("Poller stopped");
+#endif
 }

@@ -53,6 +53,7 @@ onion_listen_point* onion_http_new()
 	ret->write=onion_http_write;
 	ret->close=onion_listen_point_request_close_socket;
 	ret->read_ready=onion_http_read_ready;
+	ret->secure = false;
 
 	return ret;
 }
