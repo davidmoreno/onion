@@ -188,7 +188,42 @@ namespace Onion{
 		void setTimeout(int timeout){
 			onion_set_timeout(ptr, timeout);
 		}
-		
+
+		/**
+		 * @short Sets the maximum number of threads.
+		 */
+		void setMaxThreads(int maxThreads){
+			onion_set_max_threads(ptr, maxThreads);
+		}
+
+		/**
+		 * @short Sets this user as soon as the listen starts
+		 */
+		void setUser(const std::string& user){
+			onion_set_user(ptr, user.c_str());
+		}
+
+		/**
+		 * @short Sets the maximum post size
+		 */
+		void setMaxPostSize(std::size_t maxSize){
+			onion_set_max_post_size(ptr, maxSize);
+		}
+
+		/**
+		 * @short Set the maximum post FILE size
+		 */
+		void setMaxFileSize(std::size_t maxSize){
+			onion_set_max_file_size(ptr, maxSize);
+		}
+
+		/**
+		 * @short Adds a listen point
+		 */
+		void addListenPoint(const std::string& hostname, const std::string& port, onion_listen_point* protocol) {
+			onion_add_listen_point(ptr, hostname.c_str(), port.c_str(), protocol);
+		}
+
 		/**
 		* @short Returns the C handler, to use the C api.
 		*/
