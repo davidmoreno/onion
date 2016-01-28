@@ -10,7 +10,7 @@
 	b. the GNU General Public License as published by the 
 		Free Software Foundation; either version 2.0 of the License, 
 		or (at your option) any later version.
-	 
+	
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -20,22 +20,29 @@
 	<http://www.gnu.org/licenses/> and 
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
+#ifndef ONION_LISTEN_POINT_HPP
+#define ONION_LISTEN_POINT_HPP
 
-#ifndef ONION_HTTPS_H
-#define ONION_HTTPS_H
+#include <onion/listen_point.h>
+#include <memory>
 
-#include <stdarg.h>
-#include "types.h"
+namespace Onion {
+	class ListenPoint {
+	protected:
+		using internal_pointer = std::unique_ptr<onion_listen_point, decltype(onion_listen_point_free)*>;
+		internal_pointer ptr;
+	public:
+		ListenPoint() 
+			: ptr(onion_listen_point_new(), [](onion_listen_point*) { return; })
+		{}
 
-#ifdef __cplusplus
-extern "C"{
-#endif
+		ListenPoint(onion_listen_point* lp)
+			: ptr(lp, [](onion_listen_point*) { return; })
+		{}
 
-onion_listen_point *onion_https_new();
-int onion_https_set_certificate(onion_listen_point *ol, onion_ssl_certificate_type type, const char *filename, ...);
-int onion_https_set_certificate_argv(onion_listen_point *ol, onion_ssl_certificate_type type, const char *filename, va_list va);
-#ifdef __cplusplus
+		onion_listen_point* c_handler() const { return ptr.get(); }
+	};
 }
-#endif
 
 #endif
+

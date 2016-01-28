@@ -26,6 +26,7 @@
 
 #include <string>
 #include <onion/onion.h>
+#include "listen_point.hpp"
 #include "handler.hpp"
 
 /**
@@ -220,8 +221,8 @@ namespace Onion{
 		/**
 		 * @short Adds a listen point
 		 */
-		void addListenPoint(const std::string& hostname, const std::string& port, onion_listen_point* protocol) {
-			onion_add_listen_point(ptr, hostname.c_str(), port.c_str(), protocol);
+		void addListenPoint(const std::string& hostname, const std::string& port, const ListenPoint& protocol) {
+			onion_add_listen_point(ptr, hostname.c_str(), port.c_str(), protocol.c_handler());
 		}
 
 		/**
