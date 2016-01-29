@@ -135,7 +135,6 @@ onion_listen_point *onion_https_new(){
 		return NULL;
 	}
 	gnutls_certificate_set_dh_params (https->x509_cred, https->dh_params);
-	gnutls_priority_init (&https->priority_cache, "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:%COMPAT", NULL); // PERFORMANCE:%SAFE_RENEGOTIATION:-VERS-TLS1.0:%COMPAT"
 	
 	ONION_DEBUG("HTTPS connection ready");
 	
