@@ -48,6 +48,7 @@ endif (${CAIRO_ENABLED})
 
 
 add_subdirectory(multiport)
+add_subdirectory(multiport-cpp)
 add_subdirectory(websockets)
 if(${GC_ENABLED})
 add_subdirectory(boehm-gc)

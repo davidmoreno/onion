@@ -26,6 +26,14 @@
 
 #include "types.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 onion_listen_point *onion_http_new();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
