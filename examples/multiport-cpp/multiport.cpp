@@ -1,9 +1,9 @@
 /** Licensed under AGPL 3.0. (C) 2016 David Moreno Montero. http://coralbits.com */
-#include <onion/onion.hpp>
-#include <onion/http.hpp>
-#include <onion/https.hpp>
+#include <onion.hpp>
+#include <http.hpp>
+#include <https.hpp>
 
-#include <onion/shortcuts.hpp>
+#include <shortcuts.hpp>
 
 int main(int argc, char*argv[]){
 	Onion::Onion o { O_THREADED };
