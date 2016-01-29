@@ -27,6 +27,7 @@
 
 #include "poller.h"
 #include "log.h"
+#include "low.h"
 
 struct onion_poller_t{
 	struct ev_loop *loop;
