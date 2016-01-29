@@ -27,6 +27,18 @@
 #include <onion/http.h>
 
 namespace Onion {
+	/**
+	 * @short A HTTP listen point for an Onion::Onion object.
+	 * @see Onion::ListenPoint for information about
+	 * allocation/deallocation of this object.
+	 *
+	 * This is a short example of how to use this object.
+	 * @code
+	 * Onion::Onion o;
+	 * o.addListenPoint("localhost", "8080",Onion::HttpListenPoint());
+	 * o.listen();
+	 * @endcode
+	 */
 	class HttpListenPoint : public ListenPoint {
 	public:
 		HttpListenPoint() : ListenPoint(onion_http_new()) {

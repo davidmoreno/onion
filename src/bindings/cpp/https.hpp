@@ -28,11 +28,29 @@
 #include <cstdarg>
 
 namespace Onion {
+	/**
+	 * @short A HTTPS listen point for an Onion::Onion object.
+	 * @see Onion::ListenPoint for information about
+	 * allocation/deallocation of this object.
+	 *
+	 * This is a short example of how to use this object.
+	 * @code
+	 * Onion::Onion o;
+	 * Onion::HttpsListenPoint https {};
+	 * https.setCertificate(O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
+	 * o.addListenPoint("localhost", "443", https);
+	 * o.listen();
+	 * @endcode
+	 */
 	class HttpsListenPoint : public ListenPoint {
 	public:
 		HttpsListenPoint() : ListenPoint(onion_https_new()) {
 		}
 
+		/**
+		 * @short Sets the SSL certificate and key.
+		 * This follows the same semantics as onion_https_set_certificate().
+		 */
 		int setCertificate(onion_ssl_certificate_type type, const char* filename, ...) {
 			va_list va;
 			va_start(va, filename);
