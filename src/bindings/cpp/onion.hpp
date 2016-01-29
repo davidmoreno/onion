@@ -221,8 +221,10 @@ namespace Onion{
 		/**
 		 * @short Adds a listen point
 		 */
-		void addListenPoint(const std::string& hostname, const std::string& port, const ListenPoint& protocol) {
+		void addListenPoint(const std::string& hostname, const std::string& port, ListenPoint&& protocol) {
 			onion_add_listen_point(ptr, hostname.c_str(), port.c_str(), protocol.c_handler());
+                        // Release ownership of the pointer
+                        protocol.release();
 		}
 
 		/**

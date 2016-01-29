@@ -16,7 +16,7 @@ int main(int argc, char*argv[]){
 #ifdef HAVE_GNUTLS
 	Onion::HttpsListenPoint https;
 	https.setCertificate(O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
-	o.addListenPoint("localhost", "4443", https);
+	o.addListenPoint("localhost", "4443", std::move(https));
 #else
 	ONION_WARNING("HTTPS support is not enabled. Recompile with gnutls");
 #endif

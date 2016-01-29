@@ -29,8 +29,6 @@
 namespace Onion {
 	/**
 	 * @short A HTTP listen point for an Onion::Onion object.
-	 * @see Onion::ListenPoint for information about
-	 * allocation/deallocation of this object.
 	 *
 	 * This is a short example of how to use this object.
 	 * @code
