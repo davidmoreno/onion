@@ -30,10 +30,7 @@ namespace Onion {
 	/**
 	 * @short Creates a listen point for an Onion::Onion object.
 	 * Not meant to be used directly, as a default listen point doesn't
-	 * do very much. Also, this class doesn't directly free associated
-	 * resources. However, when an Onion::Onion object is freed, it will
-	 * free associated resources when it is deconstructed. So, make sure
-	 * you add a ListenPoint to an Onion::Onion object.
+	 * do very much.
 	 */
 	class ListenPoint {
 	protected:
@@ -41,12 +38,22 @@ namespace Onion {
 		internal_pointer ptr;
 	public:
 		ListenPoint() 
-			: ptr(onion_listen_point_new(), [](onion_listen_point*) { return; })
+			: ptr(onion_listen_point_new(), onion_listen_point_free)
 		{}
 
 		ListenPoint(onion_listen_point* lp)
 			: ptr(lp, [](onion_listen_point*) { return; })
 		{}
+
+		ListenPoint(ListenPoint&& other) : ptr { std::move(other.ptr) }
+		{}
+
+		/**
+		 * @short Release ownership of the underlying pointer.
+		 */
+		void release() {
+			ptr.reset(nullptr);
+		}
 
 		/**
 		 * @short Get the underlying C object.
