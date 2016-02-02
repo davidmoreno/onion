@@ -28,3 +28,7 @@ target_link_libraries(04-templates onion onioncpp)
 
 add_executable(05-exportlocal 05-exportlocal)
 target_link_libraries(05-exportlocal onion onioncpp)
+
+add_executable(06-mime 06-mime)
+target_link_libraries(06-mime onion onioncpp)
+
