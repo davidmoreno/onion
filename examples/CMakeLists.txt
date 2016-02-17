@@ -32,7 +32,9 @@ add_subdirectory(hello)
 if (OTEMPLATE)
 	add_subdirectory(ofileserver)
 	if (PNG_ENABLED OR JPEG_ENABLED)
-		add_subdirectory(mandelbrot)
+	if(${ONION_USE_BINDINGS_CPP})
+		  add_subdirectory(mandelbrot)
+	endif()
 	else (PNG_ENABLED OR JPEG_ENABLED)
 		message(WARNING "Some examples are disabled as you dont have libpng: mandelbrot")
 	endif (PNG_ENABLED OR JPEG_ENABLED)
@@ -48,7 +50,11 @@ endif (${CAIRO_ENABLED})
 
 
 add_subdirectory(multiport)
-add_subdirectory(multiport-cpp)
+
+if(${ONION_USE_BINDINGS_CPP})
+	add_subdirectory(multiport-cpp)
+endif()
+
 add_subdirectory(websockets)
 if(${GC_ENABLED})
 add_subdirectory(boehm-gc)
