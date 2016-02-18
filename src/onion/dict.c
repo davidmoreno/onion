@@ -35,6 +35,10 @@
 #include "block.h"
 #include "low.h"
 
+// This macro is used to avoid undefined behavior when using  the
+// ctype macros.
+#define SAFETY_CAST(x) (int)(unsigned char)x
+
 /// @private
 typedef struct onion_dict_node_data_t{
 	const char *key;
@@ -681,7 +685,7 @@ onion_dict *onion_dict_from_json(const char *data){
 		return NULL;
 	const char *_data[1]={ data };
 	onion_dict *ret=onion_dict_from_json_(_data);
-	while (isspace(*_data[0]))
+	while (isspace(SAFETY_CAST(*_data[0])))
 		++_data[0];
 	if (*_data[0]){
 		ONION_DEBUG("Invalid JSON, not ends at end");
@@ -694,13 +698,13 @@ onion_dict *onion_dict_from_json(const char *data){
 onion_dict *onion_dict_from_json_(const char **_data){
 	const char *data=*_data;
 	ONION_DEBUG("Parse %s", *_data);
-	while (isspace(*data))
+	while (isspace(SAFETY_CAST(*data)))
 		++data;
 	if (*data!='{')
 		return NULL;
 	++data;
 	
-	while (isspace(*data))
+	while (isspace(SAFETY_CAST(*data)))
 		++data;
 	;
 	onion_dict *ret=onion_dict_new();
@@ -722,7 +726,7 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			++data;
 		}
 		++data;
-		while (isspace(*data))
+		while (isspace(SAFETY_CAST(*data)))
 			++data;
 
 		/// Get :
@@ -731,7 +735,7 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			goto error;
 		}
 		++data;
-		while (isspace(*data))
+		while (isspace(SAFETY_CAST(*data)))
 			++data;
 
 		/// Get Value
@@ -745,8 +749,8 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			onion_dict_add(ret, onion_block_data(key), sub, OD_DUP_KEY|OD_DICT|OD_FREE_VALUE);
 			data=*_data;
 		}
-		else if (isdigit(*data)){
-			while(isdigit(*data)){
+		else if (isdigit(SAFETY_CAST(*data))){
+			while(isdigit(SAFETY_CAST(*data))){
 				onion_block_add_char(value, *data);
 				++data;
 			}
@@ -773,7 +777,7 @@ onion_dict *onion_dict_from_json_(const char **_data){
 		}
 		onion_block_clear(key);
 		
-		while (isspace(*data))
+		while (isspace(SAFETY_CAST(*data)))
 			++data;
 		if (*data=='}'){
 			++data;
@@ -787,7 +791,7 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			goto error;
 		}
 		++data;
-		while (isspace(*data))
+		while (isspace(SAFETY_CAST(*data)))
 			++data;
 	}
 	++data;
