@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <inttypes.h>
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
@@ -33,6 +34,7 @@
 #include "low.h"
 #include "log.h"
 #include "codecs.h"
+#include "block.h"
 
 /// Decode table. Its the inverse of the code table. (cb64).
 static const char db64[]={ // 16 bytes each line, 8 lines. Only 128 registers
@@ -497,4 +499,37 @@ onion_html_quote_dup (const char* str) {
     return quostr;
   else
     return onion_low_strdup(quostr);
+}
+
+
+/**
+ * @short Generates JSON string encoding and adds it to an existing block
+ */
+void onion_json_quote_add(onion_block *block, const char *str){
+	if (!str)
+		return;
+
+	onion_block_min_maxsize(block, onion_block_size(block) + strlen(str)+1 ); // Optimistically resize to str length
+
+	while(*str){
+		char c=*str;
+		switch(c){
+			case '\n':
+				onion_block_add_data(block, "\\n", 2);
+				break;
+			case '\t':
+				onion_block_add_data(block, "\\t", 2);
+				break;
+			case '"':
+				onion_block_add_data(block, "\\\"", 2);
+				break;
+			case '\\':
+				onion_block_add_data(block, "\\\\", 2);
+				break;
+			default:
+				// Others just put it in. Teh reader should be able to read binary unicode chars. (ie: not \uXXXX encoded)
+				onion_block_add_char(block, c);
+		}
+		str++;
+	}
 }

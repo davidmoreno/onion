@@ -4,26 +4,28 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #ifndef ONION_CODECS_H
 #define ONION_CODECS_H
 
+#include <onion/types.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -57,7 +59,10 @@ void onion_sha1(const char *data, int length, char *result);
 char *onion_html_quote(const char *str);
 
 /// Always return a freshly allocated string, to be later freed.
-const char* onion_html_quote_dup(const char*str);  
+const char* onion_html_quote_dup(const char*str);
+
+/// Generates JSON string encoding and adds it to an existing block
+void onion_json_quote_add(onion_block *block, const char *str);
 
 #ifdef __cplusplus
 }

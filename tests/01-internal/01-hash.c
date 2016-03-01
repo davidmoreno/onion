@@ -35,7 +35,7 @@ void t01_create_add_free(){
 	INIT_LOCAL();
 	onion_dict *dict;
 	const char *value;
-	
+
 	dict=onion_dict_new();
 	FAIL_IF_EQUAL(dict,NULL);
 
@@ -47,14 +47,14 @@ void t01_create_add_free(){
 	onion_dict_add(dict, "Request", "GET /", OD_DUP_ALL);
 	value=onion_dict_get(dict, "Request");
 	FAIL_IF_NOT_EQUAL_STR(value,"GET /");
-	
+
 	// basic remove
 	onion_dict_remove(dict, "Request");
 	value=onion_dict_get(dict, "Request");
 	FAIL_IF_NOT_EQUAL(value,NULL);
 
 	onion_dict_free(dict);
-	
+
 	END_LOCAL();
 }
 
@@ -62,7 +62,7 @@ void t01_create_add_free_10(){
 	INIT_LOCAL();
 	onion_dict *dict;
 	const char *value;
-	
+
 	dict=onion_dict_new();
 	FAIL_IF_EQUAL(dict,NULL);
 
@@ -89,9 +89,9 @@ void t01_create_add_free_10(){
 		FAIL_IF_NOT_EQUAL(value,NULL);
 		//onion_dict_print_dot(dict);
 	}
-	
+
 	onion_dict_free(dict);
-	
+
 	END_LOCAL();
 }
 
@@ -100,7 +100,7 @@ void t02_create_and_free_a_lot(unsigned int n){
 	onion_dict *dict;
 	const char *value;
 	unsigned int i;
-	
+
 	dict=onion_dict_new();
 	FAIL_IF_EQUAL(dict,NULL);
 
@@ -117,7 +117,7 @@ void t02_create_and_free_a_lot(unsigned int n){
 		char key[16], val[16];
 		sprintf(key,"key %d",i);
 		sprintf(val,"val %d",i);
-		
+
 		value=onion_dict_get(dict, key);
 		FAIL_IF_NOT_EQUAL_STR(val,value);
 	}
@@ -126,7 +126,7 @@ void t02_create_and_free_a_lot(unsigned int n){
 	for (i=0;i<n;i++){
 		char key[16];
 		sprintf(key,"key %d",i);
-		
+
 		int ok=onion_dict_remove(dict, key);
 		FAIL_IF_NOT(ok);
 	}
@@ -136,15 +136,15 @@ void t02_create_and_free_a_lot(unsigned int n){
 		char key[16], val[16];
 		sprintf(key,"key %d",i);
 		sprintf(val,"val %d",i);
-		
+
 		value=onion_dict_get(dict, key);
 		//fprintf(stderr,"%s %s\n",key,value);
 		FAIL_IF_NOT_EQUAL(NULL,value);
 		FAIL_IF_NOT_EQUAL_STR(NULL,value);
 	}
-	
+
 	onion_dict_free(dict);
-	
+
 	END_LOCAL();
 }
 
@@ -157,7 +157,7 @@ void t03_create_and_free_a_lot_random(unsigned int n){
 	onion_dict *dict;
 	const char *value;
 	unsigned int i;
-	
+
 	dict=onion_dict_new();
 	FAIL_IF_EQUAL(dict,NULL);
 
@@ -166,7 +166,7 @@ void t03_create_and_free_a_lot_random(unsigned int n){
 		char key[16], val[16];
 		sprintf(key,"key %d",R1(i));
 		sprintf(val,"val %d",R2(i));
-		
+
 		onion_dict_add(dict, key, val, OD_DUP_ALL);
 	}
 
@@ -175,7 +175,7 @@ void t03_create_and_free_a_lot_random(unsigned int n){
 		char key[16], val[16];
 		sprintf(key,"key %d",R1(i));
 		sprintf(val,"val %d",R2(i));
-		
+
 		value=onion_dict_get(dict, key);
 		FAIL_IF_NOT_EQUAL_STR(val,value);
 	}
@@ -195,7 +195,7 @@ void t03_create_and_free_a_lot_random(unsigned int n){
 		char key[16], val[16];
 		sprintf(key,"key %d",R1(i));
 		sprintf(val,"val %d",R1(i));
-		
+
 		value=onion_dict_get(dict, key);
 		//fprintf(stderr,"%s %s\n",key,value);
 		FAIL_IF_NOT_EQUAL(NULL,value);
@@ -203,7 +203,7 @@ void t03_create_and_free_a_lot_random(unsigned int n){
 	}
 
 	onion_dict_free(dict);
-	
+
 	END_LOCAL();
 }
 
@@ -211,7 +211,7 @@ void t04_create_and_free_a_dup(){
 	INIT_LOCAL();
 	onion_dict *dict;
 	const char *value;
-	
+
 	dict=onion_dict_new();
 	FAIL_IF_EQUAL(dict,NULL);
 
@@ -227,19 +227,19 @@ void t04_create_and_free_a_dup(){
 	onion_dict_add(dict, "Request", "GET /", OD_DUP_ALL);
 	value=onion_dict_get(dict, "Request");
 	FAIL_IF_NOT_EQUAL_STR(value,"GET /");
-	
+
 	// basic remove
 	onion_dict_remove(dict, "Request");
 	value=onion_dict_get(dict, "Request");
 	FAIL_IF_NOT_EQUAL_STR(value,"GET /");
-	
+
 	// basic remove
 	onion_dict_remove(dict, "Request");
 	value=onion_dict_get(dict, "Request");
 	FAIL_IF_NOT_EQUAL(value,NULL);
 
 	onion_dict_free(dict);
-	
+
 	END_LOCAL();
 }
 
@@ -254,7 +254,7 @@ void t05_preorder(){
 	INIT_LOCAL();
 	onion_dict *dict;
 	dict=onion_dict_new();
-	
+
 	onion_dict_add(dict,"A","B",0);
 	onion_dict_add(dict,"C","D",0);
 	onion_dict_add(dict,"E","F",0);
@@ -265,12 +265,12 @@ void t05_preorder(){
 	onion_dict_add(dict,"O","P",0);
 	onion_dict_add(dict,"Q","R",0);
 	onion_dict_add(dict,"S","T",0);
-	
+
 	char buffer[4096];
 	memset(buffer,0,sizeof(buffer));
 	onion_dict_preorder(dict, append_as_headers, buffer);
 	FAIL_IF_NOT_EQUAL_STR(buffer,"A: B\nC: D\nE: F\nG: H\nI: J\nK: L\nM: N\nO: P\nQ: R\nS: T\n");
-	
+
 	onion_dict_free(dict);
 	END_LOCAL();
 }
@@ -279,14 +279,14 @@ void t06_null_add(){
 	INIT_LOCAL();
 	onion_dict *dict;
 	dict=onion_dict_new();
-	
+
 	onion_dict_add(dict,"b",NULL,0);
 	onion_dict_add(dict,"a",NULL,0);
 	onion_dict_add(dict,"c","1",0);
-	
+
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(dict,"c"),"1");
 	FAIL_IF_NOT_EQUAL(onion_dict_get(dict,"a"),NULL);
-	
+
 	onion_dict_free(dict);
 	END_LOCAL();
 }
@@ -298,13 +298,13 @@ void t07_sum(int *v, const char *key, const char *value, int flags){
 void t07_replace(){
 	INIT_LOCAL();
 	onion_dict *dict=onion_dict_new();
-	
+
 	onion_dict_add(dict,"a","1", OD_DUP_ALL|OD_REPLACE);
 	onion_dict_add(dict,"a","1", OD_REPLACE);
 	onion_dict_add(dict,"a","1", OD_DUP_ALL|OD_REPLACE);
 	onion_dict_add(dict,"a","1", OD_REPLACE);
 	onion_dict_add(dict,"a","1", OD_DUP_ALL|OD_REPLACE);
-	
+
 	int n=0;
 	onion_dict_preorder(dict, t07_sum, &n);
 	FAIL_IF_NOT_EQUAL_INT(n,1);
@@ -313,9 +313,9 @@ void t07_replace(){
 	n=0;
 	onion_dict_preorder(dict, t07_sum, &n);
 	FAIL_IF_NOT_EQUAL_INT(n,2);
-	
+
 	onion_dict_free(dict);
-	
+
 	END_LOCAL();
 }
 
@@ -332,7 +332,7 @@ char *t08_thread_read(onion_dict *d){
 		const char *test=onion_dict_get(d,"test");
 		if (test){
 			//ONION_DEBUG("Unlock");
-			
+
 			//onion_dict_lock_write(d);
 			//ONION_DEBUG("Got write lock");
 			char tmp[16];
@@ -381,16 +381,16 @@ void *t08_thread_write(onion_dict *d){
 		ONION_DEBUG("Found %d answers, should be %d.", n, N_READERS);
 		usleep(200);
 	}
-	
+
 	onion_dict_free(d);
 	return (char*)1;
 }
 
 void t08_threaded_lock(){
 	INIT_LOCAL();
-	
+
 	onion_dict *d=onion_dict_new();
-	
+
 	pthread_t thread[N_READERS];
 	int i;
 	for (i=0;i<N_READERS;i++){
@@ -399,13 +399,13 @@ void t08_threaded_lock(){
 	}
 	//sleep(1);
 	t08_thread_write(d);
-	
+
 	for (i=0;i<N_READERS;i++){
 		char *v;
 		pthread_join(thread[i],(void**) &v);
 		FAIL_IF_NOT_EQUAL(v, (char *)v);
 	}
-	
+
 	END_LOCAL();
 }
 
@@ -433,7 +433,7 @@ void t09_thread_war_thread(onion_dict *d){
 
 void t09_thread_war(){
 	INIT_LOCAL();
-	
+
 	pthread_t thread[NWAR];
 	int i;
 	onion_dict *d=onion_dict_new();
@@ -441,13 +441,13 @@ void t09_thread_war(){
 		onion_dict *dup=onion_dict_dup(d);
 		pthread_create(&thread[i], NULL, (void*)&t09_thread_war_thread, dup);
 	}
-	
+
 	onion_dict_free(d);
 
 	for (i=0;i<NWAR;i++){
 		pthread_join(thread[i], NULL);
 	}
-	
+
 	END_LOCAL();
 }
 
@@ -455,7 +455,7 @@ void t09_thread_war(){
 
 void t10_tojson(){
 	INIT_LOCAL();
-	
+
 	onion_dict *d=onion_dict_new();
 	const char *tmp;
 	int s;
@@ -465,10 +465,11 @@ void t10_tojson(){
 	ONION_DEBUG("Json returned is '%s'", tmp);
 	FAIL_IF_NOT_EQUAL_STR(tmp,"{}");
 	onion_block_free(b);
-	
+
 	onion_dict_add(d, "test", "json", 0);
-	
+
 	b=onion_dict_to_json(d);
+	FAIL_IF_EQUAL(b,NULL);
 	tmp=onion_block_data(b);
 	s=onion_block_size(b);
 	ONION_DEBUG("Json returned is '%s'", tmp);
@@ -480,7 +481,7 @@ void t10_tojson(){
 	FAIL_IF_EQUAL(strstr(tmp,"\"json\""), NULL);
 	FAIL_IF_NOT_EQUAL(strstr(tmp,","), NULL);
 	onion_block_free(b);
-	
+
 	onion_dict_add(d, "other", "data", 0);
 
 	b=onion_dict_to_json(d);
@@ -497,7 +498,7 @@ void t10_tojson(){
 	FAIL_IF_EQUAL(strstr(tmp,"\"other\""), NULL);
 	FAIL_IF_EQUAL(strstr(tmp,"\"data\""), NULL);
 	onion_block_free(b);
-	
+
 	onion_dict_add(d, "with\"", "data\n", 0);
 
 	b=onion_dict_to_json(d);
@@ -509,9 +510,9 @@ void t10_tojson(){
 	FAIL_IF_EQUAL(strstr(tmp,"\\n"), NULL);
 	FAIL_IF_EQUAL(strstr(tmp,"\\\""), NULL);
 	onion_block_free(b);
-	
+
 	onion_dict_free(d);
-	
+
 	END_LOCAL();
 }
 
@@ -526,9 +527,9 @@ void cmpdict(onion_dict *d, const char *key, const char *value, int flags){
 
 void t11_hard_dup(){
 	INIT_LOCAL();
-	
+
 	onion_dict *orig=onion_dict_new();
-	
+
 	char tmp[9];
 	int i;
 	for (i=0;i<256;i++){
@@ -536,27 +537,27 @@ void t11_hard_dup(){
 		onion_dict_add(orig, tmp, tmp, OD_DUP_ALL);
 	}
 	onion_dict_add(orig, "0", "no frees", 0);
-	
+
 	onion_dict *dest=onion_dict_hard_dup(orig);
-	
+
 	/// Check they have exactly the same keys.
 	onion_dict_preorder(orig, cmpdict, dest);
 	onion_dict_preorder(dest, cmpdict, orig);
-	
+
 	onion_dict_free(orig);
 	onion_dict_free(dest);
-	
+
 	END_LOCAL();
 }
 
 void t12_dict_in_dict(){
 	INIT_LOCAL();
-	
+
 	onion_dict *A=onion_dict_new();
 	onion_dict *B=onion_dict_new();
 	onion_dict *C=onion_dict_new();
 	onion_dict *D=onion_dict_new();
-	
+
 	int i;
 	for (i=0;i<16;i++){
 		char tmp[9];
@@ -581,7 +582,7 @@ void t12_dict_in_dict(){
 	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get_dict(A, "B"), B);
 	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get_dict(A, "C"), C);
 	FAIL_IF_NOT_EQUAL((onion_dict*)onion_dict_get_dict(A, "D"), D);
-	
+
 	{
 		onion_block *tmpA=onion_dict_to_json(A);
 		onion_block *tmpB=onion_dict_to_json(B);
@@ -602,21 +603,21 @@ void t12_dict_in_dict(){
 		onion_block_free(tmpD);
 	}
 	B=onion_dict_hard_dup(A);
-	
+
 	onion_dict_free(A);
 	onion_dict_free(B);
-	
+
 	END_LOCAL();
 }
 
 void t13_dict_rget(){
 	INIT_LOCAL();
-	
+
 	onion_dict *A=onion_dict_new();
 	onion_dict *B=onion_dict_new();
 	onion_dict *C=onion_dict_new();
 	onion_dict *D=onion_dict_new();
-	
+
 	int i;
 	for (i=0;i<16;i++){
 		char tmp[9];
@@ -633,11 +634,11 @@ void t13_dict_rget(){
 	onion_dict_add(A, "B", B, OD_DICT|OD_FREE_VALUE);
 	onion_dict_add(A, "C", C, OD_DICT|OD_FREE_VALUE);
 	onion_dict_add(A, "D", D, OD_DICT|OD_FREE_VALUE);
-	
+
 	onion_dict_add(B, "C", C, OD_DICT);
-	
+
 	onion_dict_add(C, "a", "hello", 0);
-	
+
 	FAIL_IF_NOT_EQUAL(onion_dict_rget(A, "B", NULL), NULL);
 	FAIL_IF_NOT_EQUAL(onion_dict_rget(A, "C", NULL), NULL);
 	FAIL_IF_NOT_EQUAL(onion_dict_rget(A, "B", "C", NULL), NULL);
@@ -645,37 +646,37 @@ void t13_dict_rget(){
 	FAIL_IF_NOT_EQUAL(onion_dict_rget_dict(A, "B", NULL), B);
 	FAIL_IF_NOT_EQUAL(onion_dict_rget_dict(A, "C", NULL), C);
 	FAIL_IF_NOT_EQUAL(onion_dict_rget_dict(A, "B", "C", NULL), C);
-	
+
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_rget(A, "B", "C", "a", NULL), "hello");
 	FAIL_IF_NOT_EQUAL(onion_dict_rget_dict(A, "B", "C", "a", NULL), NULL);
-	
+
 	// This should remove all the others, as they hang from it.
 	onion_dict_free(A);
-	
+
 	END_LOCAL();
 }
 
 void t14_dict_case_insensitive(){
 	INIT_LOCAL();
-	
+
 	onion_dict *d=onion_dict_new();
-	
+
 	onion_dict_add(d,"Test","OK", 0);
 	FAIL_IF_NOT_EQUAL(onion_dict_get(d,"test"),NULL);
-	
+
 	onion_dict_set_flags(d,OD_ICASE);
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(d,"test"),"OK");
 
-	
+
 	onion_dict_free(d);
 	END_LOCAL();
 }
 
 void t15_hard_dup_dict_in_dict(){
 	INIT_LOCAL();
-	
+
 	onion_dict *orig=onion_dict_new();
-	
+
 	char tmp[9];
 	int i;
 	for (i=0;i<256;i++){
@@ -683,29 +684,29 @@ void t15_hard_dup_dict_in_dict(){
 		onion_dict_add(orig, tmp, tmp, OD_DUP_ALL);
 	}
 	onion_dict_add(orig, "0", "no frees", 0);
-	
+
 	onion_dict *subdict=onion_dict_new();
 	onion_dict_add(subdict,"subdict","test",0);
 	onion_dict_add(orig, "subdict", subdict, OD_DICT|OD_FREE_VALUE);
-	
+
 	onion_dict *dest=onion_dict_hard_dup(orig);
-	
+
 	FAIL_IF(orig==dest);
 	/// Check they have exactly the same keys.
 	onion_dict_preorder(orig, cmpdict, dest);
 	onion_dict_preorder(dest, cmpdict, orig);
-	
+
 	onion_dict_free(orig);
 	onion_dict_free(dest);
-	
+
 	END_LOCAL();
 }
 
 void t16_soft_dup_dict_in_dict(){
 	INIT_LOCAL();
-	
+
 	onion_dict *orig=onion_dict_new();
-	
+
 	char tmp[9];
 	int i;
 	for (i=0;i<256;i++){
@@ -713,40 +714,84 @@ void t16_soft_dup_dict_in_dict(){
 		onion_dict_add(orig, tmp, tmp, OD_DUP_ALL);
 	}
 	onion_dict_add(orig, "0", "no frees", 0);
-	
+
 	onion_dict *subdict=onion_dict_new();
 	onion_dict_add(subdict,"subdict","test",0);
 	onion_dict_add(orig, "subdict", subdict, OD_DICT|OD_FREE_VALUE);
-	
+
 	onion_dict *dest=onion_dict_dup(orig);
-	
+
 	FAIL_IF_NOT(orig==dest);
-	
+
 	/// Check they have exactly the same keys.
 	onion_dict_preorder(orig, cmpdict, dest);
 	onion_dict_preorder(dest, cmpdict, orig);
-	
+
 	onion_dict_free(orig);
 	onion_dict_free(dest);
-	
+
 	END_LOCAL();
 }
 
 void t17_merge(){
 	INIT_LOCAL();
-	
+
 	onion_dict *a=onion_dict_from_json("{\"hello\":\"world\"}");
 	onion_dict *b=onion_dict_from_json("{\"bye\":\"_world_\", \"sub\": { \"hello\": \"world!\" } }");
-	
+
 	onion_dict_merge(a,b);
-	
+
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(a,"bye"), "_world_");
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_rget(a,"sub","hello",NULL), "world!");
-	
+
 	onion_dict_free(b);
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_rget(a,"sub","hello",NULL), "world!");
 	onion_dict_free(a);
-	
+
+	END_LOCAL();
+}
+
+void t18_json_escape_codes(){
+	INIT_LOCAL();
+
+	onion_dict *d=onion_dict_from_json("{ \"hello\": \"Hello\\nworld\" }");
+	FAIL_IF_NOT_STRSTR(onion_dict_get(d, "hello"), "Hello\nworld");
+	onion_dict_free(d);
+
+	d=onion_dict_from_json("{ \"hello\": \"\\uD83D\\uDE02\" }");
+	FAIL_IF_NOT_STRSTR(onion_dict_get(d, "hello"), "😂");
+	onion_dict_free(d);
+
+	d=onion_dict_from_json("{ \"hello\": \"\\uD83D\\uDE03\" }"); // Another code point
+	FAIL_IF_STRSTR(onion_dict_get(d, "hello"), "😂");
+	onion_dict_free(d);
+
+	d=onion_dict_from_json("{ \"hello\": \"\\u007b\" }"); // simple unicode
+	FAIL_IF_NOT_STRSTR(onion_dict_get(d, "hello"), "{");
+	onion_dict_free(d);
+
+	d=onion_dict_from_json("{ \"hello\": \"\\\"Quote\" }"); // Escape quote
+	FAIL_IF_NOT_STRSTR(onion_dict_get(d, "hello"), "\"Quote");
+	onion_dict_free(d);
+
+	d=onion_dict_from_json("{ \"hello\": \"\"Quote\" }"); // Must fail
+	FAIL_IF_NOT_EQUAL(d, NULL);
+
+	d=onion_dict_new();
+	onion_dict_add(d, "hello", "Hello\nWorld\\", 0);
+	onion_block *b=onion_dict_to_json(d);
+	FAIL_IF_NOT_EQUAL_STR(onion_block_data(b),"{\"hello\":\"Hello\\nWorld\\\\\"}");
+	onion_block_free(b);
+	onion_dict_free(d);
+
+	d=onion_dict_new();
+	onion_dict_add(d, "hello", "😂\t\n😂", 0);
+	b=onion_dict_to_json(d);
+	FAIL_IF_NOT_EQUAL_STR(onion_block_data(b),"{\"hello\":\"😂\\t\\n😂\"}");
+	onion_block_free(b);
+	onion_dict_free(d);
+
+
 	END_LOCAL();
 }
 
@@ -773,9 +818,7 @@ int main(int argc, char **argv){
 	t15_hard_dup_dict_in_dict();
 	t16_soft_dup_dict_in_dict();
 	t17_merge();
-	
-	
+	t18_json_escape_codes();
+
 	END();
 }
-
-
