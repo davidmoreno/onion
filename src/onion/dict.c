@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see
+	You should have received a copy of both licenses, if not see
 	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -26,7 +26,6 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <ctype.h>
 
 #include "log.h"
 #include "dict.h"
@@ -35,16 +34,29 @@
 #include "block.h"
 #include "low.h"
 
-// This macro is used to avoid undefined behavior when using  the
-// ctype macros.
-#define SAFETY_CAST(x) (int)(unsigned char)x
-
 /// @private
 typedef struct onion_dict_node_data_t{
 	const char *key;
 	const void *value;
 	short int flags;
 }onion_dict_node_data;
+
+// In the JSON spec, the only allowed space separators are
+// U+0009, U+000A, U+000D, U+0020
+static int is_json_space(char c) {
+	if(c == '\t' || c == '\n' || c == '\r' || c == ' ')
+		return 1;
+	return 0;
+}
+
+// In the JSON spec, the only allowed digits are
+// U+0030 to U+0039
+static int is_json_digit(char c) {
+	if(c >= '0' && c <= '9')
+		return 1;
+	return 0;
+}
+
 
 /**
  * @short Node for the tree.
@@ -114,7 +126,7 @@ void onion_dict_merge(onion_dict *me, const onion_dict *other){
  * Its actually the same, but with refcount increased, so future frees will free the dict
  * only on latest one.
  *
- * Any change on one dict is made also on the other one, as well as rwlock... This is usefull on a multhreaded
+ * Any change on one dict s made also on the other one, as well as rwlock... This is usefull on a multhreaded
  * environment so that multiple threads cna have the same dict and free it when not in use anymore.
  */
 onion_dict *onion_dict_dup(onion_dict *dict){
@@ -675,7 +687,7 @@ onion_dict *onion_dict_from_json(const char *data){
 		return NULL;
 	const char *_data[1]={ data };
 	onion_dict *ret=onion_dict_from_json_(_data);
-	while (isspace(SAFETY_CAST(*_data[0])))
+	while (is_json_space(*_data[0]))
 		++_data[0];
 	if (*_data[0]){
 		ONION_DEBUG("Invalid JSON, not ends at end");
@@ -688,13 +700,13 @@ onion_dict *onion_dict_from_json(const char *data){
 onion_dict *onion_dict_from_json_(const char **_data){
 	const char *data=*_data;
 	ONION_DEBUG("Parse %s", *_data);
-	while (isspace(SAFETY_CAST(*data)))
+	while (is_json_space(*data))
 		++data;
 	if (*data!='{')
 		return NULL;
 	++data;
 
-	while (isspace(SAFETY_CAST(*data)))
+	while (is_json_space(*data))
 		++data;
 	;
 	onion_dict *ret=onion_dict_new();
@@ -707,7 +719,7 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			goto error;
 		data+=read_bytes;
 
-		while (isspace(SAFETY_CAST(*data)))
+		while (is_json_space(*data))
 			++data;
 
 		/// Get :
@@ -716,7 +728,7 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			goto error;
 		}
 		++data;
-		while (isspace(SAFETY_CAST(*data)))
+		while (is_json_space(*data))
 			++data;
 
 		/// Get Value
@@ -730,8 +742,8 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			onion_dict_add(ret, onion_block_data(key), sub, OD_DUP_KEY|OD_DICT|OD_FREE_VALUE);
 			data=*_data;
 		}
-		else if (isdigit(SAFETY_CAST(*data))){
-			while(isdigit(SAFETY_CAST(*data))){
+		else if (is_json_digit(*data)){
+			while(is_json_digit(*data)){
 				onion_block_add_char(value, *data);
 				++data;
 			}
@@ -751,7 +763,7 @@ onion_dict *onion_dict_from_json_(const char **_data){
 		}
 		onion_block_clear(key);
 
-		while (isspace(SAFETY_CAST(*data)))
+		while (is_json_space(*data))
 			++data;
 		if (*data=='}'){
 			++data;
@@ -765,7 +777,7 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			goto error;
 		}
 		++data;
-		while (isspace(SAFETY_CAST(*data)))
+		while (is_json_space(*data))
 			++data;
 	}
 	++data;
