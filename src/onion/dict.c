@@ -685,27 +685,6 @@ onion_dict *onion_dict_from_json(const char *data){
 	return ret;
 }
 
-/// Converts next 4 bytes to an unsigned int.
-static unsigned int hex4(const char *data){
-	unsigned int retval = 0, bit = 16;
-	do {
-		unsigned int digit;
-		if (*data >= '0' && *data <= '9')
-			digit = *data - '0';
-		else if (*data >= 'A' && *data <= 'F')
-			digit = *data - ('A' - 10);
-		else if (*data >= 'a' && *data <= 'f')
-			digit = *data - ('a' - 10);
-		else{
-			return 0;
-		}
-		data++;
-		bit -= 4;
-		retval |= digit << bit;
-	} while (bit);
-	return retval;
-}
-
 onion_dict *onion_dict_from_json_(const char **_data){
 	const char *data=*_data;
 	ONION_DEBUG("Parse %s", *_data);
@@ -723,20 +702,11 @@ onion_dict *onion_dict_from_json_(const char **_data){
 	onion_block *value=onion_block_new();
 	while (*data!='}'){
 		// Get Key
-		if (*data!='"'){ // Includes \0
-			ONION_DEBUG("Expected \" got %c", *data);
+		ssize_t read_bytes=onion_json_unquote_add(key, data);
+		if (read_bytes<0)
 			goto error;
-		}
-		++data;
-		while (*data!='"'){
-			if (!*data){ // \0
-				ONION_DEBUG("Expected \" got eof");
-				goto error;
-			}
-			onion_block_add_char(key, *data);
-			++data;
-		}
-		++data;
+		data+=read_bytes;
+
 		while (isspace(SAFETY_CAST(*data)))
 			++data;
 
@@ -768,76 +738,10 @@ onion_dict *onion_dict_from_json_(const char **_data){
 			onion_dict_add(ret, onion_block_data(key), onion_block_data(value), OD_DUP_ALL);
 		}
 		else if (*data=='"'){ // parse string
-			++data;
-			while (*data!='"'){
-				if (*data=='\\'){
-					char c=*++data;
-					switch (c){
-					case 'b':
-						c='\b';
-						break;
-					case 'f':
-						c='\f';
-						break;
-					case 'n':
-						c='\n';
-						break;
-					case 'r':
-						c='\r';
-						break;
-					case 't':
-						c='\t';
-						break;
-					case 'u':
-						{
-							unsigned int uc, uc2, n, mark, mask;
-							uc=hex4(data+1);
-							if ( !uc || ( uc>=0xdc00 && uc<=0xdfff ) ){
-bad_utf16:
-								ONION_DEBUG("Expected a valid non-NUL UTF-16 char in hex, got something else");
-								goto error;
-							}
-							data+=5;
-							if (uc>=0xd800&&uc<=0xdbff) { // unicode continuation
-								if (data[0]!='\\'||data[1]!='u')
-									goto bad_utf16;
-								uc2=hex4(data+2);
-								if ( !uc || uc2<0xdc00 || uc2>0xdfff )
-									goto bad_utf16;
-								data+=6;
-								uc=((uc-0xd7c0)<<10)|(uc2&0x3ff);
-							}
-							if (uc<0x80) {n=1; mark=0;}
-							else if (uc<0x800) {n=2; mark=0xc0;}
-							else if (uc<0x10000) {n=3; mark=0xe0;}
-							else {n=4; mark=0xf0;}
-							mask=0xff;
-							do {
-								onion_block_add_char(value, ((uc>>(6*--n))|mark)&mask);
-								mark=0x80; mask=0xbf;
-							} while (n);
-							continue;
-						}
-/*
- * Also valid: '"', '\\', '/' (don't need special handling).
- * Other characters not valid, but are left verbatim.
- */
-					}
-					if (*data){
-						onion_block_add_char(value, c);
-						++data;
-						continue;
-					}
-				}
-				if (!*data){ // \0
-					ONION_DEBUG("Expected \" got eof");
-					goto error;
-				}
-				onion_block_add_char(value, *data);
-				++data;
-			}
-			++data;
-
+			ssize_t read_bytes=onion_json_unquote_add(value, data);
+			if (read_bytes<0)
+				goto error;
+			data+=read_bytes;
 			onion_dict_add(ret, onion_block_data(key), onion_block_data(value), OD_DUP_ALL);
 			onion_block_clear(value);
 		}

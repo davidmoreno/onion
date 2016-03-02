@@ -64,6 +64,9 @@ const char* onion_html_quote_dup(const char*str);
 /// Generates JSON string encoding and adds it to an existing block
 void onion_json_quote_add(onion_block *block, const char *str);
 
+/// Adds to the block the quoted string; converts "\\n" to "\n"
+ssize_t onion_json_unquote_add(onion_block *block, const char *str);
+
 #ifdef __cplusplus
 }
 #endif

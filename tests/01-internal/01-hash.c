@@ -754,8 +754,9 @@ void t17_merge(){
 void t18_json_escape_codes(){
 	INIT_LOCAL();
 
-	onion_dict *d=onion_dict_from_json("{ \"hello\": \"Hello\\nworld\" }");
+	onion_dict *d=onion_dict_from_json("{ \"hello\": \"Hello\\nworld\", \"second\":\"second\" }");
 	FAIL_IF_NOT_STRSTR(onion_dict_get(d, "hello"), "Hello\nworld");
+	FAIL_IF_NOT_STRSTR(onion_dict_get(d, "second"), "second");
 	onion_dict_free(d);
 
 	d=onion_dict_from_json("{ \"hello\": \"\\uD83D\\uDE02\" }");
@@ -779,8 +780,9 @@ void t18_json_escape_codes(){
 
 	d=onion_dict_new();
 	onion_dict_add(d, "hello", "Hello\nWorld\\", 0);
+	onion_dict_add(d, "second", "123", 0);
 	onion_block *b=onion_dict_to_json(d);
-	FAIL_IF_NOT_EQUAL_STR(onion_block_data(b),"{\"hello\":\"Hello\\nWorld\\\\\"}");
+	FAIL_IF_NOT_EQUAL_STR(onion_block_data(b),"{\"hello\":\"Hello\\nWorld\\\\\", \"second\":\"123\"}");
 	onion_block_free(b);
 	onion_dict_free(d);
 

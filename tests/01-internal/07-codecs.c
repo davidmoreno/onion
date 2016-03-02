@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include <onion/codecs.h>
+#include <onion/block.h>
 
 #include "../ctest.h"
 
@@ -192,6 +193,23 @@ void t07_codecs_html(){
 	END_LOCAL();
 }
 
+void t08_codecs_utf16(){
+	INIT_LOCAL();
+
+	onion_block *b=onion_block_new();
+	onion_json_quote_add(b, "\xd8\x00\xdc\x00");
+	FAIL_IF_NOT_EQUAL_STR(onion_block_data(b), "\xd8\x00\xdc\x00");
+	onion_block_clear(b);
+
+	onion_json_quote_add(b, "\x01\x02\b\f\n\r\t");
+	FAIL_IF_NOT_EQUAL_STR(onion_block_data(b), "\\u0001\\u0002\\b\\f\\n\\r\\t");
+	onion_block_clear(b);
+
+	onion_block_free(b);
+
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	START();
 
@@ -202,6 +220,7 @@ int main(int argc, char **argv){
 	t05_codecs_base64_decode_trash();
 	t06_codecs_c_unicode();
 	t07_codecs_html();
+	t08_codecs_utf16();
 
 	END();
 }
