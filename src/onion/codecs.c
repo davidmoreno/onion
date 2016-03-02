@@ -509,10 +509,11 @@ void onion_json_quote_add(onion_block *block, const char *str){
 	if (!str)
 		return;
 
-	onion_block_min_maxsize(block, onion_block_size(block) + strlen(str)+1 ); // Optimistically resize to str length
+	// Optimistically resize to str length
+	onion_block_min_maxsize(block, onion_block_size(block) + strlen(str)+1 );
 
 	while(*str){
-		char c=*str;
+		unsigned char c=*str;
 		switch(c){
 			case '\n':
 				onion_block_add_data(block, "\\n", 2);
@@ -527,8 +528,19 @@ void onion_json_quote_add(onion_block *block, const char *str){
 				onion_block_add_data(block, "\\\\", 2);
 				break;
 			default:
-				// Others just put it in. Teh reader should be able to read binary unicode chars. (ie: not \uXXXX encoded)
-				onion_block_add_char(block, c);
+				// set the unicode escape for non printable characters. C is unsigned no prob with <0
+				if (c<32 || c==127){
+					char codestr[6]="\\u0000";
+					const char *hex="0123456789ABCDEF";
+					codestr[4]=hex[((c&0x0F0)>>4)&0x0F];
+					codestr[5]=hex[(c&0x0F)];
+					onion_block_add_data(block, codestr, 6);
+				}
+				else{
+					// Others just put it in.
+					// The reader should be able to read binary unicode chars. (ie: not \uXXXX encoded)
+					onion_block_add_char(block, c);
+				}
 		}
 		str++;
 	}

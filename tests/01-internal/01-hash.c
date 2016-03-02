@@ -791,6 +791,12 @@ void t18_json_escape_codes(){
 	onion_block_free(b);
 	onion_dict_free(d);
 
+	d=onion_dict_new();
+	onion_dict_add(d, "hello", "\02\03\x7f", 0);
+	b=onion_dict_to_json(d);
+	FAIL_IF_NOT_EQUAL_STR(onion_block_data(b),"{\"hello\":\"\\u0002\\u0003\\u007F\"}");
+	onion_block_free(b);
+	onion_dict_free(d);
 
 	END_LOCAL();
 }

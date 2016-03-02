@@ -686,7 +686,7 @@ onion_dict *onion_dict_from_json(const char *data){
 }
 
 /// Converts next 4 bytes to an unsigned int.
-static unsigned int hex4(const char *data, bool *valid){
+static unsigned int hex4(const char *data){
 	unsigned int retval = 0, bit = 16;
 	do {
 		unsigned int digit;
@@ -697,16 +697,12 @@ static unsigned int hex4(const char *data, bool *valid){
 		else if (*data >= 'a' && *data <= 'f')
 			digit = *data - ('a' - 10);
 		else{
-			if (valid)
-				*valid=false;
 			return 0;
 		}
 		data++;
 		bit -= 4;
 		retval |= digit << bit;
 	} while (bit);
-	if (valid)
-		*valid=true;
 	return retval;
 }
 
@@ -795,9 +791,8 @@ onion_dict *onion_dict_from_json_(const char **_data){
 					case 'u':
 						{
 							unsigned int uc, uc2, n, mark, mask;
-							bool valid_hex4;
-							uc=hex4(data+1, &valid_hex4);
-							if ( !valid_hex4 || ( uc>=0xdc00 && uc<=0xdfff ) ){
+							uc=hex4(data+1);
+							if ( !uc || ( uc>=0xdc00 && uc<=0xdfff ) ){
 bad_utf16:
 								ONION_DEBUG("Expected a valid non-NUL UTF-16 char in hex, got something else");
 								goto error;
@@ -806,8 +801,8 @@ bad_utf16:
 							if (uc>=0xd800&&uc<=0xdbff) { // unicode continuation
 								if (data[0]!='\\'||data[1]!='u')
 									goto bad_utf16;
-								uc2=hex4(data+2, &valid_hex4);
-								if ( !valid_hex4 || uc2<0xdc00 || uc2>0xdfff )
+								uc2=hex4(data+2);
+								if ( !uc || uc2<0xdc00 || uc2>0xdfff )
 									goto bad_utf16;
 								data+=6;
 								uc=((uc-0xd7c0)<<10)|(uc2&0x3ff);
