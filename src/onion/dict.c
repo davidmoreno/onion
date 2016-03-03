@@ -81,6 +81,7 @@ static onion_dict_node *onion_dict_node_new(const char *key, const void *value, 
  */
 onion_dict *onion_dict_new(){
 	onion_dict *dict=onion_low_calloc(1, sizeof(onion_dict));
+	dict->is_plain_data=true;
 #ifdef HAVE_PTHREADS
 	pthread_rwlock_init(&dict->lock, NULL);
 	pthread_mutex_init(&dict->refmutex, NULL);
@@ -183,6 +184,7 @@ static void onion_dict_node_free(onion_dict_node *node){
 void onion_dict_free(onion_dict *dict){
 	if (!dict) // No free NULL
 		return;
+
 	ONION_DEBUG0("Free %p", dict);
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&dict->refmutex);
@@ -198,7 +200,9 @@ void onion_dict_free(onion_dict *dict){
 		pthread_rwlock_destroy(&dict->lock);
 		pthread_mutex_destroy(&dict->refmutex);
 #endif
-		if (dict->root)
+		if (dict->is_plain_data){ // Nothing extra to free
+		}
+		else if (dict->root)
 			onion_dict_node_free(dict->root);
 		onion_low_free(dict);
 	}
@@ -347,7 +351,33 @@ void onion_dict_add(onion_dict *dict, const char *key, const void *value, int fl
 		ONION_ERROR("Error, trying to add an empty key to a dictionary. There is a underliying bug here! Not adding anything.");
 		return;
 	}
-	dict->root=onion_dict_node_add(dict, dict->root, onion_dict_node_new(key, value, flags));
+	if (dict->is_plain_data){
+		if (flags & OD_DICT){
+			ONION_ERROR("No conversion yet!");
+			exit(1);
+		}
+		int kl=strlen(key);
+		int vl=strlen(value);
+
+		if (kl+vl+dict->plain.pos > ONION_DICT_DATA_SIZE){
+			ONION_ERROR("No conversion yet!");
+			exit(1);
+		}
+
+		memcpy( dict->plain.data + dict->plain.pos+1, key, kl);
+		dict->plain.pos+=1+kl; // \0 is delimiter between keys and values
+		memcpy( dict->plain.data + dict->plain.pos+1, value, vl);
+		dict->plain.pos+=1+vl; // \0 is delimiter between keys and values
+
+		// if marked for free, but not dup
+		if ((flags & OD_DUP_KEY)!=OD_DUP_KEY && (flags & OD_FREE_KEY))
+			onion_low_free((void*)key);
+		if ((flags & OD_DUP_VALUE)!=OD_DUP_VALUE && (flags & OD_FREE_VALUE))
+			onion_low_free((void*)value);
+	}
+	else{
+		dict->root=onion_dict_node_add(dict, dict->root, onion_dict_node_new(key, value, flags));
+	}
 }
 
 /// Frees the memory, if necesary of key and value
@@ -424,6 +454,22 @@ static onion_dict_node *onion_dict_node_remove(const onion_dict *d, onion_dict_n
  * Returns if it removed any node.
  */
 int onion_dict_remove(onion_dict *dict, const char *key){
+	if (dict->is_plain_data){
+		char *data=dict->plain.data;
+		const char *maxdata=data + dict->plain.pos;
+		while (data<maxdata){
+			if (strcmp(data, key)==0){
+				size_t kl=strlen(key);
+				memset(data, 0, kl);
+				data+=kl+1;
+				size_t vl=strlen(data);
+				memset(data, 0, vl);
+				return 1;
+			}
+		}
+	}
+
+
 	dict->root=onion_dict_node_remove(dict, dict->root, key);
 	return 1;
 }
@@ -435,6 +481,26 @@ int onion_dict_remove(onion_dict *dict, const char *key){
 const char *onion_dict_get(const onion_dict *dict, const char *key){
 	if (!dict) // Get from null dicts, returns null data.
 		return NULL;
+
+	if (dict->is_plain_data){
+		const char *data=dict->plain.data;
+		const char *maxdata=data + dict->plain.pos;
+		while (data<maxdata){
+			if (*data){
+				size_t kl=strlen(key);
+				if (strcmp(data, key)==0){ // skip key, return value
+					data+=kl+1;
+					return data;
+				}
+				size_t vl=strlen(data); // skip value
+				data+=vl+1;
+			}
+			else
+				data++;
+		}
+		return NULL;
+	}
+
 	const onion_dict_node *r;
 	r=onion_dict_find_node(dict, dict->root, key, NULL);
 	if (r && !(r->data.flags&OD_DICT))
@@ -447,6 +513,8 @@ const char *onion_dict_get(const onion_dict *dict, const char *key){
  * @memberof onion_dict_t
  */
 onion_dict *onion_dict_get_dict(const onion_dict *dict, const char *key){
+	if (dict->is_plain_data)
+		return NULL;
 	const onion_dict_node *r;
 	r=onion_dict_find_node(dict, dict->root, key, NULL);
 	if (r){
@@ -501,10 +569,37 @@ static void onion_dict_node_preorder(const onion_dict_node *node, void *func, vo
   *
  * The function is of prototype void func(void *data, const char *key, const void *value, int flags);
  */
-void onion_dict_preorder(const onion_dict *dict, void *func, void *data){
-	if (!dict || !dict->root)
+void onion_dict_preorder(const onion_dict *dict, void *func, void *priv_data){
+	if (!dict)
 		return;
-	onion_dict_node_preorder(dict->root, func, data);
+	if (dict->is_plain_data){
+		void (*f)(void *data, const char *key, const void *value, int flags);
+		f=func;
+
+		const char *data=dict->plain.data;
+		const char *maxdata=data + dict->plain.pos;
+		while (data<maxdata){
+			if (*data){
+				size_t kl=strlen(data);
+				const char *key=data;
+				data+=kl+1;
+				size_t vl=strlen(data);
+				const char *value=data;
+				data+=vl+1;
+
+				//ONION_DEBUG("Preorder %s %s", key, value);
+				f(priv_data, key, value, 0);
+			}
+			else{
+				data++;
+			}
+		}
+		return;
+	}
+
+	if (!dict->root)
+		return;
+	onion_dict_node_preorder(dict->root, func, priv_data);
 }
 
 static int onion_dict_node_count(const onion_dict_node *node){
@@ -521,6 +616,25 @@ static int onion_dict_node_count(const onion_dict_node *node){
  * @memberof onion_dict_t
  */
 int onion_dict_count(const onion_dict *dict){
+	if (dict->is_plain_data){
+		int count=0;
+		const char *data=dict->plain.data;
+		const char *maxdata=data + dict->plain.pos;
+		while (data<maxdata){
+			if (*data){
+				size_t kl=strlen(data);
+				data+=kl+1;
+				size_t vl=strlen(data);
+				data+=vl+1;
+
+				count++;
+			}
+			else{
+				data++;
+			}
+		}
+		return count;
+	}
 	if (dict && dict->root)
 		return onion_dict_node_count(dict->root);
 	return 0;
