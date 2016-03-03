@@ -356,7 +356,7 @@ static int onion_poller_get_next_timeout(onion_poller *p){
 }
 
 // Max of events per loop. If not al consumed for next, so no prob.  right number uses less memory, and makes less calls.
-#define MAX_EVENTS 10
+static size_t onion_poller_max_events=10;
 
 /**
  * @short Do the event polling.
@@ -367,7 +367,7 @@ static int onion_poller_get_next_timeout(onion_poller *p){
  * If no fd to poll, returns.
  */
 void onion_poller_poll(onion_poller *p){
-	struct epoll_event event[MAX_EVENTS];
+	struct epoll_event event[onion_poller_max_events];
 	ONION_DEBUG("Start polling");
 	p->stop=0;
 #ifdef HAVE_PTHREADS
@@ -391,7 +391,7 @@ void onion_poller_poll(onion_poller *p){
 		else
 			timeout*=1000;
 		ONION_DEBUG0("Wait for %d ms", timeout);
-		int nfds = epoll_wait(p->fd, event, MAX_EVENTS, timeout);
+		int nfds = epoll_wait(p->fd, event, onion_poller_max_events, timeout);
 		int ctime_end=time(NULL);
 		ONION_DEBUG0("Current time is %d, limit is %d, timeout is %d. Waited for %d seconds", ctime, maxtime, timeout, ctime_end-ctime);
     ctime=ctime_end;
@@ -509,4 +509,27 @@ void onion_poller_stop(onion_poller *p){
 	else
 		ONION_DEBUG("Poller stopped");
 #endif
+}
+
+/**
+ * @short Sets the max events per thread queue size.
+ *
+ * This fine tune allows to change the queue of events per thread.
+ *
+ * In case of data contention a call to epoll_wait can return several ready
+ * descriptors, which this value decides.
+ *
+ * If the value is high and some request processing is slow, the requests
+ * after that one will have to wait until processed, which increases
+ * latency. On the other hand, it requests are fast, using the queue is
+ * faster than another call to epoll_wait.
+ *
+ * In non contention cases, where onion is mostly waiting for requests,
+ * it makes no diference.
+ *
+ * Default: 10.
+ */
+void onion_poller_set_queue_size_per_thread(onion_poller *poller, size_t count){
+	assert(count>0);
+	onion_poller_max_events=count;
 }

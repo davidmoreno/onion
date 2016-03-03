@@ -167,3 +167,9 @@ void onion_poller_stop(onion_poller *poller){
 	poller->stop=1;
 	ev_break(poller->loop, EVBREAK_ALL);
 }
+
+
+// Not implemented for libev
+void onion_poller_set_queue_size_per_thread(onion_poller *poller, size_t count){
+	ONION_WARNING("onion_poller_queue_size_per_thread only used with epoll polling, not libev.")
+}
