@@ -27,7 +27,6 @@
 #include <unistd.h>
 #include <regex.h>
 #include <stdio.h>
-#include <ctype.h>
 
 #include "log.h"
 #include "handler.h"

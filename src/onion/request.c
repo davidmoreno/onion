@@ -24,14 +24,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ctype.h>
 #include <netdb.h>
 
 #include "onion.h"
 #include "dict.h"
-#include "request.h"
-#include "response.h"
-#include "handler.h"
 #include "types_internal.h"
 #include "log.h"
 #include "sessions.h"
@@ -41,6 +37,12 @@
 #include "low.h"
 #include "ptr_list.h"
 #include "poller.h"
+
+static int is_alnum(char c) {
+	if((c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122))
+		return 1;
+	return 0;
+}
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 
@@ -366,19 +368,19 @@ void onion_request_guess_session_id(onion_request *req){
 		v=strstr(v,"sessionid=");
 		if (!v) // exit point, no session found.
 			return;
-    if (v>ov && isalnum(v[-1])){
-      ONION_DEBUG("At -1: %c %d (%p %p)",v[-1],isalnum(v[-1]),v,ov);
-      v=strstr(v,";");
-    }
-    else{
-      v+=10;
-      r=onion_low_strdup(v); // Maybe allocated more memory, not much anyway.
-      char *p=r;
-      while (*p!='\0' && *p!=';') p++;
-      *p='\0';
-      ONION_DEBUG0("Checking if %s exists in sessions", r);
-      session=onion_sessions_get(req->connection.listen_point->server->sessions, r);
-    }
+		if (v>ov && is_alnum(v[-1])){
+			ONION_DEBUG("At -1: %c %d (%p %p)",v[-1],is_alnum(v[-1]),v,ov);
+			v=strstr(v,";");
+		}
+		else{
+			v+=10;
+			r=onion_low_strdup(v); // Maybe allocated more memory, not much anyway.
+			char *p=r;
+			while (*p!='\0' && *p!=';') p++;
+			*p='\0';
+			ONION_DEBUG0("Checking if %s exists in sessions", r);
+			session=onion_sessions_get(req->connection.listen_point->server->sessions, r);
+			}
 	}while(!session);
 
 	req->session_id=r;

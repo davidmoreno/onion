@@ -24,7 +24,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <libgen.h>
-#include <ctype.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
@@ -97,13 +96,22 @@ static onion_connection_status prepare_POST(onion_request *req);
 static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req);
 static onion_connection_status prepare_PUT(onion_request *req);
 
+// In the HTTP RFC whitespace is always these characters
+// and is not locale independent, we'll need this when
+// parsing
+static int is_space(char c) {
+	if(c == '\t' || c == '\n' || c == '\r' || c == ' ')
+		return 1;
+	return 0;
+}
+
 /// Reads a string until a non-string char. Returns an onion_token
 int token_read_STRING(onion_token *token, onion_buffer *data){
 	if (data->pos>=data->size)
 		return OCS_NEED_MORE_DATA;
 
 	char c=data->data[data->pos++];
-	while (!isspace(c)){
+	while (!is_space(c)){
 		token->str[token->pos++]=c;
 		if (data->pos>=data->size)
 			return OCS_NEED_MORE_DATA;
@@ -722,7 +730,7 @@ static onion_connection_status parse_headers_VALUE_multiline_if_space(onion_requ
 	token->pos=0;
 
 	char *p=token->str; // skips leading spaces
-	while (isspace(*p)) p++;
+	while (is_space(*p)) p++;
 
 	ONION_DEBUG0("Adding header %s : %s",token->extra,p);
 	onion_dict_add(req->headers,token->extra,p, OD_DUP_VALUE|OD_FREE_KEY);
