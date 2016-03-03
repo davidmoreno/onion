@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
-#include <inttypes.h>
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
@@ -252,7 +251,7 @@ void onion_unquote_inplace(char *str){
 /**
  * @short Performs URL quoting, memory is allocated and has to be freed.
  *
- * As size necesary is dificult to measure, it first check how many should be encoded, and on a second round it encodes it.
+ * As size neccesary is difficult to measure, it first check how many should be encoded, and on a second round it encodes it.
  */
 char *onion_quote_new(const char *str){
 	int i;

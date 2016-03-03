@@ -36,6 +36,10 @@ static onion_dict *onion_mime_dict=NULL;
 
 static void onion_mime_fill();
 
+// This macro is used to avoid undefined behavior when using the
+// ctype macros
+#define ONION_SAFETY_CAST(x) (int)(unsigned char){ x }
+
 /**
  * @short Sets a user set dict as mime dict
  * 
@@ -124,7 +128,7 @@ static void onion_mime_fill(){
 			i=0;
 		}
 		else{
-			if (isspace(c)){
+			if (isspace(ONION_SAFETY_CAST(c))){
 				if (mode==0){
 					mimetype[i]='\0';
 					mode=1;
