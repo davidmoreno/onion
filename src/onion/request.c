@@ -407,9 +407,9 @@ void onion_request_guess_session_id(onion_request *req){
  */
 onion_dict *onion_request_get_session_dict(onion_request *req){
 	if (!req->session){
-    if (req->flags & OR_HEADER_SENT){
-      ONION_WARNING("Asking for session AFTER sending headers. This may result in double sessionids, and wrong session behaviour. Please modify your handlers to ask for session BEFORE sending any data.");
-    }
+		if (req->flags & OR_HEADER_SENT){
+			ONION_WARNING("Asking for session AFTER sending headers. This may result in double sessionids, and wrong session behaviour. Please modify your handlers to ask for session BEFORE sending any data.");
+		}
 		onion_request_guess_session_id(req);
 		if (!req->session){ // Maybe old session is not to be used anymore
 			req->session_id=onion_sessions_create(req->connection.listen_point->server->sessions);
@@ -468,7 +468,7 @@ void onion_request_session_free(onion_request *req){
 	if (!req->session_id)
 		onion_request_guess_session_id(req);
 	if (req->session_id){
-    ONION_DEBUG("Removing from session storage session id: %s",req->session_id);
+		ONION_DEBUG("Removing from session storage session id: %s",req->session_id);
 		onion_sessions_remove(req->connection.listen_point->server->sessions, req->session_id);
 		onion_dict_free(req->session);
 		req->session=NULL;
@@ -524,8 +524,8 @@ const onion_block *onion_request_get_data(onion_request *req){
 onion_connection_status onion_request_process(onion_request *req){
 	onion_response *res=onion_response_new(req);
 	if (!req->path){
-    onion_request_polish(req);
-  }
+		onion_request_polish(req);
+	}
 	// Call the main handler.
 	onion_connection_status hs=onion_handler_handle(req->connection.listen_point->server->root_handler, req, res);
 
@@ -538,8 +538,8 @@ onion_connection_status onion_request_process(onion_request *req){
 			req->flags|=OR_NOT_IMPLEMENTED;
 		if (hs==OCS_NOT_PROCESSED)
 			req->flags|=OR_NOT_FOUND;
-    if (hs==OCS_FORBIDDEN)
-      req->flags|=OR_FORBIDDEN;
+		if (hs==OCS_FORBIDDEN)
+			req->flags|=OR_FORBIDDEN;
 
 		hs=onion_handler_handle(req->connection.listen_point->server->internal_error_handler, req, res);
 	}
@@ -567,10 +567,10 @@ onion_connection_status onion_request_process(onion_request *req){
  * @param req The request.
  */
 void onion_request_polish(onion_request *req){
-  if (*req->fullpath)
-    req->path=req->fullpath+1;
-  else
-    req->path=req->fullpath;
+	if (*req->fullpath)
+		req->path=req->fullpath+1;
+	else
+		req->path=req->fullpath;
 }
 
 /**
@@ -602,11 +602,11 @@ const char *onion_request_get_client_description(onion_request *req){
  * @returns Pointer to the stored sockaddr_storage.
  */
 struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, socklen_t *client_len){
-  if (client_len)
-    *client_len=req->connection.cli_len;
+	if (client_len)
+		*client_len=req->connection.cli_len;
 	if (req->connection.cli_len==0)
 		return NULL;
-  return &req->connection.cli_addr;
+	return &req->connection.cli_addr;
 }
 
 /**
