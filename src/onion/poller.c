@@ -525,7 +525,7 @@ void onion_poller_stop(onion_poller *p){
  * faster than another call to epoll_wait.
  *
  * In non contention cases, where onion is mostly waiting for requests,
- * it makes no diference.
+ * it makes no difference.
  *
  * Default: 10.
  */
