@@ -72,7 +72,7 @@ static void onion_init_logging() {
 		}
 	}
 #ifndef HAVE_PTHREADS
-	is_logging_initalized = 1;
+	is_logging_initialized = 1;
 #endif
 }
 /**
