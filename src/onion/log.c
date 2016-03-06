@@ -39,16 +39,42 @@
 #include "log.h"
 
 int onion_log_flags=0;
-#ifdef HAVE_PTHREADS
-static pthread_mutex_t onion_log_mutex=PTHREAD_MUTEX_INITIALIZER;
-#endif
+
 #ifdef __DEBUG__
 static const char *debug0=NULL;
+#endif
+
+#ifdef HAVE_PTHREADS
+static pthread_once_t is_logging_initialized = PTHREAD_ONCE_INIT;
+#else
+static int is_logging_initialized = 0;
 #endif
 
 void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
 void onion_log_stderr(onion_log_level level, const char *filename, int lineno, const char *fmt, ...);
 
+static void onion_init_logging() {
+	if (!onion_log_flags) {
+		onion_log_flags = OF_INIT;
+#ifdef __DEBUG__
+		debug0 = getenv("ONION_DEBUG0");
+#endif
+		const char *ol = getenv("ONION_LOG");
+		if (ol) {
+			if (strstr(ol, "noinfo"))
+				onion_log_flags |= OF_NOINFO;
+			if (strstr(ol, "nodebug"))
+				onion_log_flags |= OF_NODEBUG;
+			if (strstr(ol, "nocolor"))
+				onion_log_flags |= OF_NOCOLOR;
+			if (strstr(ol, "syslog")) // Switch to syslog
+				onion_log = onion_log_syslog;
+		}
+	}
+#ifndef HAVE_PTHREADS
+	is_logging_initialized = 1;
+#endif
+}
 /**
  * @short Logs a message to the log facility.
  * 
@@ -85,51 +111,23 @@ void (*onion_log)(onion_log_level level, const char *filename, int lineno, const
  * not incurr in any performance penalty.
  */
 void onion_log_stderr(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
+#ifdef HAVE_PTHREADS
+		pthread_once(&is_logging_initialized, onion_init_logging);
+#else
+		if(!is_logging_initialized)
+			onion_init_logging();
+#endif
 	if ( onion_log_flags ){
 		if ( ( (level==O_INFO) && ((onion_log_flags & OF_NOINFO)==OF_NOINFO) ) ||
 		     ( (level==O_DEBUG) && ((onion_log_flags & OF_NODEBUG)==OF_NODEBUG) ) ){
 			return;
 		}
 	}
-#ifdef HAVE_PTHREADS
-	pthread_mutex_lock(&onion_log_mutex);
-#endif
-	if (!onion_log_flags){
-		onion_log_flags=OF_INIT;
-#ifdef __DEBUG__
-		debug0=getenv("ONION_DEBUG0");
-#endif
-		const char *ol=getenv("ONION_LOG");
-		if (ol){
-			if (strstr(ol, "noinfo"))
-				onion_log_flags|=OF_NOINFO;
-			if (strstr(ol, "nodebug"))
-				onion_log_flags|=OF_NODEBUG;
-			if (strstr(ol, "nocolor"))
-				onion_log_flags|=OF_NOCOLOR;
-			if (strstr(ol, "syslog")) // Switch to syslog
-				onion_log=onion_log_syslog;
-		}
-#ifdef HAVE_PTHREADS
-		pthread_mutex_unlock(&onion_log_mutex);
-#endif
-		// Call again, now initialized.
-		char tmp[1024];
-		va_list ap;
-		va_start(ap, fmt);
-		vsnprintf(tmp,sizeof(tmp),fmt, ap);
-		va_end(ap);
-		onion_log(level, filename, lineno, tmp);
-		return;
-	}
-	
-	filename=basename((char*)filename);
+
+  filename=basename((char*)filename);
 	
 #ifdef __DEBUG__
 	if ( (level==O_DEBUG0) && (!debug0 || !strstr(debug0, filename)) ){
-		#ifdef HAVE_PTHREADS
-			pthread_mutex_unlock(&onion_log_mutex);
-		#endif
 		return;
 	}
 #endif
@@ -149,9 +147,8 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 #else
   if (!(onion_log_flags&OF_NOCOLOR))
     fprintf(stderr,"%s",levelcolor[level]);
-
-
 #endif
+
 	char datetime[32];
 	time_t t;
 	t = time(NULL);
@@ -168,9 +165,6 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 		fprintf(stderr, "\033[0m\n");
 	else
 		fprintf(stderr, "\n");
-	#ifdef HAVE_PTHREADS
-		pthread_mutex_unlock(&onion_log_mutex);
-	#endif
 }
 
 
