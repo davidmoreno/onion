@@ -45,7 +45,6 @@ static const char *debug0=NULL;
 #endif
 
 #ifdef HAVE_PTHREADS
-static pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_once_t is_logging_initialized = PTHREAD_ONCE_INIT;
 #else
 static int is_logging_initialized = 0;
@@ -187,14 +186,10 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 		strout_length=sprintf(strout+strout_length, "\n");
 
 	strout[strout_length]='\0';
-	// Faster than fwrite, no buffering
-#ifdef HAVE_PTHREADS
-	pthread_mutex_lock(&log_mutex);
+	// USe of write instead of fwrite, as it shoukd be atomic with kernel doing the
+	// job, but fwrite can have an internal mutex. Both should do atomic
+	// writes anyway, and performance tests show no diference on Linux 4.4.3
 	write(2, strout, strout_length);
-	pthread_mutex_unlock(&log_mutex);
-#else
-	write(2, strout, strout_length);
-#endif
 }
 
 
