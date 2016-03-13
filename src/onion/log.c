@@ -4,20 +4,20 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -45,6 +45,7 @@ static const char *debug0=NULL;
 #endif
 
 #ifdef HAVE_PTHREADS
+static pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_once_t is_logging_initialized = PTHREAD_ONCE_INIT;
 #else
 static int is_logging_initialized = 0;
@@ -77,13 +78,13 @@ static void onion_init_logging() {
 }
 /**
  * @short Logs a message to the log facility.
- * 
+ *
  * Normally to stderr, but can be set to your own logger or to use syslog.
- * 
- * It is actually a variable which you can set to any other log facility. By default it is to 
+ *
+ * It is actually a variable which you can set to any other log facility. By default it is to
  * onion_log_stderr, but also available is onion_log_syslog.
- * 
- * @param level Level of log. 
+ *
+ * @param level Level of log.
  * @param filename File where the message appeared. Usefull on debug level, but available on all.
  * @param lineno Line where the message was produced.
  * @param fmt printf-like format string and parameters.
@@ -92,21 +93,21 @@ void (*onion_log)(onion_log_level level, const char *filename, int lineno, const
 
 /**
  * @short Logs to stderr.
- * 
+ *
  * It can be affected also by the environment variable ONION_LOG, with one or several of:
- * 
+ *
  * - "nocolor"  -- then output will be without colors.
- * - "syslog"   -- Switchs the logging to syslog. 
+ * - "syslog"   -- Switchs the logging to syslog.
  * - "noinfo"   -- Do not show info lines.
  * - "nodebug"  -- When in debug mode, do not show debug lines.
- * 
+ *
  * Also for DEBUG0 level, it must be explictly set with the environmental variable ONION_DEBUG0, set
  * to the names of the files to allow DEBUG0 debug info. For example:
- * 
+ *
  *   export ONION_DEBUG0="onion.c url.c"
- * 
+ *
  * It is thread safe.
- * 
+ *
  * When compiled in release mode (no __DEBUG__ defined), DEBUG and DEBUG0 are not compiled so they do
  * not incurr in any performance penalty.
  */
@@ -125,7 +126,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 	}
 
   filename=basename((char*)filename);
-	
+
 #ifdef __DEBUG__
 	if ( (level==O_DEBUG0) && (!debug0 || !strstr(debug0, filename)) ){
 		return;
@@ -134,37 +135,66 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 
 	const char *levelstr[]={ "DEBUG0", "DEBUG", "INFO", "WARNING", "ERROR", "UNKNOWN" };
 	const char *levelcolor[]={ "\033[34m", "\033[01;34m", "\033[0m", "\033[01;33m", "\033[31m", "\033[01;31m" };
-	
+	char strout[256];
+	ssize_t strout_length=0;
+
 	if (level>(sizeof(levelstr)/sizeof(levelstr[0]))-1)
 		level=(sizeof(levelstr)/sizeof(levelstr[0]))-1;
 
 #ifdef HAVE_PTHREADS
   int pid=(unsigned long long)pthread_self();
   if (!(onion_log_flags&OF_NOCOLOR))
-    fprintf(stderr, "\033[%dm[%04X]%s ",31 + ((unsigned int)(pid))%7, pid, levelcolor[level]);
+    strout_length+=sprintf(strout+strout_length, "\033[%dm[%04X]%s ",31 + ((unsigned int)(pid))%7, pid, levelcolor[level]);
   else
-    fprintf(stderr, "[%04X] ", pid);
+    strout_length+=sprintf(stderr+strout_length, "[%04X] ", pid);
 #else
   if (!(onion_log_flags&OF_NOCOLOR))
-    fprintf(stderr,"%s",levelcolor[level]);
+    strout_length+=sprintf(stderr+strout_length,"%s",levelcolor[level]);
 #endif
 
 	char datetime[32];
 	time_t t;
 	t = time(NULL);
 	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&t));
-	
-	fprintf(stderr, "[%s] [%s %s:%d] ", datetime, levelstr[level],  
+
+
+	strout_length+=sprintf(strout+strout_length, "[%s] [%s %s:%d] ", datetime, levelstr[level],
 					filename, lineno); // I dont know why basename is char *. Please somebody tell me.
-	
+
 	va_list ap;
 	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
+	// this one is the only one that MUST be checked for size, as before logically
+	// can be no less than sizeof(strout), and his check ensures there is space for
+	// following adds
+	{
+		size_t maxsize=sizeof(strout) - strout_length - 6;
+		size_t total_size=vsnprintf(strout+strout_length, maxsize, fmt, ap);
+		if (total_size>maxsize){ // Message too long, truncates it
+			strout_length+=maxsize;
+			strout[strout_length-1]='.';
+			strout[strout_length-2]='.';
+			strout[strout_length-3]='.';
+		}
+		else{
+			strout_length+=total_size;
+		}
+	}
+
 	va_end(ap);
 	if (!(onion_log_flags&OF_NOCOLOR))
-		fprintf(stderr, "\033[0m\n");
+		strout_length+=sprintf(strout+strout_length, "\033[0m\n");
 	else
-		fprintf(stderr, "\n");
+		strout_length=sprintf(strout+strout_length, "\n");
+
+	strout[strout_length]='\0';
+	// Faster than fwrite, no buffering
+#ifdef HAVE_PTHREADS
+	pthread_mutex_lock(&log_mutex);
+	write(2, strout, strout_length);
+	pthread_mutex_unlock(&log_mutex);
+#else
+	write(2, strout, strout_length);
+#endif
 }
 
 
@@ -176,7 +206,7 @@ void onion_log_syslog(onion_log_level level, const char *filename, int lineno, c
 
 	if (level>=sizeof(pri))
 		return;
-	
+
 	va_list ap;
 	va_start(ap, fmt);
 	vsyslog(pri[level], fmt, ap);
