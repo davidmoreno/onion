@@ -356,7 +356,7 @@ static int onion_poller_get_next_timeout(onion_poller *p){
 }
 
 // Max of events per loop. If not al consumed for next, so no prob.  right number uses less memory, and makes less calls.
-static size_t onion_poller_max_events=10;
+static size_t onion_poller_max_events=1;
 
 /**
  * @short Do the event polling.
@@ -527,7 +527,10 @@ void onion_poller_stop(onion_poller *p){
  * In non contention cases, where onion is mostly waiting for requests,
  * it makes no difference.
  *
- * Default: 10.
+ * WARNING! Just now there apears to be a bug on timeout management, and
+ * changing this level increases the probability of hitting it.
+ *
+ * Default: 1.
  */
 void onion_poller_set_queue_size_per_thread(onion_poller *poller, size_t count){
 	assert(count>0);
