@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
@@ -145,10 +146,10 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
   if (!(onion_log_flags&OF_NOCOLOR))
     strout_length+=sprintf(strout+strout_length, "\033[%dm[%04X]%s ",31 + ((unsigned int)(pid))%7, pid, levelcolor[level]);
   else
-    strout_length+=sprintf(stderr+strout_length, "[%04X] ", pid);
+    strout_length+=sprintf(strout+strout_length, "[%04X] ", pid);
 #else
   if (!(onion_log_flags&OF_NOCOLOR))
-    strout_length+=sprintf(stderr+strout_length,"%s",levelcolor[level]);
+    strout_length+=sprintf(strout+strout_length,"%s",levelcolor[level]);
 #endif
 
 	char datetime[32];
@@ -186,10 +187,11 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 		strout_length=sprintf(strout+strout_length, "\n");
 
 	strout[strout_length]='\0';
-	// USe of write instead of fwrite, as it shoukd be atomic with kernel doing the
+	// Use of write instead of fwrite, as it shoukd be atomic with kernel doing the
 	// job, but fwrite can have an internal mutex. Both should do atomic
 	// writes anyway, and performance tests show no diference on Linux 4.4.3
-	write(2, strout, strout_length);
+	int w=write(2, strout, strout_length);
+	((void)(w)); // w unused, no prob.
 }
 
 
