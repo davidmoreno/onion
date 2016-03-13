@@ -412,7 +412,11 @@ void onion_poller_poll(onion_poller *p){
               event[i].data.ptr=NULL;
             }
           }
-          onion_poller_remove(p, cur->fd);
+					cur->timeout_limit=INT_MAX;
+					if (cur->shutdown){
+						cur->shutdown(cur->shutdown_data);
+						onion_poller_slot_set_shutdown(cur,NULL,NULL);
+					}
 				}
 			}
 		}
@@ -438,7 +442,7 @@ void onion_poller_poll(onion_poller *p){
 			// Call the callback
 			//ONION_DEBUG("Calling callback for fd %d (%X %X)", el->fd, event[i].events);
 			int n=-1;
-			if (event[i].events&EPOLLRDHUP){
+			if (event[i].events&(EPOLLRDHUP | EPOLLHUP)){
 				n=-1;
 			}
 			else{ // I also take care of the timeout, no timeout when on the handler, it should handle it itself.
