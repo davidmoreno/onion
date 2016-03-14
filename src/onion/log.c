@@ -154,8 +154,10 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 
 	char datetime[32];
 	time_t t;
+	struct tm result;
 	t = time(NULL);
-	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&t));
+	localtime_r(&t, &result);
+	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", &result);
 
 
 	strout_length+=sprintf(strout+strout_length, "[%s] [%s %s:%d] ", datetime, levelstr[level],
