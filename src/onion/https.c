@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2014 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
+	You should have received a copy of both licenses, if not see
 	<http://www.gnu.org/licenses/> and 
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -38,7 +38,11 @@
 
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
+
+#if GCRYPT_VERSION_NUMBER < 010600
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
+#endif
+
 #endif
 
 /**
@@ -93,7 +97,9 @@ onion_listen_point *onion_https_new(){
 	onion_https *https=(onion_https*)op->user_data;
 	
 #ifdef HAVE_PTHREADS
+#if GCRYPT_VERSION_NUMBER < 010600
 	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+#endif
 #endif
 	//if (!(o->flags&O_USE_DEV_RANDOM)){
 		gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
