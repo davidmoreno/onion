@@ -16,14 +16,13 @@
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
       GNU General Public License for more details.
 
-      You should have received a copy of both libraries, if not see
+      You should have received a copy of both licenses, if not see
       <http://www.gnu.org/licenses/> and
       <http://www.apache.org/licenses/LICENSE-2.0>.
 ***/
 
 #include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <stdio.h>
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
@@ -57,6 +56,12 @@ void printf_bin(const char c, int n){
 		fprintf(stderr, "%c", ((c>>i)&1) ? '1' : '0');
 	}
 	fprintf(stderr, " ");
+}
+
+static int is_alnum(char c) {
+	if(c >= '0' && c <= '9')
+		return 1;
+	return 0;
 }
 
 /**
@@ -258,7 +263,7 @@ char *onion_quote_new(const char *str){
 	int l=strlen(str);
 	int nl=1;
 	for (i=0;i<l;i++){
-		if (!isalnum(str[i]))
+		if (!is_alnum(str[i]))
 			nl+=3;
 		else
 			nl++;
@@ -280,7 +285,7 @@ int onion_quote(const char *str, char *res, int maxlength){
 		if (i>=maxlength)
 			break;
 		char c=str[i];
-		if (isalnum(c))
+		if (is_alnum(c))
 			res[nl++]=c;
 		else{
 			if (i+2>=maxlength)

@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2014 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
+	You should have received a copy of both licenses, if not see
 	<http://www.gnu.org/licenses/> and 
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -40,7 +40,6 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <libgen.h>
-#include <ctype.h>
 
 struct onion_webdav_t{
 	char *path;
@@ -597,7 +596,7 @@ onion_connection_status onion_webdav_proppatch(const char *filename, onion_webda
 									ONION_DEBUG("Setting executable %s", prop->children->content);
 									struct stat st;
 									stat(filename, &st);
-									if (toupper(prop->children->content[0])=='T'){
+									if (prop->children->content[0] =='T' || prop->children->content[0] == 't'){
 										chmod(filename, st.st_mode | S_IXUSR | S_IXGRP | S_IXOTH);
 									}
 									else{
