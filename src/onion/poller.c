@@ -111,7 +111,7 @@ onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
 	el->data=data;
 	el->timeout=-1;
 	el->timeout_limit=INT_MAX;
-	el->type=EPOLLIN | EPOLLHUP | EPOLLONESHOT;
+	el->type=EPOLLIN | EPOLLHUP | EPOLLONESHOT | EPOLLHUP;
 
 	return el;
 }
@@ -155,14 +155,14 @@ void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout){
 	ONION_DEBUG0("Set timeout to %d, %d s", el->timeout_limit, el->timeout);
 }
 
-void onion_poller_slot_set_type(onion_poller_slot *el, int type){
-	el->type=EPOLLONESHOT;
+void onion_poller_slot_set_type(onion_poller_slot *el, onion_poller_slot_type_e type){
+	el->type=EPOLLONESHOT | EPOLLHUP;
 	if (type&O_POLL_READ)
 		el->type|=EPOLLIN;
 	if (type&O_POLL_WRITE)
 		el->type|=EPOLLOUT;
 	if (type&O_POLL_OTHER)
-		el->type|=EPOLLERR|EPOLLHUP|EPOLLPRI;
+		el->type|=EPOLLERR|EPOLLPRI;
 	ONION_DEBUG0("Setting type to %d, %d", el->fd, el->type);
 }
 
@@ -417,6 +417,9 @@ void onion_poller_poll(onion_poller *p){
 						cur->shutdown(cur->shutdown_data);
 						onion_poller_slot_set_shutdown(cur,NULL,NULL);
 					}
+					// closed, do not even try to call it.
+					cur->f=NULL;
+					cur->data=NULL;
 				}
 			}
 		}

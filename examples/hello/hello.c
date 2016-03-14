@@ -3,6 +3,8 @@
 #include <onion/log.h>
 #include <signal.h>
 #include <netdb.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 int hello(void *p, onion_request *req, onion_response *res){
 	//onion_response_set_length(res, 11);
@@ -17,23 +19,33 @@ int hello(void *p, onion_request *req, onion_response *res){
 onion *o=NULL;
 
 static void shutdown_server(int _){
-	if (o) 
+	if (o)
 		onion_listen_stop(o);
+}
+
+onion_connection_status random_timeout(void *_, onion_request *req, onion_response *res){
+	int ms=2000 * ( ((float)RAND_MAX) / rand() );
+	ONION_INFO("Wait %d ms", ms);
+	usleep(ms * 1000);
+	ONION_INFO("Done");
+	onion_response_write(res,"OK",2);
+	return OCS_PROCESSED;
 }
 
 int main(int argc, char **argv){
 	signal(SIGINT,shutdown_server);
 	signal(SIGTERM,shutdown_server);
-	
+
 	o=onion_new(O_POOL);
 	onion_set_timeout(o, 5000);
 	onion_set_hostname(o,"0.0.0.0");
 	onion_url *urls=onion_root_url(o);
-	
+
 	onion_url_add_static(urls, "static", "Hello static world", HTTP_OK);
+	onion_url_add(urls, "timeout", random_timeout);
 	onion_url_add(urls, "", hello);
 	onion_url_add(urls, "^(.*)$", hello);
-	
+
 	onion_listen(o);
 	onion_free(o);
 	return 0;

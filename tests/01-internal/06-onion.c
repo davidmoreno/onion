@@ -347,6 +347,62 @@ void t05_server_timeout_threaded_ssl(){
   END_LOCAL();
 }
 
+onion_connection_status wait_random(void *_, onion_request *req, onion_response *res){
+  int ms=105.0 + (float)((200.0 * rand()) / ((float)RAND_MAX));
+  ONION_INFO("Wait %.3f seconds", ms/1000.0);
+  usleep(ms*1000);
+
+  onion_response_write(res, "OK", 3);
+
+  return OCS_PROCESSED;
+}
+
+void do_timeout_request(){
+  ONION_INFO("Start timeout requests");
+  for (int i=0;i<10;i++){
+    int fd=connect_to("localhost","8081");
+    if ((i&1) == 1)
+      usleep(500000);
+    int w=write(fd,"GET /\n\n",7);
+    fsync(fd);
+    FAIL_IF_NOT_EQUAL_INT(w,7);
+    shutdown(fd, SHUT_RDWR);
+    // Should have closed the connection
+    char data[256];
+    FAIL_IF(read(fd, data, sizeof(data))>0);
+    close(fd);
+  }
+}
+
+void t06_timeouts(){
+  INIT_LOCAL();
+
+  o=onion_new(O_POOL | O_DETACH_LISTEN);
+  onion_set_timeout(o, 100);
+
+  onion_set_root_handler(o, onion_handler_new((void*)wait_random, NULL, NULL));
+  onion_set_port(o, "8081");
+  onion_listen(o);
+  sleep(1);
+
+  int nthreads=10;
+  pthread_t *thread=malloc(sizeof(pthread_t*)*nthreads);
+  int i;
+  for (i=0;i<nthreads;i++){
+    pthread_create(&thread[i], NULL, (void*)do_timeout_request, NULL);
+  }
+  for (i=0;i<nthreads;i++){
+    pthread_join(thread[i], NULL);
+  }
+  free(thread);
+
+
+  onion_free(o);
+
+
+  END_LOCAL();
+}
+
 int main(int argc, char **argv){
   START();
   pthread_t watchdog_thread;
@@ -357,6 +413,7 @@ int main(int argc, char **argv){
 	t03_server_https();
 	t04_server_timeout_threaded();
 	t05_server_timeout_threaded_ssl();
+  t06_timeouts();
 
   okexit=1;
   pthread_cancel(watchdog_thread);

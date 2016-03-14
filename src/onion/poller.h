@@ -37,6 +37,8 @@ enum onion_poller_slot_type_e{
 	O_POLL_ALL=7
 };
 
+typedef enum onion_poller_slot_type_e onion_poller_slot_type_e;
+
 /// Create a new slot for the poller
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data);
 /// Cleans a poller slot. Do not call if already on the poller (onion_poller_add). Use onion_poller_remove instead.
@@ -46,7 +48,7 @@ void onion_poller_slot_set_shutdown(onion_poller_slot *el, void (*shutdown)(void
 /// Sets the timeout for this slot. Current implementation takes ms, but then it rounds to seconds.
 void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout_ms);
 /// Sets the polling type: read/write/other. O_POLL_READ | O_POLL_WRITE | O_POLL_OTHER
-void onion_poller_slot_set_type(onion_poller_slot *el, int type);
+void onion_poller_slot_set_type(onion_poller_slot *el, onion_poller_slot_type_e type);
 
 /// Create a new poller
 onion_poller *onion_poller_new(int aprox_n);
