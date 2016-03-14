@@ -369,17 +369,26 @@ static size_t onion_poller_max_events=1;
 void onion_poller_poll(onion_poller *p){
 	struct epoll_event event[onion_poller_max_events];
 	ONION_DEBUG("Start polling");
-	p->stop=0;
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&p->mutex);
 	p->npollers++;
+	p->stop=0;
 	ONION_DEBUG0("Npollers %d. %d listenings %p", p->npollers, p->n, p->head);
 	pthread_mutex_unlock(&p->mutex);
+#else
+	p->stop=0;
 #endif
 	int maxtime;
 	time_t ctime;
 	int timeout;
-	while (!p->stop && p->head){
+#ifdef HAVE_PTHREADS
+	pthread_mutex_lock(&p->mutex);
+	char stop = !p->stop && p->head;
+	pthread_mutex_unlock(&p->mutex);
+#else
+	char stop = !p->stop && p->head;
+#endif
+	while (stop){
 		ctime=time(NULL);
 		pthread_mutex_lock(&p->mutex);
 		maxtime=onion_poller_get_next_timeout(p);
@@ -482,6 +491,13 @@ void onion_poller_poll(onion_poller *p){
 				}
 			}
 		}
+#ifdef HAVE_PTHREADS
+		pthread_mutex_lock(&p->mutex);
+		stop = !p->stop && p->head;
+		pthread_mutex_unlock(&p->mutex);
+#else
+		stop = !p->stop && p->head;
+#endif
 	}
 	ONION_DEBUG("Finished polling fds");
 #ifdef HAVE_PTHREADS
@@ -498,7 +514,14 @@ void onion_poller_poll(onion_poller *p){
  */
 void onion_poller_stop(onion_poller *p){
   ONION_DEBUG("Stopping poller");
+#ifdef HAVE_PTHREADS
+	pthread_mutex_lock(&p->mutex);
   p->stop=1;
+	pthread_mutex_unlock(&p->mutex);
+#else
+	p->stop=1;
+#endif
+
   char data[8]={0,0,0,0, 0,0,0,1};
   int __attribute__((unused)) r=read(p->eventfd, data, 8); // Flush eventfd data, discard data
 
