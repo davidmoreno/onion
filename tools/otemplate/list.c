@@ -36,7 +36,7 @@ void list_free(list *l){
 	void (*f)(void *p);
 	f=l->free;
 	while (i){
-		if (f)
+		if (f && (i->flags & LIST_ITEM_FREE))
 			f(i->data);
 		list_item *last_i=i;
 		i=i->next;
@@ -49,11 +49,25 @@ void list_add(list *l, void *p){
 	list_item *item=malloc(sizeof(list_item));
 	item->data=p;
 	item->next=NULL;
+	item->flags = LIST_ITEM_FREE;
 	item->prev=l->tail;
 	if (l->tail)
 		l->tail->next=item;
 	l->tail=item;
 	if (!l->head)
+		l->head=item;
+}
+
+void list_add_with_flags(list *l, void *p, int flags) {
+	list_item *item = malloc(sizeof(list_item));
+	item->data = p;
+	item->next=NULL;
+	item->flags = flags;
+	item->prev = l->tail;
+	if(l->tail)
+		l->tail->next=item;
+	l->tail = item;
+	if(!l->head)
 		l->head=item;
 }
 
