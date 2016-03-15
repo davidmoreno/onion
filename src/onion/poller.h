@@ -55,15 +55,12 @@ onion_poller *onion_poller_new(int aprox_n);
 /// Frees the poller. It first stops it.
 void onion_poller_free(onion_poller *);
 
-/// Sets the max events per thread queue size.
-void onion_poller_set_queue_size_per_thread(onion_poller *poller, size_t count);
-
 /// Adds a slot to the poller
 int onion_poller_add(onion_poller *poller, onion_poller_slot *el);
 /// Gets the poller to do some modifications as change shutdown
 onion_poller_slot *onion_poller_get(onion_poller *poller, int fd);
-/// Removes a fd from the poller
-int onion_poller_remove(onion_poller *poller, int fd);
+/// Removes a fd from the poller. Returns the un attached slot.
+onion_poller_slot *onion_poller_remove(onion_poller *poller, int fd);
 
 /// Do the polling. If on several threads, this is done in every thread.
 void onion_poller_poll(onion_poller *);

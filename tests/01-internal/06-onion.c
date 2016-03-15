@@ -224,7 +224,6 @@ void t01_server_one(){
 
   // change poller queue size
   onion_poller *p=onion_get_poller(o);
-  onion_poller_set_queue_size_per_thread(p, 1);
 
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   do_petition_set(1,0.001,100,1);
