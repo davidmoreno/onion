@@ -113,6 +113,8 @@ onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
 	el->timeout_limit=INT_MAX;
 	el->type=EPOLLIN | EPOLLHUP | EPOLLONESHOT | EPOLLHUP;
 
+	ONION_DEBUG0("New slot fd %d, %p", el->fd, el);
+
 	return el;
 }
 
@@ -121,6 +123,7 @@ onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
  * @memberof onion_poller_slot_t
  */
 void onion_poller_slot_free(onion_poller_slot *el){
+	ONION_DEBUG0("Free slot fd %d, %p", el->fd, el);
 	if (el->shutdown)
 		el->shutdown(el->shutdown_data);
 	onion_low_free(el);
@@ -152,11 +155,11 @@ void onion_poller_slot_set_shutdown(onion_poller_slot *el, void (*sd)(void*), vo
 void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout){
 	el->timeout=timeout/1000; // I dont have that resolution.
 	el->timeout_limit=time(NULL)+el->timeout;
-	ONION_DEBUG0("Set timeout to %d, %d s", el->timeout_limit, el->timeout);
+	//ONION_DEBUG0("Set timeout to %d, %d s", el->timeout_limit, el->timeout);
 }
 
 void onion_poller_slot_set_type(onion_poller_slot *el, onion_poller_slot_type_e type){
-	el->type=EPOLLONESHOT | EPOLLHUP;
+	el->type=EPOLLONESHOT | EPOLLHUP | EPOLLRDHUP;
 	if (type&O_POLL_READ)
 		el->type|=EPOLLIN;
 	if (type&O_POLL_WRITE)
@@ -228,9 +231,7 @@ void onion_poller_free(onion_poller *p){
 		onion_poller_slot *next=p->head;
 		while (next){
 			onion_poller_slot *tnext=next->next;
-			if (next->shutdown)
-				next->shutdown(next->shutdown_data);
-			onion_low_free(next);
+			onion_poller_slot_free(next);
 			next=tnext;
 		}
 		pthread_mutex_unlock(&p->mutex);
@@ -342,8 +343,9 @@ onion_poller_slot *onion_poller_get(onion_poller *poller, int fd){
  * List must be locked by caller.
  */
 static int onion_poller_get_next_timeout(onion_poller *p){
+	pthread_mutex_lock(&p->mutex);
 	onion_poller_slot *next;
-	int timeout=INT_MAX; // Ok, minimum wakeup , once per hour.
+	int timeout=INT_MAX; // Ok, no wakeup
 	next=p->head;
 	while(next){
 		//ONION_DEBUG("Check %d %d %d", timeout, next->timeout, next->delta_timeout);
@@ -354,11 +356,38 @@ static int onion_poller_get_next_timeout(onion_poller *p){
 	}
 
 	//ONION_DEBUG("Next wakeup in %d ms, at least", timeout);
+	pthread_mutex_unlock(&p->mutex);
 	return timeout;
 }
 
 // Max of events per loop. If not al consumed for next, so no prob.  right number uses less memory, and makes less calls.
 static size_t onion_poller_max_events=1;
+
+void onion_poller_check_timeouts(onion_poller *p){
+	//ONION_DEBUG0("Current time is %d, limit is %d, timeout is %d. Waited for %d seconds", ctime, maxtime, timeout, ctime_end-ctime);
+	time_t time_now=time(NULL);
+
+	pthread_mutex_lock(&p->mutex);
+	{ // Somebody timedout?
+		onion_poller_slot *next=p->head;
+		while (next){
+			onion_poller_slot *cur=next;
+			next=next->next;
+			if (cur->timeout_limit <= time_now){
+				ONION_DEBUG0("Timeout on fd %d, was %d (time_now %d)", cur->fd, cur->timeout_limit, time_now);
+				cur->timeout_limit=INT_MAX;
+				if (cur->shutdown){
+					cur->shutdown(cur->shutdown_data);
+					onion_poller_slot_set_shutdown(cur,NULL,NULL);
+				}
+				// closed, do not even try to call it.
+				cur->f=NULL;
+				cur->data=NULL;
+			}
+		}
+	}
+	pthread_mutex_unlock(&p->mutex);
+}
 
 /**
  * @short Do the event polling.
@@ -379,53 +408,20 @@ void onion_poller_poll(onion_poller *p){
 	pthread_mutex_unlock(&p->mutex);
 #endif
 	int maxtime;
-	time_t ctime;
 	int timeout;
 	while (!p->stop && p->head){
-		ctime=time(NULL);
-		pthread_mutex_lock(&p->mutex);
 		maxtime=onion_poller_get_next_timeout(p);
-		pthread_mutex_unlock(&p->mutex);
 
+		time_t ctime=time(NULL);
 		timeout=maxtime-ctime;
 		if (timeout>3600)
 			timeout=3600000;
 		else
 			timeout*=1000;
-		ONION_DEBUG0("Wait for %d ms", timeout);
+		//ONION_DEBUG0("Wait for %d ms", timeout);
 		int nfds = epoll_wait(p->fd, event, onion_poller_max_events, timeout);
-		int ctime_end=time(NULL);
-		ONION_DEBUG0("Current time is %d, limit is %d, timeout is %d. Waited for %d seconds", ctime, maxtime, timeout, ctime_end-ctime);
-    ctime=ctime_end;
 
-		pthread_mutex_lock(&p->mutex);
-		{ // Somebody timedout?
-			onion_poller_slot *next=p->head;
-			while (next){
-				onion_poller_slot *cur=next;
-				next=next->next;
-				if (cur->timeout_limit <= ctime){
-					ONION_DEBUG0("Timeout on %d, was %d (ctime %d)", cur->fd, cur->timeout_limit, ctime);
-          int i;
-          for (i=0;i<nfds;i++){
-            onion_poller_slot *el=(onion_poller_slot*)event[i].data.ptr;
-            if (cur==el){ // If removed just one with event, make it ignore the event later.
-              ONION_DEBUG0("Ignoring event as it timeouted: %d", cur->fd);
-              event[i].data.ptr=NULL;
-            }
-          }
-					cur->timeout_limit=INT_MAX;
-					if (cur->shutdown){
-						cur->shutdown(cur->shutdown_data);
-						onion_poller_slot_set_shutdown(cur,NULL,NULL);
-					}
-					// closed, do not even try to call it.
-					cur->f=NULL;
-					cur->data=NULL;
-				}
-			}
-		}
-		pthread_mutex_unlock(&p->mutex);
+		onion_poller_check_timeouts(p);
 
 		if (nfds<0){ // This is normally closed p->fd
 			//ONION_DEBUG("Some error happened"); // Also spurious wakeups... gdb is to blame sometimes or any other.
@@ -439,11 +435,15 @@ void onion_poller_poll(onion_poller *p){
 				return;
 			}
 		}
+
 		int i;
 		for (i=0;i<nfds;i++){
 			onion_poller_slot *el=(onion_poller_slot*)event[i].data.ptr;
+						
       if (!el)
         continue;
+			ONION_DEBUG0("Use slot fd %d, %X, %p", el->fd, event[i].events, el);
+
 			// Call the callback
 			//ONION_DEBUG("Calling callback for fd %d (%X %X)", el->fd, event[i].events);
 			int n=-1;
@@ -456,7 +456,7 @@ void onion_poller_poll(onion_poller *p){
 #ifdef __DEBUG0__
         char **bs=backtrace_symbols((void * const *)&el->f, 1);
         ONION_DEBUG0("Calling handler: %s (%d)",bs[0], el->fd);
-        onion_low_free(bs); /* This cannot be onion_low_free since from
+        free(bs); /* This cannot be onion_low_free since from
 		     backtrace_symbols. */
 #endif
 	/* Sometimes, el->f happens to be null. We want to remove this
@@ -471,6 +471,7 @@ void onion_poller_poll(onion_poller *p){
 					el->timeout_limit=ctime+el->timeout;
 			}
 			if (n<0){
+				ONION_DEBUG0("Remove fd %d as n<0", el->fd);
 				onion_poller_remove(p, el->fd);
 			}
 			else{

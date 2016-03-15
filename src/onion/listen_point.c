@@ -276,8 +276,9 @@ int onion_listen_point_request_init_from_socket(onion_request *req){
 	int set_cloexec=SOCK_CLOEXEC == 0;
 	int clientfd=accept4(listenfd, (struct sockaddr *) &req->connection.cli_addr,
 				&req->connection.cli_len, SOCK_CLOEXEC);
+	ONION_DEBUG0("Got client at fd %d", clientfd);
 	if (clientfd<0){
-		ONION_DEBUG("Second try? errno %d, clientfd %d", errno, clientfd);
+		ONION_DEBUG("Trying with old accept, instead of accept4. errno %d, clientfd %d", errno, clientfd);
 		if (errno==ENOSYS){
 			clientfd=accept(listenfd, (struct sockaddr *) &req->connection.cli_addr,
 					&req->connection.cli_len);
