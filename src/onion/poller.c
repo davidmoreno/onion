@@ -279,7 +279,9 @@ int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
  */
 int onion_poller_remove(onion_poller *poller, int fd){
 	if (epoll_ctl(poller->fd, EPOLL_CTL_DEL, fd, NULL) < 0){
-		ONION_ERROR("Error remove descriptor to listen to. %s", strerror(errno));
+		if (errno!=ENOENT && errno!=EBADF){
+			ONION_ERROR("Error remove descriptor to listen to. %s (%d)", strerror(errno), errno);
+		}
 	}
 
 	pthread_mutex_lock(&poller->mutex);
