@@ -451,7 +451,7 @@ int onion_html_encoding_size(char c){
 		case '>':
 			return 4;
 		case '&':
-			return 4;
+			return 5;
 		case '"':
 			return 6;
 		case '\'':
