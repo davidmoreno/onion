@@ -323,7 +323,7 @@ int onion_listen_point_request_init_from_socket(onion_request *req){
  */
 void onion_listen_point_request_close_socket(onion_request *oc){
 	int fd=oc->connection.fd;
-	ONION_DEBUG("Closing connection socket fd %d",fd);
+	ONION_DEBUG0("Closing connection socket fd %d",fd);
 	if (fd>=0){
 		shutdown(fd,SHUT_RDWR);
 		close(fd);
