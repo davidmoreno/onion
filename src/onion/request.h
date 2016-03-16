@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
+	You should have received a copy of both licenses, if not see
 	<http://www.gnu.org/licenses/> and 
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -97,7 +97,7 @@ const char *onion_request_get_fullpath(onion_request *req);
 onion_request_flags onion_request_get_flags(onion_request *req);
 
 /// Moves the path pointer to later in the fullpath
-void onion_request_advance_path(onion_request *req, int addtopos);
+void onion_request_advance_path(onion_request *req, off_t addtopos);
 
 /// @{ @name Get header, query, post, file data and session
 

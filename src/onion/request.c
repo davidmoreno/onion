@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see
+	You should have received a copy of both licenses, if not see
 	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -250,8 +250,10 @@ onion_request_flags onion_request_get_flags(onion_request *req){
  * @short  Moves the pointer inside fullpath to this new position, relative to current path.
  * @memberof onion_request_t
  */
-void onion_request_advance_path(onion_request *req, int addtopos){
-	req->path=&req->path[addtopos];
+void onion_request_advance_path(onion_request *req, off_t addtopos){
+	if(!((&req->path[addtopos] < &req->fullpath[0] ||
+		    &req->path[addtopos] >= &req->fullpath[strlen(req->fullpath)])))
+		req->path=&req->path[addtopos];
 }
 
 /**
