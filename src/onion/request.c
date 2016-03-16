@@ -252,7 +252,7 @@ onion_request_flags onion_request_get_flags(onion_request *req){
  */
 void onion_request_advance_path(onion_request *req, off_t addtopos){
 	if(!((&req->path[addtopos] < &req->fullpath[0] ||
-		    &req->path[addtopos] >= &req->fullpath[strlen(req->fullpath)])))
+		    &req->path[addtopos] > &req->fullpath[strlen(req->fullpath)])))
 		req->path=&req->path[addtopos];
 }
 
