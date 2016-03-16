@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2014 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
+	You should have received a copy of both licenses, if not see
 	<http://www.gnu.org/licenses/> and 
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -29,12 +29,17 @@
 #include "mime.h"
 #include "dict.h"
 #include "log.h"
-#include <ctype.h>
 
 /// Dict with all extension to mime type. This will never be freed.
 static onion_dict *onion_mime_dict=NULL;
 
 static void onion_mime_fill();
+
+static int is_space(char c) {
+	if(c == '\t' || c == '\n' || c == '\r' || c == ' ')
+		return 1;
+	return 0;
+}
 
 /**
  * @short Sets a user set dict as mime dict
@@ -124,7 +129,7 @@ static void onion_mime_fill(){
 			i=0;
 		}
 		else{
-			if (isspace((int)(unsigned char)(c))){
+			if (is_space(c)){
 				if (mode==0){
 					mimetype[i]='\0';
 					mode=1;
