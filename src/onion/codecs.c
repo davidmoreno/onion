@@ -402,7 +402,7 @@ void onion_sha1(const char *data, int length, char *result){
 #if GNUTLS_VERSION_NUMBER >= 0x021000
 	gnutls_hash_fast(GNUTLS_DIG_SHA1, data, length, result);
 #else
-	gcry_md_hash_buffer(GCRY_MD_SHA1, hash, result, length);
+	gcry_md_hash_buffer(GCRY_MD_SHA1, data, result, length);
 #endif
 #endif
 }
