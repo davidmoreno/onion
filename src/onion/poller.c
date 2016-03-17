@@ -274,7 +274,7 @@ int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 			poller->slot_count*=2;
 		else
 			poller->slot_count+=256;
-		poller->slots=onion_low_realloc(poller->slots, poller->slot_count);
+		poller->slots=onion_low_realloc(poller->slots, sizeof(onion_poller_slot*)*poller->slot_count);
 	}
 	assert(i<poller->slot_count);
 	if (i>=poller->slot_max)
