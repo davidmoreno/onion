@@ -403,8 +403,7 @@ void onion_sha1(const char *data, int length, char *result){
 	gnutls_hash_fast(GNUTLS_DIG_SHA1, data, length, result);
 #else
 	int hash_length = gcry_md_get_algo_dlen(GCRY_MD_SHA1);
-	unsigned char* hash = malloc(sizeof(char) * ((hash_length*2)+1));
-	gcry_md_hash_buffer(GCRY_MD_SHA1, hash, data, length);
+	gcry_md_hash_buffer(GCRY_MD_SHA1, hash, result, length);
 #endif
 #endif
 }
