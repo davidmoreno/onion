@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
-#if GNULTLS_VERSION_NUMBER < 0x021200
+#if GNUTLS_VERSION_NUMBER < 0x020C00
 #include <gcrypt.h>
 #endif
 #include <assert.h>
@@ -83,7 +83,7 @@ void onion_random_free() {
  * Generate size bytes of random data and put on data
  */
 void onion_random_generate(void* data, size_t size) {
-#if GNUTLS_VERSION_NUMBER >= 0x021200
+#if GNUTLS_VERSION_NUMBER >= 0x020C00
 	gnutls_rnd(GNUTLS_RND_NONCE,data,size);
 #else
 	gcry_create_nonce(data, size);

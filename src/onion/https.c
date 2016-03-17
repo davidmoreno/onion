@@ -111,7 +111,7 @@ onion_listen_point *onion_https_new(){
 	// set cert here??
 	//onion_https_set_certificate(op,O_SSL_CERTIFICATE_KEY, "mycert.pem","mycert.pem");
 	int e;
-#if GNUTLS_VERSION_NUMBER >= 0x021200
+#if GNUTLS_VERSION_NUMBER >= 0x020C00
 	int bits = gnutls_sec_param_to_pk_bits (GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LOW);
 #else
 	int bits = 1024;
