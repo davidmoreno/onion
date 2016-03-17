@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -24,6 +24,9 @@
 #include <stdlib.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
+#if GNUTLS_VERSION_NUMBER < 0x020C00
+#include <gcrypt.h>
+#endif
 #include <assert.h>
 
 #include "types_internal.h"
@@ -80,5 +83,9 @@ void onion_random_free() {
  * Generate size bytes of random data and put on data
  */
 void onion_random_generate(void* data, size_t size) {
+#if GNUTLS_VERSION_NUMBER >= 0x020C00
 	gnutls_rnd(GNUTLS_RND_NONCE,data,size);
+#else
+	gcry_create_nonce(data, size);
+#endif
 }

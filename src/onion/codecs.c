@@ -1,6 +1,6 @@
 /***
       Onion HTTP server library
-      Copyright (C) 2010-2015 David Moreno Montero and others
+      Copyright (C) 2010-2016 David Moreno Montero and others
 
       This library is free software; you can redistribute it and/or
       modify it under the terms of, at your choice:
@@ -27,6 +27,9 @@
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
+#if GNUTLS_VERSION_NUMBER < 0x020A00
+#include <gcrypt.h>
+#endif
 #endif
 
 #include "low.h"
@@ -396,7 +399,11 @@ void onion_sha1(const char *data, int length, char *result){
 	ONION_ERROR("Cant calculate SHA1 if gnutls is not compiled in! Aborting now");
 	exit(1);
 #else
+#if GNUTLS_VERSION_NUMBER >= 0x020A00
 	gnutls_hash_fast(GNUTLS_DIG_SHA1, data, length, result);
+#else
+	gcry_md_hash_buffer(GCRY_MD_SHA1, result, data, length);
+#endif
 #endif
 }
 
