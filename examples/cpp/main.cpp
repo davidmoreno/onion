@@ -20,6 +20,13 @@
 #include <response.hpp>
 #include <url.hpp>
 
+#ifndef ONION_HAS_LAMBDAS
+onion_connection_status handle(Onion::Request &req, Onion::Response &res) {
+	res << "Non lambda handler";
+	return OCS_PROCESSED;
+}
+#endif
+
 int main(int argc, char **argv){
 	if (argc!=3){
 		ONION_ERROR("%s <certificate file> <key file>", argv[0]);
@@ -34,10 +41,14 @@ int main(int argc, char **argv){
 	Onion::Url root(&server);
 	
 	root.add("", "Some static text", HTTP_OK );
+#ifdef ONION_HAS_LAMBDAS
 	root.add("lambda", [](Onion::Request &req, Onion::Response &res){
 		res<<"Lambda handler";
 		return OCS_PROCESSED;
 	});
+#else
+	root.add("lambda", handle);
+#endif
 	
 	server.listen();
 }

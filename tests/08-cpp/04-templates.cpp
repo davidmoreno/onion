@@ -25,6 +25,12 @@
 
 #include <assets.h>
 
+#ifndef ONION_HAS_LAMBDAS
+onion_connection_status template_render(Onion::Request &req, Onion::Response &res) {
+	return Onion::render_to_response(_04_templates_html, std::map<std::string,std::string>{{"test", "ok"}}, res);
+}
+#endif
+
 void t01_url(){
 	INIT_LOCAL();
 	
@@ -33,9 +39,13 @@ void t01_url(){
 	// Create an empty url handler
 	Onion::Url url(o);
 	
+#ifdef ONION_HAS_LAMBDAS
 	url.add("", [](Onion::Request &req, Onion::Response &res){
 		return Onion::render_to_response(_04_templates_html, std::map<std::string,std::string>{{"test","ok"}} , res);
 	});
+#else
+	url.add("", std::bind(&template_render, std::placeholders::_1, std::placeholders::_2));
+#endif
 	
 	o.listen();
 	
