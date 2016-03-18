@@ -52,6 +52,20 @@
 #define ONION_HAS_RVALUE_REFS 1
 #define ONION_HAS_INIT_LIST 1
 #endif
+
+// End of GCC defines
+#elif defined(__clang__)
+// Any recent version of clang has more than enough support (> 2.9)
+#define ONION_HAS_LAMBDAS 1
+#define ONION_HAS_NOEXCEPT 1
+#define ONION_HAS_NULLPTR 1
+#define ONION_HAS_RANGED_FOR 1
+#define ONION_HAS_BRACED_INIT 1
+#define ONION_HAS_DEFAULT_FUNCS 1
+#define ONION_HAS_DELETED_FUNCS 1
+#define ONION_HAS_TEMPLATE_ALIAS 1
+#define ONION_HAS_RVALUE_REFS 1
+#define ONION_HAS_INIT_LIST 1
 #endif
 
 // Might as well approximate behavior for basic things
