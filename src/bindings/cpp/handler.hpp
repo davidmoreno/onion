@@ -29,6 +29,7 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include "features.hpp"
 
 namespace Onion{
 	class Request;
@@ -47,29 +48,44 @@ namespace Onion{
 		HandlerBase(){};
 		virtual ~HandlerBase(){};
 		virtual onion_connection_status operator()(Onion::Request &, Onion::Response &) = 0;
-	
+#if ONION_HAS_DELETED_FUNCS
 		HandlerBase(HandlerBase &) = delete;
 		HandlerBase &operator=(HandlerBase &o) = delete;
+#else
+	private:
+		HandlerBase(HandlerBase&);
+		HandlerBase &operator=(HandlerBase&);
+#endif
 	};
 
 	//using Handler=std::unique_ptr<HandlerBase>;
 	
 	class Handler{
 		std::unique_ptr<HandlerBase> ptr;
+
 	public:
-		Handler(HandlerBase *o){
-			ptr=std::unique_ptr<HandlerBase>(o);
+		Handler(HandlerBase *o) : ptr(o) {
 		}
+
+		Handler(Handler&& o)
+			: ptr { std::move(o.ptr) } {
+		}
+
 		template<typename T>
 		Handler(std::unique_ptr<T> &&o){
 			ptr=std::move(o);
 		}
+
 		HandlerBase *release(){ return ptr.release(); }
 
 		template<typename T, typename ...Args>
 		static std::unique_ptr<T> make(Args&&... args){
 			return std::unique_ptr<T>(new T(args...));
 		}
+#ifndef ONION_HAS_DELETED_FUNCS
+	private:
+		Handler(const Handler&);
+#endif
 	};
 	
 	/// Converts a C++ handler to C
