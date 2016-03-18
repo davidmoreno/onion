@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,13 +16,18 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
+	You should have received a copy of both licenses, if not see 
 	<http://www.gnu.org/licenses/> and 
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #include "dict.hpp"
 #include <map>
+
+#if ONION_HAS_LAMBDAS
+#else
+static void empty_deleter(onion_dict*) {}
+#endif
 
 Onion::Dict::key_not_found::key_not_found(const std::string& key)
 	: msg("Key " + key + " not found")
@@ -40,13 +45,20 @@ const char* Onion::Dict::key_not_found::what() const noexcept
 Onion::Dict::Dict(const std::map<std::string, std::string>& values)
 	: ptr { onion_dict_new(), &onion_dict_free }
 {
+#if ONION_HAS_RANGED_FOR
 	for(const auto& pair : values)
 		add(pair.first, pair.second);
+#else
+	for(std::map<std::string, std::string>::const_iterator i = values.begin(); i != values.end(); ++i) {
+		add(i->first, i->second);
+	}
+#endif
 }
 
 Onion::Dict::Dict(std::initializer_list<std::initializer_list<std::string>> &&init)
 	: ptr { onion_dict_new(), &onion_dict_free }
 {
+#if ONION_HAS_RANGED_FOR
 	for(auto p : init)
 	{
 		auto I = p.begin();
@@ -55,13 +67,31 @@ Onion::Dict::Dict(std::initializer_list<std::initializer_list<std::string>> &&in
 		auto v = *I;
 		add(k, v);
 	}
+#else
+	for(const std::initializer_list<std::string>* p = init.begin(); p != init.end(); ++p) {
+		const std::string* key = p->begin();
+		const std::string* i = key;
+		++i;
+		const std::string* value = i;
+		add(*key, *value);
+	}
+#endif
 }
 
 Onion::Dict::Dict(const onion_dict *_ptr, bool owner)
+#if ONION_HAS_LAMBDAS
 	: ptr { nullptr, [](onion_dict*) -> void {}  }
+#else
+	: ptr { nullptr, &empty_deleter }
+#endif
 {
-	if(!owner)
+	if(!owner) {
+#if ONION_HAS_LAMBDAS
 		ptr = internal_pointer { const_cast<onion_dict*>(_ptr), [](onion_dict*) -> void {} };
+#else
+		ptr = internal_pointer { const_cast<onion_dict*>(_ptr), &empty_deleter };
+#endif
+	}
 	else
 		ptr = internal_pointer { const_cast<onion_dict*>(_ptr), &onion_dict_free };
 }
