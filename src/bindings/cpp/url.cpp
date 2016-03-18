@@ -25,6 +25,12 @@
 #include "request.hpp"
 #include "response.hpp"
 
+#ifndef ONION_HAS_LAMBDAS
+void onion_url_no_free(onion_url*) {
+	return;
+}
+#endif
+
 Onion::Url::Url()
 	: ptr { onion_url_new(), &onion_url_free }
 {
@@ -36,19 +42,31 @@ Onion::Url::Url(onion_url* _ptr)
 }
 
 Onion::Url::Url(Onion* o)
+#ifdef ONION_HAS_LAMBDAS
 	: ptr { onion_root_url(o->c_handler()), [](onion_url*) -> void {} }
+#else
+	: ptr { onion_root_url(o->c_handler()), &onion_url_no_free }
+#endif
 {
 }
 
 Onion::Url::Url(Onion& o)
+#ifdef ONION_HAS_LAMBDAS
 	: ptr { onion_root_url(o.c_handler()), [](onion_url*) -> void {} }
+#else
+	: ptr { onion_root_url(o.c_handler()), &onion_url_no_free }
+#endif
 {
 }
 
 Onion::Url::Url(Url &&o)
 	: ptr { o.ptr.get(), &onion_url_free }
 {
+#ifdef ONION_HAS_LAMBDAS
   o.ptr.get_deleter() = [](onion_url*) -> void {};
+#else
+  o.ptr.get_deleter() = &onion_url_no_free;
+#endif
 }
 
 Onion::Url::~Url()
@@ -93,7 +111,11 @@ Onion::Url& Onion::Url::add(const std::string& url, onion_handler_handler handle
 Onion::Url& Onion::Url::add(const std::string& url, Url url_handler)
 {
 	add(url, onion_url_to_handler(url_handler.c_handler()));
+#ifdef ONION_HAS_LAMBDAS
 	url_handler.ptr.get_deleter() = [](onion_url*) -> void {};
+#else
+	url_handler.ptr.get_deleter() = &onion_url_no_free;
+#endif
 	return *this;
 }
 
