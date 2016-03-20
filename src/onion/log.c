@@ -186,7 +186,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 	if (!(onion_log_flags&OF_NOCOLOR))
 		strout_length+=sprintf(strout+strout_length, "\033[0m\n");
 	else
-		strout_length=sprintf(strout+strout_length, "\n");
+		strout_length+=sprintf(strout+strout_length, "\n");
 
 	strout[strout_length]='\0';
 	// Use of write instead of fwrite, as it shoukd be atomic with kernel doing the
