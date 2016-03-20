@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see
+	You should have received a copy of both licenses, if not see
 	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -442,28 +442,34 @@ static int onion_poller_get_next_timeout(onion_poller *p){
 	return timeout;
 }
 
+// This helps to do the timeout check max only once per second
+static time_t time_last_check=0;
+
 void onion_poller_check_timeouts(onion_poller *p){
 	//ONION_DEBUG0("Current time is %d, limit is %d, timeout is %d. Waited for %d seconds", ctime, maxtime, timeout, ctime_end-ctime);
 	time_t time_now=time(NULL);
 
-	pthread_mutex_lock(&p->mutex);
-	onion_poller_slot **slot=p->slots;
-	for(int i=0;i<p->slot_max;i++){
-		onion_poller_slot *cur=*slot;
-		if (cur && cur->timeout_limit <= time_now){
-			ONION_DEBUG0("Timeout on fd %d, was %d (time_now %d)", cur->fd, cur->timeout_limit, time_now);
-			cur->timeout_limit=INT_MAX;
-			if (cur->shutdown){
-				cur->shutdown(cur->shutdown_data);
-				onion_poller_slot_set_shutdown(cur,NULL,NULL);
+	if (time_now!=time_last_check){
+		pthread_mutex_lock(&p->mutex);
+		onion_poller_slot **slot=p->slots;
+		for(int i=0;i<p->slot_max;i++){
+			onion_poller_slot *cur=*slot;
+			if (cur && cur->timeout_limit <= time_now){
+				ONION_DEBUG0("Timeout on fd %d, was %d (time_now %d)", cur->fd, cur->timeout_limit, time_now);
+				cur->timeout_limit=INT_MAX;
+				if (cur->shutdown){
+					cur->shutdown(cur->shutdown_data);
+					onion_poller_slot_set_shutdown(cur,NULL,NULL);
+				}
+				// closed, do not even try to call it.
+				cur->f=NULL;
+				cur->data=NULL;
 			}
-			// closed, do not even try to call it.
-			cur->f=NULL;
-			cur->data=NULL;
+			slot++;
 		}
-		slot++;
+		__atomic_store_n(&time_last_check, time_now, __ATOMIC_SEQ_CST);
+		pthread_mutex_unlock(&p->mutex);
 	}
-	pthread_mutex_unlock(&p->mutex);
 }
 
 // Do all necessary to serve one poller wake up
@@ -504,7 +510,7 @@ static void onion_poller_serve_one(onion_poller *p, onion_poller_slot *el, struc
 		event->events=el->type;
 		if (p->fd>=0){
 			pthread_mutex_lock(&p->mutex);
-			el->id=event->data.u64; // Recover id, to be searchcable again.
+			el->id=event->data.u64; // Recover id, to be searchable again.
 			pthread_mutex_unlock(&p->mutex);
 			int e=epoll_ctl(p->fd, EPOLL_CTL_MOD, el->fd, event);
 			if (e<0){
