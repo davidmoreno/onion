@@ -284,6 +284,7 @@ int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 	poller->slots[i]=el;
 	el->id=poller->slot_id++;
 	poller->n++;
+	uint64_t id=el->id;
 
 	ONION_DEBUG0("Adding fd %d for polling (%d), id %d, slot %d/%d", el->fd, poller->n, el->id, i, poller->slot_max);
 	pthread_mutex_unlock(&poller->mutex);
@@ -291,7 +292,7 @@ int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 	ev.events=el->type;
-	ev.data.u64=el->id; // We will look for it by id. If not there not being used anymore
+	ev.data.u64=id; // We will look for it by id. If not there not being used anymore
 	if (epoll_ctl(poller->fd, EPOLL_CTL_ADD, el->fd, &ev) < 0){
 		ONION_ERROR("Error add descriptor to listen to. %s", strerror(errno));
 		return 1;
@@ -502,7 +503,9 @@ static void onion_poller_serve_one(onion_poller *p, onion_poller_slot *el, struc
 		ONION_DEBUG0("Re setting poller %d", el->fd);
 		event->events=el->type;
 		if (p->fd>=0){
+			pthread_mutex_lock(&p->mutex);
 			el->id=event->data.u64; // Recover id, to be searchcable again.
+			pthread_mutex_unlock(&p->mutex);
 			int e=epoll_ctl(p->fd, EPOLL_CTL_MOD, el->fd, event);
 			if (e<0){
 				onion_poller_remove_and_free_by_id(p, event->data.u64);
