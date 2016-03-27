@@ -40,6 +40,7 @@
 #include "types.h"
 #include "poller.h"
 #include "low.h"
+#include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/eventfd.h>
 #include <fcntl.h>
@@ -90,6 +91,8 @@ struct onion_poller_slot_t{
 	onion_poller_slot *next;
 };
 
+#define MAX_SLOTS 1000000
+
 /**
  * @short Creates a new slot for the poller, for input data to be ready.
  * @memberof onion_poller_slot_t
@@ -101,11 +104,26 @@ struct onion_poller_slot_t{
  * @returns A new poller slot, ready to be added (onion_poller_add) or modified (onion_poller_slot_set_shutdown, onion_poller_slot_set_timeout).
  */
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
-	if (fd<0){
+	static onion_poller_slot empty_slot;
+	static onion_poller_slot *slots;
+	static rlim_t max_slots;
+	if (!max_slots) {
+		struct rlimit rlim;
+		if (getrlimit(RLIMIT_NOFILE, &rlim)) {
+			ONION_ERROR("getrlimit: %s", strerror(errno));
+			return NULL;
+		}
+		max_slots = rlim.rlim_cur;
+		if (max_slots > MAX_SLOTS)
+			max_slots = MAX_SLOTS;
+		slots = (onion_poller_slot *)onion_low_calloc(max_slots, sizeof(onion_poller_slot));
+	}
+	if (fd<0||fd>=max_slots){
 		ONION_ERROR("Trying to add an invalid file descriptor to the poller. Please check.");
 		return NULL;
 	}
-	onion_poller_slot *el=(onion_poller_slot*)onion_low_calloc(1, sizeof(onion_poller_slot));
+	onion_poller_slot *el=&slots[fd];
+	*el=empty_slot;
 	el->fd=fd;
 	el->f=f;
 	el->data=data;
@@ -121,9 +139,10 @@ onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
  * @memberof onion_poller_slot_t
  */
 void onion_poller_slot_free(onion_poller_slot *el){
+/* Cannot zeroize the slot here because it's still needed for el->shutdown(),
+ * and it can be reused by another thread when ->shutdown() calls close(). */
 	if (el->shutdown)
 		el->shutdown(el->shutdown_data);
-	onion_low_free(el);
 }
 
 /**
