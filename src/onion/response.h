@@ -27,6 +27,7 @@
 #include "types.h"
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -82,10 +83,11 @@ const char *onion_response_code_description(int code);
  * These flags are used internally by the resposnes, but they can be the responses themselves of the handler when appropiate.
  */
 enum onion_response_flags_e{
-	OR_KEEP_ALIVE=4, 				///< Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
-	OR_LENGTH_SET=2,				///< Response has set the length, so we may keep alive.
 	OR_CLOSE_CONNECTION=1,	///< The connection will be closed when processing finishes.
+	OR_LENGTH_SET=2,				///< Response has set the length, so we may keep alive.
+	OR_KEEP_ALIVE=4, 				///< Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
 	OR_SKIP_CONTENT=8,			///< This is set when the method is HEAD. @see onion_response_write_headers
+	OR_APP_HEADERS=16,			///< Do not end the headers section. Convenient for proxying to CGI apps writing their own headers.
 	OR_CHUNKED=32,					///< The data is to be sent using chunk encoding. Its on if no lenght is set.
 	OR_CONNECTION_UPGRADE=64, ///< The connection is upgraded (websockets).
   OR_HEADER_SENT=0x0200,  ///< The header has already been written. Its done automatically on first user write. Same id as OR_HEADER_SENT from onion_response_flags.
@@ -107,6 +109,8 @@ void onion_response_set_header(onion_response *res, const char *key, const char 
 void onion_response_set_length(onion_response *res, size_t length);
 /// Sets the return code
 void onion_response_set_code(onion_response *res, int code);
+/// Sets whether or not to allow the app to send additional headers
+void onion_response_set_app_headers(onion_response *res, bool allow);
 /// Gets the headers dictionary
 onion_dict *onion_response_get_headers(onion_response *res);
 /// Sets a new cookie
