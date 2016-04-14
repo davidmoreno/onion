@@ -2,6 +2,7 @@
 #include <onion.hpp>
 #include <http.hpp>
 #include <https.hpp>
+#include <onion/log.h>
 
 #include <shortcuts.hpp>
 
@@ -24,4 +25,3 @@ int main(int argc, char*argv[]){
 	o.listen();
 	return 0;
 }
-
