@@ -5,12 +5,12 @@
 ![Coverity status](https://scan.coverity.com/projects/1815/badge.svg#svg)[Coverity status](https://scan.coverity.com/projects/1815)
 
 
-Onion is a C library to create simple HTTP servers and Web Applications. 
+Onion is a C library to create simple HTTP servers and Web Applications.
 
 ## Introduction
 
-The use case is an existing application, or a new one, that needs some HTTP interconnection 
-with the world. It uses the library to add some handlers for specific URLs and generate and 
+The use case is an existing application, or a new one, that needs some HTTP interconnection
+with the world. It uses the library to add some handlers for specific URLs and generate and
 serve the dynamic data as needed.
 
 It also has security goals (SSL support) so that you just concentrate on what you want
@@ -18,7 +18,7 @@ to serve, and serve it.
 
 Its not a web server per se, as it is not an executable.
 
-If you want to compare to a web server, a web server would use a module or plugin to add 
+If you want to compare to a web server, a web server would use a module or plugin to add
 some functionality. With libonion you have the functionality and add the webserver as a plugin.
 
 There is a wiki available at https://github.com/davidmoreno/onion/wiki, with useful
@@ -30,7 +30,7 @@ There is a mailing list at https://groups.google.com/a/coralbits.com/forum/?from
 
 ## Collaborate!
 
-You can, and are encouraged, to branch at github, download and tweak onion to use it in your 
+You can, and are encouraged, to branch at github, download and tweak onion to use it in your
 projects.
 
 The library is dual licensed under the Apache2 license and GPLv2+, so you can make almost anything
@@ -50,7 +50,7 @@ There are third party packages available:
  * Arch Linux: https://aur.archlinux.org/packages/libonion-git/
 
 If you know of any other packaged version, please send me a note.
- 
+
 As always they may be outdated, if you want the latest and greatest, do a manual compile and install.
 
 Thanks to Ruediger Meier for helping for so long with the RPM packages.
@@ -68,7 +68,7 @@ Manual compile and install:
      $ make
      $ sudo make install
 ```
-     
+
 To compile with debugging enabled, use
 
 ```bash
@@ -90,7 +90,19 @@ Required:
 * C compiler
 * cmake
 * make
- 
+
+This compilers and minimum versions are known to work:
+
+* Linux:
+  * GCC 4.7
+  * clang 3.0
+
+For the C++ bindings a C++11 compiler is needed:
+
+* Linux:
+  * GCC 4.8
+  * clang 3.7
+
 Optional; Onion will compile but some functionality will not be available:
 
 * gnutls and gcrypt (SSL support)
@@ -112,13 +124,13 @@ Optional for examples:
 ## SSL Support
 
 If at compile time the build script finds the gnutls libraries, SSL support will be compiled in. It can be
-deactivated anyway at ./CMakeLists.txt. 
+deactivated anyway at ./CMakeLists.txt.
 
 To use it you have to set the certificates, and you can check if its on, checking the flag
 O_SSL_ACTIVATED.
 
 If support is not compiled in, then the library will not use SSL, but for the user of the library the
-interface is the same; it will only change that when trying to set the certificates it 
+interface is the same; it will only change that when trying to set the certificates it
 will fail. Anwyay for clients its just to use the interface and they dont care at all
 if suport is in or not. No more than being able to use SSL.
 
@@ -139,8 +151,8 @@ It can be deactivated at CMakeLists.txt. If no pthreads lib is found on the syst
 is not compiled in.
 
 Also when thread support is on, onion server can be set to work on another (non-main) thread.
-This is independant from O_THREADED operation; it can have one thread with your normal 
-application and another thread that listens and processes web-requests. Its set with the 
+This is independant from O_THREADED operation; it can have one thread with your normal
+application and another thread that listens and processes web-requests. Its set with the
 O_DETACH_LISTEN flag. This is very useful when adding an extra web server to your application
 so it can be added without changes to the flow of your application, but you will need to
 thread protect your data if you access to it from the web server.
@@ -231,7 +243,7 @@ Oterm has example socket and service files for oterm support.
 
 ## FreeBSD/Darwin
 
-Since september 2013 there is support for FreeBSD using libev or libevent. This work is not as tested 
+Since september 2013 there is support for FreeBSD using libev or libevent. This work is not as tested
 as the Linux version, but if some compilation error arises, please send the bug report and we will fix
 it ASAP.
 
@@ -257,10 +269,9 @@ You can set the following environment variables -e.g. with the export builtin of
 
 We try hard to keep binary compatibility, but sometimes its hard. Here is a list of ABI breaks:
 
-### 0.4.0 
+### 0.4.0
 
-* Onion object private flags have moved. If on your code you rely on them, must recompile. If 
+* Onion object private flags have moved. If on your code you rely on them, must recompile. If
   dont rely on them, everything should keep working.
 
 ![Analytics](https://cruel-carlota.pagodabox.com/e788af315b3d9517752db2e79553e346)
-
