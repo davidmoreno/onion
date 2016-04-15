@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
+	You should have received a copy of both licenses, if not see 
 	<http://www.gnu.org/licenses/> and 
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -52,8 +52,6 @@ namespace Onion{
 		HandlerBase &operator=(HandlerBase &o) = delete;
 	};
 
-	//using Handler=std::unique_ptr<HandlerBase>;
-	
 	class Handler{
 		std::unique_ptr<HandlerBase> ptr;
 	public:
@@ -77,8 +75,6 @@ namespace Onion{
 	
 	/// Converts a C handler to C++
 	Handler onion_handler_c_to_cpp(onion_handler *);
-	
-	
 	
 	/**
 	* @short Creates a handler that calls a method in an object.
