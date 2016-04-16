@@ -2,7 +2,7 @@
 
 # usage: git-version-gen [srcdir]
 
-DEF_VER="v0.8.GIT"
+DEF_VER="v0.8.0.GIT"
 
 LF='
 '
