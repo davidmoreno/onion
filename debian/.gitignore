@@ -1,0 +1,6 @@
+*.log
+libonion-dev/
+libonion-examples/
+libonion-tools/
+libonion0/
+tmp/
