@@ -466,8 +466,11 @@ ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
 ssize_t onion_response_vprintf(onion_response *res, const char *fmt, va_list args)
 {
 	char temp[512];
+    va_list argz;
 	int l;
-	l=vsnprintf(temp, sizeof(temp), fmt, args);
+    va_copy(argz, args);
+	l=vsnprintf(temp, sizeof(temp), fmt, argz);
+    va_end(argz);
 	if (l<0) {
 		ONION_ERROR("Invalid vprintf fmt");
 		return -1;
@@ -484,7 +487,7 @@ ssize_t onion_response_vprintf(onion_response *res, const char *fmt, va_list arg
 			ONION_ERROR("Could not reserve %d bytes", l+1);
 			return -1;
 		}
-		vsnprintf(buf, l, fmt, args);
+		vsnprintf(buf, l+1, fmt, args);
 		s = onion_response_write (res, buf, l);
 		onion_low_free (buf);
 		return s;
