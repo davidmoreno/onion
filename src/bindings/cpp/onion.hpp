@@ -26,6 +26,7 @@
 
 #include <string>
 #include <onion/onion.h>
+#include "features.hpp"
 #include "listen_point.hpp"
 #include "handler.hpp"
 
@@ -145,7 +146,7 @@ namespace Onion{
 		* Its a convenience function that converts the integer to a string.
 		*/
 		void setPort(int port){
-			std::string port_str=std::to_string(port);
+			std::string port_str=std::to_string(static_cast<long long int>(port));
 			onion_set_port(ptr,port_str.c_str());
 		}
 		

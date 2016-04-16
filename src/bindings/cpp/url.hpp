@@ -24,6 +24,7 @@
 #ifndef ONION_URL_HPP
 #define ONION_URL_HPP
 
+#include "features.hpp"
 #include "onion.hpp"
 #include "handler.hpp"
 #include <onion/url.h>
@@ -67,7 +68,11 @@ namespace Onion{
 	 * As it can se regex without full matching, be careful or its possible to just match substrings: "o$" matches "Hello", "Hello/World/o" and so on.
 	 */
 	class Url{
+#ifdef ONION_HAS_TEMPLATE_ALIAS
 		using internal_pointer = std::unique_ptr<onion_url, decltype(onion_url_free)*>;
+#else
+		typedef std::unique_ptr<onion_url, decltype(onion_url_free)*> internal_pointer;
+#endif
 		internal_pointer ptr;
 	public:
 		/**

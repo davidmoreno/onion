@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
+	You should have received a copy of both licenses, if not see 
 	<http://www.gnu.org/licenses/> and 
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -31,6 +31,7 @@
 #include <onion/block.h>
 #include <map>
 #include <memory>
+#include "features.hpp"
 
 namespace Onion{
 	/**
@@ -46,7 +47,11 @@ namespace Onion{
 	 * it ensures copy of data and more memory use.
 	 */
 	class Dict{
+#if ONION_HAS_TEMPLATE_ALIAS
 		using internal_pointer = std::unique_ptr<onion_dict, decltype(onion_dict_free)*>;
+#else
+		typedef std::unique_ptr<onion_dict, decltype(onion_dict_free)*> internal_pointer;
+#endif
 		internal_pointer ptr;
 
 	public:
@@ -73,7 +78,9 @@ namespace Onion{
 			 * @short Create a lock object from a Dict.
 			 */
 			explicit lock(onion_dict* d) : dict(d) { }
+#if ONION_HAS_RVALUE_REFS
 			lock(lock&& l) : dict(l.dict) { l.dict = nullptr; }
+#endif
 
 			/**
 			 * @short Automatically releases a lock when the scope is exited.
@@ -88,6 +95,7 @@ namespace Onion{
 		 */
 		Dict(const std::map<std::string, std::string> &values);
 
+#if ONION_HAS_INIT_LIST 
 		/**
 		 * @short Created directly from initializer list. Only for > C++11
 		 * 
@@ -97,11 +105,13 @@ namespace Onion{
 		 * @endcode
 		 */
 		Dict(std::initializer_list<std::initializer_list<std::string>> &&init);
-
+#endif
 		/**
 		 * @short Creates an empty Onion::Dict
 		 */
-	    Dict() : ptr { onion_dict_new(), &onion_dict_free } {}
+	    Dict() :
+	    ptr { onion_dict_new(), &onion_dict_free } 
+	    {}
 
 		/**
 		 * @short Creates a Onion::Dict from a c onion_dict.
@@ -121,7 +131,7 @@ namespace Onion{
 		 * @short Frees this reference.
 		 */
 	    ~Dict() {}
-    
+
 	    /**
 		 * @short Try to get a key, if not existant, throws an key_not_found exception.
 		 */

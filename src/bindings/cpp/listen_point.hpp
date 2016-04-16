@@ -25,8 +25,15 @@
 
 #include <onion/listen_point.h>
 #include <memory>
+#include "features.hpp"
 
 namespace Onion {
+#ifndef ONION_HAS_LAMBDAS
+	static void listen_point_no_free(onion_listen_point*) {
+		return;
+	}
+#endif
+
 	/**
 	 * @short Creates a listen point for an Onion::Onion object.
 	 * Not meant to be used directly, as a default listen point doesn't
@@ -34,7 +41,11 @@ namespace Onion {
 	 */
 	class ListenPoint {
 	protected:
+#ifdef ONION_HAS_TEMPLATE_ALIAS
 		using internal_pointer = std::unique_ptr<onion_listen_point, decltype(onion_listen_point_free)*>;
+#else
+		typedef std::unique_ptr<onion_listen_point, decltype(onion_listen_point_free)*> internal_pointer;
+#endif
 		internal_pointer ptr;
 	public:
 		ListenPoint() 
@@ -42,7 +53,11 @@ namespace Onion {
 		{}
 
 		ListenPoint(onion_listen_point* lp)
+#ifdef ONION_HAS_LAMBDAS
 			: ptr(lp, [](onion_listen_point*) { return; })
+#else
+			: ptr(lp, &listen_point_no_free)
+#endif
 		{}
 
 		ListenPoint(ListenPoint&& other) : ptr { std::move(other.ptr) }

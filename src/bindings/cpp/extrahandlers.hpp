@@ -31,6 +31,7 @@
 #include "handler.hpp"
 #include "request.hpp"
 #include "response.hpp"
+#include "features.hpp"
 
 namespace Onion{
 
