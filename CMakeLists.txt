@@ -2,6 +2,10 @@ cmake_minimum_required (VERSION 2.8)
 cmake_policy(VERSION 2.8)
 project(libonion)
 
+SET(ONION_VERSION_MAJOR 0)
+SET(ONION_VERSION_MINOR 7)
+SET(ONION_VERSION_PATCH 0)
+
 # Some tweak parameters
 SET(ONION_USE_SSL true CACHE BOOL "Use SSL, requires GnuTLS")
 SET(ONION_USE_PAM true CACHE BOOL "Compile PAM handler. Needs libpam")
