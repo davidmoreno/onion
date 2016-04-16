@@ -91,7 +91,8 @@ struct onion_poller_slot_t{
 	onion_poller_slot *next;
 };
 
-#define MAX_SLOTS 1000000
+// Max number of polls, normally just 1024 as set by `ulimit -n` (fd count).
+static const int MAX_SLOTS=1000000;
 
 /**
  * @short Creates a new slot for the poller, for input data to be ready.
@@ -249,7 +250,6 @@ void onion_poller_free(onion_poller *p){
 			onion_poller_slot *tnext=next->next;
 			if (next->shutdown)
 				next->shutdown(next->shutdown_data);
-			onion_low_free(next);
 			next=tnext;
 		}
 		pthread_mutex_unlock(&p->mutex);
