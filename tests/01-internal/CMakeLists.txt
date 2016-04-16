@@ -26,7 +26,7 @@ IF (CERTTOOL)
 message(STATUS "Found certool compiling all tests")
 add_custom_command(
    OUTPUT mycert.pem
-   COMMAND 
+   COMMAND
 		${CERTTOOL} --generate-privkey --outfile mycert.key &&
 		${CERTTOOL} --generate-self-signed --load-privkey mycert.key --outfile mycert.crt --template ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg  &&
 		cat mycert.crt mycert.key > mycert.pem
@@ -124,3 +124,6 @@ if (SQLITE3_ENABLED)
  add_test(session_sqlite3 20-session_sqlite3)
 endif(SQLITE3_ENABLED)
 
+add_executable(21-version 21-version.c)
+target_link_libraries(21-version onion)
+add_test(version 21-version)
