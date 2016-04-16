@@ -1,13 +1,14 @@
 # the lib itself. Two versions, static and shared.
 add_subdirectory(handlers)
 include_directories (${PROJECT_SOURCE_DIR}/src/) 
-
+include_directories (${CMAKE_CURRENT_BINARY_DIR})
+configure_file(version.h.in ${CMAKE_CURRENT_BINARY_DIR}/version.h)
 
 SET(INCLUDES block.h codecs.h dict.h handler.h http.h https.h listen_point.h low.h log.h mime.h onion.h poller.h 
 	request.h response.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ptr_list.h)
 
 set(SOURCES onion.c codecs.c dict.c low.c request.c response.c handler.c log.c sessions.c sessions_mem.c shortcuts.c 
-	block.c mime.c url.c listen_point.c request_parser.c http.c websocket.c ptr_list.c
+	block.c mime.c url.c listen_point.c request_parser.c http.c websocket.c ptr_list.c version.c
 	handlers/static.c handlers/exportlocal.c handlers/opack.c handlers/path.c handlers/internal_status.c
 	)
 
@@ -114,6 +115,7 @@ SET_TARGET_PROPERTIES(onion onion_static
 	)
 
 install(FILES ${INCLUDES} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/version.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(TARGETS onion onion_static EXPORT onion DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 if (${ARM})
