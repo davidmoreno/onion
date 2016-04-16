@@ -95,7 +95,15 @@ onion_response *onion_response_new(onion_request *req){
 		// onion_response_last_date_header is set to t later. It should be more or less atomic.
 		// If not no big deal, as we will just use slightly more CPU on those "ephemeral" moments.
 
-		if (t!=onion_response_last_time){
+#ifdef HAVE_PTHREADS
+		pthread_rwlock_rdlock(&onion_response_date_lock);
+		time_t current = onion_response_last_time;
+		pthread_rwlock_unlock(&onion_response_date_lock);
+#else
+		time_t current = onion_response_last_time;
+#endif
+
+		if (t!=current){
 			ONION_DEBUG("Recalculating date header");
 			char current_datetime[200];
 
