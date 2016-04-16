@@ -88,7 +88,7 @@ onion_response *onion_response_new(onion_request *req){
 #ifndef DONT_USE_DATE_HEADER
 	{
 		time_t t;
-		struct tm *tmp;
+		struct tm tmp;
 
 		t = time(NULL);
 
@@ -99,13 +99,12 @@ onion_response *onion_response_new(onion_request *req){
 			ONION_DEBUG("Recalculating date header");
 			char current_datetime[200];
 
-			tmp = localtime(&t);
-			if (tmp == NULL) {
+			if(localtime_r(&t, &tmp) == NULL) {
 					perror("localtime");
 					exit(EXIT_FAILURE);
 			}
 
-			if (strftime(current_datetime, sizeof(current_datetime), "%a, %d %b %Y %H:%M:%S %Z", tmp) == 0) {
+			if (strftime(current_datetime, sizeof(current_datetime), "%a, %d %b %Y %H:%M:%S %Z", &tmp) == 0) {
 					fprintf(stderr, "strftime returned 0");
 					exit(EXIT_FAILURE);
 			}
