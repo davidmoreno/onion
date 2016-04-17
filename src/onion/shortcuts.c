@@ -4,20 +4,20 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -58,7 +58,7 @@ ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
 
 /**
  * @short Shortcut for fast responses, like errors.
- * 
+ *
  * Prepares a fast response. You pass only the request, the text and the code, and it do the full response
  * object and sends the data.
  */
@@ -70,19 +70,19 @@ onion_connection_status onion_shortcut_response(const char* response, int code, 
 
 /**
  * @short Shortcut for fast responses, like errors, with extra headers
- * 
+ *
  * Prepares a fast response. You pass only the request, the text and the code, and it do the full response
  * object and sends the data.
- * 
+ *
  * On this version you also pass a NULL terminated list of headers, in key, value pairs.
  */
 onion_connection_status onion_shortcut_response_extra_headers(const char* response, int code, onion_request* req, onion_response *res, ... ){
 	unsigned int l=strlen(response);
 	const char *key, *value;
-	
+
 	onion_response_set_length(res,l);
 	onion_response_set_code(res,code);
-	
+
 	va_list ap;
 	va_start(ap, res);
 	while ( (key=va_arg(ap, const char *)) ){
@@ -95,17 +95,17 @@ onion_connection_status onion_shortcut_response_extra_headers(const char* respon
 	va_end(ap);
 
 	onion_response_write_headers(res);
-	
+
 	onion_response_write(res,response,l);
 	return OCS_PROCESSED;
 }
 
 
 /**
- * @short Shortcut to ease a redirect. 
- * 
+ * @short Shortcut to ease a redirect.
+ *
  * It can be used directly as a handler, or be called from a handler.
- * 
+ *
  * The browser message is fixed; if need more flexibility, create your own redirector.
  */
 onion_connection_status onion_shortcut_redirect(const char *newurl, onion_request *req, onion_response *res){
@@ -122,11 +122,11 @@ onion_connection_status onion_shortcut_internal_redirect(const char *newurl, oni
 }
 
 /**
- * @short This shortcut returns the given file contents. 
- * 
- * This is the recomended way to send static files; it even can use sendfile Linux call 
+ * @short This shortcut returns the given file contents.
+ *
+ * This is the recomended way to send static files; it even can use sendfile Linux call
  * if suitable.
- * 
+ *
  * It does no security checks, so caller must be security aware.
  */
 onion_connection_status onion_shortcut_response_file(const char *filename, onion_request *request, onion_response *res){
@@ -139,9 +139,10 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 		else
 			onion_use_sendfile=1;
 	}
-	
+	int use_sendfile=onion_use_sendfile; // Now that we know global, use some local info as well.
+
 	int fd=open(filename,O_RDONLY|O_CLOEXEC);
-	
+
 	if (fd<0)
 		return OCS_NOT_PROCESSED;
 
@@ -155,30 +156,32 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 			ONION_ERROR("Setting O_CLOEXEC to file descriptor");
 		}
 	}
-	
+
 	struct stat st;
 	if (stat(filename, &st)!=0){
 		ONION_WARNING("File does not exist: %s",filename);
 		close(fd);
 		return OCS_NOT_PROCESSED;
 	}
-	
+
 	if (S_ISDIR(st.st_mode)){
 		close(fd);
 		return OCS_NOT_PROCESSED;
 	}
-	
+
 	size_t length=st.st_size;
-	
+	if (length<(1024*16)) // No sendfile for small files
+		use_sendfile=0;
+
 	char etag[64];
 	onion_shortcut_etag(&st, etag);
-		
+
 	const char *range=onion_request_get_header(request, "Range");
 	if (range){
 		strncat(etag,range,sizeof(etag)-1);
 	}
 	onion_response_set_header(res, "Etag", etag);
-	
+
 	if (range && strncmp(range,"bytes=",6)==0){
 		onion_response_set_code(res, HTTP_PARTIAL_CONTENT);
 		//ONION_DEBUG("Need just a range: %s",range);
@@ -194,7 +197,7 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 		if (*end=='-'){
 			*end='\0';
 			end++;
-			
+
 			//ONION_DEBUG("Start %s, end %s",start,end);
 			size_t ends, starts;
 			if (*end)
@@ -209,7 +212,7 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 			onion_response_set_header(res, "Content-Range",tmp);
 		}
 	}
-	
+
 	onion_response_set_length(res, length);
 	onion_response_set_header(res, "Content-Type", onion_mime_get(filename) );
 	ONION_DEBUG("Mime type is %s",onion_mime_get(filename));
@@ -228,10 +231,10 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 	if ((onion_request_get_flags(request)&OR_HEAD) == OR_HEAD){ // Just head.
 		length=0;
 	}
-	
+
 	if (length){
 #ifdef USE_SENDFILE
-		if (onion_use_sendfile && request->connection.listen_point->write==(void*)onion_http_write){ // Lets have a house party! I can use sendfile!
+		if (use_sendfile && request->connection.listen_point->write==(void*)onion_http_write){ // Lets have a house party! I can use sendfile!
 			onion_response_write(res,NULL,0);
 			ONION_DEBUG("Using sendfile");
 			int r=sendfile(request->connection.fd, fd, NULL, length);
@@ -279,12 +282,12 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 
 /**
  * @short Shortcut to answer some json data
- * 
+ *
  * It converts to json the passed dict and returns it. The dict is freed before returning.
  */
 onion_connection_status onion_shortcut_response_json(onion_dict *d, onion_request *req, onion_response *res){
 	onion_response_set_header(res, "Content-Type", "application/json");
-	
+
 	onion_block *bl=onion_dict_to_json(d);
 	onion_dict_free(d);
 	char tmp[16];
@@ -296,9 +299,9 @@ onion_connection_status onion_shortcut_response_json(onion_dict *d, onion_reques
 
 /**
  * @short Transforms a time_t to a RFC 822 date string
- * 
+ *
  * This date format is the standard in HTTP protocol as RFC 2616, section 3.3.1
- * 
+ *
  * The dest pointer must be at least 32 bytes long as thats the maximum size of the date.
  */
 void onion_shortcut_date_string(time_t t, char *dest){
@@ -310,7 +313,7 @@ void onion_shortcut_date_string(time_t t, char *dest){
 
 /**
  * @short Transforms a time_t to a ISO date string
- * 
+ *
  * The dest pointer must be at least 21 bytes long as thats the maximum size of the date.
  */
 void onion_shortcut_date_string_iso(time_t t, char *dest){
@@ -321,7 +324,7 @@ void onion_shortcut_date_string_iso(time_t t, char *dest){
 
 /**
  * @short Unifies the creation of etags.
- * 
+ *
  * Just now its a very simple one, based on the size and date.
  */
 void onion_shortcut_etag(struct stat *st, char etag[32]){
@@ -333,12 +336,12 @@ void onion_shortcut_etag(struct stat *st, char etag[32]){
 
 /**
  * @short Moves a file to another location
- * 
+ *
  * It takes care if it can be a simple rename or must copy and remove old.
  */
 int onion_shortcut_rename(const char *orig, const char *dest){
 	int ok=rename(orig, dest);
-	
+
 	if (ok!=0 && errno==EXDEV){ // Ok, old way, open both, copy
 		ONION_DEBUG0("Slow cp, as tmp is in another FS");
 		ok=0;
