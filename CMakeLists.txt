@@ -23,7 +23,14 @@ execute_process(
 	COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/git-version-gen" "${CMAKE_CURRENT_SOURCE_DIR}"
 	OUTPUT_VARIABLE ONION_VERSION)
 
+string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" ONION_VERSION_MAJOR ${ONION_VERSION})
+string(REGEX REPLACE "^[0-9]+\\.([0-9]+)\\..*" "\\1" ONION_VERSION_MINOR ${ONION_VERSION})
+string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+)\\..*" "\\1" ONION_VERSION_PATCH ${ONION_VERSION})
+
 message(STATUS "Onion version is ${ONION_VERSION}")
+
+include_directories (${PROJECT_SOURCE_DIR}/src/)
+include_directories (${PROJECT_BINARY_DIR}/src/)
 
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")

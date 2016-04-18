@@ -1,6 +1,7 @@
 /** Licensed under AGPL 3.0. (C) 2010 David Moreno Montero. http://coralbits.com */
 #include <onion/onion.h>
 #include <onion/log.h>
+#include <onion/version.h>
 #include <signal.h>
 #include <netdb.h>
 #include <stdlib.h>
@@ -35,6 +36,8 @@ onion_connection_status random_timeout(void *_, onion_request *req, onion_respon
 int main(int argc, char **argv){
 	signal(SIGINT,shutdown_server);
 	signal(SIGTERM,shutdown_server);
+
+	ONION_VERSION_IS_COMPATIBLE_OR_ABORT();
 
 	o=onion_new(O_POOL);
 	onion_set_timeout(o, 5000);
