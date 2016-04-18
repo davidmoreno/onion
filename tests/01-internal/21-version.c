@@ -26,7 +26,9 @@ void t01_current_version(){
   FAIL_IF_NOT_EQUAL_INT(ONION_VERSION_MAJOR, onion_version_major());
   FAIL_IF_NOT_EQUAL_INT(ONION_VERSION_MINOR, onion_version_minor());
   FAIL_IF_NOT_EQUAL_INT(ONION_VERSION_PATCH, onion_version_patch());
-  FAIL_IF_NOT(onion_version_is_compatible());
+  FAIL_IF_NOT(ONION_VERSION_IS_COMPATIBLE());
+  
+  ONION_VERSION_IS_COMPATIBLE_OR_ABORT();
 
   // Patch version is not important
   FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR,ONION_VERSION_MINOR,0));

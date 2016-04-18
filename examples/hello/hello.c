@@ -37,7 +37,7 @@ int main(int argc, char **argv){
 	signal(SIGINT,shutdown_server);
 	signal(SIGTERM,shutdown_server);
 
-	onion_version_is_compatible_or_abort();
+	ONION_VERSION_IS_COMPATIBLE_OR_ABORT();
 
 	o=onion_new(O_POOL);
 	onion_set_timeout(o, 5000);

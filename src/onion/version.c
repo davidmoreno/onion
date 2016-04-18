@@ -24,13 +24,45 @@
 #include <onion/log.h>
 #include <onion/version.h>
 
+
+/**
+ * @defgroup onion_version
+ * @{
+ * @shortname Onion runtime version control
+ *
+ * This version control functions can be used to control if current runtime
+ * is compatible with the onion library in use.
+ *
+ * Normal use is call the macro:
+ *
+ * @code
+ *  ONION_VERSION_IS_COMPATIBLE_OR_ABORT();
+ * @endcode
+ *
+ * at the begining of your program, which will ensure the current running
+ * program was compiled with a compatible onion version to the runtime one,
+ * or will call abort()
+ *
+ */
+
+/**
+ * @short Current running onion version as a string
+ */
 const char *onion_version(){
   return ONION_VERSION;
 }
 
+
+/**
+ * @short Current running onion major version
+ */
 int onion_version_major(){
   return ONION_VERSION_MAJOR;
 }
+
+/**
+ * @short Current running onion minor version
+ */
 int onion_version_minor(){
   return ONION_VERSION_MINOR;
 }
@@ -70,3 +102,15 @@ bool onion_version_is_compatible3(int major, int minor, int patch){
   }
   return true;
 }
+
+// This is to ensure documentation generation. Will never be compiled. Check header for real. implementation.
+#ifndef __ONION_VERSION_H__
+/// Macro to ensure that the version of onion your program is using is ABI compatible with the library one
+#define ONION_VERSION_IS_COMPATIBLE()
+
+/// Macro to ensure that the version of onion your program is using is ABI compatible with the library one. It aborts if its not compatible.
+#define ONION_VERSION_IS_COMPATIBLE_OR_ABORT()
+
+#endif
+
+/// @}
