@@ -114,12 +114,13 @@ SET_TARGET_PROPERTIES(onion onion_static
 		VERSION ${ONION_VERSION}
 	)
 
+configure_file(version.h.in version.h)
+
 install(FILES ${INCLUDES} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/version.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(TARGETS onion onion_static EXPORT onion DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 if (${ARM})
 elseif (${ARM})
 install(EXPORT onion DESTINATION share/cmake)
 endif (${ARM})
-
-configure_file(version.h.in version.h)
