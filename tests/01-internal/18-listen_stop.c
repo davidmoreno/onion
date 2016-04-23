@@ -24,6 +24,8 @@
 #include <onion/onion.h>
 #include <onion/log.h>
 
+#include <errno.h>
+
 #include "../ctest.h"
 
 onion *o;
@@ -31,32 +33,51 @@ onion *o;
 int connect_to(const char *addr, const char *port){
   struct addrinfo hints;
   struct addrinfo *server;
-  
+
   memset(&hints,0, sizeof(struct addrinfo));
   hints.ai_socktype=SOCK_STREAM;
   hints.ai_family=AF_UNSPEC;
-  hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
+  hints.ai_flags=0;
 
-  if (getaddrinfo(addr,port,&hints,&server)<0){
+  if (getaddrinfo(addr,port,&hints,&server)!=0){
     ONION_ERROR("Error getting server info");
     return -1;
   }
-  int fd=socket(server->ai_family, server->ai_socktype | SOCK_CLOEXEC, server->ai_protocol);
-  
-  if (connect(fd, server->ai_addr, server->ai_addrlen)==-1){
-    close(fd);
-    fd=-1;
-    ONION_ERROR("Error connecting to server %s:%s",addr,port);
+
+  struct addrinfo *next=server;
+  char thost[256];
+  char tport[256];
+  while(next){
+    int fd=socket(next->ai_family, next->ai_socktype | SOCK_CLOEXEC, next->ai_protocol);
+    if (fd<0){
+      ONION_ERROR("Error creating socket: %s", strerror(errno));
+      return -1;
+    }
+    getnameinfo(next->ai_addr, next->ai_addrlen,
+      thost, sizeof(thost),
+      tport, sizeof(tport), NI_NUMERICHOST | NI_NUMERICSERV);
+    ONION_DEBUG("Try connect at %s:%s -- %p %d", thost, tport, next, fd);
+    int ok=connect(fd, next->ai_addr, next->ai_addrlen);
+    if (ok==0){
+      ONION_DEBUG("Done");
+      freeaddrinfo(server);
+      return fd;
+    }
+    else{
+      ONION_DEBUG("Could not connect: %s", strerror(errno));
+      close(fd);
+    }
+    next=next->ai_next;
   }
-  
+
+error: // failed connection on any of the returned addresses.
+  ONION_ERROR("Error connecting to server %s:%s: %s",addr,port, strerror(errno));
   freeaddrinfo(server);
-  
-  
-  return fd;
+  return -1;
 }
 
 static void shutdown_server(int _){
-	if (o) 
+	if (o)
 		onion_listen_stop(o);
 }
 
@@ -68,19 +89,19 @@ void *listen_thread_f(void *_){
 	onion_listen(o);
 	ONION_INFO("End listening");
 	ok_listening=0;
-	
+
 	return NULL;
 }
 
 void t01_stop_listening(){
 	INIT_LOCAL();
-	
+
 	signal(SIGTERM, shutdown_server);
-	
+
 	o=onion_new(O_POOL);
-	
+
 	pthread_t th;
-	
+
 	pthread_create(&th, NULL, listen_thread_f, NULL);
 
 	sleep(2);
@@ -91,19 +112,19 @@ void t01_stop_listening(){
 
 	pthread_join(th, NULL);
 	onion_free(o);
-	
+
 	END_LOCAL();
 }
 
 void t02_stop_listening_some_petitions(){
 	INIT_LOCAL();
-	
+
 	signal(SIGTERM, shutdown_server);
-	
+
 	o=onion_new(O_POOL);
-	
+
 	pthread_t th;
-	
+
 	pthread_create(&th, NULL, listen_thread_f, NULL);
 
 	sleep(2);
@@ -111,13 +132,22 @@ void t02_stop_listening_some_petitions(){
 	int connfd=connect_to("localhost","8080");
 	FAIL_IF( connfd < 0 );
 	FAIL_IF_NOT(ok_listening);
+  if (connfd>0){
+    send(connfd,"GET /\n\n",7,0);
+    char msg[1024];
+    size_t smsg;
+    smsg=recv(connfd,msg,sizeof(msg),0);
+    FAIL_IF(smsg<=0);
+    ONION_DEBUG("Got %s", msg);
+  }
+
 	kill(getpid(), SIGTERM);
 	sleep(2);
 	FAIL_IF(ok_listening);
 
 	pthread_join(th, NULL);
 	onion_free(o);
-	
+
 	if (connfd>=0)
 		close(connfd);
 	END_LOCAL();
@@ -125,9 +155,9 @@ void t02_stop_listening_some_petitions(){
 
 int main(int argc, char **argv){
 	START();
-	
+
 	t01_stop_listening();
 	t02_stop_listening_some_petitions();
-	
+
 	END();
 }
