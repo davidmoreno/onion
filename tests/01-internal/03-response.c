@@ -20,6 +20,7 @@
 #include <string.h>
 #include <time.h>
 
+#include <onion/low.h>
 #include <onion/log.h>
 #include <onion/dict.h>
 #include <onion/request.h>
