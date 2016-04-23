@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010 David Moreno Montero
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU Affero General Public License as
@@ -48,9 +48,7 @@ void t01_url(){
 		return OCS_PROCESSED;
 	});
 	
-	url.add("^more/", [&more_url](Onion::Request &req, Onion::Response &res){
-		return more_url(req, res);
-	});
+	url.add("^more/", std::move(more_url));
 	
 	more_url.add("", [](Onion::Request &req, Onion::Response &res){
 		res<<"more index, try <a href=\"/more/less?go\">Less</a>";

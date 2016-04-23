@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -16,7 +16,7 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
+	You should have received a copy of both licenses, if not see 
 	<http://www.gnu.org/licenses/> and 
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
@@ -66,7 +66,7 @@ namespace Onion{
 	 * 
 	 * As it can se regex without full matching, be careful or its possible to just match substrings: "o$" matches "Hello", "Hello/World/o" and so on.
 	 */
-	class Url{
+	class Url : public Handler {
 		using internal_pointer = std::unique_ptr<onion_url, decltype(onion_url_free)*>;
 		internal_pointer ptr;
 	public:
@@ -157,14 +157,7 @@ namespace Onion{
 		 * With this method is possible to use the C handlers as onion_webdav.
 		 */
 		Url &add(const std::string &url, onion_handler_handler handler);
-		/**
-		 * @short Adds an url that calls another Onion::Url.
-		 * 
-		 * With this method its possible to create Onion::Url hierachies, easing the modularization of
-		 * web applications.
-		 */
-		Url &add(const std::string &url, Url url_handler);
-		
+
 		/**
 		 * @short Allows to call am Onion::Url to continue the processing of this request.
 		 * 

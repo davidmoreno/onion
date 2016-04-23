@@ -121,6 +121,26 @@ Optional for examples:
 * boehm gc
 * libjpeg
 
+## Semantic versioning.
+
+Starting with Onion 0.8.0, we use semantic versioning, making the following
+promises:
+
+* Version format is [MAJOR].[MINOR].[PATCH].
+* Only make API and ABI changes at major versions. Can add functionalities at
+  minor releases.
+* Only remove API functions at major versions. No changes in semantics never.
+* Minor versions are always ABI back-compatible. This means that if you compiled
+  with a previous minor version and same major version, it will still compile
+  and work.
+* Only add API functions at minor versions.
+* Only fix patches a patch revisions.
+
+Patch revisions are is a non sequential number, so after 0.8.0 is not 0.8.1, but
+maybe 0.8.23. It will always increase.
+
+Check `onion/version.h` for more information on version control.
+
 ## SSL Support
 
 If at compile time the build script finds the gnutls libraries, SSL support will be compiled in. It can be

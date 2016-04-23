@@ -1,14 +1,15 @@
 # the lib itself. Two versions, static and shared.
 add_subdirectory(handlers)
-include_directories (${PROJECT_SOURCE_DIR}/src/) 
+include_directories (${PROJECT_SOURCE_DIR}/src/)
 
 
-SET(INCLUDES block.h codecs.h dict.h handler.h http.h https.h listen_point.h low.h log.h mime.h onion.h poller.h 
+SET(INCLUDES block.h codecs.h dict.h handler.h http.h https.h listen_point.h low.h log.h mime.h onion.h poller.h
 	request.h response.h sessions.h shortcuts.h types.h types_internal.h url.h websocket.h ptr_list.h)
 
-set(SOURCES onion.c codecs.c dict.c low.c request.c response.c handler.c log.c sessions.c sessions_mem.c shortcuts.c 
+set(SOURCES onion.c codecs.c dict.c low.c request.c response.c handler.c log.c sessions.c sessions_mem.c shortcuts.c
 	block.c mime.c url.c listen_point.c request_parser.c http.c websocket.c ptr_list.c
 	handlers/static.c handlers/exportlocal.c handlers/opack.c handlers/path.c handlers/internal_status.c
+	version.c
 	)
 
 set(LIBRARIES)
@@ -31,7 +32,7 @@ else(${GNUTLS_ENABLED})
 	LIST(APPEND SOURCES random-default.c)
 endif(${GNUTLS_ENABLED})
 if (${XML2_ENABLED})
-	MESSAGE(STATUS "Compiling WebDAV support") 
+	MESSAGE(STATUS "Compiling WebDAV support")
 	include_directories(${XML2_HEADERS})
 	LIST(APPEND SOURCES handlers/webdav.c)
 	LIST(APPEND LIBRARIES ${XML2_LIB})
@@ -113,11 +114,13 @@ SET_TARGET_PROPERTIES(onion onion_static
 		VERSION ${ONION_VERSION}
 	)
 
+configure_file(version.h.in version.h)
+
 install(FILES ${INCLUDES} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/version.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(TARGETS onion onion_static EXPORT onion DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 if (${ARM})
 elseif (${ARM})
 install(EXPORT onion DESTINATION share/cmake)
 endif (${ARM})
-

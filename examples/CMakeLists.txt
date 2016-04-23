@@ -1,5 +1,3 @@
-include_directories (${PROJECT_SOURCE_DIR}/src/)
-
 if (PAM_ENABLED)
 	if (OPACK)
 		add_subdirectory(otop)
@@ -67,4 +65,3 @@ add_subdirectory(jsonrpc)
 if(PTHREADS)
 	add_subdirectory(longpoll)
 endif(PTHREADS)
-
