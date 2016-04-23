@@ -159,7 +159,7 @@ int checkfds(){
 		// GNUTls opens urandom at init, before main, checks fd=3 may be that one.
 		if (cfd==3){
 			char filename[256];
-			size_t fns=readlinkat(dirfd(dir), de->d_name,
+			size_t fns=readlink("/proc/self/fd/3", // I know exactly which file.
 			         	filename, sizeof(filename));
 			if (fns>0){
 				filename[fns+1]=0; // stupid readlinkat... no \0 at end.
