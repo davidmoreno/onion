@@ -247,6 +247,7 @@ void t07_large_printf(){
 	memset(large_buffer, 'a', large_size);
 	large_buffer[large_size-1]=0;
 	onion_response_printf(response, "%s", large_buffer);
+	onion_low_free(large_buffer);
 
 	onion_response_flush(response);
 	onion_response_free(response);
