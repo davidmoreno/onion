@@ -27,6 +27,7 @@
 #include "../ctest.h"
 #include <fcntl.h>
 #include <signal.h>
+#include <stdbool.h>
 
 int checkfds();
 int handler(const char *me, onion_request *req, onion_response *res);
@@ -43,7 +44,7 @@ void t01_get(){
 	}
 	else{
 		curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8080");
-		
+
 		CURLcode res=curl_easy_perform(curl);
 		FAIL_IF_NOT_EQUAL((int)res,0);
 		long int http_code;
@@ -61,39 +62,39 @@ void t01_get(){
  */
 int main(int argc, char **argv){
 	START();
-	
+
 	if (argc==2 && strcmp(argv[1],"--checkfds")==0)
 		return checkfds(argc, argv);
-	
+
 	pid_t pid;
 	if ( (pid=fork())==0){
 		init_onion(argv[0]);
 	}
 	sleep(1);
 	ONION_DEBUG("Ok, now ask");
-	
+
 	t01_get();
-	
+
 	kill(pid, SIGKILL);
 	waitpid(pid, NULL, 0);
-	
+
 	END();
 }
 
 void init_onion(const char *me){
-	// Lets close all I dont need. 
+	// Lets close all I dont need.
 	// Sounds weird but some shells and terminals (yakuake) has laking file descriptors.
 	// Fast stupid way.
 	int i;
 	for (i=3;i<256;i++)
 		close(i);
 	onion *o;
-	
+
 	o=onion_new(O_ONE);
-	
+
 	onion_url *urls=onion_root_url(o);
 	onion_url_add_with_data(urls, "^.*", handler, (void*)me, NULL);
-	
+
 	onion_listen(o);
 	exit(0);
 }
@@ -110,11 +111,11 @@ int handler(const char *me, onion_request *req, onion_response *res){
 		ONION_ERROR("Could not execute %s", me);
 		exit(1); // should not get here
 	}
-	
+
 	int error;
 	waitpid(pid, &error, 0);
 	ONION_DEBUG("Error code is %d", error);
-	
+
 	if (error==0){
 		onion_response_write0(res, "OK");
 	}
@@ -126,8 +127,8 @@ int handler(const char *me, onion_request *req, onion_response *res){
 }
 
 /**
- * @short Tests how many file descriptor it has open. 
- * 
+ * @short Tests how many file descriptor it has open.
+ *
  * Should be the ones that argv says, no more no less. Prints result, and returns 0 if ok, other if different.
  */
 int checkfds(){
@@ -137,32 +138,53 @@ int checkfds(){
 
 	DIR *dir=opendir("/proc/self/fd");
 	struct dirent *de;
-	
+
 	while ( (de=readdir(dir))!=NULL ){
 		if (de->d_name[0]=='.')
 			continue;
 		ONION_INFO("Checking fd %s", de->d_name);
-		
-		if (atoi(de->d_name)>2){
-			if (dirfd(dir)==atoi(de->d_name)){
-				ONION_INFO("Ok, its the dir descriptor");
-			}
-			else{
-				ONION_ERROR("Hey, one fd I dont know about!");
-				char tmp[256];
-				snprintf(tmp, sizeof(tmp), "ls --color -l /proc/%d/fd/%s", getpid(), de->d_name);
-				int ok=system(tmp);
-				FAIL_IF_NOT_EQUAL_INT(ok,0);
-				nfd++;
+
+		int cfd=atoi(de->d_name);
+		bool ok=false;
+
+		if (cfd<3){
+			ONION_INFO("fd <3 is stdin, stdou, stderr");
+			ok=true;
+		}
+
+		if (dirfd(dir)==cfd){
+			ONION_INFO("Ok, its the dir descriptor");
+			ok=true;
+		}
+		// GNUTls opens urandom at init, before main, checks fd=3 may be that one.
+		if (cfd==3){
+			char filename[256];
+			size_t fns=readlinkat(dirfd(dir), de->d_name,
+			         	filename, sizeof(filename));
+			if (fns>0){
+				filename[fns+1]=0; // stupid readlinkat... no \0 at end.
+				if (strcmp(filename, "/dev/urandom")==0){
+					ok=true;
+					ONION_INFO("GNU TLS opens /dev/urandom at init.");
+				}
+				else{
+					ONION_DEBUG("fd3 is %s", filename);
+				}
 			}
 		}
-		else{
-			ONION_INFO("Ok, <3");
+		// Unknown not valid fd.
+		if (!ok){
+			ONION_ERROR("Hey, one fd I dont know about!");
+			char tmp[256];
+			snprintf(tmp, sizeof(tmp), "ls --color -l /proc/%d/fd/%s", getpid(), de->d_name);
+			int err=system(tmp);
+			FAIL_IF_NOT_EQUAL_INT(err,0);
+			nfd++;
 		}
 	}
-	
+
 	closedir(dir);
-	
+
 	ONION_INFO("Exit code %d", nfd);
 	exit(nfd);
 }
