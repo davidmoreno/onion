@@ -70,7 +70,6 @@ int connect_to(const char *addr, const char *port){
     next=next->ai_next;
   }
 
-error: // failed connection on any of the returned addresses.
   ONION_ERROR("Error connecting to server %s:%s: %s",addr,port, strerror(errno));
   freeaddrinfo(server);
   return -1;
