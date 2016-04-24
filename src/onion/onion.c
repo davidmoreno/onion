@@ -321,9 +321,11 @@ onion_client_data (onion*server)
   return data;
 }
 
+// This marks if called more than once. but has to be cleaned after it worked,
+// for using onion_listen several times in the same program
+static bool shutdown_server_first_call=true;
 static void shutdown_server(int _){
-	static bool first_call=true;
-	if (first_call){
+	if (shutdown_server_first_call){
 		if (last_onion){
 			onion_listen_stop(last_onion);
 			ONION_INFO("Exiting onion listening (SIG%s)", _==SIGTERM ? "TERM" : "INT");
@@ -333,7 +335,7 @@ static void shutdown_server(int _){
 		ONION_ERROR("Aborting as onion does not stop listening.");
 		abort();
 	}
-	first_call=false;
+	shutdown_server_first_call=false;
 }
 
 
@@ -521,7 +523,7 @@ int onion_listen(onion *o){
 	}
 
 	o->flags=o->flags & ~O_LISTENING;
-
+	shutdown_server_first_call=true; // Mark as listen_stop/shutdown worked.
 	return 0;
 }
 
