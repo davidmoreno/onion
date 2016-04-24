@@ -29,7 +29,7 @@
 
 #include "../ctest.h"
 #include <pthread.h>
-#include <netdb.h>
+#include "utils.h"
 
 const int MAX_TIME=500;
 
@@ -58,32 +58,6 @@ onion_connection_status process_request(void *_, onion_request *req, onion_respo
   return OCS_PROCESSED;
 }
 
-int connect_to(const char *addr, const char *port){
-  struct addrinfo hints;
-  struct addrinfo *server;
-
-  memset(&hints,0, sizeof(struct addrinfo));
-  hints.ai_socktype=SOCK_STREAM;
-  hints.ai_family=AF_UNSPEC;
-  hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
-
-  if (getaddrinfo(addr,port,&hints,&server)<0){
-    ONION_ERROR("Error getting server info");
-    return -1;
-  }
-  int fd=socket(server->ai_family, server->ai_socktype | SOCK_CLOEXEC, server->ai_protocol);
-
-  if (connect(fd, server->ai_addr, server->ai_addrlen)==-1){
-    close(fd);
-    fd=-1;
-    ONION_ERROR("Error connecting to server %s:%s",addr,port);
-  }
-
-  freeaddrinfo(server);
-
-
-  return fd;
-}
 
 int curl_get(CURL *curl, const char *url){
   CURLcode res=curl_easy_perform(curl);

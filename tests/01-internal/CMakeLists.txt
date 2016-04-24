@@ -35,7 +35,7 @@ add_custom_command(
 
 
 if(PTHREADS)
-	add_executable(06-onion 06-onion.c mycert.pem)
+	add_executable(06-onion 06-onion.c utils.c mycert.pem)
 	target_link_libraries(06-onion onion curl)
 	add_test(internal-onion 06-onion)
 endif(PTHREADS)
@@ -109,7 +109,7 @@ target_link_libraries(17-permissions onion)
 add_test(internal-permissions 17-permissions)
 
 if(PTHREADS)
-	add_executable(18-listen_stop 18-listen_stop.c)
+	add_executable(18-listen_stop 18-listen_stop.c utils.c)
 	target_link_libraries(18-listen_stop onion)
 	add_test(listen_stop 18-listen_stop)
 endif(PTHREADS)
