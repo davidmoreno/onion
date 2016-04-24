@@ -74,8 +74,8 @@ issue tracker at Github.
 
 # Usage from code using Onion HTTP library
 
-The generated functions should be called with a onion_dict as first function. Normal
-should is something like this:
+The generated functions should be called with a onion_dict as the first argument.
+Normal usage should look like this:
 
 ```
 onion_connection_status myhandler(void *_, onion_request *req, onion_response *res){

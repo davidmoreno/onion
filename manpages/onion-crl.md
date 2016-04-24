@@ -20,8 +20,8 @@ onion-crl assumes a cmake environment where its running into a `build` directory
 separated from the source, and with the `make` as compilation program.
 
 # ENVIRONMENT
-onin-crl tries its best to find all source files, but if its not working
-this environment variables changes the behavior:
+onion-crl tries to find all the source files, but if unsuccessful these
+environment variables can affect the behavior:
 
 `SOURCEDIR`
  Directory where source files are. Normally checks at `..`.
