@@ -47,6 +47,10 @@ IF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
 SET(CMAKE_INSTALL_LIBDIR lib)
 ENDIF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
 
+IF (NOT DEFINED CMAKE_INSTALL_MANDIR)
+SET(CMAKE_INSTALL_MANDIR share/man/man1/)
+ENDIF (NOT DEFINED CMAKE_INSTALL_MANDIR)
+
 IF (NOT DEFINED INCLUDE_PATH)
 SET(INCLUDE_PATH /usr/include)
 ENDIF (NOT DEFINED INCLUDE_PATH)
@@ -191,6 +195,13 @@ if (${ONION_USE_SYSTEMD})
 	endif(SD_DAEMON_LIB)
 endif(${ONION_USE_SYSTEMD})
 
+FIND_PROGRAM(MD2MAN md2man-roff)
+if(MD2MAN)
+  message(STATUS "md2man-roff found, compiling manpages")
+else(MD2MAN)
+  message("md2man-roff NOT found, NOT compiling manpages. Install it via 'gem install md2man'")
+endif(MD2MAN)
+
 
 # defines
 if (GNUTLS_ENABLED)
@@ -259,3 +270,4 @@ if (${ONION_USE_TESTS})
 endif(${ONION_USE_TESTS})
 
 add_subdirectory(tests)
+add_subdirectory(manpages)
