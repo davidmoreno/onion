@@ -39,6 +39,8 @@
 
 #include "log.h"
 
+/// @defgroup log Log. Functions to ease logging and debugging in onion programs
+
 int onion_log_flags=0;
 
 #ifdef __DEBUG__

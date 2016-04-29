@@ -30,6 +30,7 @@
 extern "C"{
 #endif
 
+/// @ingroup poller
 enum onion_poller_slot_type_e{
 	O_POLL_READ=1,
 	O_POLL_WRITE=2,

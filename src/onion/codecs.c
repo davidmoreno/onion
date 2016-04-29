@@ -37,6 +37,9 @@
 #include "codecs.h"
 #include "block.h"
 
+/// @defgroup codecs Codecs. Some basic web codecs support: base64, url encoding...
+
+
 /// Decode table. Its the inverse of the code table. (cb64).
 static const char db64[]={ // 16 bytes each line, 8 lines. Only 128 registers
 	255,255,255,255, 255,255,255,255, 255,255,255,255, 255,255,255,255,  // 16
@@ -69,6 +72,7 @@ static int is_alnum(char c) {
 
 /**
  * @short Decodes a base64 into a new char* (must be freed later).
+ * @ingroup codecs
  *
  * At length, if not NULL we set the final length of the decoded base.
  *
@@ -141,6 +145,7 @@ char *onion_base64_decode(const char *orig, int *length){
 
 /**
  * @short Encodes a byte array to a base64 into a new char* (must be freed later).
+ * @ingroup codecs
  */
 char *onion_base64_encode(const char *orig, int length){
 	if (orig==NULL)
@@ -230,6 +235,7 @@ char *onion_base64_encode(const char *orig, int length){
 
 /**
  * @short Performs unquote inplace.
+ * @ingroup codecs
  *
  * It can be inplace as char position is always at least in the same on the destination than in the origin
  */
@@ -258,6 +264,7 @@ void onion_unquote_inplace(char *str){
 
 /**
  * @short Performs URL quoting, memory is allocated and has to be freed.
+ * @ingroup codecs
  *
  * As size neccesary is difficult to measure, it first check how many should be encoded, and on a second round it encodes it.
  */
@@ -279,6 +286,7 @@ char *onion_quote_new(const char *str){
 
 
 /// Performs URL quoting, uses auxiliary res, with maxlength size. If more, do up to where I can, and cut it with \0.
+/// @ingroup codecs
 int onion_quote(const char *str, char *res, int maxlength){
 	static char hex[]="0123456789ABCDEF";
 	int nl=0;
@@ -305,6 +313,7 @@ int onion_quote(const char *str, char *res, int maxlength){
 
 
 /// Performs C quotation: changes " for \". Usefull when sending data to be interpreted as JSON. Returned data must be freed.
+/// @ingroup codecs
 char *onion_c_quote_new(const char *str){
 	char *ret;
 	int l=3; // The quotes + \0
@@ -324,6 +333,7 @@ char *onion_c_quote_new(const char *str){
 }
 
 /// Performs the C quotation on the ret str. Max length is l.
+/// @ingroup codecs
 char *onion_c_quote(const char *str, char *ret, int l){
 	const unsigned char *p=(const unsigned char *)str;
 	char *r=ret;
@@ -393,6 +403,7 @@ char *onion_c_quote(const char *str, char *ret, int l){
 
 /**
  * @short Calculates the SHA1 checksum of a given data
+ * @ingroup codecs
  */
 void onion_sha1(const char *data, int length, char *result){
 #ifndef HAVE_GNUTLS
@@ -408,6 +419,7 @@ void onion_sha1(const char *data, int length, char *result){
 }
 
 /// At p inserts the proper encoding of c, and returns the new string cursor (end of inserted symbols).
+/// @ingroup codecs
 char *onion_html_add_enc(char c, char *p){
 	switch(c){
 		case '<':
@@ -451,6 +463,7 @@ char *onion_html_add_enc(char c, char *p){
 }
 
 /// Returns the encoding for minimal set
+/// @ingroup codecs
 int onion_html_encoding_size(char c){
 	switch(c){
 		case '<':
@@ -469,6 +482,7 @@ int onion_html_encoding_size(char c){
 
 /**
  * @short Calculates the HTML encoding of a given string
+ * @ingroup codecs
  *
  * If needs encoding returns a new string that should be deallocated, if not, returns NULL.
  */
@@ -495,8 +509,8 @@ char *onion_html_quote(const char *str){
 }
 
 /**
- * @short Calculates as a freshly allocated string the HTML encoding
- * of a given string
+ * @short Calculates as a freshly allocated string the HTML encoding of a given string
+ * @ingroup codecs
  *
  * Returns a new string that should be freed, or else NULL when given
  * a null argument.
@@ -515,6 +529,7 @@ onion_html_quote_dup (const char* str) {
 
 /**
  * @short Generates JSON string encoding and adds it to an existing block
+ * @ingroup codecs
  *
  * Converts from "\n" to "\\n"
  */
@@ -591,6 +606,7 @@ static unsigned int hex4(const char *data){
 
 /**
  * @short Adds to the block the quoted string; converts "\\n" to "\n"
+ * @ingroup codecs
  *
  * If the str starts with ", expects a " to finish, else \0
  *

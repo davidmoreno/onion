@@ -41,6 +41,8 @@
 #include "codecs.h"
 #include "low.h"
 
+/// @defgroup response Response. Write response data to client: headers, content body...
+
 const char *onion_response_code_description(int code);
 
 // DONT_USE_DATE_HEADER is not defined anywhere, but here just in case needed in the future.
@@ -57,6 +59,7 @@ pthread_rwlock_t onion_response_date_lock=PTHREAD_RWLOCK_INITIALIZER;
 /**
  * @short Generates a new response object
  * @memberof onion_response_t
+ * @ingroup response
  *
  * This response is generated from a request, and gets from there the writer and writer data.
  *
@@ -143,6 +146,7 @@ onion_response *onion_response_new(onion_request *req){
 /**
  * @short Frees the memory consumed by this object
  * @memberof onion_response_t
+ * @ingroup response
  *
  * This function returns the close status: OR_KEEP_ALIVE or OR_CLOSE_CONNECTION as needed.
  *
@@ -194,6 +198,7 @@ onion_connection_status onion_response_free(onion_response *res){
 /**
  * @short Adds a header to the response object
  * @memberof onion_response_t
+ * @ingroup response
  */
 void onion_response_set_header(onion_response *res, const char *key, const char *value){
 	ONION_DEBUG0("Adding header %s = %s", key, value);
@@ -203,6 +208,7 @@ void onion_response_set_header(onion_response *res, const char *key, const char 
 /**
  * @short Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
  * @memberof onion_response_t
+ * @ingroup response
  */
 void onion_response_set_length(onion_response *res, size_t len){
 	if (len!=res->sent_bytes && res->flags&OR_HEADER_SENT){
@@ -219,6 +225,7 @@ void onion_response_set_length(onion_response *res, size_t len){
 /**
  * @short Sets the return code
  * @memberof onion_response_t
+ * @ingroup response
  */
 void onion_response_set_code(onion_response *res, int  code){
 	res->code=code;
@@ -227,6 +234,7 @@ void onion_response_set_code(onion_response *res, int  code){
 /**
  * @short Helper that is called on each header, and writes the header
  * @memberof onion_response_t
+ * @ingroup response
  */
 static void write_header(onion_response *res, const char *key, const char *value, int flags){
 	//ONION_DEBUG0("Response header: %s: %s",key, value);
@@ -245,6 +253,7 @@ static void write_header(onion_response *res, const char *key, const char *value
 /**
  * @short Writes all the header to the given response
  * @memberof onion_response_t
+ * @ingroup response
  *
  * It writes the headers and depending on the method, return OR_SKIP_CONTENT. this is set when in head mode. Handlers
  * should react to this return by not trying to write more, but if they try this object will just skip those writtings.
@@ -313,6 +322,7 @@ int onion_response_write_headers(onion_response *res){
 /**
  * @short Write some response data.
  * @memberof onion_response_t
+ * @ingroup response
  *
  * This is the main write data function. If the headers have not been sent yet, they are now.
  *
@@ -364,6 +374,7 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
 
 /**
  * @short Writes all buffered output waiting for sending.
+ * @ingroup response
  *
  * If header has not been sent yet (delayed), it uses a temporary buffer to send it now. This
  * way header can use the buffer_size information to send the proper content-length, even when it
@@ -425,12 +436,14 @@ int onion_response_flush(onion_response *res){
 }
 
 /// Writes a 0-ended string to the response.
+/// @ingroup response
 ssize_t onion_response_write0(onion_response *res, const char *data){
 	return onion_response_write(res, data, strlen(data));
 }
 
 /**
  * @short Writes the given string to the res, but encodes the data using html entities
+ * @ingroup response
  *
  * The encoding mens that <code><html> whould become &lt;html&gt;</code>
  */
@@ -449,6 +462,7 @@ ssize_t onion_response_write_html_safe(onion_response *res, const char *data){
 /**
  * @short Writes some data to the response. Using sprintf format strings.
  * @memberof onion_response_t
+ * @ingroup response
  */
 ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
 	va_list ap;
@@ -460,6 +474,7 @@ ssize_t onion_response_printf(onion_response *res, const char *fmt, ...){
 
 /**
  * @short Writes some data to the response. Using sprintf format strings. va_list args version
+ * @ingroup response
  *
  * @param args va_list of arguments
  * @memberof onion_response_t
@@ -501,6 +516,7 @@ ssize_t onion_response_vprintf(onion_response *res, const char *fmt, va_list arg
 /**
  * @short Returns a const char * string with the code description.
  * @memberof onion_response_t
+ * @ingroup response
  */
 const char *onion_response_code_description(int code){
 	switch(code){
@@ -553,6 +569,7 @@ const char *onion_response_code_description(int code){
 
 /**
  * @short Returns the headers dictionary, so user can add repeated headers
+ * @ingroup response
  *
  * Only simple use case is to add several coockies; using normal set_header is not possible,
  * but accessing the dictionary user can add repeated headers without problem.
@@ -564,6 +581,7 @@ onion_dict *onion_response_get_headers(onion_response *res){
 
 /**
  * @short Sets a new cookie into the response.
+ * @ingroup response
  *
  * @param res Response object
  * @param cookiename Name for the cookie

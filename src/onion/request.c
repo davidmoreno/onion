@@ -38,6 +38,8 @@
 #include "ptr_list.h"
 #include "poller.h"
 
+/// @defgroup request Request. Access all information from client request: path, GET, POST, cookies, session...
+
 static int is_alnum(char c) {
 	if((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
 		return 1;
@@ -48,6 +50,7 @@ void onion_request_parser_data_free(void *token); // At request_parser.c
 
 /**
  * @memberof onion_request_t
+ * @ingroup request
  * These are the methods allowed to ask data to the server (or push or whatever). Only 16.
  *
  * NULL means this space is vacant.
@@ -61,8 +64,9 @@ const char *onion_request_methods[16]={
 	NULL, NULL, NULL, NULL };
 
 /**
- *  @short Creates a request object
+ * @short Creates a request object
  * @memberof onion_request_t
+ * @ingroup request
  *
  * @param op Listen point this request is listening to, to be able to read and write data
  */
@@ -93,6 +97,7 @@ onion_request *onion_request_new(onion_listen_point *op){
 }
 
 /// Creates a request, with socket info.
+/// @ingroup request
 onion_request *onion_request_new_from_socket(onion_listen_point *con, int fd, struct sockaddr_storage *cli_addr, socklen_t cli_len){
 	onion_request *req=onion_request_new(con);
 	req->connection.fd=fd;
@@ -104,6 +109,7 @@ onion_request *onion_request_new_from_socket(onion_listen_point *con, int fd, st
 /**
  * @short Helper to remove temporal files from req->files
  * @memberof onion_request_t
+ * @ingroup request
  */
 static void unlink_files(void *p, const char *key, const char *value, int flags){
 	ONION_DEBUG0("Unlinking temporal file %s",value);
@@ -113,6 +119,7 @@ static void unlink_files(void *p, const char *key, const char *value, int flags)
 /**
  * @short Deletes a request and all its data
  * @memberof onion_request_t
+ * @ingroup request
  */
 void onion_request_free(onion_request *req){
   ONION_DEBUG0("Free request %p", req);
@@ -162,6 +169,7 @@ void onion_request_free(onion_request *req){
 /**
  * @short Cleans a request object to reuse it.
  * @memberof onion_request_t
+ * @ingroup request
  */
 void onion_request_clean(onion_request* req){
   ONION_DEBUG0("Clean request %p", req);
@@ -225,6 +233,7 @@ void onion_request_clean(onion_request* req){
 /**
  * @short Returns a pointer to the string with the current path. Its a const and should not be trusted for long time.
  * @memberof onion_request_t
+ * @ingroup request
  */
 const char *onion_request_get_path(onion_request *req){
 	return req->path;
@@ -233,6 +242,7 @@ const char *onion_request_get_path(onion_request *req){
 /**
  * @short Returns a pointer to the string with the full path. Its a const and should not be trusted for long time.
  * @memberof onion_request_t
+ * @ingroup request
  */
 const char *onion_request_get_fullpath(onion_request *req){
 	return req->fullpath;
@@ -241,6 +251,7 @@ const char *onion_request_get_fullpath(onion_request *req){
 /**
  * @short Gets the current flags, as in onion_request_flags_e
  * @memberof onion_request_t
+ * @ingroup request
  */
 onion_request_flags onion_request_get_flags(onion_request *req){
 	return req->flags;
@@ -249,6 +260,7 @@ onion_request_flags onion_request_get_flags(onion_request *req){
 /**
  * @short  Moves the pointer inside fullpath to this new position, relative to current path.
  * @memberof onion_request_t
+ * @ingroup request
  */
 void onion_request_advance_path(onion_request *req, off_t addtopos){
 	if(!((&req->path[addtopos] < &req->fullpath[0] ||
@@ -259,6 +271,7 @@ void onion_request_advance_path(onion_request *req, off_t addtopos){
 /**
  * @short Gets a header data
  * @memberof onion_request_t
+ * @ingroup request
  */
 const char *onion_request_get_header(onion_request *req, const char *header){
 	return onion_dict_get(req->headers, header);
@@ -267,6 +280,7 @@ const char *onion_request_get_header(onion_request *req, const char *header){
 /**
  * @short Gets a query data
  * @memberof onion_request_t
+ * @ingroup request
  */
 const char *onion_request_get_query(onion_request *req, const char *query){
 	if (req->GET)
@@ -277,6 +291,7 @@ const char *onion_request_get_query(onion_request *req, const char *query){
 /**
  * @short Gets a query data, but has a default value if the key is not there.
  * @memberof onion_request_t
+ * @ingroup request
  */
 const char *onion_request_get_queryd(onion_request *req, const char *key, const char *def){
 	const char *ret;
@@ -289,6 +304,7 @@ const char *onion_request_get_queryd(onion_request *req, const char *key, const 
 /**
  * @short Gets a post data
  * @memberof onion_request_t
+ * @ingroup request
  */
 const char *onion_request_get_post(onion_request *req, const char *query){
 	if (req->POST)
@@ -299,6 +315,7 @@ const char *onion_request_get_post(onion_request *req, const char *query){
 /**
  * @short Gets file data
  * @memberof onion_request_t
+ * @ingroup request
  */
 const char *onion_request_get_file(onion_request *req, const char *query){
 	if (req->FILES)
@@ -309,6 +326,7 @@ const char *onion_request_get_file(onion_request *req, const char *query){
 /**
  * @short Gets session data
  * @memberof onion_request_t
+ * @ingroup request
  */
 const char *onion_request_get_session(onion_request *req, const char *key){
 	onion_dict *d=onion_request_get_session_dict(req);
@@ -318,6 +336,7 @@ const char *onion_request_get_session(onion_request *req, const char *key){
 /**
  * @short Gets the header header data dict
  * @memberof onion_request_t
+ * @ingroup request
  */
 const onion_dict *onion_request_get_header_dict(onion_request *req){
 	return req->headers;
@@ -326,6 +345,7 @@ const onion_dict *onion_request_get_header_dict(onion_request *req){
 /**
  * @short Gets request query dict
  * @memberof onion_request_t
+ * @ingroup request
  */
 const onion_dict *onion_request_get_query_dict(onion_request *req){
 	return req->GET;
@@ -334,6 +354,7 @@ const onion_dict *onion_request_get_query_dict(onion_request *req){
 /**
  * @short Gets post data dict
  * @memberof onion_request_t
+ * @ingroup request
  */
 const onion_dict *onion_request_get_post_dict(onion_request *req){
 	return req->POST;
@@ -342,6 +363,7 @@ const onion_dict *onion_request_get_post_dict(onion_request *req){
 /**
  * @short Gets files data dict
  * @memberof onion_request_t
+ * @ingroup request
  */
 const onion_dict *onion_request_get_file_dict(onion_request *req){
 	return req->FILES;
@@ -350,6 +372,7 @@ const onion_dict *onion_request_get_file_dict(onion_request *req){
 /**
  * @short Gets the sessionid cookie, if any, and sets it to req->session_id.
  * @memberof onion_request_t
+ * @ingroup request
  */
 void onion_request_guess_session_id(onion_request *req){
 	if (req->session_id) // already known.
@@ -393,6 +416,7 @@ void onion_request_guess_session_id(onion_request *req){
 /**
  * @short Returns the session dict.
  * @memberof onion_request_t
+ * @ingroup request
  *
  * If it does not exists it creates it. If there is a cookie with a proper name it is used,
  * even for creation.
@@ -425,6 +449,7 @@ onion_dict *onion_request_get_session_dict(onion_request *req){
 /**
  * @short Forces the request to process only one request, not doing the keep alive.
  * @memberof onion_request_t
+ * @ingroup request
  *
  * This is useful on non threaded modes, as the keep alive blocks the loop.
  */
@@ -436,6 +461,7 @@ void onion_request_set_no_keep_alive(onion_request *req){
 /**
  * @short Returns if current request wants to keep alive.
  * @memberof onion_request_t
+ * @ingroup request
  *
  * It is a complex set of circumstances: HTTP/1.1 and no connection: close, or HTTP/1.0 and connection: keep-alive
  * and no explicit set that no keep alive.
@@ -460,6 +486,7 @@ int onion_request_keep_alive(onion_request *req){
 /**
  * @short Frees the session dictionary.
  * @memberof onion_request_t
+ * @ingroup request
  *
  * It removes the session from the sessions dictionary, so this session does not exist anymore.
  *
@@ -482,6 +509,7 @@ void onion_request_session_free(onion_request *req){
 /**
  * @short Returns the language code of the current request
  * @memberof onion_request_t
+ * @ingroup request
  *
  * Returns the language code for the current request, from the header.
  * If none the returns "C".
@@ -511,6 +539,7 @@ const char *onion_request_get_language_code(onion_request *req){
 /**
  * @short Some extra data, normally when the petition is propfind or POST with non-form data.
  * @memberof onion_request_t
+ * @ingroup request
  */
 const onion_block *onion_request_get_data(onion_request *req){
 	return req->data;
@@ -518,6 +547,7 @@ const onion_block *onion_request_get_data(onion_request *req){
 
 /**
  * @short Launches one handler for the given request
+ * @ingroup request
  *
  * Once the request is ready, launch it.
  *
@@ -563,6 +593,7 @@ onion_connection_status onion_request_process(onion_request *req){
 /**
  * @short Performs the final touches do the request is ready to be handled.
  * @memberof onion_request_t
+ * @ingroup request
  *
  * After parsing the request, some final touches are needed to set the current path.
  *
@@ -578,6 +609,7 @@ void onion_request_polish(onion_request *req){
 /**
  * @short Returns a string with the client's description.
  * @memberof onion_request_t
+ * @ingroup request
  *
  * @return A const char * with the client description
  */
@@ -598,6 +630,7 @@ const char *onion_request_get_client_description(onion_request *req){
 /**
  * @short Returns the sockaddr_storage pointer to the data client data as stored here.
  * @memberof onion_request_t
+ * @ingroup request
  *
  * @param req Request to get data from
  * @param client_len The lenght of the returned sockaddr_storage
@@ -614,6 +647,7 @@ struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, s
 /**
  * @short Gets the dict with the cookies
  * @memberof onion_request_t
+ * @ingroup request
  *
  * @param req Request to get the cookies from
  *
@@ -674,6 +708,7 @@ onion_dict* onion_request_get_cookies_dict(onion_request* req){
 /**
  * @short Gets a Cookie value by name
  * @memberof onion_request_t
+ * @ingroup request
  *
  * @param req Reqeust to get the cookie from
  * @param cookiename Name of the cookie
@@ -686,6 +721,7 @@ const char* onion_request_get_cookie(onion_request* req, const char* cookiename)
 	return onion_dict_get(cookies, cookiename);
 }
 
+/// @ingroup request
 bool onion_request_is_secure(onion_request* req)
 {
 	return req->connection.listen_point->secure;

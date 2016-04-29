@@ -61,6 +61,8 @@
 #endif
 
 
+/// @defgroup poller Poller. Queues files until ready to read/write and call a handler.
+
 struct onion_poller_t{
 	int fd;
 	int eventfd; ///< fd to signal internal changes on poller.
@@ -97,7 +99,8 @@ static const int MAX_SLOTS=1000000;
 /**
  * @short Creates a new slot for the poller, for input data to be ready.
  * @memberof onion_poller_slot_t
- *
+ * @ingroup poller
+  *
  * @param fd File descriptor to watch
  * @param f Function to call when data is ready. If function returns <0, the slot will be removed.
  * @param data Data to pass to the function.
@@ -138,6 +141,7 @@ onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
 /**
  * @short Free the data for the given slot, calling shutdown if any.
  * @memberof onion_poller_slot_t
+ * @ingroup poller
  */
 void onion_poller_slot_free(onion_poller_slot *el){
 /* Cannot zeroize the slot here because it's still needed for el->shutdown(),
@@ -149,6 +153,7 @@ void onion_poller_slot_free(onion_poller_slot *el){
 /**
  * @short Sets a function to be called when the slot is removed, for example because the file is closed.
  * @memberof onion_poller_slot_t
+ * @ingroup poller
  *
  * @param el slot
  * @param sd Function to call
@@ -161,6 +166,7 @@ void onion_poller_slot_set_shutdown(onion_poller_slot *el, void (*sd)(void*), vo
 
 /**
  * @short Sets the timeout for the slot
+ * @ingroup poller
  *
  * The timeout is passed in ms, but due to current implementation it is rounded to seconds. The interface stays, and hopefully
  * in the future the behaviour will change.
@@ -175,6 +181,8 @@ void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout){
 	ONION_DEBUG0("Set timeout to %d, %d s", el->timeout_limit, el->timeout);
 }
 
+/// Sets the type of the poller
+/// @ingroup poller
 void onion_poller_slot_set_type(onion_poller_slot *el, onion_poller_slot_type_e type){
 	el->type=EPOLLONESHOT | EPOLLHUP;
 	if (type&O_POLL_READ)
@@ -198,6 +206,7 @@ static int onion_poller_stop_helper(void *p){
 /**
  * @short Returns a poller object that helps polling on sockets and files
  * @memberof onion_poller_t
+ * @ingroup poller
  *
  * This poller is implemented through epoll, but other implementations are possible
  *
@@ -261,6 +270,7 @@ void onion_poller_free(onion_poller *p){
 /**
  * @short Adds a file descriptor to poll.
  * @memberof onion_poller_t
+ * @ingroup poller
  *
  * When new data is available (read/write/event) the given function
  * is called with that data.
@@ -295,6 +305,7 @@ int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 /**
  * @short Removes a file descriptor, and all related callbacks from the listening queue
  * @memberof onion_poller_t
+ * @ingroup poller
  */
 int onion_poller_remove(onion_poller *poller, int fd){
 	if (epoll_ctl(poller->fd, EPOLL_CTL_DEL, fd, NULL) < 0){
@@ -340,6 +351,7 @@ int onion_poller_remove(onion_poller *poller, int fd){
 
 /**
  * @short Gets the poller slot
+ * @ingroup poller
  *
  * This might be used for long polling, removing the default deleter.
  */
@@ -359,6 +371,7 @@ static size_t onion_poller_max_events=1;
 /**
  * @short Do the event polling.
  * @memberof onion_poller_t
+ * @ingroup poller
  *
  * It loops over polling. To exit polling call onion_poller_stop().
  *
@@ -479,6 +492,7 @@ void onion_poller_poll(onion_poller *p){
 /**
  * @short Marks the poller to stop ASAP
  * @memberof onion_poller_t
+ * @ingroup poller
  */
 void onion_poller_stop(onion_poller *p){
   ONION_DEBUG("Stopping poller");
@@ -511,6 +525,7 @@ void onion_poller_stop(onion_poller *p){
 
 /**
  * @short Sets the max events per thread queue size.
+ * @ingroup poller
  *
  * This fine tune allows to change the queue of events per thread.
  *

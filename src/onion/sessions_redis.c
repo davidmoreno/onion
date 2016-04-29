@@ -4,20 +4,20 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 */
 
@@ -133,7 +133,7 @@ void onion_sessions_redis_save(onion_sessions *sessions, const char *session_id,
 			ONION_ERROR("Error removing session");
 		}
 		freeReplyObject(reply);
-	} else 
+	} else
     {
 		const char* json = onion_block_data(bl);
 		redisReply* reply = redisCommand(p->context, "HSET SESSIONS %b %b", session_id, strlen(session_id), json, strlen(json));
@@ -152,6 +152,10 @@ void onion_sessions_redis_save(onion_sessions *sessions, const char *session_id,
 	return;
 }
 
+/**
+ * @short Creates a redis backend for sessions
+ * @ingroup sessions
+ */
 onion_sessions* onion_sessions_redis_new(const char* server_ip, int port)
 {
 	onion_random_init();
@@ -175,7 +179,6 @@ onion_sessions* onion_sessions_redis_new(const char* server_ip, int port)
 #ifdef HAVE_PTHREADS
 	pthread_mutex_init(&p->mutex, NULL);
 #endif
-	
+
 	return ret;
 }
-

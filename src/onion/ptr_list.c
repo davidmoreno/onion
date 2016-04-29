@@ -25,8 +25,11 @@
 #include "low.h"
 #include "ptr_list.h"
 
+/// @defgroup ptr_list Pointer Lists.
+
 /**
  * @short Creates a new onion_ptr_list
+ * @ingroup ptr_list
  */
 onion_ptr_list* onion_ptr_list_new()
 {
@@ -35,6 +38,7 @@ onion_ptr_list* onion_ptr_list_new()
 
 /**
  * @short Adds a ptr to the list. Elements are added to the head, so must use return value as new list pointer.
+ * @ingroup ptr_list
  */
 onion_ptr_list* onion_ptr_list_add(onion_ptr_list* l, void* ptr)
 {
@@ -46,6 +50,7 @@ onion_ptr_list* onion_ptr_list_add(onion_ptr_list* l, void* ptr)
 
 /**
  * @short Removes a ptr from the list. Might return a NULL list if all elements removed.
+ * @ingroup ptr_list
  */
 onion_ptr_list* onion_ptr_list_remove(onion_ptr_list* l, void* ptr)
 {
@@ -58,6 +63,7 @@ onion_ptr_list* onion_ptr_list_remove(onion_ptr_list* l, void* ptr)
 
 /**
  * @short Free the list, but do nothing on the ptrs.
+ * @ingroup ptr_list
  */
 void onion_ptr_list_free(onion_ptr_list* l)
 {
@@ -70,6 +76,7 @@ void onion_ptr_list_free(onion_ptr_list* l)
 
 /**
  * @short Executes a function on all ptrs.
+ * @ingroup ptr_list
  *
  * Internally is allowed to do this manually.
  */
@@ -82,6 +89,7 @@ void onion_ptr_list_foreach(onion_ptr_list* l, void (*f)(void *)){
 
 /**
  * @short Executes a function on all ptrs with some extra data, leaving only those that return true
+ * @ingroup ptr_list
  *
  * Internally is allowed to do this manually.
  */
@@ -102,6 +110,7 @@ onion_ptr_list *onion_ptr_list_filter(onion_ptr_list* l, bool (*f)(void *data, v
 
 /**
  * @short Counts how many elements there are
+ * @ingroup ptr_list
  */
 size_t onion_ptr_list_count(onion_ptr_list* l)
 {

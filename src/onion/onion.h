@@ -4,20 +4,20 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -34,6 +34,8 @@
 extern "C"{
 #endif
 
+/// @defgroup onion Onion. Base server
+/// @{
 /// Creates the onion structure to fill with the server data, and later do the onion_listen()
 onion *onion_new(int flags);
 
@@ -112,6 +114,8 @@ long onion_count_listen_threads(void);
 // Gives the number of poller threads created
 long onion_count_poller_threads(void);
 #endif /*HAVE_PTHREADS*/
+
+/// @}
 
 #ifdef __cplusplus
 }

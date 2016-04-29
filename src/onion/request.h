@@ -4,20 +4,20 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of both licenses, if not see
-	<http://www.gnu.org/licenses/> and 
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -35,6 +35,7 @@ extern "C"{
 
 /**
  * @short Flags about the petition, including method, error status, http version.
+ * @ingroup request
  */
 enum onion_request_flags_e{
   /// First 4 bytes are the method. Then as flags.
@@ -50,16 +51,16 @@ enum onion_request_flags_e{
 	OR_MKCOL=8,
 	OR_PROPPATCH=9,
 	OR_PATCH=10,
-	
+
 	/// Some flags at 0x0F0
 	OR_HTTP11=0x10,
 	OR_POST_MULTIPART=0x20,
 	OR_POST_URLENCODED=0x40,
-	
+
 	/// Server flags are at 0x0F00.
 	OR_NO_KEEP_ALIVE=0x0100,
   OR_HEADER_SENT_=0x0200,  ///< Dup name from onion_response_flags, same meaning.
-	
+
 	/// Errors at 0x0F000.
 	OR_INTERNAL_ERROR=0x01000,
 	OR_NOT_IMPLEMENTED=0x02000,

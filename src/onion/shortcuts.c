@@ -51,6 +51,9 @@
 #define O_CLOEXEC 0
 #endif
 
+/// @defgroup shortcuts Shortcuts. Often used http idioms.
+
+/// @ingroup shortcuts
 int onion_use_sendfile=-1;
 
 // Import it here as I need it to know if can use sendfile.
@@ -58,6 +61,7 @@ ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
 
 /**
  * @short Shortcut for fast responses, like errors.
+ * @ingroup shortcuts
  *
  * Prepares a fast response. You pass only the request, the text and the code, and it do the full response
  * object and sends the data.
@@ -70,6 +74,7 @@ onion_connection_status onion_shortcut_response(const char* response, int code, 
 
 /**
  * @short Shortcut for fast responses, like errors, with extra headers
+ * @ingroup shortcuts
  *
  * Prepares a fast response. You pass only the request, the text and the code, and it do the full response
  * object and sends the data.
@@ -103,6 +108,7 @@ onion_connection_status onion_shortcut_response_extra_headers(const char* respon
 
 /**
  * @short Shortcut to ease a redirect.
+ * @ingroup shortcuts
  *
  * It can be used directly as a handler, or be called from a handler.
  *
@@ -123,6 +129,7 @@ onion_connection_status onion_shortcut_internal_redirect(const char *newurl, oni
 
 /**
  * @short This shortcut returns the given file contents.
+ * @ingroup shortcuts
  *
  * This is the recomended way to send static files; it even can use sendfile Linux call
  * if suitable.
@@ -282,6 +289,7 @@ onion_connection_status onion_shortcut_response_file(const char *filename, onion
 
 /**
  * @short Shortcut to answer some json data
+ * @ingroup shortcuts
  *
  * It converts to json the passed dict and returns it. The dict is freed before returning.
  */
@@ -299,6 +307,7 @@ onion_connection_status onion_shortcut_response_json(onion_dict *d, onion_reques
 
 /**
  * @short Transforms a time_t to a RFC 822 date string
+ * @ingroup shortcuts
  *
  * This date format is the standard in HTTP protocol as RFC 2616, section 3.3.1
  *
@@ -313,6 +322,7 @@ void onion_shortcut_date_string(time_t t, char *dest){
 
 /**
  * @short Transforms a time_t to a ISO date string
+ * @ingroup shortcuts
  *
  * The dest pointer must be at least 21 bytes long as thats the maximum size of the date.
  */
@@ -324,6 +334,7 @@ void onion_shortcut_date_string_iso(time_t t, char *dest){
 
 /**
  * @short Unifies the creation of etags.
+ * @ingroup shortcuts
  *
  * Just now its a very simple one, based on the size and date.
  */
@@ -336,6 +347,7 @@ void onion_shortcut_etag(struct stat *st, char etag[32]){
 
 /**
  * @short Moves a file to another location
+ * @ingroup shortcuts
  *
  * It takes care if it can be a simple rename or must copy and remove old.
  */

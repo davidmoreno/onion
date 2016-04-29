@@ -26,7 +26,7 @@
 
 
 /**
- * @defgroup onion_version
+ * @defgroup version Version. Onion Semantic Versioning
  * @{
  * @shortname Onion runtime version control
  *
