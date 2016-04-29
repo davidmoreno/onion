@@ -94,7 +94,7 @@ Required:
 This compilers and minimum versions are known to work:
 
 * Linux:
-  * GCC 4.7
+  * GCC 4.4
   * clang 3.0
 
 For the C++ bindings a C++11 compiler is needed:
