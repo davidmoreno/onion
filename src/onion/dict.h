@@ -1,23 +1,23 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -33,6 +33,7 @@ extern "C"{
 
 /**
  * @short Flags to change some parameters of each key.
+ * @ingroup dict
  */
 enum onion_dict_flags_e{
 //	OD_EMPTY=1,
@@ -43,13 +44,13 @@ enum onion_dict_flags_e{
 	OD_DUP_VALUE=0x24, ///< Whether the value has to be dupped
 	OD_DUP_ALL=0x36,   ///< Whether both, the key and value have to be dupped. In any case its also marked for freeing later.
 	OD_REPLACE=0x040,  ///< If already exists, replaces content.
-  
+
 	// Types
 	OD_STRING=0,       ///< Stored data is a string, this is the most normal situation
 	OD_DICT=0x0100,    ///< Stored data is another dictionary
-	
+
 	OD_TYPE_MASK=0x0FF00, ///< Mask for the types
-  
+
   // Flags for onion_dict_set_flags
   OD_ICASE=0x01,     ///< Do case insensitive cmps.
 };
@@ -107,7 +108,9 @@ void onion_dict_lock_write(onion_dict *dict);
 void onion_dict_unlock(onion_dict *dict);
 /// @}
 
+/// Converts a dict into a JSON onion_block
 onion_block *onion_dict_to_json(onion_dict *dict);
+/// Converts a C string into a dictionary
 onion_dict *onion_dict_from_json(const char *data);
 
 #ifdef __cplusplus

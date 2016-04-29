@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -48,6 +48,7 @@
 #include <systemd/sd-daemon.h>
 #endif
 
+/// @defgroup listen_point Listen Point. Allows to listen at several ports with different protocols, and to add new protocols.
 
 static int onion_listen_point_read_ready(onion_request *req);
 
@@ -55,6 +56,7 @@ static int onion_listen_point_read_ready(onion_request *req);
 /**
  * @short Creates an empty listen point.
  * @memberof onion_listen_point_t
+ * @ingroup listen_point
  *
  * Called by real listen points to ease the creation.
  *
@@ -68,6 +70,7 @@ onion_listen_point *onion_listen_point_new(){
 /**
  * @short Free and closes the listen point
  * @memberof onion_listen_point_t
+ * @ingroup listen_point
  *
  * Calls the custom listen_stop mathod, and frees all common structures.
  *
@@ -89,6 +92,7 @@ void onion_listen_point_free(onion_listen_point *op){
 /**
  * @short Called when a new connection appears on the listenfd
  * @memberof onion_listen_point_t
+ * @ingroup listen_point
  *
  * When the new connection appears, creates the request and adds it to the pollers.
  *
@@ -124,6 +128,7 @@ int onion_listen_point_accept(onion_listen_point *op){
 /**
  * @short Stops listening the listen point
  * @memberof onion_listen_point_t
+ * @ingroup listen_point
  *
  * Calls the op->listen_stop if any, and if not just closes the listenfd.
  *
@@ -144,6 +149,7 @@ void onion_listen_point_listen_stop(onion_listen_point *op){
 /**
  * @short Starts the listening phase for this listen point for sockets.
  * @memberof onion_listen_point_t
+ * @ingroup listen_point
  *
  * Default listen implementation that listens on sockets. Opens sockets and setup everything properly.
  *
@@ -236,6 +242,7 @@ int onion_listen_point_listen(onion_listen_point *op){
 /**
  * @short This listen point has data ready to read; calls the listen_point read_ready
  * @memberof onion_listen_point_t
+ * @ingroup listen_point
  *
  * @param req The request with data ready
  * @returns <0 in case of error and request connection should be closed.
@@ -255,6 +262,7 @@ static int onion_listen_point_read_ready(onion_request *req){
 /**
  * @short Default implementation that initializes the request from a socket
  * @memberof onion_listen_point_t
+ * @ingroup listen_point
  *
  * Accepts the connection and initializes it.
  *
@@ -318,6 +326,7 @@ int onion_listen_point_request_init_from_socket(onion_request *req){
 /**
  * @short Default implementation that just closes the connection
  * @memberof onion_listen_point_t
+ * @ingroup listen_point
  *
  * @param oc The request
  */

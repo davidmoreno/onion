@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -38,6 +38,8 @@
 #endif
 
 #include "log.h"
+
+/// @defgroup log Log. Functions to ease logging and debugging in onion programs
 
 int onion_log_flags=0;
 
@@ -78,6 +80,7 @@ static void onion_init_logging() {
 }
 /**
  * @short Logs a message to the log facility.
+ * @ingroup log
  *
  * Normally to stderr, but can be set to your own logger or to use syslog.
  *
@@ -93,6 +96,7 @@ void (*onion_log)(onion_log_level level, const char *filename, int lineno, const
 
 /**
  * @short Logs to stderr.
+ * @ingroup log
  *
  * It can be affected also by the environment variable ONION_LOG, with one or several of:
  *
@@ -199,6 +203,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno, c
 
 /**
  * @short Performs the log to the syslog
+ * @ingroup log
  */
 void onion_log_syslog(onion_log_level level, const char *filename, int lineno, const char *fmt, ...){
 	char pri[]={LOG_DEBUG, LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR};

@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -30,6 +30,7 @@
 extern "C"{
 #endif
 
+/// @ingroup poller
 enum onion_poller_slot_type_e{
 	O_POLL_READ=1,
 	O_POLL_WRITE=2,

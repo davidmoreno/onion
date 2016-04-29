@@ -1,23 +1,23 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -58,15 +58,23 @@ static void onion_sessions_mem_free(onion_sessions *sessions){
 	onion_low_free(sessions);
 }
 
+/**
+ * @short Creates a inmem backend for sessions
+ * @ingroup sessions
+ *
+ * This is the default and less interesting of the session backends. 
+ *
+ * @see onion_set_session_backend
+ */
 onion_sessions *onion_sessions_mem_new(){
 	onion_random_init();
-	
+
 	onion_sessions *ret=onion_low_malloc(sizeof(onion_sessions));
 	ret->data=onion_dict_new();
-	
+
 	ret->get=onion_sessions_mem_get;
 	ret->save=onion_sessions_mem_save;
 	ret->free=onion_sessions_mem_free;
-	
+
 	return ret;
 }

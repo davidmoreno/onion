@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -61,6 +61,27 @@
  * to process current request.
  *
  * Normally for simple servers its much easier, as in the upper example.
+ *
+ * @subsection Use onion_url for normal handlers
+ *
+ * Normal use of handler can be done using url handlers. They allow to create a
+ * named url and dispatch to a handler. It allows pattern capturing at the
+ * url using regex groups.
+ *
+ * Check documentation at the `url` module.
+ *
+ * @subsubsection Url_example Example of use
+ *
+ *
+@code
+onion *o=onion_new(O_POOL);
+onion_url *url=onion_root_url(o);
+onion_url_add(url, "/", my_index); // privdata will be NULL
+onion_url_add_with_data(url, "^/profile/([^/].*)", my_profile, usersdata);
+onion_url_add_static(url, "/version", "0.0.1");
+onion_url_add_url(url, ...); // Nesting
+@endcode
+ *
  *
  * @subsection Custom_handlers Create your custom handlers
  *
@@ -164,7 +185,7 @@ static void shutdown_server(int _);
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
- * @memberof onion_t
+ * @ingroup onion
  *
  * Creates an onion structure that can be used to set the server, port, SSL and similar parameters. It works over
  * the onion structure, which is the main structure to control the listening of new connections throught TCP/IP.
@@ -230,7 +251,7 @@ onion *onion_new(int flags){
 
 /**
  * @short Removes the allocated data
- * @memberof onion_t
+ * @ingroup onion
  */
 void onion_free(onion *onion){
 	ONION_DEBUG("Onion free");
@@ -416,7 +437,7 @@ long onion_count_poller_threads(void)
 
 /**
  * @short Performs the listening with the given mode
- * @memberof onion_t
+ * @ingroup onion
  *
  * This is the main loop for the onion server.
  *
@@ -559,7 +580,7 @@ void onion_listen_stop(onion* server){
 
 /**
  * @short Sets the root handler
- * @memberof onion_t
+ * @ingroup onion
  */
 void onion_set_root_handler(onion *onion, onion_handler *handler){
 	onion->root_handler=handler;
@@ -567,7 +588,7 @@ void onion_set_root_handler(onion *onion, onion_handler *handler){
 
 /**
  * @short Returns current root handler.
- * @memberof onion_t
+ * @ingroup onion
  *
  * For example when changing root handler, the old one is not deleted (as oposed that when deleting the onion*
  * object it is). So user may use onion_handler_free(onion_get_root_handler(o));
@@ -582,7 +603,7 @@ onion_handler *onion_get_root_handler(onion *server){
 
 /**
  * @short  Sets the internal error handler
- * @memberof onion_t
+ * @ingroup onion
  */
 void onion_set_internal_error_handler(onion* server, onion_handler* handler){
 	server->internal_error_handler=handler;
@@ -590,7 +611,7 @@ void onion_set_internal_error_handler(onion* server, onion_handler* handler){
 
 /**
  * @short Sets the port to listen to.
- * @memberof onion_t
+ * @ingroup onion
  *
  * Default listen point is HTTP at localhost:8080.
  *
@@ -650,7 +671,7 @@ onion_listen_point *onion_get_listen_point(onion *server, int nlisten_point){
 
 /**
  * @short Sets the timeout, in milliseconds
- * @memberof onion_t
+ * @ingroup onion
  *
  * The default timeout is 5000 milliseconds.
  *
@@ -662,7 +683,7 @@ void onion_set_timeout(onion *onion, int timeout){
 
 /**
  * @short Sets the maximum number of threads to use for requests. default 16.
- * @memberof onion_t
+ * @ingroup onion
  *
  * Can only be tweaked before listen.
  *
@@ -678,7 +699,7 @@ void onion_set_max_threads(onion *onion, int max_threads){
 
 /**
  * @short Returns the current flags. @see onion_mode_e
- * @memberof onion_t
+ * @ingroup onion
  */
 int onion_flags(onion *onion){
 	return onion->flags;
@@ -686,7 +707,7 @@ int onion_flags(onion *onion){
 
 /**
  * @short User to which drop priviledges when listening
- * @memberof onion_t
+ * @ingroup onion
  *
  * Drops the priviledges of current program as soon as it starts listening.
  *
@@ -701,7 +722,7 @@ void onion_url_free_data(onion_url_data **d);
 
 /**
  * @short If no root handler is set, creates an url handler and returns it.
- * @memberof onion_t
+ * @ingroup onion
  *
  * It can also check if the current root handler is a url handler, and if it is, returns it. Else returns NULL.
  */
@@ -732,7 +753,7 @@ onion_poller *onion_get_poller(onion *server){
 
 /**
  * @short Default error printer.
- * @memberof onion_server_t
+ * @ingroup onion
  *
  * Ugly errors, that can be reimplemented setting a handler with onion_server_set_internal_error_handler.
  */

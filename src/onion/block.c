@@ -1,23 +1,23 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -32,9 +32,12 @@
 #define ONION_BLOCK_GROW_MIN_BLOCK 16
 #define ONION_BLOCK_GROW_EXPONENTIAL_LIMIT 1024
 
+/// @defgroup block Block. Variable size bytes blocks. Used for some internal string representation.
+
 /**
  * @short Creates a new block
  * @memberof onion_block_t
+ * @ingroup block
  */
 onion_block *onion_block_new(){
 	onion_block *ret=onion_low_malloc(sizeof(onion_block));
@@ -47,6 +50,7 @@ onion_block *onion_block_new(){
 /**
  * @short Removes the current block
  * @memberof onion_block_t
+ * @ingroup block
  */
 void onion_block_free(onion_block *bl){
 	onion_low_free(bl->data);
@@ -56,7 +60,8 @@ void onion_block_free(onion_block *bl){
 /**
  * @short Discards all data on this block, and set the size to 0
  * @memberof onion_block_t
- * 
+ * @ingroup block
+ *
  * This is usefull to reuse existing blocks
  */
 void onion_block_clear(onion_block *b){
@@ -66,8 +71,9 @@ void onion_block_clear(onion_block *b){
 /**
  * @short Ensures the block has at least this reserved memory space.
  * @memberof onion_block_t
- * 
- * This is usefull for some speedups, and prevent sucessive mallocs 
+ * @ingroup block
+ *
+ * This is usefull for some speedups, and prevent sucessive mallocs
  * if you know beforehand the size.
  */
 void onion_block_min_maxsize(onion_block *b, int minsize){
@@ -78,9 +84,10 @@ void onion_block_min_maxsize(onion_block *b, int minsize){
 }
 
 /**
- * @short Returns the current data. 
+ * @short Returns the current data.
  * @memberof onion_block_t
- * 
+ * @ingroup block
+ *
  * It will be finished with a \0 (if not already, to ensure is printable.
  */
 const char *onion_block_data(const onion_block *b){
@@ -97,6 +104,7 @@ const char *onion_block_data(const onion_block *b){
 /**
  * @short Returns current block size
  * @memberof onion_block_t
+ * @ingroup block
  */
 off_t onion_block_size(const onion_block *b){
 	return b->size;
@@ -105,6 +113,7 @@ off_t onion_block_size(const onion_block *b){
 /**
  * @short Reduces the size of the block.
  * @memberof onion_block_t
+ * @ingroup block
  */
 void onion_block_rewind(onion_block *b, off_t n){
 	if (b->size<n)
@@ -172,4 +181,3 @@ int onion_block_add_data(onion_block *bl, const char *data, size_t l){
 int onion_block_add_block(onion_block *b, onion_block *toadd){
 	return onion_block_add_data(b, toadd->data, toadd->size);
 }
-

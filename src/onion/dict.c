@@ -1,6 +1,6 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2014 David Moreno Montero and othes
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
@@ -34,6 +34,8 @@
 #include "block.h"
 #include "low.h"
 
+/// @defgroup dict Dict.
+
 /// @private
 typedef struct onion_dict_node_data_t{
 	const char *key;
@@ -61,6 +63,7 @@ static int is_json_digit(char c) {
 /**
  * @short Node for the tree.
  * @memberof onion_dict_t
+ * @ingroup dict
  *
  * Its implemented as a AA Tree (http://en.wikipedia.org/wiki/AA_tree)
  */
@@ -77,6 +80,7 @@ static onion_dict_node *onion_dict_node_new(const char *key, const void *value, 
 
 /**
  * @memberof onion_dict_t
+ * @ingroup dict
  * Initializes the basic tree with all the structure in place, but empty.
  */
 onion_dict *onion_dict_new(){
@@ -93,6 +97,7 @@ onion_dict *onion_dict_new(){
 
 /**
  * @memberof onion_dict_t
+ * @ingroup dict
  *
  * Sets the dict flags.
  */
@@ -109,6 +114,7 @@ static void onion_dict_add_merge(onion_dict *me, const char *key, void *value, i
 
 /**
  * @short memberof onion_dict_t
+ * @ingroup dict
  *
  * Meres the contents of other dictionary intro me.
  *
@@ -122,6 +128,7 @@ void onion_dict_merge(onion_dict *me, const onion_dict *other){
 /**
  * @short Creates a duplicate of the dict
  * @memberof onion_dict_t
+ * @ingroup dict
  *
  * Its actually the same, but with refcount increased, so future frees will free the dict
  * only on latest one.
@@ -151,6 +158,7 @@ void onion_dict_hard_dup_helper(onion_dict *dict, const char *key, const void *v
 /**
  * @short Creates a full duplicate of the dict
  * @memberof onion_dict_t
+ * @ingroup dict
  *
  * Its actually the same, but with refcount increased, so future frees will free the dict
  * only on latest one.
@@ -179,6 +187,7 @@ static void onion_dict_node_free(onion_dict_node *node){
 /**
  * @short Removes the full dict struct from mem.
  * @memberof onion_dict_t
+ * @ingroup dict
  */
 void onion_dict_free(onion_dict *dict){
 	if (!dict) // No free NULL
@@ -207,6 +216,7 @@ void onion_dict_free(onion_dict *dict){
 /**
  * @short Searchs for a given key, and returns that node and its parent (if parent!=NULL)
  * @memberof onion_dict_t
+ * @ingroup dict
  *
  * If not found, returns the parent where it should be. Nice for adding too.
  */
@@ -301,6 +311,7 @@ static void decrease_level(onion_dict_node *node){
 
 /**
  * @short AA tree insert
+ * @ingroup dict
  *
  * Returns the root node of the subtree
  */
@@ -337,6 +348,7 @@ static onion_dict_node  *onion_dict_node_add(onion_dict *d, onion_dict_node *nod
 /**
  * @memberof onion_dict_t
  * @short Adds a value in the tree.
+ * @ingroup dict
  *
  * Flags are or from onion_dict_flags_e, for example OD_DUP_ALL.
  *
@@ -419,6 +431,7 @@ static onion_dict_node *onion_dict_node_remove(const onion_dict *d, onion_dict_n
 
 /**
  * @memberof onion_dict_t
+ * @ingroup dict
  * Removes the given key.
  *
  * Returns if it removed any node.
@@ -445,6 +458,7 @@ const char *onion_dict_get(const onion_dict *dict, const char *key){
 /**
  * @short Gets a value, only if its a dict
  * @memberof onion_dict_t
+ * @ingroup dict
  */
 onion_dict *onion_dict_get_dict(const onion_dict *dict, const char *key){
 	const onion_dict_node *r;
@@ -469,8 +483,9 @@ static void onion_dict_node_print_dot(const onion_dict_node *node){
 }
 
 /**
-* @memberof onion_dict_t
-  * Prints a graph on the form:
+ * @memberof onion_dict_t
+ * @ingroup dict
+ * Prints a graph on the form:
  *
  * key1 -> key0;
  * key1 -> key2;
@@ -497,8 +512,9 @@ static void onion_dict_node_preorder(const onion_dict_node *node, void *func, vo
 
 /**
  * @short Executes a function on each element, in preorder by key.
-*  @memberof onion_dict_t
-  *
+ *  @memberof onion_dict_t
+ * @ingroup dict
+ *
  * The function is of prototype void func(void *data, const char *key, const void *value, int flags);
  */
 void onion_dict_preorder(const onion_dict *dict, void *func, void *data){
@@ -519,6 +535,7 @@ static int onion_dict_node_count(const onion_dict_node *node){
 /**
  * @short Counts elements
  * @memberof onion_dict_t
+ * @ingroup dict
  */
 int onion_dict_count(const onion_dict *dict){
 	if (dict && dict->root)
@@ -529,6 +546,7 @@ int onion_dict_count(const onion_dict *dict){
 /**
  * Do a read lock. Several can lock for reading, but only can be writing.
  * @memberof onion_dict_t
+ * @ingroup dict
  */
 void onion_dict_lock_read(const onion_dict *dict){
 #ifdef HAVE_PTHREADS
@@ -539,6 +557,7 @@ void onion_dict_lock_read(const onion_dict *dict){
 /**
  * @short Do a read lock. Several can lock for reading, but only can be writing.
  * @memberof onion_dict_t
+ * @ingroup dict
  */
 void onion_dict_lock_write(onion_dict *dict){
 #ifdef HAVE_PTHREADS
@@ -549,6 +568,7 @@ void onion_dict_lock_write(onion_dict *dict){
 /**
  * @short Free latest lock be it read or write.
  * @memberof onion_dict_t
+ * @ingroup dict
  */
 void onion_dict_unlock(onion_dict *dict){
 #ifdef HAVE_PTHREADS
@@ -586,6 +606,7 @@ static void onion_dict_json_preorder(onion_block *block, const char *key, const 
 /**
  * @short Converts a dict to a json string
  * @memberof onion_dict_t
+ * @ingroup dict
  *
  * Given a dictionary and a buffer (with size), it writes a json dictionary to it.
  *
@@ -616,6 +637,7 @@ onion_block *onion_dict_to_json(onion_dict *dict){
 /**
  * @short Gets a dictionary string value, recursively
  * @memberof onion_dict_t
+ * @ingroup dict
  *
  * Loops inside given dictionaries to get the given value
  *
@@ -646,6 +668,7 @@ const char *onion_dict_rget(const onion_dict *dict, const char *key, ...){
 /**
  * @short Gets a dictionary dict value, recursively
  * @memberof onion_dict_t
+ * @ingroup dict
  *
  * Loops inside given dictionaries to get the given value
  *
@@ -674,6 +697,7 @@ static onion_dict *onion_dict_from_json_(const char **data);
 
 /**
  * @short Creates a dict from a json
+ * @ingroup dict
  *
  * Onion dicts do not support full json semantics, soit will do the translations as possible;
  * sometimes information may be lost.
@@ -697,7 +721,9 @@ onion_dict *onion_dict_from_json(const char *data){
 	return ret;
 }
 
-onion_dict *onion_dict_from_json_(const char **_data){
+/// Real dict_from_json, reads until {} matches.
+/// The other checks also that there is nothing after the json data.
+static onion_dict *onion_dict_from_json_(const char **_data){
 	const char *data=*_data;
 	ONION_DEBUG("Parse %s", *_data);
 	while (is_json_space(*data))
