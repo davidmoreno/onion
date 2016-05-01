@@ -164,7 +164,7 @@ namespace Onion{
 		 * A use case is a have a handler that controls access by means of a session (or CSRF control), and
 		 * if the conditions are OK, call the url handler to continue with the processing.
 		 */
-		onion_connection_status operator()(Request &req, Response &res);
+		virtual onion_connection_status operator()(Request &req, Response &res);
 	};
 }
 
