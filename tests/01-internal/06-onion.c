@@ -333,7 +333,8 @@ onion_connection_status wait_random(void *_, onion_request *req, onion_response 
 
 void do_timeout_request(){
   ONION_INFO("Start timeout requests");
-  for (int i=0;i<10;i++){
+  int i;
+  for (i=0;i<10;i++){
     int fd=connect_to("localhost","8081");
     if ((i&1) == 1)
       usleep(500000);
