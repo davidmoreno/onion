@@ -295,5 +295,3 @@ We try hard to keep binary compatibility, but sometimes its hard. Here is a list
 
 * Onion object private flags have moved. If on your code you rely on them, must recompile. If
   dont rely on them, everything should keep working.
-
-![Analytics](https://cruel-carlota.pagodabox.com/e788af315b3d9517752db2e79553e346)
