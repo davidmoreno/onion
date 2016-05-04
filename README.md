@@ -7,6 +7,8 @@
 
 Onion is a C library to create simple HTTP servers and Web Applications.
 
+`master` the development branch. Current stable branch is `onion-0-8`.
+
 ## Introduction
 
 The use case is an existing application, or a new one, that needs some HTTP interconnection
