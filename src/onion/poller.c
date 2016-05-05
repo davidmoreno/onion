@@ -29,6 +29,7 @@
 #include <limits.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/timerfd.h>
 #ifdef __DEBUG__
 #include <execinfo.h>
 #endif
@@ -66,6 +67,9 @@
 struct onion_poller_t{
 	int fd;
 	int eventfd; ///< fd to signal internal changes on poller.
+	int timerfd; ///< fd to set up timeouts
+	time_t current_timeout_limit; ///< Currently set limit in seconds
+
 	int n;
   char stop;
 #ifdef HAVE_PTHREADS
@@ -199,6 +203,61 @@ static int onion_poller_stop_helper(void *p){
   return 1;
 }
 
+static time_t onion_poller_last_time=0;
+
+static int onion_poller_timer(void *p_);
+
+static void onion_poller_timer_check(onion_poller *p, time_t timelimit){
+	// If maybe timeout limit (p->current_timeout_limit is used atomically)
+	if (timelimit < p->current_timeout_limit){
+		// Recalculate with proper mutexes.
+		onion_poller_timer(p);
+	}
+}
+
+static int onion_poller_timer(void *p_){
+	onion_poller *p=p_;
+	//ONION_DEBUG("Tick");
+
+	// It seems its ok to ignore expirations.
+	//int64_t count=0;
+	//if (read(p->timerfd, &count, sizeof(count))>0){ // Triggered.. not really interested
+	//}
+
+	time_t ctime = time(NULL);
+	time_t next_timeout=ctime + (24*60*60); // At least once per day
+
+	// Do this only once per second max.
+	if (ctime != onion_poller_last_time) {
+		onion_poller_last_time = ctime;
+		pthread_mutex_lock(&p->mutex);
+		onion_poller_slot *next=p->head;
+		while (next){
+			onion_poller_slot *cur=next;
+			next=next->next;
+			if (cur->timeout_limit <= ctime){
+				ONION_DEBUG("Timeout on %d, was %d (ctime %d)", cur->fd, cur->timeout_limit, ctime);
+				cur->timeout_limit=INT_MAX;
+				shutdown(cur->fd, SHUT_RD);
+			}
+			else if (cur->timeout_limit<next_timeout){
+				next_timeout=cur->timeout_limit;
+			}
+		}
+		pthread_mutex_unlock(&p->mutex);
+	}
+
+	// Atomic store.
+	__atomic_store(&p->current_timeout_limit, &next_timeout, __ATOMIC_SEQ_CST);
+
+	//ONION_DEBUG("Next timeout in %d seconds", p->current_timeout_limit - ctime);
+	// rearm
+	struct itimerspec next={{0,0},{next_timeout-ctime,0}};
+	timerfd_settime(p->timerfd, 0, &next, NULL );
+
+	return 1;
+}
+
 #ifndef EFD_CLOEXEC
 #define EFD_CLOEXEC 0
 #endif
@@ -237,8 +296,14 @@ onion_poller *onion_poller_new(int n){
   pthread_mutexattr_destroy(&attr);
 #endif
 
+
   onion_poller_slot *ev=onion_poller_slot_new(p->eventfd,onion_poller_stop_helper,p);
   onion_poller_add(p,ev);
+
+	p->timerfd=timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
+	ev=onion_poller_slot_new(p->timerfd,&onion_poller_timer,p);
+	onion_poller_add(p,ev);
+	onion_poller_timer(p); // Force first timeout
 
 	return p;
 }
@@ -262,6 +327,12 @@ void onion_poller_free(onion_poller *p){
 			next=tnext;
 		}
 		pthread_mutex_unlock(&p->mutex);
+
+		if (p->eventfd>=0)
+			close(p->eventfd);
+		if (p->timerfd>=0)
+			close(p->timerfd);
+
 		onion_low_free(p);
 	}
 	ONION_DEBUG0("Done");
@@ -299,6 +370,8 @@ int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
 		ONION_ERROR("Error add descriptor to listen to. %s", strerror(errno));
 		return 1;
 	}
+	onion_poller_timer_check(poller, el->timeout_limit);
+
 	return 1;
 }
 
@@ -389,8 +462,6 @@ void onion_poller_poll(onion_poller *p){
 #else
 	p->stop=0;
 #endif
-	time_t ctime, ptime = 0;
-	int timeout;
 #ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&p->mutex);
 	char stop = !p->stop && p->head;
@@ -399,26 +470,7 @@ void onion_poller_poll(onion_poller *p){
 	char stop = !p->stop && p->head;
 #endif
 	while (stop){
-		timeout=1000;
-		ONION_DEBUG0("Wait for %d ms", timeout);
-		int nfds = epoll_wait(p->fd, event, onion_poller_max_events, timeout);
-		ctime = time(NULL);
-
-		if (ctime != ptime) {
-			ptime = ctime;
-			pthread_mutex_lock(&p->mutex);
-			onion_poller_slot *next=p->head;
-			while (next){
-				onion_poller_slot *cur=next;
-				next=next->next;
-				if (cur->timeout_limit <= ctime){
-					ONION_DEBUG0("Timeout on %d, was %d (ctime %d)", cur->fd, cur->timeout_limit, ctime);
-					cur->timeout_limit=INT_MAX;
-					shutdown(cur->fd, SHUT_RD);
-				}
-			}
-			pthread_mutex_unlock(&p->mutex);
-		}
+		int nfds = epoll_wait(p->fd, event, onion_poller_max_events, -1);
 
 		if (nfds<0){ // This is normally closed p->fd
 			//ONION_DEBUG("Some error happened"); // Also spurious wakeups... gdb is to blame sometimes or any other.
@@ -454,9 +506,10 @@ void onion_poller_poll(onion_poller *p){
 #endif
 				n = el->f(el->data);
 
-				ctime=time(NULL);
-				if (el->timeout>0)
-					el->timeout_limit=ctime+el->timeout;
+				if (el->timeout>0){
+					el->timeout_limit=time(NULL)+el->timeout;
+					onion_poller_timer_check(p, el->timeout_limit);
+				}
 			}
 			if (n<0){
 				onion_poller_remove(p, el->fd);
