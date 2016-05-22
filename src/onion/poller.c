@@ -100,7 +100,7 @@ struct onion_poller_slot_t{
 // Max number of polls, normally just 1024 as set by `ulimit -n` (fd count).
 static const int MAX_SLOTS=1000000;
 
-static struct onion_poller_static_t{
+static struct {
 	onion_poller_slot empty_slot;
 	onion_poller_slot *slots;
 	rlim_t max_slots;
@@ -112,6 +112,8 @@ static void onion_poller_static_init(){
 	int16_t prevcount = __sync_fetch_and_add(&onion_poller_static.refcount, 1);
 	if (prevcount!=0) // Only init first time
 		return;
+
+	memset(&onion_poller_static.empty_slot, 0, sizeof(onion_poller_static.empty_slot));
 
 	struct rlimit rlim;
 	if (getrlimit(RLIMIT_NOFILE, &rlim)) {
@@ -290,7 +292,7 @@ static int onion_poller_timer(void *p_){
  *
  */
 onion_poller *onion_poller_new(int n){
-	onion_poller *p=onion_low_malloc(sizeof(onion_poller));
+	onion_poller *p=onion_low_calloc(1, sizeof(onion_poller));
 	p->fd=epoll_create1(EPOLL_CLOEXEC);
 	if (p->fd < 0){
 		ONION_ERROR("Error creating the poller. %s", strerror(errno));
