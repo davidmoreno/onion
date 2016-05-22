@@ -100,6 +100,39 @@ struct onion_poller_slot_t{
 // Max number of polls, normally just 1024 as set by `ulimit -n` (fd count).
 static const int MAX_SLOTS=1000000;
 
+static struct onion_poller_static_t{
+	onion_poller_slot empty_slot;
+	onion_poller_slot *slots;
+	rlim_t max_slots;
+	int16_t refcount;
+} onion_poller_static = {{}, NULL, 0, 0};
+
+/// Initializes static data. Init at onion_poller_new, deinit at _free.
+static void onion_poller_static_init(){
+	int16_t prevcount = __sync_fetch_and_add(&onion_poller_static.refcount, 1);
+	if (prevcount!=0) // Only init first time
+		return;
+
+	struct rlimit rlim;
+	if (getrlimit(RLIMIT_NOFILE, &rlim)) {
+		ONION_ERROR("getrlimit: %s", strerror(errno));
+		return NULL;
+	}
+	onion_poller_static.max_slots = rlim.rlim_cur;
+	if (onion_poller_static.max_slots > MAX_SLOTS)
+		onion_poller_static.max_slots = MAX_SLOTS;
+	onion_poller_static.slots = (onion_poller_slot *)onion_low_calloc(onion_poller_static.max_slots, sizeof(onion_poller_slot));
+}
+
+/// Deinits static data at onion_poller.
+static void onion_poller_static_deinit(){
+	int16_t nextcount = __sync_sub_and_fetch(&onion_poller_static.refcount, 1);
+	if (nextcount!=0)
+		return;
+
+	onion_low_free(onion_poller_static.slots);
+}
+
 /**
  * @short Creates a new slot for the poller, for input data to be ready.
  * @memberof onion_poller_slot_t
@@ -112,26 +145,12 @@ static const int MAX_SLOTS=1000000;
  * @returns A new poller slot, ready to be added (onion_poller_add) or modified (onion_poller_slot_set_shutdown, onion_poller_slot_set_timeout).
  */
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
-	static onion_poller_slot empty_slot;
-	static onion_poller_slot *slots;
-	static rlim_t max_slots;
-	if (!max_slots) {
-		struct rlimit rlim;
-		if (getrlimit(RLIMIT_NOFILE, &rlim)) {
-			ONION_ERROR("getrlimit: %s", strerror(errno));
-			return NULL;
-		}
-		max_slots = rlim.rlim_cur;
-		if (max_slots > MAX_SLOTS)
-			max_slots = MAX_SLOTS;
-		slots = (onion_poller_slot *)onion_low_calloc(max_slots, sizeof(onion_poller_slot));
-	}
-	if (fd<0||fd>=max_slots){
-		ONION_ERROR("Trying to add an invalid file descriptor to the poller. Please check.");
+	if (fd<0||fd>=onion_poller_static.max_slots){
+		ONION_ERROR("Trying to add an invalid file descriptor to the poller (%d). Please check. Must be (0-%d)", fd, onion_poller_static.max_slots);
 		return NULL;
 	}
-	onion_poller_slot *el=&slots[fd];
-	*el=empty_slot;
+	onion_poller_slot *el=&onion_poller_static.slots[fd];
+	*el=onion_poller_static.empty_slot;
 	el->fd=fd;
 	el->f=f;
 	el->data=data;
@@ -296,6 +315,8 @@ onion_poller *onion_poller_new(int n){
   pthread_mutexattr_destroy(&attr);
 #endif
 
+	onion_poller_static_init();
+
 
   onion_poller_slot *ev=onion_poller_slot_new(p->eventfd,onion_poller_stop_helper,p);
   onion_poller_add(p,ev);
@@ -332,6 +353,8 @@ void onion_poller_free(onion_poller *p){
 			close(p->eventfd);
 		if (p->timerfd>=0)
 			close(p->timerfd);
+
+		onion_poller_static_deinit();
 
 		onion_low_free(p);
 	}
