@@ -29,7 +29,7 @@
 #include "mime.h"
 #include "dict.h"
 #include "log.h"
-
+#include "utils.h"
 
 /// @defgroup mime MIME. mime functionctionalities
 
@@ -37,12 +37,6 @@
 static onion_dict *onion_mime_dict=NULL;
 
 static void onion_mime_fill();
-
-static int is_space(char c) {
-	if(c == '\t' || c == '\n' || c == '\r' || c == ' ')
-		return 1;
-	return 0;
-}
 
 /**
  * @short Sets a user set dict as mime dict

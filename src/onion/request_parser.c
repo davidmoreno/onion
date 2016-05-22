@@ -36,6 +36,7 @@
 #include "block.h"
 #include "low.h"
 #include "ptr_list.h"
+#include "utils.h"
 
 /**
  * @short Known token types. This is merged with onion_connection_status as return value at token readers.
@@ -96,14 +97,6 @@ static onion_connection_status prepare_POST(onion_request *req);
 static onion_connection_status prepare_CONTENT_LENGTH(onion_request *req);
 static onion_connection_status prepare_PUT(onion_request *req);
 
-// In the HTTP RFC whitespace is always these characters
-// and is not locale independent, we'll need this when
-// parsing
-static int is_space(char c) {
-	if(c == '\t' || c == '\n' || c == '\r' || c == ' ')
-		return 1;
-	return 0;
-}
 
 /// Reads a string until a non-string char. Returns an onion_token
 int token_read_STRING(onion_token *token, onion_buffer *data){

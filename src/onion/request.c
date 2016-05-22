@@ -37,14 +37,9 @@
 #include "low.h"
 #include "ptr_list.h"
 #include "poller.h"
+#include "utils.h"
 
 /// @defgroup request Request. Access all information from client request: path, GET, POST, cookies, session...
-
-static int is_alnum(char c) {
-	if((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-		return 1;
-	return 0;
-}
 
 void onion_request_parser_data_free(void *token); // At request_parser.c
 

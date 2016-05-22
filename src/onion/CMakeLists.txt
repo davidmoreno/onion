@@ -91,6 +91,7 @@ IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
    DEPENDS ${SOURCES}
    )
  include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/handlers/)
  add_library(onion SHARED ${CMAKE_CURRENT_BINARY_DIR}/all-onion.c)
  add_library(onion_static STATIC ${CMAKE_CURRENT_BINARY_DIR}/all-onion.c)
 ELSE (${CMAKE_BUILD_TYPE} MATCHES "Fast")

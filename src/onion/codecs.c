@@ -36,6 +36,7 @@
 #include "log.h"
 #include "codecs.h"
 #include "block.h"
+#include "utils.h"
 
 /// @defgroup codecs Codecs. Some basic web codecs support: base64, url encoding...
 
@@ -62,12 +63,6 @@ void printf_bin(const char c, int n){
 		fprintf(stderr, "%c", ((c>>i)&1) ? '1' : '0');
 	}
 	fprintf(stderr, " ");
-}
-
-static int is_alnum(char c) {
-	if((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-		return 1;
-	return 0;
 }
 
 /**
