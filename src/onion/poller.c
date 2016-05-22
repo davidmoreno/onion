@@ -118,7 +118,7 @@ static void onion_poller_static_init(){
 	struct rlimit rlim;
 	if (getrlimit(RLIMIT_NOFILE, &rlim)) {
 		ONION_ERROR("getrlimit: %s", strerror(errno));
-		return NULL;
+		return;
 	}
 	onion_poller_static.max_slots = rlim.rlim_cur;
 	if (onion_poller_static.max_slots > MAX_SLOTS)
