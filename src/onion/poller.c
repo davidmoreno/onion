@@ -104,7 +104,7 @@ static struct {
 	onion_poller_slot empty_slot;
 	onion_poller_slot *slots;
 	rlim_t max_slots;
-	int16_t refcount;
+	int refcount;
 } onion_poller_static = {{}, NULL, 0, 0};
 
 /// Initializes static data. Init at onion_poller_new, deinit at _free.
@@ -133,6 +133,14 @@ static void onion_poller_static_deinit(){
 		return;
 
 	onion_low_free(onion_poller_static.slots);
+}
+
+/// Wrapper around clock_gettime(CLOCK_MONOTONIC_RAW, &t)
+/// It returns an unspecefified monotonic time in seconds. used for intervals.
+static time_t onion_time(){
+	struct timespec t;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &t);
+	return t.tv_sec;
 }
 
 /**
@@ -202,7 +210,7 @@ void onion_poller_slot_set_shutdown(onion_poller_slot *el, void (*sd)(void*), vo
  */
 void onion_poller_slot_set_timeout(onion_poller_slot *el, int timeout){
 	el->timeout=timeout/1000; // I dont have that resolution.
-	el->timeout_limit=time(NULL)+el->timeout;
+	el->timeout_limit=onion_time()+el->timeout;
 	ONION_DEBUG0("Set timeout to %d, %d s", el->timeout_limit, el->timeout);
 }
 
@@ -245,7 +253,7 @@ static int onion_poller_timer(void *p_){
 	//if (read(p->timerfd, &count, sizeof(count))>0){ // Triggered.. not really interested
 	//}
 
-	time_t ctime = time(NULL);
+	time_t ctime = onion_time();
 	time_t next_timeout=ctime + (24*60*60); // At least once per day
 
 	// Do this only once per second max.
@@ -269,7 +277,16 @@ static int onion_poller_timer(void *p_){
 	}
 
 	// Atomic store.
-	__atomic_store(&p->current_timeout_limit, &next_timeout, __ATOMIC_SEQ_CST);
+	// Try until set if <= next_timeout.
+	time_t origval;
+	time_t oldval;
+	do{ // Spin until change is acceptable.
+		origval=p->current_timeout_limit;
+		oldval=__sync_val_compare_and_swap(&p->current_timeout_limit, origval, next_timeout);
+	}while ( // Repeat if
+		origval!=oldval // different, so not changed because somebody else changed the value
+		&& oldval>next_timeout // and current timer is for later than my timeout
+	); // Ths is when another thread changed if for a later timeout, so I must insist on mine
 
 	//ONION_DEBUG("Next timeout in %d seconds", p->current_timeout_limit - ctime);
 	// rearm
@@ -532,7 +549,7 @@ void onion_poller_poll(onion_poller *p){
 				n = el->f(el->data);
 
 				if (el->timeout>0){
-					el->timeout_limit=time(NULL)+el->timeout;
+					el->timeout_limit=onion_time()+el->timeout;
 					onion_poller_timer_check(p, el->timeout_limit);
 				}
 			}
