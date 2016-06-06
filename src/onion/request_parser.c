@@ -323,6 +323,7 @@ static onion_connection_status parse_CONTENT_LENGTH(onion_request *req, onion_bu
 
 	onion_block_add_data(req->data, &data->data[data->pos], length);
 	data->pos+=length;
+	token->pos+=length;
 
 	if (exit)
 		return OCS_REQUEST_READY;
