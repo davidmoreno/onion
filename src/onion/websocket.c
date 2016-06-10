@@ -411,7 +411,7 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	  ONION_DEBUG("no request in websocket@%p", ws);
 	  return OCS_CLOSE_CONNECTION;
 	}
-        lpreader_sig_t* lpreader = ws->req->connection.listen_point->read;
+	lpreader_sig_t* lpreader = ws->req->connection.listen_point->read;
 	if (!lpreader) {
 	  ONION_DEBUG("no listen point reader in websocket@%p", ws);
 	  return OCS_CLOSE_CONNECTION;
@@ -455,8 +455,14 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 
 		onion_websocket_write(ws, data, r);
 	}
-	if (ws->opcode==OWS_PING){ // I do answer ping myself.
-		onion_websocket_close(ws);
+	if (ws->opcode==OWS_CONNECTION_CLOSE){ // Closing connection
+		r = (*lpreader) (ws->req, tmp, 2);
+		if(r!=2){ ONION_DEBUG("Error reading status code"); return OCS_CLOSE_CONNECTION; }
+		unsigned char status[2];
+		status[0] = utmp[0] ^ ws->mask[0];
+		status[1] = utmp[1] ^ ws->mask[1];
+		ONION_DEBUG("Connection closed by client, status=%u", (status[0]<<8) + status[1]);
+		onion_websocket_close(ws, &status);
 		return OCS_CLOSE_CONNECTION;
 	}
 	return OCS_NEED_MORE_DATA;
@@ -512,9 +518,9 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 /**
  * @short Closes the websocket sending the close opcode (8)
  */
-void onion_websocket_close(onion_websocket *ws){
+void onion_websocket_close(onion_websocket *ws, char *status){
 	onion_websocket_set_opcode(ws, OWS_CONNECTION_CLOSE);
-	onion_websocket_write(ws, NULL, 0);
+	onion_websocket_write(ws, status, 2);
 }
 
 
