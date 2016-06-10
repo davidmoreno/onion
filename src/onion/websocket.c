@@ -116,6 +116,7 @@ onion_websocket* onion_websocket_new(onion_request* req, onion_response *res)
 
 	onion_response_set_code(res, HTTP_SWITCH_PROTOCOL);
 	res->flags|=OR_CONNECTION_UPGRADE;
+	res->flags|=OR_LENGTH_SET; // Fix for Chrome to close cleanly websocket connections
 	onion_response_set_header(res, "Upgrade", "websocket");
 	if (ws_protocol)
 		onion_response_set_header(res, "Sec-Websocket-Procotol", ws_protocol);
