@@ -267,8 +267,11 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
 	}
 	//ONION_DEBUG("Please, read %d bytes, %d ready", len, ws->data_left);
 	if (ws->data_left==0){
-		if (onion_websocket_read_packet_header(ws)<0){
-			ONION_ERROR("Error reading websocket header");
+		onion_connection_status status;
+		if ((status = onion_websocket_read_packet_header(ws))<0){
+			if(status == -2) 
+				return -2;
+			ONION_ERROR("Error reading websocket header (%i)", status);
 			return -1;
 		}
 	}
@@ -494,7 +497,7 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 			if (ws->data_left==0){
 				onion_connection_status err=onion_websocket_read_packet_header(ws);
 				if (err<0){
-					ONION_ERROR("Error reading websocket header");
+					if(err != -2) ONION_ERROR("Error reading websocket header (%i)", err);
 					return err;
 				}
 			}
