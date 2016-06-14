@@ -186,7 +186,7 @@ void t02_websocket_server_w_ws(){
 
 void t03_websocket_server_receive_small_packet(){
 	INIT_LOCAL();
-	int length = 0, r = 0;
+	int length = 0;
 	char *buffer = NULL, buffer2[114];
 	memset(&ws_status,0,sizeof(ws_status));
 	onion *o=websocket_server_new();
@@ -198,8 +198,8 @@ void t03_websocket_server_receive_small_packet(){
 
 	length = websocket_forge_small_packet((char **)&buffer);
 	websocket_data_buffer_write(req, buffer, length);
-	
-	r = onion_websocket_read(ws, (char *)&buffer2, 120);
+
+	onion_websocket_read(ws, (char *)&buffer2, 120);
 
 	buffer2[114] = '\0';
 	FAIL_IF_NOT_EQUAL_STR(buffer2, "Some UTF-8-encoded chars which will be cut at the 117th char so I write some gap-filling text with no meaning unti");
@@ -212,8 +212,9 @@ void t03_websocket_server_receive_small_packet(){
 
 void t04_websocket_server_close_handshake(){
 	INIT_LOCAL();
-	int length = 0, r = 0;
-	unsigned char *buffer = NULL, buffer2[8];
+	int length = 0;
+	char *buffer = NULL;
+	unsigned char buffer2[8];
 	onion *o=websocket_server_new();
 	onion_request *req=websocket_start_handshake(o);
 	req->connection.listen_point->read = (lpreader_sig_t*) websocket_data_buffer_read;
