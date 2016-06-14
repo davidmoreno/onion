@@ -170,7 +170,7 @@ onion_connection_status onion_response_free(onion_response *res){
 
 	int r=OCS_CLOSE_CONNECTION;
 
-	// it is a rare ocassion that there is no request, but although unlikely, it may happend
+	// it is a rare ocasion that there is no request, but although unlikely, it may happen
 	if (req){
 		// keep alive only on HTTP/1.1.
 		ONION_DEBUG0("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d==%d || [chunked] %d)",

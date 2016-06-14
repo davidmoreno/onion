@@ -32,7 +32,8 @@ onion_connection_status websocket_example(void *data, onion_request *req, onion_
 			"<html><body><h1>Easy echo</h1><pre id=\"chat\"></pre>"
 			" <script>\ninit = function(){\nmsg=document.getElementById('msg');\nmsg.focus();\n\nws=new WebSocket('ws://'+window.location.host);\nws.onmessage=function(ev){\n document.getElementById('chat').textContent+=ev.data+'\\n';\n};}\n"
 			"window.addEventListener('load', init, false);\n</script>"
-			"<input type=\"text\" id=\"msg\" onchange=\"javascript:ws.send(msg.value); msg.select(); msg.focus();\"/>\n"
+			"<input type=\"text\" id=\"msg\" onchange=\"javascript:ws.send(msg.value); msg.select(); msg.focus();\"/><br/>\n"
+			"<button onclick='ws.close(1000);'>Close connection</button>"
 			"</body></html>");
 		
 		

@@ -38,7 +38,7 @@ extern "C"{
 onion_websocket *onion_websocket_new(onion_request *req, onion_response *res);
 /// When freed, the callback is invoked with a negative data length.
 void onion_websocket_free(onion_websocket *ws);
-void onion_websocket_close(onion_websocket *ws);
+void onion_websocket_close(onion_websocket *ws, const char *status);
 
 void onion_websocket_set_callback(onion_websocket *ws, onion_websocket_callback_t cb);
 void onion_websocket_set_userdata(onion_websocket *ws, void *userdata, void (*free_userdata)(void *));

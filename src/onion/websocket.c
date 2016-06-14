@@ -116,6 +116,7 @@ onion_websocket* onion_websocket_new(onion_request* req, onion_response *res)
 
 	onion_response_set_code(res, HTTP_SWITCH_PROTOCOL);
 	res->flags|=OR_CONNECTION_UPGRADE;
+	res->flags|=OR_LENGTH_SET; // Fix for Chrome to close cleanly websocket connections
 	onion_response_set_header(res, "Upgrade", "websocket");
 	if (ws_protocol)
 		onion_response_set_header(res, "Sec-Websocket-Procotol", ws_protocol);
@@ -266,8 +267,11 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
 	}
 	//ONION_DEBUG("Please, read %d bytes, %d ready", len, ws->data_left);
 	if (ws->data_left==0){
-		if (onion_websocket_read_packet_header(ws)<0){
-			ONION_ERROR("Error reading websocket header");
+		onion_connection_status status;
+		if ((status = onion_websocket_read_packet_header(ws))<0){
+			if(status == -2)
+				return -2;
+			ONION_ERROR("Error reading websocket header (%i)", status);
 			return -1;
 		}
 	}
@@ -410,7 +414,7 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	  ONION_DEBUG("no request in websocket@%p", ws);
 	  return OCS_CLOSE_CONNECTION;
 	}
-        lpreader_sig_t* lpreader = ws->req->connection.listen_point->read;
+	lpreader_sig_t* lpreader = ws->req->connection.listen_point->read;
 	if (!lpreader) {
 	  ONION_DEBUG("no listen point reader in websocket@%p", ws);
 	  return OCS_CLOSE_CONNECTION;
@@ -454,8 +458,14 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 
 		onion_websocket_write(ws, data, r);
 	}
-	if (ws->opcode==OWS_PING){ // I do answer ping myself.
-		onion_websocket_close(ws);
+	if (ws->opcode==OWS_CONNECTION_CLOSE){ // Closing connection
+		r = (*lpreader) (ws->req, tmp, 2);
+		if(r!=2){ ONION_DEBUG("Error reading status code"); return OCS_CLOSE_CONNECTION; }
+		char status[2];
+		status[0] = utmp[0] ^ ws->mask[0];
+		status[1] = utmp[1] ^ ws->mask[1];
+		ONION_DEBUG("Connection closed by client, status=%u", (status[0]<<8) + status[1]);
+		onion_websocket_close(ws, status);
 		return OCS_CLOSE_CONNECTION;
 	}
 	return OCS_NEED_MORE_DATA;
@@ -487,7 +497,7 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 			if (ws->data_left==0){
 				onion_connection_status err=onion_websocket_read_packet_header(ws);
 				if (err<0){
-					ONION_ERROR("Error reading websocket header");
+					if(err != -2) ONION_ERROR("Error reading websocket header (%i)", err);
 					return err;
 				}
 			}
@@ -511,9 +521,9 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 /**
  * @short Closes the websocket sending the close opcode (8)
  */
-void onion_websocket_close(onion_websocket *ws){
+void onion_websocket_close(onion_websocket *ws, const char *status){
 	onion_websocket_set_opcode(ws, OWS_CONNECTION_CLOSE);
-	onion_websocket_write(ws, NULL, 0);
+	onion_websocket_write(ws, status, 2);
 }
 
 
