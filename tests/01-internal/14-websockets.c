@@ -198,7 +198,7 @@ void t03_websocket_server_receive_small_packet(){
 
 	length = websocket_forge_small_packet((char **)&buffer);
 	websocket_data_buffer_write(req, buffer, length);
-	
+
 	onion_websocket_read(ws, (char *)&buffer2, 120);
 
 	buffer2[113] = '\0';

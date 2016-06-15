@@ -269,7 +269,7 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
 	if (ws->data_left==0){
 		onion_connection_status status;
 		if ((status = onion_websocket_read_packet_header(ws))<0){
-			if(status == -2) 
+			if(status == -2)
 				return -2;
 			ONION_ERROR("Error reading websocket header (%i)", status);
 			return -1;
@@ -463,7 +463,7 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	if (ws->opcode==OWS_CONNECTION_CLOSE){ // Closing connection
 		r = (*lpreader) (ws->req, tmp, 2);
 		if(r!=2){ ONION_DEBUG("Error reading status code"); return OCS_CLOSE_CONNECTION; }
-		unsigned char status[2];
+		char status[2];
 		status[0] = utmp[0] ^ ws->mask[0];
 		status[1] = utmp[1] ^ ws->mask[1];
 		ONION_DEBUG("Connection closed by client, status=%u", (status[0]<<8) + status[1]);
