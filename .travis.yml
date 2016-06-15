@@ -20,6 +20,7 @@ before_install:
   - mkdir $HOME/clang+llvm
   - tar xf $LLVM_ARCHIVE_PATH -C $HOME/clang+llvm --strip-components 1
   - export PATH=$HOME/clang+llvm/bin:$PATH
+  - ln -s $HOME/clang+llvm/bin/clang++ $HOME/clang+llvm/bin/clang++-3.7
 
 addons:
   apt:
