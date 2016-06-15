@@ -265,7 +265,7 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
 	  ONION_DEBUG("no listen point reader in websocket@%p", ws);
 	  return -1;
 	}
-	//ONION_DEBUG("Please, read %d bytes, %d ready", len, ws->data_left);
+	ONION_DEBUG("Please, read %d bytes, %d ready", len, ws->data_left);
 	if (ws->data_left==0){
 		onion_connection_status status;
 		if ((status = onion_websocket_read_packet_header(ws))<0){
@@ -280,7 +280,7 @@ int onion_websocket_read(onion_websocket* ws, char* buffer, size_t len)
 	if (len>ws->data_left){
 		left_len=len-ws->data_left;
 		len=ws->data_left;
-		//ONION_DEBUG("Read %d bytes now, %d bytes later", len, left_len);
+		ONION_DEBUG("Read %d bytes now, %d bytes later", len, left_len);
 	}
 	int r= (*lpreader) (ws->req, buffer, len);
 	if (ws->flags&WS_MASK){
@@ -420,7 +420,8 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	  return OCS_CLOSE_CONNECTION;
 	}
 	int r= (*lpreader) (ws->req, tmp, 2);
-	if (r!=2){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
+	ONION_DEBUG("reading input r = %i", r);
+	if (r!=2){ ONION_DEBUG("Error reading header (1)"); return OCS_CLOSE_CONNECTION; }
 
 	ws->flags=0;
 	if (tmp[0]&0x80)
@@ -431,14 +432,14 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	ws->data_left=tmp[1]&0x7F;
 	if (ws->data_left==126){
 	  r= (*lpreader) (ws->req, tmp, 2);
-		if (r!=2){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
+		if (r!=2){ ONION_DEBUG("Error reading header (2)"); return OCS_CLOSE_CONNECTION; }
 		ONION_DEBUG("%d %d", utmp[0], utmp[1]);
 		ws->data_left=utmp[0] + utmp[1]*256;
 	}
 	else if (ws->data_left==127){
 	  r= (*lpreader) (ws->req, tmp, 8);
 		ONION_DEBUG("%d %d %d %d %d %d %d", utmp[0], utmp[1], utmp[2], utmp[3], utmp[4], utmp[5], utmp[6], utmp[7]);
-		if (r!=8){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
+		if (r!=8){ ONION_DEBUG("Error reading header (3)"); return OCS_CLOSE_CONNECTION; }
 		ws->data_left=0;
 		int i;
 		for(i=0;i<8;i++)
@@ -447,7 +448,8 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	ONION_DEBUG("Data left %d", ws->data_left);
 	if (ws->flags&WS_MASK){
 	        r= (*lpreader) (ws->req, ws->mask, 4);
-		if (r!=4){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
+		ONION_DEBUG("bytes read=%i", r);
+		if (r!=4){ ONION_DEBUG("Error reading header (4)"); return OCS_CLOSE_CONNECTION; }
 		ws->mask_pos=0;
 	}
 
@@ -465,7 +467,7 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 		status[0] = utmp[0] ^ ws->mask[0];
 		status[1] = utmp[1] ^ ws->mask[1];
 		ONION_DEBUG("Connection closed by client, status=%u", (status[0]<<8) + status[1]);
-		onion_websocket_close(ws, &status);
+		onion_websocket_close(ws, (const char *)&status);
 		return OCS_CLOSE_CONNECTION;
 	}
 	return OCS_NEED_MORE_DATA;
@@ -494,6 +496,7 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 		else
 			sleep(1); // FIXME Worst possible solution. But solution anyway to the problem of not know when new data is available.
 		if (ws->callback){
+			ONION_DEBUG("data left %i", ws->data_left);
 			if (ws->data_left==0){
 				onion_connection_status err=onion_websocket_read_packet_header(ws);
 				if (err<0){
@@ -521,7 +524,7 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 /**
  * @short Closes the websocket sending the close opcode (8)
  */
-void onion_websocket_close(onion_websocket *ws, char *status){
+void onion_websocket_close(onion_websocket *ws, const char *status){
 	onion_websocket_set_opcode(ws, OWS_CONNECTION_CLOSE);
 	onion_websocket_write(ws, status, 2);
 }
