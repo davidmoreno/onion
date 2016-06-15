@@ -420,6 +420,7 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	  return OCS_CLOSE_CONNECTION;
 	}
 	int r= (*lpreader) (ws->req, tmp, 2);
+	//ONION_DEBUG("reading input r = %i", r);
 	if (r!=2){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 
 	ws->flags=0;
@@ -447,7 +448,8 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	ONION_DEBUG("Data left %d", ws->data_left);
 	if (ws->flags&WS_MASK){
 	        r= (*lpreader) (ws->req, ws->mask, 4);
-		if (r!=4){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
+		//ONION_DEBUG("bytes read=%i", r);
+		if (r!=4){ ONION_DEBUG("Error reading header (4)"); return OCS_CLOSE_CONNECTION; }
 		ws->mask_pos=0;
 	}
 
@@ -465,7 +467,7 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 		status[0] = utmp[0] ^ ws->mask[0];
 		status[1] = utmp[1] ^ ws->mask[1];
 		ONION_DEBUG("Connection closed by client, status=%u", (status[0]<<8) + status[1]);
-		onion_websocket_close(ws, status);
+		onion_websocket_close(ws, (const char *)&status);
 		return OCS_CLOSE_CONNECTION;
 	}
 	return OCS_NEED_MORE_DATA;
@@ -494,6 +496,7 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 		else
 			sleep(1); // FIXME Worst possible solution. But solution anyway to the problem of not know when new data is available.
 		if (ws->callback){
+			//ONION_DEBUG("data left %i", ws->data_left);
 			if (ws->data_left==0){
 				onion_connection_status err=onion_websocket_read_packet_header(ws);
 				if (err<0){
