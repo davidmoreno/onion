@@ -212,7 +212,7 @@ void t03_websocket_server_receive_small_packet(){
 
 void t04_websocket_server_close_handshake(){
 	INIT_LOCAL();
-	int length = 0, r = 0;
+	int length = 0;
 	unsigned char *buffer = NULL, buffer2[8];
 	onion *o=websocket_server_new();
 	onion_request *req=websocket_start_handshake(o);
