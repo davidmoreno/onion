@@ -5,7 +5,6 @@ compiler:
   - clang
 
 sudo: false
-dist: trusty
 
 git:
   depth: 1
