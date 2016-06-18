@@ -311,18 +311,23 @@ static onion_connection_status parse_POST_multipart_next(onion_request *req, oni
  * @short Reads from the data to fulfill content-length data.
  */
 static onion_connection_status parse_CONTENT_LENGTH(onion_request *req, onion_buffer *data){
-	ONION_DEBUG0("Adding data to request->data (non form POST)");
 	onion_token *token=req->parser_data;
-	int length=data->size-data->pos;
-	int exit=0;
+	size_t skip=data->pos; // First packet will be headers + some data, later ony data
+	int length=data->size-skip;
+	bool exit=false;
+	size_t current_size=onion_block_size(req->data);
 
-	if (length>=token->extra_size-token->pos){
-		exit=1;
-		length=token->extra_size-token->pos;
+	ONION_DEBUG0("Adding data to request->data (non form POST) %d + %d / %d [%d/%d] %p",
+		current_size, length, token->extra_size, skip, data->size, data->data+current_size);
+
+	if (length + current_size >= token->extra_size){
+		ONION_DEBUG0("Done");
+		exit=true;
+		length=token->extra_size - current_size;
 	}
 
-	onion_block_add_data(req->data, &data->data[data->pos], length);
-	data->pos+=length;
+	onion_block_add_data(req->data, &data->data[skip], length);
+	data->pos+=length; // done
 
 	if (exit)
 		return OCS_REQUEST_READY;
