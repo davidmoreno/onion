@@ -150,11 +150,12 @@ void POST_a_lot(void){
   onion_block_add_str(tosend, "POST /configuration HTTP/1.1\nHost: example.com\nContent-Type: x-application/garbage\nContent-Length: 1000000\n\n");
 
   {
+		int i;
     onion_block *bl=onion_block_new();
-    for (int i=0;i<1000;i++){
+    for (i=0;i<1000;i++){
       onion_block_add_char(bl, rand()&255);
     }
-    for (int i=0;i<1000;i++){
+    for (i=0;i<1000;i++){
       onion_block_add_block(tosend, bl);
     }
     onion_block_free(bl);
