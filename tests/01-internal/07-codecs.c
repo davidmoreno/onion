@@ -22,6 +22,7 @@
 
 #include <onion/codecs.h>
 #include <onion/block.h>
+#include <onion/low.h>
 
 #include "../ctest.h"
 
@@ -210,6 +211,27 @@ void t08_codecs_utf16(){
 	END_LOCAL();
 }
 
+void t09_minimal_payload(){
+	INIT_LOCAL();
+
+
+	int l=-1;
+	char *txt;
+
+	txt=onion_base64_decode("YTpi", &l);
+	FAIL_IF_NOT_EQUAL_INT(l,3);
+	FAIL_IF_NOT_EQUAL_STR("a:b", txt);
+	onion_low_free(txt);
+
+	l=-1;
+	txt=onion_base64_decode("YQ==", &l);
+	FAIL_IF_NOT_EQUAL_INT(l,1);
+	FAIL_IF_NOT_EQUAL_STR("a", txt);
+	onion_low_free(txt);
+
+	END_LOCAL();
+}
+
 int main(int argc, char **argv){
 	START();
 
@@ -221,6 +243,7 @@ int main(int argc, char **argv){
 	t06_codecs_c_unicode();
 	t07_codecs_html();
 	t08_codecs_utf16();
+	t09_minimal_payload();
 
 	END();
 }

@@ -81,7 +81,7 @@ char *onion_base64_decode(const char *orig, int *length){
 	ol++;
 
 	//fprintf(stderr,"ol %d\n",ol);
-	int l=ol*3/4;
+	int l=ol*3/4; // Conservative, but always true.
 	char *ret=onion_low_scalar_malloc(l+1);
 
 	if (ol<4){ // Not even a block
@@ -106,34 +106,18 @@ char *onion_base64_decode(const char *orig, int *length){
 		ret[j]  =((o[0]&0x3F)<<2)+((o[1]&0x30)>>4);
 		ret[j+1]=((o[1]&0x0F)<<4)+((o[2]&0x3C)>>2);
 		ret[j+2]=((o[2]&0x03)<<6)+(o[3]);
-		/*
-		printf_bin(o[0], 6);
-		printf_bin(o[1], 6);
-		printf_bin(o[2], 6);
-		printf_bin(o[3], 6);
-		fprintf(stderr," -> ");
-		printf_bin(ret[j], 8);
-		printf_bin(ret[j+1], 8);
-		printf_bin(ret[j+2], 8);
-		fprintf(stderr,"\n");
-		*/
 	}
-	if (length){ // Set the right size.. only if i need it.
-		*length=j;
-		//fprintf(stderr, "ol-2 %d, length %d\n",ol-2,j);
-		if (orig[ol-2]=='=')
-			*length=j-2;
-		else if (orig[ol-1]=='=')
-			*length=j-1;
-	}
-	if (orig[ol-1]=='=')
-		ret[j-1]=0;
-	/*
-	else if (orig[ol]=='=')
-		ret[j]=0;*/
-	else
-		ret[j]=0;
+	int ll=j;
+	if (orig[ol-2]=='=')
+		ll=j-2;
+	else if (orig[ol-1]=='=')
+		ll=j-1;
 
+	ret[ll]=0;
+
+	if (length){ // Set the right size.. only if i need it.
+		*length=ll;
+	}
 	return ret;
 }
 
