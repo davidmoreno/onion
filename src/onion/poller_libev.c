@@ -32,7 +32,7 @@
 
 struct onion_poller_t{
 	struct ev_loop *loop;
-	sem_t sem;
+	sem_t *sem;
 	volatile int stop;
 };
 
@@ -88,12 +88,14 @@ void onion_poller_slot_set_type(onion_poller_slot *el, int type){
 onion_poller *onion_poller_new(int aprox_n){
 	onion_poller *ret=calloc(1,sizeof(onion_poller));
 	ret->loop=ev_default_loop(0);
-	sem_init(&ret->sem, 0, 1);
+	ret->sem=sem_open("/poller", O_CREAT, 0, 1);
 	return ret;
 }
 
 /// Frees the poller. It first stops it.
 void onion_poller_free(onion_poller *p){
+	sem_close(p->sem);
+	sem_unlink("/poller");
 	free(p);
 }
 
@@ -152,9 +154,9 @@ void onion_poller_poll(onion_poller *poller){
 
 	poller->stop=0;
 	while(!poller->stop){
-		sem_wait(&poller->sem);
+		sem_wait(poller->sem);
 		ev_run(poller->loop,EVLOOP_ONESHOT);
-		sem_post(&poller->sem);
+		sem_post(poller->sem);
 	}
 }
 /// Stops the polling. This only marks the flag, and should be cancelled with pthread_cancel.
