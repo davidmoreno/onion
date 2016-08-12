@@ -25,10 +25,11 @@
 #include <errno.h>
 
 #include <onion/onion.h>
+#include <onion/poller.h>
 
 #include "../ctest.h"
 #include <pthread.h>
-#include <netdb.h>
+#include "utils.h"
 
 const int MAX_TIME=500;
 
@@ -46,43 +47,17 @@ typedef struct{
   char close_at_n;
 }params_t;
 
-onion_response_codes process_request(void *_, onion_request *req, onion_response *res){
+onion_connection_status process_request(void *_, onion_request *req, onion_response *res){
   pthread_mutex_lock(&processed_mutex);
   processed++;
   pthread_mutex_unlock(&processed_mutex);
   onion_response_write0(res, "Done");
-  
+
 	FAIL_IF_NOT_EQUAL_STR(onion_request_get_client_description(req),"127.0.0.1");
-	
+
   return OCS_PROCESSED;
 }
 
-int connect_to(const char *addr, const char *port){
-  struct addrinfo hints;
-  struct addrinfo *server;
-  
-  memset(&hints,0, sizeof(struct addrinfo));
-  hints.ai_socktype=SOCK_STREAM;
-  hints.ai_family=AF_UNSPEC;
-  hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
-
-  if (getaddrinfo(addr,port,&hints,&server)<0){
-    ONION_ERROR("Error getting server info");
-    return -1;
-  }
-  int fd=socket(server->ai_family, server->ai_socktype | SOCK_CLOEXEC, server->ai_protocol);
-  
-  if (connect(fd, server->ai_addr, server->ai_addrlen)==-1){
-    close(fd);
-    fd=-1;
-    ONION_ERROR("Error connecting to server %s:%s",addr,port);
-  }
-  
-  freeaddrinfo(server);
-  
-  
-  return fd;
-}
 
 int curl_get(CURL *curl, const char *url){
   CURLcode res=curl_easy_perform(curl);
@@ -96,7 +71,7 @@ int curl_get(CURL *curl, const char *url){
   char buffer[1024]; size_t l;
   curl_easy_recv(curl,buffer,sizeof(buffer),&l);
   FAIL_IF_NOT_EQUAL_INT((int)http_code, HTTP_OK);
-  
+
   return http_code;
 }
 
@@ -119,7 +94,7 @@ int curl_get(CURL *curl, const char *url){
 //   curl_easy_recv(curl,buffer,sizeof(buffer),&l);
 //   FAIL_IF_EQUAL_INT((int)http_code, HTTP_OK);
 // 	curl_easy_cleanup(curl);
-//   
+//
 //   return http_code;
 // }
 
@@ -133,14 +108,14 @@ CURL *prepare_curl(const char *url){
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
   FAIL_IF_NOT(curl_easy_setopt(curl, CURLOPT_WRITEDATA, null_file)==CURLE_OK);
-	
+
 	return curl;
 }
 
 void *do_requests(params_t *t){
 	const char *url="http://localhost:8080/";
 	CURL *curl=prepare_curl(url);
-	
+
   ONION_DEBUG("Do %d petitions",t->n_requests);
   int i;
   usleep(t->wait_s*1000000);
@@ -152,9 +127,9 @@ void *do_requests(params_t *t){
     usleep(t->wait_s*1000000);
     onion_listen_stop(o);
   }
-  
+
 	curl_easy_cleanup(curl);
-  
+
   return NULL;
 }
 
@@ -174,13 +149,13 @@ void do_listen(){
 void do_petition_set_threaded(float wait_s, float wait_c, int nrequests, char close, int nthreads){
   ONION_DEBUG("Using %d threads, %d petitions per thread",nthreads,nrequests);
   processed=0;
-  
+
   params_t params;
   params.wait_s=wait_s;
   params.wait_t=wait_c;
   params.n_requests=nrequests;
   params.close_at_n=close;
-  
+
   pthread_t *thread=malloc(sizeof(pthread_t*)*nthreads);
   pthread_t listen_thread;
   int i;
@@ -197,8 +172,8 @@ void do_petition_set_threaded(float wait_s, float wait_c, int nrequests, char cl
     onion_listen_stop(o);
   }
   pthread_join(listen_thread, NULL);
-  
-  
+
+
   FAIL_IF_NOT_EQUAL_INT(params.n_requests * nthreads, processed);
 }
 
@@ -208,28 +183,33 @@ void do_petition_set(float wait_s, float wait_c, int n_requests, char close){
 
 void t01_server_one(){
   INIT_LOCAL();
-  
+
   o=onion_new(O_ONE);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   do_petition_set(1,0.1,1,0);
   onion_free(o);
-  
+
   o=onion_new(O_ONE_LOOP);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   do_petition_set(1,0.1,1,1);
   onion_free(o);
-  
+
   o=onion_new(O_ONE_LOOP);
+
+  // change poller queue size
+  onion_poller *p=onion_get_poller(o);
+  onion_poller_set_queue_size_per_thread(p, 1);
+
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   do_petition_set(1,0.001,100,1);
   onion_free(o);
-  
+
   END_LOCAL();
 }
 
 void t02_server_epoll(){
   INIT_LOCAL();
-  
+
   o=onion_new(O_POLL);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   do_petition_set(1,0.1,1,1);
@@ -266,7 +246,7 @@ void t02_server_epoll(){
 void t03_server_https(){
   INIT_LOCAL();
   CURL *curl=prepare_curl("https://localhost:8080");
-	
+
   o=onion_new(O_ONE_LOOP | O_DETACH_LISTEN);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   FAIL_IF_NOT_EQUAL_INT(onion_set_certificate(o, O_SSL_CERTIFICATE_KEY, "mycert.pem", "mycert.pem"),0);
@@ -278,7 +258,7 @@ void t03_server_https(){
   FAIL_IF_NOT_EQUAL_INT(  curl_get(curl, "https://localhost:8080"), HTTP_OK);
   sleep(1);
   onion_free(o);
-  
+
 	curl_easy_cleanup(curl);
   END_LOCAL();
 }
@@ -286,14 +266,14 @@ void t03_server_https(){
 void t04_server_timeout_threaded(){
   INIT_LOCAL();
   CURL *curl=prepare_curl("http://localhost:8082");
-  
+
   o=onion_new(O_THREADED | O_DETACH_LISTEN);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
   onion_set_port(o,"8082");
   onion_set_timeout(o,2000);
   onion_listen(o);
   sleep(1);
-  
+
   int fd=connect_to("localhost","8082");
   sleep(3);
   // Should have closed the connection
@@ -304,7 +284,7 @@ void t04_server_timeout_threaded(){
   close(fd);
 
   FAIL_IF_NOT(curl_get(curl, "http://localhost:8082"));
-  
+
   onion_free(o);
 	curl_easy_cleanup(curl);
   END_LOCAL();
@@ -314,7 +294,7 @@ void t04_server_timeout_threaded(){
 void t05_server_timeout_threaded_ssl(){
   INIT_LOCAL();
   CURL *curl=prepare_curl("https://localhost:8081");
-	
+
   ONION_DEBUG("%s",__FUNCTION__);
   o=onion_new(O_THREADED | O_DETACH_LISTEN);
   onion_set_root_handler(o,onion_handler_new((void*)process_request,NULL,NULL));
@@ -323,7 +303,7 @@ void t05_server_timeout_threaded_ssl(){
   onion_set_timeout(o,3000);
   onion_listen(o);
   sleep(1);
-  
+
   int fd=connect_to("localhost","8081");
   sleep(4);
   // Should have closed the connection
@@ -336,8 +316,65 @@ void t05_server_timeout_threaded_ssl(){
   FAIL_IF_NOT(curl_get(curl, "https://localhost:8081"));
 
 	onion_free(o);
-  
+
 	curl_easy_cleanup(curl);
+  END_LOCAL();
+}
+
+onion_connection_status wait_random(void *_, onion_request *req, onion_response *res){
+  int ms=105.0 + (float)((200.0 * rand()) / ((float)RAND_MAX));
+  ONION_INFO("Wait %.3f seconds", ms/1000.0);
+  usleep(ms*1000);
+
+  onion_response_write(res, "OK", 3);
+
+  return OCS_PROCESSED;
+}
+
+void do_timeout_request(){
+  ONION_INFO("Start timeout requests");
+  int i;
+  for (i=0;i<10;i++){
+    int fd=connect_to("localhost","8081");
+    if ((i&1) == 1)
+      usleep(500000);
+    int w=write(fd,"GET /\n\n",7);
+    fsync(fd);
+    FAIL_IF_NOT_EQUAL_INT(w,7);
+    shutdown(fd, SHUT_RDWR);
+    // Should have closed the connection
+    char data[256];
+    FAIL_IF(read(fd, data, sizeof(data))>0);
+    close(fd);
+  }
+}
+
+void t06_timeouts(){
+  INIT_LOCAL();
+
+  o=onion_new(O_POOL | O_DETACH_LISTEN);
+  onion_set_timeout(o, 100);
+
+  onion_set_root_handler(o, onion_handler_new((void*)wait_random, NULL, NULL));
+  onion_set_port(o, "8081");
+  onion_listen(o);
+  sleep(1);
+
+  int nthreads=10;
+  pthread_t *thread=malloc(sizeof(pthread_t*)*nthreads);
+  int i;
+  for (i=0;i<nthreads;i++){
+    pthread_create(&thread[i], NULL, (void*)do_timeout_request, NULL);
+  }
+  for (i=0;i<nthreads;i++){
+    pthread_join(thread[i], NULL);
+  }
+  free(thread);
+
+
+  onion_free(o);
+
+
   END_LOCAL();
 }
 
@@ -351,14 +388,14 @@ int main(int argc, char **argv){
 	t03_server_https();
 	t04_server_timeout_threaded();
 	t05_server_timeout_threaded_ssl();
-  
+  t06_timeouts();
+
   okexit=1;
   pthread_cancel(watchdog_thread);
   pthread_join(watchdog_thread,NULL);
-  
+
   if (null_file)
     fclose(null_file);
 
 	END();
 }
-

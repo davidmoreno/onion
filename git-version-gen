@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# usage: git-version-gen [srcdir]
+
+DEF_VER="v0.8.0.GIT"
+
+LF='
+'
+
+srcdir="."
+if test "x${1}" != "x"
+then
+	srcdir="${1}"
+fi
+
+# First see if there is a version file (included in release tarballs),
+# then try git-describe, then default.
+cd "${srcdir}" || exit 1
+if test -f version
+then
+	VN="`cat version`" || VN="${DEF_VER}"
+elif test -d .git -o -f .git &&
+	VN="`git describe --match "v[0-9]*" --tags --abbrev=5 HEAD 2>/dev/null`" &&
+	case "${VN}" in
+	*"${LF}"*) (exit 1) ;;
+	v[0-9]*)
+		git update-index -q --refresh
+		test -z "`git diff-index --name-only HEAD --`" ||
+		VN="${VN}-dirty" ;;
+	esac
+then
+	# convert "v0.4.0-32-gf350f" to "v0.4.0.git32.f350f"
+	VN="`echo "${VN}" | sed -e 's/-\([0-9]*\)-g/.\1./g' -e 's/-/./g'`";
+else
+	VN="${DEF_VER}"
+fi
+
+VN="`expr "${VN}" : v*'\(.*\)'`"
+
+echo "${VN}" | tr -d "$LF"

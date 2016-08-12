@@ -48,7 +48,7 @@ void help(const char *msg);
 
 int main(int argc, char **argv){
 	// Add some plugin searhc paths
-	plugin_search_path=list_new(NULL);
+	plugin_search_path=list_new(free);
 
 	const char *infilename=NULL;
 	const char *outfilename=NULL;
@@ -119,8 +119,8 @@ int main(int argc, char **argv){
 	}
 
 	// Default template dirs
-	list_add(plugin_search_path, "" LIBRARY_PATTERN0);
-	list_add(plugin_search_path, "templatetags/" LIBRARY_PATTERN0);
+	list_add_with_flags(plugin_search_path, "lib%s.so", LIST_ITEM_NO_FREE);
+	list_add_with_flags(plugin_search_path, "templatetags/lib%s.so", LIST_ITEM_NO_FREE);
 	char tmp2[256];
 	strncpy(tmp2, argv[0], sizeof(tmp2)-1);
 	snprintf(tmp, sizeof(tmp), "%s/templatetags/" LIBRARY_PATTERN, dirname(tmp2));
@@ -128,8 +128,8 @@ int main(int argc, char **argv){
 	strncpy(tmp2, argv[0], sizeof(tmp2)-1);
 	snprintf(tmp, sizeof(tmp), "%s/" LIBRARY_PATTERN, dirname(tmp2));
 	list_add(plugin_search_path, strdup(tmp)); // dupa is ok, as im at main.
-	list_add(plugin_search_path, "/usr/local/lib/otemplate/templatetags/" LIBRARY_PATTERN0);
-	list_add(plugin_search_path, "/usr/lib/otemplate/templatetags/" LIBRARY_PATTERN0);
+	list_add_with_flags(plugin_search_path, "/usr/local/lib/otemplate/templatetags/lib%s.so", LIST_ITEM_NO_FREE);
+	list_add_with_flags(plugin_search_path, "/usr/lib/otemplate/templatetags/lib%s.so", LIST_ITEM_NO_FREE);
 
 	onion_assets_file *assetsfile=onion_assets_file_new(assetfilename);
 	int error=work(infilename, outfilename, assetsfile);

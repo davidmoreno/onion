@@ -42,10 +42,11 @@ endif(HAVE_MSGFMT)
 
 
 add_executable(ofileserver fileserver.c fileserver_html.c)
-target_link_libraries(ofileserver onion_handlers_static onion_static m )
+target_link_libraries(ofileserver onion_static m )
 if (${Z_LIB})
    target_link_libraries(ofileserver ${Z_LIB})
 endif(${Z_LIB})
 
-install(TARGETS ofileserver DESTINATION ${BINDIR})
+set_target_properties(ofileserver PROPERTIES OUTPUT_NAME "onion-ofileserver")
+install(TARGETS ofileserver	DESTINATION ${CMAKE_INSTALL_BINDIR})
 

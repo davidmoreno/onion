@@ -11,11 +11,11 @@ target_link_libraries(03-response onion)
 add_test(internal-response 03-response)
 
 add_executable(04-handler 04-handler.c buffer_listen_point.c)
-target_link_libraries(04-handler onion_handlers onion)
+target_link_libraries(04-handler onion)
 add_test(internal-handler 04-handler)
 
 add_executable(05-server 05-server.c buffer_listen_point.c)
-target_link_libraries(05-server onion_handlers onion)
+target_link_libraries(05-server onion)
 add_test(internal-server 05-server)
 
 if (GNUTLS_ENABLED)
@@ -26,7 +26,7 @@ IF (CERTTOOL)
 message(STATUS "Found certool compiling all tests")
 add_custom_command(
    OUTPUT mycert.pem
-   COMMAND 
+   COMMAND
 		${CERTTOOL} --generate-privkey --outfile mycert.key &&
 		${CERTTOOL} --generate-self-signed --load-privkey mycert.key --outfile mycert.crt --template ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg  &&
 		cat mycert.crt mycert.key > mycert.pem
@@ -34,9 +34,12 @@ add_custom_command(
    )
 
 
-add_executable(06-onion 06-onion.c mycert.pem)
-target_link_libraries(06-onion onion_handlers onion curl)
-add_test(internal-onion 06-onion)
+if(PTHREADS)
+	add_executable(06-onion 06-onion.c utils.c mycert.pem)
+	target_link_libraries(06-onion onion curl)
+	add_test(internal-onion 06-onion)
+endif(PTHREADS)
+
 ELSE(CERTTOOL)
 message(STATUS "Not found certool not compiling 06-server")
 ENDIF (CERTTOOL)
@@ -44,7 +47,7 @@ ENDIF (CURL)
 endif(GNUTLS_ENABLED)
 
 add_executable(07-codecs 07-codecs.c)
-target_link_libraries(07-codecs onion_handlers onion)
+target_link_libraries(07-codecs onion)
 add_test(internal-codecs 07-codecs)
 
 add_executable(08-post 08-post.c buffer_listen_point.c)
@@ -91,9 +94,11 @@ add_executable(14-websockets 14-websockets.c buffer_listen_point.c)
 target_link_libraries(14-websockets onion)
 add_test(internal-websockets 14-websockets)
 
-add_executable(15-post-no-type 15-post-no-type.c)
-target_link_libraries(15-post-no-type onion)
-add_test(internal-post-no-type 15-post-no-type)
+if(PTHREADS)
+	add_executable(15-post-no-type 15-post-no-type.c)
+	target_link_libraries(15-post-no-type onion)
+	add_test(internal-post-no-type 15-post-no-type)
+endif(PTHREADS)
 
 add_executable(16-url 16-url.c buffer_listen_point.c)
 target_link_libraries(16-url onion)
@@ -103,10 +108,22 @@ add_executable(17-permissions 17-permissions.c)
 target_link_libraries(17-permissions onion)
 add_test(internal-permissions 17-permissions)
 
-add_executable(18-listen_stop 18-listen_stop.c)
-target_link_libraries(18-listen_stop onion)
-add_test(listen_stop 18-listen_stop)
+if(PTHREADS)
+	add_executable(18-listen_stop 18-listen_stop.c utils.c)
+	target_link_libraries(18-listen_stop onion)
+	add_test(listen_stop 18-listen_stop)
+endif(PTHREADS)
 
 add_executable(19-random 19-random.c)
 target_link_libraries(19-random onion)
 add_test(random 19-random)
+
+if (SQLITE3_ENABLED)
+ add_executable(20-session_sqlite3 20-session_sqlite3.c)
+ target_link_libraries(20-session_sqlite3 onion)
+ add_test(session_sqlite3 20-session_sqlite3)
+endif(SQLITE3_ENABLED)
+
+add_executable(21-version 21-version.c)
+target_link_libraries(21-version onion)
+add_test(version 21-version)

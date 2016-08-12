@@ -21,6 +21,7 @@
 #include <string.h>
 #include <onion/block.h>
 #include <onion/codecs.h>
+#include <onion/log.h>
 #include <stdlib.h>
 
 /**
@@ -33,7 +34,7 @@ void variable_write(parser_status *st, onion_block *b){
 	function_add_code(st,
 "  {\n"
 "    const char *tmp;\n");
-	variable_solve(st, onion_block_data(b), "tmp", 0);
+	variable_solve(st, onion_block_data(b), "tmp", STRING);
 	function_add_code(st,
 "    if (tmp)\n"
 "      onion_response_write_html_safe(res, tmp);\n"
@@ -43,16 +44,21 @@ void variable_write(parser_status *st, onion_block *b){
 /**
  * @short Solves a variable into code.
  * 
- * It uses the type to check it its a simple string. (type==1)
+ * It uses the type to check it its a literal string, a dcit string or a dict.
  */
-void variable_solve(parser_status *st, const char *data, const char *tmpname, int type){
-	if (type==1){
+void variable_solve(parser_status *st, const char *data, const char *tmpname, vartype_e type){
+	if (type==LITERAL){
 		char *s=onion_c_quote_new(data);
 		function_add_code(st,
 "    %s=%s;\n", tmpname, s);
 		free(s);
 		return;
 	}
+	if (! (type==STRING || type==DICT) ){
+		ONION_ERROR("Invalid type for variable solve");
+		exit(1);
+	}
+	
 	
 	list *parts=list_new(onion_block_free);
 	onion_block *lastblock;
@@ -73,12 +79,23 @@ void variable_solve(parser_status *st, const char *data, const char *tmpname, in
 
 	if (list_count(parts)==1){
 		char *s=onion_c_quote_new(onion_block_data(lastblock));
-		function_add_code(st, 
-"    %s=onion_dict_get(context, %s);\n", tmpname, s);
+		if (type==STRING)
+			function_add_code(st, 
+	"    %s=onion_dict_get(context, %s);\n", tmpname, s);
+		else if (type==DICT)
+			function_add_code(st, 
+	"    %s=onion_dict_get_dict(context, %s);\n", tmpname, s);
 		free(s);
 	}
 	else{
-		function_add_code(st,"    %s=onion_dict_rget(context", tmpname);
+		if (type==STRING)
+			function_add_code(st,"    %s=onion_dict_rget(context", tmpname);
+		else if (type==DICT)
+			function_add_code(st,"    %s=onion_dict_rget_dict(context", tmpname);
+		else{
+			ONION_ERROR("Invalid type for variable solve");
+			exit(1);
+		}
 		list_item *it=parts->head;
 		while (it){
 			lastblock=it->data;

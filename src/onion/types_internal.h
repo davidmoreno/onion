@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #ifndef ONION_TYPES_INTERNAL_H
@@ -29,7 +27,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>
-
+#include <stdbool.h>
 #include "types.h"
 
 #ifdef HAVE_GNUTLS
@@ -74,13 +72,20 @@ struct onion_t{
 	size_t max_post_size;					/// Maximum size of post data. This is the sum of posts, @see onion_request_write_post
 	size_t max_file_size;					/// Maximum size of files. @see onion_request_write_post
 	onion_sessions *sessions;			/// Storage for sessions.
+        void* client_data;
+        onion_client_data_free_sig*client_data_free;
 #ifdef HAVE_PTHREADS
+        pthread_mutex_t mutex;
 	pthread_t listen_thread;
 	pthread_t *threads;
 	int nthreads;
 #endif
 };
 
+struct onion_ptr_list_t{
+	void *ptr;
+	struct onion_ptr_list_t *next;
+};
 
 struct onion_request_t{
 	struct{
@@ -101,10 +106,12 @@ struct onion_request_t{
 	onion_dict *FILES;    /// Dictionary with files. They are automatically saved at /tmp/ and removed at request free. mapped string is full path.
 	onion_dict *session;  /// Pointer to related session
 	onion_block *data;    /// Some extra data from PUT, normally PROPFIND.
+	onion_dict *cookies;  /// Data about cookies.
 	char *session_id;     /// Session id of the request, if any.
 	void *parser;         /// When recieving data, where to put it. Check at request_parser.c.
 	void *parser_data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
 	onion_websocket *websocket; /// Websocket handler. 
+	onion_ptr_list *free_list; /// Memory that should be freed when the request finishes. IT allows to have simpler onion_dict, which dont copy/free data, but just splits a long string inplace.
 };
 
 struct onion_response_t{
@@ -133,7 +140,11 @@ struct onion_handler_t{
 
 
 struct onion_sessions_t{
-	onion_dict *sessions; 		/// Where all sessions are stored. Each element is another onion_dict.
+	void *data;
+	
+	onion_dict *(*get)(onion_sessions *sessions, const char *sessionid);
+	void (*save)(onion_sessions *sessions, const char *sessionid, onion_dict *data);
+	void (*free)(onion_sessions *sessions);
 };
 
 struct onion_block_t{
@@ -152,6 +163,7 @@ struct onion_listen_point_t{
 	char *hostname; ///< Stated hostname, as a string. If NULL tries to attach to any hostname, normally 0.0.0.0 (ipv4 and ipv6)
 	char *port;     ///< Stated port, if none then 8080
 	int listenfd;   ///< For socket listening listen points, the listen fd. For others may be -1 as not used, or an fd to watch and when changed calls the request_init with a new request.
+	bool secure;    ///< Is this listen point secure?
 	
 	/// Internal data used by the listen point, for example in HTTPS is the certificate loaded data.
 	void *user_data; 

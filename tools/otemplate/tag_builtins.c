@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <libgen.h>
+#include <assert.h>
 
 #include <onion/log.h>
 #include <onion/codecs.h>
@@ -83,7 +84,10 @@ void tag_load(parser_status *st, list *l){
 void tag_for(parser_status *st, list *l){
 	function_add_code(st, 
 "  {\n"
-"    onion_dict *loopdict=onion_dict_get_dict(context, \"%s\");\n", tag_value_arg (l,3));
+"    onion_dict *loopdict=NULL;\n"
+	);
+	variable_solve(st, tag_value_arg (l,3), "loopdict", 2);
+// "    onion_dict_get_dict(context, \"%s\");\n", tag_value_arg (l,3));
 	function_add_code(st, 
 "    onion_dict *tmpcontext=onion_dict_hard_dup(context);\n"
 "    if (loopdict){\n"
@@ -176,6 +180,8 @@ void tag_endif(parser_status *st, list *l){
 
 /// Include an external html. This is only the call, the programmer must compile such html too.
 void tag_include(parser_status* st, list* l){
+	assert(st!=NULL); // Tell coverty that at function_new it will keep a pointer to the original, always.
+	
 	function_data *d=function_new(st, "%s", tag_value_arg(l, 1));
 	function_pop(st);
 	onion_block_free(d->code); // This means no impl
@@ -207,7 +213,8 @@ void tag_block(parser_status *st, list *l){
 "  }\n", block_name);
 
 	char tmp[256];
-	strncpy(tmp, st->infilename, sizeof(tmp));
+	assert (strlen(st->infilename)<sizeof(tmp));
+	strncpy(tmp, st->infilename, sizeof(tmp)-1);
 	function_data *d=function_new(st, "%s__block_%s", basename(tmp),  block_name);
 	function_add_code_f(st->blocks_init, 
 "  if (!onion_dict_get(context, \"__block_%s__\"))\n"

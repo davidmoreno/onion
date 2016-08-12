@@ -44,6 +44,7 @@ void t01_test_session(){
 	onion_dict_add(ses, "foo", "bar", 0);
 	
 	FAIL_IF_NOT_EQUAL_STR("bar", onion_dict_get(ses2, "foo"));
+	onion_sessions_save(sessions, s01, ses);
 	
 	// When removed, it should refcount--
 	onion_dict_free(ses2);
@@ -211,7 +212,7 @@ void t03_bug_empty_session_is_new_session(){
   strcpy(sessionid, lastsessionid);
   req->fullpath=NULL;
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 1);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->data), 1);
   
   req=onion_request_new(lp);
   req->fullpath="/";
@@ -222,7 +223,7 @@ void t03_bug_empty_session_is_new_session(){
   FAIL_IF_NOT(has_set_cookie);
   req->fullpath=NULL;
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 2);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->data), 2);
   
   req=onion_request_new(lp);
   req->fullpath="/";
@@ -235,7 +236,7 @@ void t03_bug_empty_session_is_new_session(){
   strcpy(sessionid, lastsessionid);
   req->fullpath=NULL;
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 2);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->data), 2);
   
   req=onion_request_new(lp);
   req->fullpath="/";
@@ -247,7 +248,7 @@ void t03_bug_empty_session_is_new_session(){
   FAIL_IF_NOT(has_set_cookie);
   req->fullpath=NULL;
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 3);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->data), 3);
 
   // Ask for new, without session data, but I will not set data on session, so session is not created.
   set_data_on_session=0;
@@ -257,9 +258,9 @@ void t03_bug_empty_session_is_new_session(){
   FAIL_IF_EQUAL_STR(lastsessionid,"");
   strcpy(sessionid, lastsessionid);
   req->fullpath=NULL;
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 4); // For a moment it exists, until onion realizes is not necesary.
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->data), 4); // For a moment it exists, until onion realizes is not necesary.
   onion_request_free(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 3);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->data), 3);
 
   
   onion_free(o);
@@ -289,7 +290,7 @@ void t04_lot_of_sessionid(){
   req=onion_request_new(lp);
   req->fullpath="/";
   onion_request_process(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 1);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->data), 1);
   FAIL_IF_EQUAL_STR(lastsessionid,"");
   strcpy(sessionid, lastsessionid);
   req->fullpath=NULL;
@@ -311,7 +312,7 @@ void t04_lot_of_sessionid(){
   //onion_dict_add(req->headers, "Cookie", tmp2, 0);
   
   onion_request_process(req);
-  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->sessions), 1);
+  FAIL_IF_NOT_EQUAL_INT(onion_dict_count(o->sessions->data), 1);
   FAIL_IF_EQUAL_STR(lastsessionid,"");
   FAIL_IF_NOT_EQUAL_STR(lastsessionid, sessionid);
   FAIL_IF_NOT(has_set_cookie);

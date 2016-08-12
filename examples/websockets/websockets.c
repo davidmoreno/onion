@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-onion_connection_status websocket_example_cont(void *data, onion_websocket *ws, size_t data_ready_len);
+onion_connection_status websocket_example_cont(void *data, onion_websocket *ws, ssize_t data_ready_len);
 
 onion_connection_status websocket_example(void *data, onion_request *req, onion_response *res){
 	onion_websocket *ws=onion_websocket_new(req, res);
@@ -32,7 +32,8 @@ onion_connection_status websocket_example(void *data, onion_request *req, onion_
 			"<html><body><h1>Easy echo</h1><pre id=\"chat\"></pre>"
 			" <script>\ninit = function(){\nmsg=document.getElementById('msg');\nmsg.focus();\n\nws=new WebSocket('ws://'+window.location.host);\nws.onmessage=function(ev){\n document.getElementById('chat').textContent+=ev.data+'\\n';\n};}\n"
 			"window.addEventListener('load', init, false);\n</script>"
-			"<input type=\"text\" id=\"msg\" onchange=\"javascript:ws.send(msg.value); msg.select(); msg.focus();\"/>\n"
+			"<input type=\"text\" id=\"msg\" onchange=\"javascript:ws.send(msg.value); msg.select(); msg.focus();\"/><br/>\n"
+			"<button onclick='ws.close(1000);'>Close connection</button>"
 			"</body></html>");
 		
 		
@@ -45,15 +46,15 @@ onion_connection_status websocket_example(void *data, onion_request *req, onion_
 	return OCS_WEBSOCKET;
 }
 
-onion_connection_status websocket_example_cont(void *data, onion_websocket *ws, size_t data_ready_len){
+onion_connection_status websocket_example_cont(void *data, onion_websocket *ws, ssize_t data_ready_len){
 	char tmp[256];
 	if (data_ready_len>sizeof(tmp))
 		data_ready_len=sizeof(tmp)-1;
 	
 	int len=onion_websocket_read(ws, tmp, data_ready_len);
-	if (len==0){
+	if (len<=0){
 		ONION_ERROR("Error reading data: %d: %s (%d)", errno, strerror(errno), data_ready_len);
-		sleep(1);
+		return OCS_NEED_MORE_DATA;
 	}
 	tmp[len]=0;
 	onion_websocket_printf(ws, "Echo: %s", tmp);
@@ -71,7 +72,8 @@ int main(){
 	onion_url_add(urls, "", websocket_example);
 	
 	onion_listen(o);
-	
+
+	onion_free(o);
 	return 0;
 }
 

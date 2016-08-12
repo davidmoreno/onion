@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #include <onion/onion.h>
@@ -32,13 +30,13 @@ static void header_write(onion_response *res, const char *key, const char *value
   onion_response_printf(res,"<li><b>%s</b> = %s</li>",key,value);
 }
 
-static void session_write(onion_response *res, const char *key, onion_dict *value, int flags){
-  onion_response_printf(res,"<li>%s<ul>",key);
-  
-  onion_dict_preorder(value, header_write, res);
-  
-  onion_response_write0(res, "</ul></li>");
-}
+// static void session_write(onion_response *res, const char *key, onion_dict *value, int flags){
+//   onion_response_printf(res,"<li>%s<ul>",key);
+//   
+//   onion_dict_preorder(value, header_write, res);
+//   
+//   onion_response_write0(res, "</ul></li>");
+// }
 
 static onion_connection_status onion_internal_handler(void *_, onion_request *req, onion_response *res){
   onion_request_get_session_dict(req);
@@ -59,9 +57,9 @@ static onion_connection_status onion_internal_handler(void *_, onion_request *re
   
   
   // Sessions
-  onion_response_write0(res,"<h1>Sessions and data</h1><ul>");
-  onion_dict_preorder( req->connection.listen_point->server->sessions->sessions, session_write, res);
-  onion_response_write0(res, "</ul>");
+//   onion_response_write0(res,"<h1>Sessions and data</h1><ul>");
+//   onion_dict_preorder( req->connection.listen_point->server->sessions->sessions, session_write, res);
+//   onion_response_write0(res, "</ul>");
   
   onion_response_write0(res, "</body></html>");
   return OCS_PROCESSED;

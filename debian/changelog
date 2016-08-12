@@ -1,5 +1,25 @@
-libonion (0.2.0) unstable; urgency=low
+libonion (0.8.0) stable; urgency=low
 
-  * Initial debian packaging.
+  * Stability improvements on the poller (Thanks to Solar designer for help tracking it, idea by Rich Felker, fixed by David Moreno).
+  * Performance improvements on onion_log (Zachary Grafton)
+  * Many bugs found by clang thread sanitizer and fixed. (Zachary Grafton)
+  * Improvements to JSON encode/decode (Thanks to Solar designer for help tracking it, fixed by David Moreno)
+  * Undefined behaviour fixes (Zachary Grafton)
+  * CPP bindings (David Moreno, Zachary Grafton)
+  * Redis sessions (Zachary Grafton)
+  * Rework on request parser to allow OCS_YIELD (David Moreno).
+  * Overall API improvements (David Moreno)
+  * Use of custom low level functions: onion_malloc, onion_free... (Basile Starynkevitch)
+  * Bohem GC support (Basile Starynkevitch)
+  * Man pages for the tools. (David Moreno)
+  * Semantic Versioning.
+  * Many small fixes and improvements.
 
- -- David Moreno Montero <dmoreno@coralbits.com>  Fri, 31 Dec 2010 13:46:04 +0000
+ -- David Moreno Montero <dmoreno@coralbits.com>  Mon, 02 May 2016 18:44:43 +0100
+
+
+libonion (0.7.5) unstable; urgency=low
+
+  * Initial release (Closes: #744119)
+
+ -- David Moreno Montero <dmoreno@coralbits.com>  Wed, 23 Apr 2014 16:16:42 +0200

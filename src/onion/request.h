@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
-	
-	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
 
-	This library is distributed in the hope that it will be useful,
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
+		or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both licenses, if not see
+	<http://www.gnu.org/licenses/> and
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #ifndef ONION_REQUEST_H
@@ -28,7 +26,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-
+#include <stdbool.h>
 #include "types.h"
 
 #ifdef __cplusplus
@@ -37,6 +35,7 @@ extern "C"{
 
 /**
  * @short Flags about the petition, including method, error status, http version.
+ * @ingroup request
  */
 enum onion_request_flags_e{
   /// First 4 bytes are the method. Then as flags.
@@ -52,16 +51,16 @@ enum onion_request_flags_e{
 	OR_MKCOL=8,
 	OR_PROPPATCH=9,
 	OR_PATCH=10,
-	
+
 	/// Some flags at 0x0F0
 	OR_HTTP11=0x10,
 	OR_POST_MULTIPART=0x20,
 	OR_POST_URLENCODED=0x40,
-	
+
 	/// Server flags are at 0x0F00.
 	OR_NO_KEEP_ALIVE=0x0100,
   OR_HEADER_SENT_=0x0200,  ///< Dup name from onion_response_flags, same meaning.
-	
+
 	/// Errors at 0x0F000.
 	OR_INTERNAL_ERROR=0x01000,
 	OR_NOT_IMPLEMENTED=0x02000,
@@ -99,7 +98,7 @@ const char *onion_request_get_fullpath(onion_request *req);
 onion_request_flags onion_request_get_flags(onion_request *req);
 
 /// Moves the path pointer to later in the fullpath
-void onion_request_advance_path(onion_request *req, int addtopos);
+void onion_request_advance_path(onion_request *req, off_t addtopos);
 
 /// @{ @name Get header, query, post, file data and session
 
@@ -136,6 +135,12 @@ const onion_dict *onion_request_get_file_dict(onion_request *req);
 /// Gets session data dict
 onion_dict *onion_request_get_session_dict(onion_request *req);
 
+/// Gets the cookies dict
+onion_dict *onion_request_get_cookies_dict(onion_request *req);
+
+/// Gets a cookie value
+const char *onion_request_get_cookie(onion_request *req, const char *cookiename);
+
 /// @}
 
 /// Frees the session dictionary.
@@ -153,7 +158,7 @@ int onion_request_keep_alive(onion_request *req);
 /// Gets the language code for the current language. C is returned if none recognized.
 const char *onion_request_get_language_code(onion_request *req);
 
-/// Returns PROPFIND data
+/// Returns extra request data, such as POST with non-form data, or PROPFIND. Needs the Content-Length request header.
 const onion_block *onion_request_get_data(onion_request *req);
 
 /// Performs final touches to the request to its ready to be processed.
@@ -168,6 +173,8 @@ const char *onion_request_get_client_description(onion_request *req);
 /// Get the sockaddr_storage from the client, if any.
 struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request *req, socklen_t *client_len);
 
+/// Determine if the request was sent over a secure listen point
+bool onion_request_is_secure(onion_request *req);
 #ifdef __cplusplus
 }
 #endif

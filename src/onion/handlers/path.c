@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #include <string.h>
@@ -32,6 +30,7 @@
 #include <onion/handler.h>
 #include <onion/response.h>
 #include <onion/log.h>
+#include <onion/low.h>
 
 #include "static.h"
 
@@ -61,7 +60,7 @@ void onion_handler_path_delete(void *data){
 	onion_handler_path_data *d=data;
 	regfree(&d->path);
 	onion_handler_free(d->inside);
-	free(data);
+	onion_low_free(data);
 }
 
 /**
@@ -70,7 +69,7 @@ void onion_handler_path_delete(void *data){
  * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
  */
 onion_handler *onion_handler_path(const char *path, onion_handler *inside_level){
-	onion_handler_path_data *priv_data=malloc(sizeof(onion_handler_path_data));
+	onion_handler_path_data *priv_data=onion_low_malloc(sizeof(onion_handler_path_data));
 	if (!priv_data)
 		return NULL;
 	

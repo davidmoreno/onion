@@ -18,11 +18,23 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <png.h>
 
 #include <onion/log.h>
 #include <onion/onion.h>
+
+#ifdef PNG_ENABLED
+#include <png.h>
 #include <onion/extras/png.h>
+#endif
+
+#ifdef JPEG_ENABLED
+#include <stdlib.h>
+#include <jpeglib.h>
+#include <onion/extras/jpeg.h>
+#endif
+
+#define MAX(X,Y) (((X)>(Y))?(X):(Y))
+#define MIN(X,Y) (((X)<(Y))?(X):(Y))
 
 /// Basic complex class, to ease the fractal calculation
 class Complex{
@@ -40,6 +52,7 @@ private:
 	double i;
 };
 
+#ifdef PNG_ENABLED
 /**
  * @short Calculates the given mandelbrot, and returns the PNG image
  * 
@@ -47,25 +60,34 @@ private:
  * 
  * * X, Y -- Top left complex area position
  * * W, H -- Width and Height of the complex area to show
+ * * C -- 0 grayscale image , 1 - coloured image
  * * width, height -- Image size
  */
-int mandelbrot(void *p, onion_request *req, onion_response *res){
+int mandelbrotPNG(void *p, onion_request *req, onion_response *res){
 	int width=atoi(onion_request_get_queryd(req,"width","256"));
 	int height=atoi(onion_request_get_queryd(req,"height","256"));
-	
-	unsigned char *image=new unsigned char[width*height];
+	int color=atoi(onion_request_get_queryd(req,"C","0"));
+
+	if (width<=0 || height<=0)
+		return OCS_INTERNAL_ERROR;
+
+	int channels = 1;
+	if( color == 1)
+		channels = 4;
+
+	unsigned char *image=new unsigned char[channels*width*height];
   int    i,j,n;
 
 	double left=atof(onion_request_get_queryd(req,"X","-2"));
 	double top=atof(onion_request_get_queryd(req,"Y","-2"));
 	double right=left + atof(onion_request_get_queryd(req,"W","4"));
 	double bottom=top + atof(onion_request_get_queryd(req,"H","4"));
-	
+
   double stepX = (right-left)/width;
   double stepY = (bottom-top)/height;
 	int steps=100;
 	unsigned char *imagep=image;
-	
+
   for (i = 0; i < height; i++) {
     for (j = 0; j < width; j++) {
 			Complex z;
@@ -78,14 +100,85 @@ int mandelbrot(void *p, onion_request *req, onion_response *res){
 			char P;
 			if (n >= steps) P=255;
 			else P=(n*256)/steps;
-			*imagep++=P;
+
+			if( channels == 4 ){
+				*imagep++=P;
+				*imagep++=2*P+30;
+				*imagep++=255-P*3;
+				*imagep++=255;
+			}else{
+				*imagep++=P;
+			}
     }
   }
-	
-	onion_png_response(image, 1, width, height, res);
-	delete image;
+
+	onion_png_response(image, channels, width, height, res);
+
+
+
+	delete[] image;
 	return OCS_PROCESSED;
 }
+#endif
+
+#ifdef JPEG_ENABLED
+int mandelbrotJPEG(void *p, onion_request *req, onion_response *res){
+	int width=atoi(onion_request_get_queryd(req,"width","256"));
+	int height=atoi(onion_request_get_queryd(req,"height","256"));
+	int color=atoi(onion_request_get_queryd(req,"C","0"));
+	int jpgQuality=MAX(0,MIN(atoi(onion_request_get_queryd(req,"Q","100")),100));
+
+	if (width<=0 || height<=0)
+		return OCS_INTERNAL_ERROR;
+
+	int channels = 1;
+	if( color == 1)
+		channels = 3;
+
+	unsigned char *image=new unsigned char[channels*width*height];
+  int    i,j,n;
+
+	double left=atof(onion_request_get_queryd(req,"X","-2"));
+	double top=atof(onion_request_get_queryd(req,"Y","-2"));
+	double right=left + atof(onion_request_get_queryd(req,"W","4"));
+	double bottom=top + atof(onion_request_get_queryd(req,"H","4"));
+
+  double stepX = (right-left)/width;
+  double stepY = (bottom-top)/height;
+	int steps=100;
+	unsigned char *imagep=image;
+
+  for (i = 0; i < height; i++) {
+    for (j = 0; j < width; j++) {
+			Complex z;
+			Complex c(stepX*j + left, stepY*i + top);
+      for (n=0;n<steps;n++){
+				z=z*z + c;
+				if (z.lenlen() > steps)
+					break;
+			}
+			char P;
+			if (n >= steps) P=255;
+			else P=(n*256)/steps;
+
+			if( channels == 3 ){
+				*imagep++=P;
+				*imagep++=2*P+30;
+				*imagep++=255-P*3;
+			}else{
+				*imagep++=P;
+			}
+    }
+  }
+
+	onion_jpeg_response(image, channels,
+			(channels==1?JCS_GRAYSCALE:JCS_RGB)
+			, width, height, jpgQuality, res);
+
+	delete[] image;
+	return OCS_PROCESSED;
+}
+#endif
 
 // This has to be extern, as we are compiling C++
 extern "C"{
@@ -94,14 +187,18 @@ int mandel_html_template(void *, onion_request *req, onion_response *res);
 
 int main(int argc, char **argv){
 	onion *o=onion_new(O_THREADED);
-	
+
 	onion_url *url=onion_root_url(o);
-	
+
 	onion_set_hostname(o, "0.0.0.0"); // Force ipv4.
-	
-	onion_url_add(url, "mandel.png", (void*)mandelbrot);
+#ifdef PNG_ENABLED
+	onion_url_add(url, "mandel.png", (void*)mandelbrotPNG);
+#endif
+#ifdef JPEG_ENABLED
+	onion_url_add(url, "mandel.jpg", (void*)mandelbrotJPEG);
+#endif
 	onion_url_add(url, "", (void*)mandel_html_template);
-	
+
 	onion_listen(o);
 	onion_free(o);
 	return 0;

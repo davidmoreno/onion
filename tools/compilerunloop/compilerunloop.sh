@@ -8,6 +8,7 @@ if [ ! "$1" ]; then
 	echo "Optionally you can have the environmental variables:"
 	echo "  SOURCEDIR to point to where the source files are"
 	echo "  EXTRASOURCES to add more files for watch modification, for example sources that later generate the source files, or data"
+	echo "  REGEX to set the regex to match for source files is SOURCEDIR is set. Default is *.cpp *.hpp *.html *.js *.css *.png *.jpg"
 	echo
 	echo "Using compulerunloop you can easily modify an onion program and have the changes 'instantly' applied.. but only if you"
 	echo "dont use memory to store status."
@@ -15,10 +16,14 @@ if [ ! "$1" ]; then
 	exit 0
 fi
 
-if [ ! "$SOURCEDIR" ]; then
-	SOURCEDIR=.
+REGEX=${REGEX:-"*.cpp *.hpp *.html *.js *.css *.png *.jpg"}
+if [ "$SOURCEDIR" ]; then
+	for re in $REGEX; do
+		EXTRASOURCES="$EXTRASOURCES $( find $SOURCEDIR -name "$re" )"
+	done
 fi
 
+SOURCEDIR=${SOURCEDIR:-.}
 ORIGSOURCES="$EXTRASOURCES $( readelf -w $1   | grep -A5 '(DW_TAG_compile_unit)' | grep DW_AT_name | awk -F: '{ print $4 }' )"
 
 SOURCES=""

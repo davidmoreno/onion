@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
-	
-	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
 
-	This library is distributed in the hope that it will be useful,
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
+		or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #include <event2/event.h>
@@ -30,6 +28,7 @@
 
 #include "poller.h"
 #include "log.h"
+#include "low.h"
 
 struct onion_poller_t{
 	struct event_base *base;
@@ -50,12 +49,12 @@ struct onion_poller_slot_t{
 
 /// Create a new slot for the poller
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f)(void*), void *data){
-	onion_poller_slot *ret=calloc(1, sizeof(onion_poller_slot));
+	onion_poller_slot *ret=onion_low_calloc(1, sizeof(onion_poller_slot));
 	ret->fd=fd;
 	ret->f=f;
 	ret->data=data;
 	ret->type=EV_READ | EV_WRITE | EV_PERSIST;
-	
+
 	return ret;
 }
 
@@ -87,8 +86,8 @@ void onion_poller_slot_set_type(onion_poller_slot *el, int type){
 /// Create a new poller
 onion_poller *onion_poller_new(int aprox_n){
 	evthread_use_pthreads();
-	
-	onion_poller *ret=calloc(1,sizeof(onion_poller));
+
+	onion_poller *ret=onion_low_calloc(1,sizeof(onion_poller));
 	ret->base=event_base_new();
 	ret->sem=sem_init("/poller", O_CREAT, 0, 1);
 	return ret;
@@ -99,7 +98,7 @@ void onion_poller_free(onion_poller *p){
 	event_base_free(p->base);
 	sem_close(p->sem);
 	sem_unlink("/poller");
-	free(p);
+	onion_low_free(p);
 }
 
 static void event_callback(evutil_socket_t fd, short evtype, void *e){
@@ -112,7 +111,7 @@ static void event_callback(evutil_socket_t fd, short evtype, void *e){
 
 /// Adds a slot to the poller
 int onion_poller_add(onion_poller *poller, onion_poller_slot *el){
-	el->ev=event_new(poller->base, el->fd, el->type, event_callback, el); 
+	el->ev=event_new(poller->base, el->fd, el->type, event_callback, el);
 	if (el->timeout>0){
 		struct timeval tv;
 		tv.tv_sec=el->timeout/1000;
@@ -131,6 +130,13 @@ int onion_poller_remove(onion_poller *poller, int fd){
 	return -1;
 }
 
+/// Gets the poller to do some modifications as change shutdown
+onion_poller_slot *onion_poller_get(onion_poller *poller, int fd){
+	ONION_ERROR("Not implemented! Use epoll poller.");
+	return NULL;
+}
+
+
 /// Do the polling. If on several threads, this is done in every thread.
 void onion_poller_poll(onion_poller *poller){
 	poller->stop=0;
@@ -144,4 +150,9 @@ void onion_poller_poll(onion_poller *poller){
 void onion_poller_stop(onion_poller *poller){
 	poller->stop=1;
 	event_base_loopbreak(poller->base);
+}
+
+// Not implemented for libev
+void onion_poller_set_queue_size_per_thread(onion_poller *poller, size_t count){
+	ONION_WARNING("onion_poller_queue_size_per_thread only used with epoll polling, not libev.");
 }

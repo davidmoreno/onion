@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
 	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
+	a. the Apache License Version 2.0. 
 	
 	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
-
-	This library is distributed in the hope that it will be useful,
+		Free Software Foundation; either version 2.0 of the License, 
+		or (at your option) any later version.
+	 
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see 
+	<http://www.gnu.org/licenses/> and 
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 #ifndef ONION_RESPONSE_H
@@ -28,6 +26,7 @@
 
 #include "types.h"
 #include <stdlib.h>
+#include <stdarg.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -67,12 +66,15 @@ enum onion_response_codes_e{
 	HTTP_INTERNAL_ERROR=500,
 	HTTP_NOT_IMPLEMENTED=501,
 	HTTP_BAD_GATEWAY=502,
-	HTTP_SERVICE_UNAVALIABLE=503,
+	HTTP_SERVICE_UNAVAILABLE=503,
 };
 
 
 typedef enum onion_response_codes_e onion_response_codes;
 
+/* utility function to return a string for a code above, so given
+   HTTP_OK returns "OK", etc... */
+const char *onion_response_code_description(int code);
 
 /**
  * @short Possible flags.
@@ -80,15 +82,19 @@ typedef enum onion_response_codes_e onion_response_codes;
  * These flags are used internally by the resposnes, but they can be the responses themselves of the handler when appropiate.
  */
 enum onion_response_flags_e{
-	OR_KEEP_ALIVE=4, 				/// Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
-	OR_LENGTH_SET=2,				/// Response has set the length, so we may keep alive.
-	OR_CLOSE_CONNECTION=1,	/// The connection will be closed when processing finishes.
-	OR_SKIP_CONTENT=8,			/// This is set when the method is HEAD. @see onion_response_write_headers
-	OR_CHUNKED=32,					/// The data is to be sent using chunk encoding. Its on if no lenght is set.
-	OR_CONNECTION_UPGRADE=64, /// The connection is upgraded (websockets).
-  OR_HEADER_SENT=0x0200,  /// The header has already been written. Its done automatically on first user write. Same id as OR_HEADER_SENT from onion_response_flags.
+	OR_KEEP_ALIVE=4, 				///< Return when want to keep alive. Please also set the proper headers, specifically set the length. Otherwise it will block server side until client closes connection.
+	OR_LENGTH_SET=2,				///< Response has set the length, so we may keep alive.
+	OR_CLOSE_CONNECTION=1,	///< The connection will be closed when processing finishes.
+	OR_SKIP_CONTENT=8,			///< This is set when the method is HEAD. @see onion_response_write_headers
+	OR_CHUNKED=32,					///< The data is to be sent using chunk encoding. Its on if no lenght is set.
+	OR_CONNECTION_UPGRADE=64, ///< The connection is upgraded (websockets).
+  OR_HEADER_SENT=0x0200,  ///< The header has already been written. Its done automatically on first user write. Same id as OR_HEADER_SENT from onion_response_flags.
 };
 
+enum onion_response_cookie_flags_e{
+	OC_HTTP_ONLY=1, 				///< This cookie is not shown via javascript
+	OC_SECURE=2,						///< This cookie is sent only via https (info for the client, not the server).
+};
 typedef enum onion_response_flags_e onion_response_flags;
 
 /// Generates a new response object
@@ -103,6 +109,9 @@ void onion_response_set_length(onion_response *res, size_t length);
 void onion_response_set_code(onion_response *res, int code);
 /// Gets the headers dictionary
 onion_dict *onion_response_get_headers(onion_response *res);
+/// Sets a new cookie
+void onion_response_add_cookie(onion_response *req, const char *cookiename, const char *cookievalue, time_t validity_t, const char *path, const char *domain, int flags);
+
 
 /// @{ @name Write functions 
 /// Writes all the header to the given fd
@@ -114,7 +123,9 @@ ssize_t onion_response_write0(onion_response *res, const char *data);
 /// Writes some data to the response. \0 ended string, and encodes it if necesary into html entities to make it safe
 ssize_t onion_response_write_html_safe(onion_response *res, const char *data);
 /// Writes some data to the response. Using sprintf format strings.
-ssize_t onion_response_printf(onion_response *res, const char *fmt, ...);
+ssize_t onion_response_printf(onion_response *res, const char *fmt, ...)  __attribute__ ((format (printf, 2, 3)));
+/// Writes some data to the response. Using sprintf format strings. va_list version
+ssize_t onion_response_vprintf(onion_response *res, const char *fmt, va_list args) __attribute__ ((format (printf, 2, 0)));
 /// Flushes remaining data on the buffer to the listen point.
 int onion_response_flush(onion_response *res);
 /// @}

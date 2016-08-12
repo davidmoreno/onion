@@ -35,16 +35,13 @@
 #include <onion/handlers/auth_pam.h>
 #endif
 
-#ifdef __DEBUG__
 #include <onion/handlers/exportlocal.h>
-#endif 
 
 #include "oterm_handler.h"
 #include <onion/dict.h>
 #include <onion/shortcuts.h>
 
 #include <assets.h>
-onion_connection_status opack_static(void *_, onion_request *req, onion_response *res);
 
 onion *o=NULL;
 
@@ -76,7 +73,9 @@ void free_onion(int unused){
 int oterm_nopam(onion_handler *next, onion_request *req, onion_response *res){
 	onion_dict *session=onion_request_get_session_dict(req);
 	onion_dict_lock_write(session);
-	onion_dict_add(session, "username", getenv("USER"), 0);
+	const char *username=getenv("USER");
+	if (username)
+		onion_dict_add(session, "username", username, 0);
 	onion_dict_add(session, "nopam", "true", 0);
 	onion_dict_unlock(session);
 	
@@ -180,6 +179,11 @@ int main(int argc, char **argv){
 	else
 #endif
   {
+#ifndef JQUERY_JS
+    onion_url_add(url, "^static/jquery.js", opack_jquery_js);
+#else
+    onion_url_add_handler(url, "^static/jquery.js", onion_handler_export_local_new(JQUERY_JS));
+#endif
     onion_url_add(url, "^static/", opack_static);
 	}
   onion_url_add_with_data(url, "", onion_shortcut_internal_redirect, "static/index.html", NULL);

@@ -1,26 +1,24 @@
 /*
 	Onion HTTP server library
-	Copyright (C) 2010-2013 David Moreno Montero
+	Copyright (C) 2010-2016 David Moreno Montero and others
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the GNU Lesser General Public License as published by the 
-	 Free Software Foundation; either version 3.0 of the License, 
-	 or (at your option) any later version.
-	
-	b. the GNU General Public License as published by the 
-	 Free Software Foundation; either version 2.0 of the License, 
-	 or (at your option) any later version.
 
-	This library is distributed in the hope that it will be useful,
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
+		or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	Lesser General Public License for more details.
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public
-	License and the GNU General Public License along with this 
-	library; if not see <http://www.gnu.org/licenses/>.
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
+	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
 
@@ -36,7 +34,7 @@
 #include "url.h"
 #include "types_internal.h"
 #include "dict.h"
-#include <ctype.h>
+#include "low.h"
 
 enum onion_url_data_flags_e{
 	OUD_REGEXP=1,
@@ -66,12 +64,13 @@ struct onion_url_data_t{
 
 /**
  * @short Performs the real request: checks if its for me, and then calls the inside level.
+ * @ingroup url
  */
 int onion_url_handler(onion_url_data **dd, onion_request *request, onion_response *response){
 	onion_url_data *next=*dd;
 	regmatch_t match[16];
 	int i;
-	
+
 	const char *path=onion_request_get_path(request);
 	while (next){
 		ONION_DEBUG0("Check %s against %s", onion_request_get_path(request), next->orig);
@@ -89,7 +88,7 @@ int onion_url_handler(onion_url_data **dd, onion_request *request, onion_respons
 			for (i=1;i<16;i++){
 				regmatch_t *rm=&match[i];
 				if (rm->rm_so!=-1){
-					char *tmp=malloc(rm->rm_eo-rm->rm_so+1);
+					char *tmp=onion_low_scalar_malloc(rm->rm_eo-rm->rm_so+1);
 					memcpy(tmp, &path[rm->rm_so], rm->rm_eo-rm->rm_so);
 					tmp[rm->rm_eo-rm->rm_so]='\0'; // proper finish string
 					char tmpn[4];
@@ -103,10 +102,10 @@ int onion_url_handler(onion_url_data **dd, onion_request *request, onion_respons
 			onion_request_advance_path(request, match[0].rm_eo);
 			ONION_DEBUG0("Ok, regexp match.");
 
-			
+
 			return onion_handler_handle(next->inside, request, response);
 		}
-		
+
 		next=next->next;
 	}
 	return 0;
@@ -121,65 +120,65 @@ void onion_url_free_data(onion_url_data **d){
 		if (t->flags&OUD_REGEXP)
 			regfree(&t->regexp);
 		else
-			free(t->str);
+			onion_low_free(t->str);
 		next=t->next;
 #ifdef __DEBUG__
-		free(t->orig);
+		onion_low_free(t->orig);
 #endif
-		free(t);
+		onion_low_free(t);
 	}
-	free(d);
+	onion_low_free(d);
 }
 
 /**
  * @short Creates the URL handler to map regex urls to handlers
- * @memberof onion_url_t
+ * @ingroup url
  *
  * The onion_url object can be used to add urls as needed using onion_url_add_*.
- * 
+ *
  * The URLs can be regular expressions or simple strings. The way to discriminate them is just
  * to check the first character; if its ^ its a regular expression.
- * 
+ *
  * If a string is passed then the full path must match. If its a regexp, just the begining is matched,
  * unless $ is set at the end. When matched, this is removed from the path.
- * 
+ *
  * It is important to note that when the user pretends to match the initial path elements, to later
  * pass to another handler that will do path transversal (another url object, for example), the
- * path must be written with a regular expression, for example: "^login/". If the user just writes 
+ * path must be written with a regular expression, for example: "^login/". If the user just writes
  * the string it will match only for that specific URL, and subpaths are not in the definition.
- *  
+ *
  * When looking for a match, they are looked in order.
- * 
+ *
  * Examples::
- * 
+ *
  * @code
  *  onion_url_add(url, "index.html", index); // Matches the exact filename. Not compiled.
  *  onion_url_add(url, "^static/", onion_handler_export_local_new(".") ); // Export current directory at static
  *  onion_url_add(url, "^icons/(.*)", directory); // Compiles the regexp, and uses the .* as first argument.
  *  onion_url_add(url, "", redirect_to_index); // Matches an empty path. Not compiled.
  * @endcode
- * 
- * Regexp can have groups, and they will be added as request query parameters, with just the number of the 
+ *
+ * Regexp can have groups, and they will be added as request query parameters, with just the number of the
  * group as key. The groups start at 1, as 0 should be the full match, but its not added for performance
  * reasons; its a very strange situation that user will need it, and always can access full path with
  * onion_request_get_fullpath. Also all expression can be a group, and passed as nr 1.:
- * 
+ *
  * @code
  *  onion_url_add(url, "^index(.html)", index);
  *  ...
  *  onion_request_get_query(req, "1") == ".html"
  * @endcode
- * 
+ *
  * Be careful as . means every character, and dots in URLs must be with a backslash \ (double because of
  * C escaping), if using regexps.
- * 
+ *
  * Regular expressions are used by the regexec(3) standard C library. Check that documentation to check
  * how to create proper regular expressions. They are compiled as REG_EXTENDED.
  */
 onion_url *onion_url_new(){
-	onion_url_data **priv_data=calloc(1,sizeof(onion_url_data*));
+	onion_url_data **priv_data=onion_low_calloc(1,sizeof(onion_url_data*));
 	*priv_data=NULL;
-	
+
 	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_url_handler,
 																			 priv_data,(onion_handler_private_data_free) onion_url_free_data);
 	return (onion_url*)ret;
@@ -187,7 +186,7 @@ onion_url *onion_url_new(){
 
 /**
  * @short Frees the url.
- * @memberof onion_url_t
+ * @ingroup url
  */
 void onion_url_free(onion_url* url){
 	onion_handler_free((onion_handler*)url);
@@ -197,10 +196,10 @@ void onion_url_free(onion_url* url){
 
 /**
  * @short Adds a new handler with the given regexp.
- * @memberof onion_url_t
- * 
+ * @ingroup url
+ *
  * Adds the given handler.
- * 
+ *
  * @returns 0 if everything ok. Else there is a regexp error.
  */
 int onion_url_add_handler(onion_url *url, const char *regexp, onion_handler *next){
@@ -209,38 +208,38 @@ int onion_url_add_handler(onion_url *url, const char *regexp, onion_handler *nex
 		w=&(*w)->next;
 	}
 	//ONION_DEBUG("Adding handler at %p",w);
-	*w=malloc(sizeof(onion_url_data));
+	*w=onion_low_malloc(sizeof(onion_url_data));
 	onion_url_data *data=*w;
-	
+
 	data->flags=(regexp[0]=='^') ? OUD_REGEXP : OUD_STRCMP;
-	
+
 	if (data->flags&OUD_REGEXP){
-		int err=regcomp(&data->regexp, regexp, REG_EXTENDED); // empty regexp, always true. should be fast enough. 
+		int err=regcomp(&data->regexp, regexp, REG_EXTENDED); // empty regexp, always true. should be fast enough.
 		if (err){
 			char buffer[1024];
 			regerror(err, &data->regexp, buffer, sizeof(buffer));
 			ONION_ERROR("Error analyzing regular expression '%s': %s.\n", regexp, buffer);
-			free(data);
+			onion_low_free(data);
 			*w=NULL;
 			return 1;
 		}
 	}
 	else{
-		data->str=strdup(regexp);
+		data->str=onion_low_strdup(regexp);
 	}
 	data->next=NULL;
 	data->inside=next;
 #ifdef __DEBUG__
-	data->orig=strdup(regexp);
-#endif	
-	
+	data->orig=onion_low_strdup(regexp);
+#endif
+
 	return 0;
 }
 
 /**
  * @short Helper to simple add basic handlers
- * @memberof onion_url_t
- * 
+ * @ingroup url
+ *
  * @returns 0 if everything ok. Else there is a regexp error.
  */
 int onion_url_add(onion_url *url, const char *regexp, void *handler){
@@ -249,8 +248,8 @@ int onion_url_add(onion_url *url, const char *regexp, void *handler){
 
 /**
  * @short Helper to simple add a basic handler with data
- * @memberof onion_url_t
- * 
+ * @ingroup url
+ *
  * @returns 0 if everything ok. Else there is a regexp error.
  */
 int onion_url_add_with_data(onion_url *url, const char *regexp, void *handler, void *data, void *f){
@@ -259,8 +258,8 @@ int onion_url_add_with_data(onion_url *url, const char *regexp, void *handler, v
 
 /**
  * @short Adds a regex url, with another url as handler.
- * @memberof onion_url_t
- * 
+ * @ingroup url
+ *
  * @returns 0 if everything ok. Else there is a regexp error.
  */
 int onion_url_add_url(onion_url *url, const char *regexp, onion_url *handler){
@@ -286,24 +285,24 @@ static int onion_url_static(struct onion_url_static_data *data, onion_request *r
 
 /// Frees the static data
 static void onion_url_static_free(struct onion_url_static_data *data){
-	free(data->text);
-	free(data);
+	onion_low_free(data->text);
+	onion_low_free(data);
 }
 
 /**
  * @short Adds a simple handler, it has static data and a default return code
- * @memberof onion_url_t
+ * @ingroup url
  */
 int onion_url_add_static(onion_url *url, const char *regexp, const char *text, int http_code){
-	struct onion_url_static_data *d=malloc(sizeof(struct onion_url_static_data));
-	d->text=strdup(text);
+	struct onion_url_static_data *d=onion_low_malloc(sizeof(struct onion_url_static_data));
+	d->text=onion_low_strdup(text);
 	d->code=http_code;
 	return onion_url_add_with_data(url, regexp, onion_url_static, d, onion_url_static_free);
 }
 
 /**
  * @short Returns the related handler for this url object.
- * @memberof onion_url_t
+ * @ingroup url
  */
 onion_handler *onion_url_to_handler(onion_url *url){
 	return ((onion_handler*)url);

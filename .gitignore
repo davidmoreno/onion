@@ -1,0 +1,7 @@
+*~
+.*
+# some typical compilation directories
+build
+release
+debug
+

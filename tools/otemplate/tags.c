@@ -124,6 +124,7 @@ void tag_write(parser_status *st, onion_block *b){
 	if (!command->head){
 		ONION_ERROR("%s:%d Incomplete command", st->infilename, st->line);
 		st->status=1;
+		list_free(command);
 		return;
 	}
 	
@@ -156,7 +157,7 @@ int tag_type_arg(list *l, int n){
 	tag_token *t=list_get_n(l,n);
 	if (t)
 		return t->type;
-	return 0;
+	return STRING;
 }
 
 /**
