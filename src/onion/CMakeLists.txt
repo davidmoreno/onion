@@ -13,7 +13,10 @@ set(SOURCES onion.c codecs.c dict.c low.c request.c response.c handler.c log.c s
 	)
 
 set(LIBRARIES)
-LIST(APPEND LIBRARIES rt)
+find_package(LibRt)
+if (LIBRT_FOUND)
+	LIST(APPEND LIBRARIES rt)
+endif (LIBRT_FOUND)
 
 ## optional add sources and libraries depeding on features
 
