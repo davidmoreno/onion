@@ -315,6 +315,25 @@ typedef void (*onion_handler_private_data_free)(void *privdata);
  */
 typedef onion_connection_status (*onion_websocket_callback_t)(void *privdata, onion_websocket *ws, ssize_t data_ready_length);
 
+/**
+ * @short Onion Hook points.
+ * @ingroup onion
+ *
+ * Using `onion_hook_add` and `onion_hook_remove` user can peek into the requests
+ * and responses at some parsing and processing points.
+ *
+ * This is the list of all hook points.
+ */
+enum onion_hook_e{
+	OH_ON_HEADERS_READY,
+	OH_ON_METHOD_READY,
+	OH_BEFORE_REQUEST_HANDLER,
+	OH_AFTER_REQUEST_HANDLER,
+	OH_CLOSE_CONNECTION,
+	OH_TIMEOUT,
+};
+
+typedef enum onion_hook_e onion_hook;
 
 #ifdef __cplusplus
 }
