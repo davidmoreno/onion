@@ -21,7 +21,7 @@ target_link_libraries(onion_extras ${PNG_LIB})
 endif (${PNG_ENABLED})
 
 if (${JPEG_ENABLED})
-target_link_libraries(onion_extras ${JPEG_LIB})
+target_link_libraries(onion_extras ${JPEG_LIBRARIES})
 endif (${JPEG_ENABLED})
 
 SET(INCLUDES_EXTRAS png.h jpeg.h)
