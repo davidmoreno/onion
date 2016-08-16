@@ -24,7 +24,7 @@ if (${JPEG_ENABLED})
 target_link_libraries(onion_extras ${JPEG_LIBRARIES})
 endif (${JPEG_ENABLED})
 
-SET(INCLUDES_EXTRAS ${PNG_HEADER} ${JPEG_HEADER})
+SET(INCLUDES_EXTRAS png.h jpeg.h)
 MESSAGE(STATUS "Found include files ${INCLUDES_EXTRAS}")
 
 
