@@ -19,6 +19,8 @@ SET(ONION_USE_BINDINGS_CPP true CACHE BOOL "Compile the CPP bindings")
 SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | libev | libevent")
 ########
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
+
 execute_process(
 	COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/git-version-gen" "${CMAKE_CURRENT_SOURCE_DIR}"
 	OUTPUT_VARIABLE ONION_VERSION)
@@ -72,14 +74,14 @@ message(STATUS "Using ${ONION_POLLER} as poller")
 
 
 if (${ONION_USE_SSL})
-	find_library(GNUTLS_LIB NAMES gnutls PATH ${LIBPATH})
-	find_library(GCRYPT_LIB NAMES gcrypt PATH ${LIBPATH})
-	if (GNUTLS_LIB AND GCRYPT_LIB)
+	find_package(GNUTLS)
+	find_package(GCrypt)
+	if (GNUTLS_FOUND AND GCRYPT_FOUND)
 		set(GNUTLS_ENABLED true)
 		message(STATUS "Gnutls found. SSL support is compiled in.")
-	else(GNUTLS_LIB AND GCRYPT_LIB)
+	else(GNUTLS_FOUND AND GCRYPT_FOUND)
 		message("Gnutls or gcrypt not found. SSL support is not compiled in.")
-	endif(GNUTLS_LIB AND GCRYPT_LIB)
+	endif(GNUTLS_FOUND AND GCRYPT_FOUND)
 endif(${ONION_USE_SSL})
 
 if (${ONION_USE_SQLITE3})
