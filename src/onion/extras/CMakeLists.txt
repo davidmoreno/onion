@@ -17,7 +17,7 @@ endif  (${JPEG_ENABLED})
 add_library(onion_extras STATIC ${PNG} ${JPEG})
 
 if (${PNG_ENABLED})
-target_link_libraries(onion_extras ${PNG_LIB})
+target_link_libraries(onion_extras ${PNG_LIBRARIES})
 endif (${PNG_ENABLED})
 
 if (${JPEG_ENABLED})
