@@ -173,13 +173,13 @@ if (${ONION_USE_GC})
 endif (${ONION_USE_GC})
 
 
-find_library(CURL_LIB NAMES curl PATH ${LIBPATH})
-if(CURL_LIB)
+find_package(CURL)
+if(CURL_FOUND)
 	message(STATUS "curl found. Some extra test are compiled.")
 	set(CURL true)
-else(CURL_LIB)
+else(CURL_FOUND)
 	message("curl not found. Some examples wil not be built.")
-endif(CURL_LIB)
+endif(CURL_FOUND)
 
 if (${ONION_USE_SYSTEMD})
 	find_library(SD_DAEMON_LIB NAMES systemd PATH ${LIBPATH})
