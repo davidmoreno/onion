@@ -1,5 +1,5 @@
-include_directories (${PROJECT_SOURCE_DIR}/src/) 
-include_directories (${CMAKE_CURRENT_BINARY_DIR}) 
+include_directories (${PROJECT_SOURCE_DIR}/src/)
+include_directories (${CMAKE_CURRENT_BINARY_DIR})
 find_program(HAVE_MSGFMT msgfmt)
 
 add_custom_command(
@@ -13,28 +13,28 @@ if(HAVE_MSGFMT)
 add_custom_target(
    fo_zh ALL
    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
-   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/zh.po 
+   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/zh.po
                  -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/zh.mo
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/zh.po
    )
 add_custom_target(
    fo_es ALL
    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
-   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/es.po 
+   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/es.po
                  -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/es.mo
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/es.po
    )
 add_custom_target(
    fo_fr ALL
    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
-   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/fr.po 
+   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/fr.po
                  -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/fr.mo
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fr.po
    )
 add_custom_target(
    fo_pl ALL
    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
-   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/pl.po 
+   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/pl.po
                  -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/pl.mo
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/pl.po
    )
@@ -42,11 +42,13 @@ endif(HAVE_MSGFMT)
 
 
 add_executable(ofileserver fileserver.c fileserver_html.c)
-target_link_libraries(ofileserver onion_static m )
+target_link_libraries(ofileserver onion_static m)
+if (GETTEXT_ENABLED)
+   target_link_libraries(ofileserver ${Intl_LIBRARIES})
+endif (GETTEXT_ENABLED)
 if (${Z_LIB})
    target_link_libraries(ofileserver ${Z_LIB})
 endif(${Z_LIB})
 
 set_target_properties(ofileserver PROPERTIES OUTPUT_NAME "onion-ofileserver")
 install(TARGETS ofileserver	DESTINATION ${CMAKE_INSTALL_BINDIR})
-
