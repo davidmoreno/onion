@@ -187,7 +187,9 @@ void parse_directory(const char *prefix, const char *dirname, FILE *outfd, onion
     if (de->d_name[0]=='.' || de->d_name[strlen(de->d_name)-1]=='~')
       continue;
     snprintf(fullname, sizeof(fullname), "%s/%s", dirname, de->d_name);
-    if (de->d_type==DT_DIR){
+    struct stat s;
+    stat(de->d_name, &s);
+    if (S_ISDIR(s.st_mode)){
       char prefix2[256];
       snprintf(prefix2, sizeof(prefix2), "%s/%s", prefix, de->d_name);
       parse_directory(prefix2, fullname, outfd, assets);
@@ -209,7 +211,9 @@ void parse_directory(const char *prefix, const char *dirname, FILE *outfd, onion
     if (de->d_name[0]=='.' || de->d_name[strlen(de->d_name)-1]=='~')
       continue;
     char *fname=funcname(prefix, de->d_name);
-    if (de->d_type==DT_DIR){
+    struct stat s;
+    stat(de->d_name, &s);
+    if (S_ISDIR(s.st_mode)){
       int l=strlen(de->d_name);
       fprintf(outfd, "  if (strncmp(\"%s/\", path, %d)==0){\n", de->d_name, l+1);
       fprintf(outfd, "    onion_request_advance_path(req, %d);\n", l+1);
