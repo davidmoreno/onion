@@ -17,6 +17,19 @@ LIST(APPEND LIBRARIES rt)
 
 ## optional add sources and libraries depeding on features
 
+# Poller can be a bit more complex, but basically the same.
+if (${ONION_POLLER} STREQUAL libevent)
+	LIST(APPEND SOURCES poller_libevent.c)
+endif (${ONION_POLLER} STREQUAL libevent)
+if (${ONION_POLLER} STREQUAL libev)
+	find_package(LibEv REQUIRED)
+	LIST(APPEND SOURCES poller_libev.c)
+	include_directories(${LIBEV_INCLUDE_DIR})
+endif (${ONION_POLLER} STREQUAL libev)
+if (${ONION_POLLER} STREQUAL epoll)
+	LIST(APPEND SOURCES poller.c)
+endif (${ONION_POLLER} STREQUAL epoll)
+
 # library dependencies
 if (${SQLITE3_ENABLED})
 	LIST(APPEND SOURCES sessions_sqlite3.c)
@@ -58,32 +71,11 @@ if (${ONION_POLLER} STREQUAL libevent)
 	LIST(APPEND LIBRARIES event_core event_pthreads)
 endif (${ONION_POLLER} STREQUAL libevent)
 if (${ONION_POLLER} STREQUAL libev)
-	LIST(APPEND LIBRARIES ${LIBEV_LIB})
+	LIST(APPEND LIBRARIES ${LIBEV_LIBRARIES})
 endif (${ONION_POLLER} STREQUAL libev)
 if (SYSTEMD_ENABLED)
 	LIST(APPEND LIBRARIES ${SYSTEMD_LIBRARIES})
 endif(SYSTEMD_ENABLED)
-
-
-# Poller can be a bit more complex, but basically the same.
-if (${ONION_POLLER} STREQUAL libevent)
-	LIST(APPEND SOURCES poller_libevent.c)
-endif (${ONION_POLLER} STREQUAL libevent)
-if (${ONION_POLLER} STREQUAL libev)
-	LIST(APPEND SOURCES poller_libev.c)
-	find_path(LIBEV_HEADER ev.h ${CMAKE_INCLUDE_PATH} /usr/local/include/)
-	find_library(LIBEV_LIB NAMES ev PATH /usr/local/lib/)
-	if (LIBEV_LIB)
-		message(STATUS "libev found at ${LIBEV_LIB}")
-	else (LIBEV_LIB)
-		message(FATAL_ERROR "libev not found. Cant compile. ${LIBEV_HEADER} ${LIBEV_LIB}")
-	endif (LIBEV_LIB)
-	include_directories(${LIBEV_HEADER})
-endif (${ONION_POLLER} STREQUAL libev)
-if (${ONION_POLLER} STREQUAL epoll)
-	LIST(APPEND SOURCES poller.c)
-endif (${ONION_POLLER} STREQUAL epoll)
-
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Fast")
  add_custom_command(
