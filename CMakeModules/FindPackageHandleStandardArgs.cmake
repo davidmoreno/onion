@@ -1,130 +1,73 @@
-#[=======================================================================[.rst:
-FindPackageHandleStandardArgs
------------------------------
-
-This module provides a function intended to be used in :ref:`Find Modules`
-implementing :command:`find_package(<PackageName>)` calls.  It handles the
-``REQUIRED``, ``QUIET`` and version-related arguments of ``find_package``.
-It also sets the ``<PackageName>_FOUND`` variable.  The package is
-considered found if all variables listed contain valid results, e.g.
-valid filepaths.
-
-.. command:: find_package_handle_standard_args
-
-  There are two signatures::
-
-    find_package_handle_standard_args(<PackageName>
-      (DEFAULT_MSG|<custom-failure-message>)
-      <required-var>...
-      )
-
-    find_package_handle_standard_args(<PackageName>
-      [FOUND_VAR <result-var>]
-      [REQUIRED_VARS <required-var>...]
-      [VERSION_VAR <version-var>]
-      [HANDLE_COMPONENTS]
-      [CONFIG_MODE]
-      [FAIL_MESSAGE <custom-failure-message>]
-      )
-
-  The ``<PackageName>_FOUND`` variable will be set to ``TRUE`` if all
-  the variables ``<required-var>...`` are valid and any optional
-  constraints are satisfied, and ``FALSE`` otherwise.  A success or
-  failure message may be displayed based on the results and on
-  whether the ``REQUIRED`` and/or ``QUIET`` option was given to
-  the :command:`find_package` call.
-
-  The options are:
-
-  ``(DEFAULT_MSG|<custom-failure-message>)``
-    In the simple signature this specifies the failure message.
-    Use ``DEFAULT_MSG`` to ask for a default message to be computed
-    (recommended).  Not valid in the full signature.
-
-  ``FOUND_VAR <result-var>``
-    Obsolete.  Specifies either ``<PackageName>_FOUND`` or
-    ``<PACKAGENAME>_FOUND`` as the result variable.  This exists only
-    for compatibility with older versions of CMake and is now ignored.
-    Result variables of both names are always set for compatibility.
-
-  ``REQUIRED_VARS <required-var>...``
-    Specify the variables which are required for this package.
-    These may be named in the generated failure message asking the
-    user to set the missing variable values.  Therefore these should
-    typically be cache entries such as ``FOO_LIBRARY`` and not output
-    variables like ``FOO_LIBRARIES``.
-
-  ``VERSION_VAR <version-var>``
-    Specify the name of a variable that holds the version of the package
-    that has been found.  This version will be checked against the
-    (potentially) specified required version given to the
-    :command:`find_package` call, including its ``EXACT`` option.
-    The default messages include information about the required
-    version and the version which has been actually found, both
-    if the version is ok or not.
-
-  ``HANDLE_COMPONENTS``
-    Enable handling of package components.  In this case, the command
-    will report which components have been found and which are missing,
-    and the ``<PackageName>_FOUND`` variable will be set to ``FALSE``
-    if any of the required components (i.e. not the ones listed after
-    the ``OPTIONAL_COMPONENTS`` option of :command:`find_package`) are
-    missing.
-
-  ``CONFIG_MODE``
-    Specify that the calling find module is a wrapper around a
-    call to ``find_package(<PackageName> NO_MODULE)``.  This implies
-    a ``VERSION_VAR`` value of ``<PackageName>_VERSION``.  The command
-    will automatically check whether the package configuration file
-    was found.
-
-  ``FAIL_MESSAGE <custom-failure-message>``
-    Specify a custom failure message instead of using the default
-    generated message.  Not recommended.
-
-Example for the simple signature:
-
-.. code-block:: cmake
-
-  find_package_handle_standard_args(LibXml2 DEFAULT_MSG
-    LIBXML2_LIBRARY LIBXML2_INCLUDE_DIR)
-
-The ``LibXml2`` package is considered to be found if both
-``LIBXML2_LIBRARY`` and ``LIBXML2_INCLUDE_DIR`` are valid.
-Then also ``LibXml2_FOUND`` is set to ``TRUE``.  If it is not found
-and ``REQUIRED`` was used, it fails with a
-:command:`message(FATAL_ERROR)`, independent whether ``QUIET`` was
-used or not.  If it is found, success will be reported, including
-the content of the first ``<required-var>``.  On repeated CMake runs,
-the same message will not be printed again.
-
-Example for the full signature:
-
-.. code-block:: cmake
-
-  find_package_handle_standard_args(LibArchive
-    REQUIRED_VARS LibArchive_LIBRARY LibArchive_INCLUDE_DIR
-    VERSION_VAR LibArchive_VERSION)
-
-In this case, the ``LibArchive`` package is considered to be found if
-both ``LibArchive_LIBRARY`` and ``LibArchive_INCLUDE_DIR`` are valid.
-Also the version of ``LibArchive`` will be checked by using the version
-contained in ``LibArchive_VERSION``.  Since no ``FAIL_MESSAGE`` is given,
-the default messages will be printed.
-
-Another example for the full signature:
-
-.. code-block:: cmake
-
-  find_package(Automoc4 QUIET NO_MODULE HINTS /opt/automoc4)
-  find_package_handle_standard_args(Automoc4  CONFIG_MODE)
-
-In this case, a ``FindAutmoc4.cmake`` module wraps a call to
-``find_package(Automoc4 NO_MODULE)`` and adds an additional search
-directory for ``automoc4``.  Then the call to
-``find_package_handle_standard_args`` produces a proper success/failure
-message.
-#]=======================================================================]
+# FIND_PACKAGE_HANDLE_STANDARD_ARGS(<name> ... )
+#
+# This function is intended to be used in FindXXX.cmake modules files.
+# It handles the REQUIRED, QUIET and version-related arguments to FIND_PACKAGE().
+# It also sets the <UPPERCASED_NAME>_FOUND variable.
+# The package is considered found if all variables <var1>... listed contain
+# valid results, e.g. valid filepaths.
+#
+# There are two modes of this function. The first argument in both modes is
+# the name of the Find-module where it is called (in original casing).
+#
+# The first simple mode looks like this:
+#    FIND_PACKAGE_HANDLE_STANDARD_ARGS(<name> (DEFAULT_MSG|"Custom failure message") <var1>...<varN> )
+# If the variables <var1> to <varN> are all valid, then <UPPERCASED_NAME>_FOUND
+# will be set to TRUE.
+# If DEFAULT_MSG is given as second argument, then the function will generate
+# itself useful success and error messages. You can also supply a custom error message
+# for the failure case. This is not recommended.
+#
+# The second mode is more powerful and also supports version checking:
+#    FIND_PACKAGE_HANDLE_STANDARD_ARGS(NAME [REQUIRED_VARS <var1>...<varN>]
+#                                           [VERSION_VAR   <versionvar>
+#                                           [CONFIG_MODE]
+#                                           [FAIL_MESSAGE "Custom failure message"] )
+#
+# As above, if <var1> through <varN> are all valid, <UPPERCASED_NAME>_FOUND
+# will be set to TRUE.
+# After REQUIRED_VARS the variables which are required for this package are listed.
+# Following VERSION_VAR the name of the variable can be specified which holds
+# the version of the package which has been found. If this is done, this version
+# will be checked against the (potentially) specified required version used
+# in the find_package() call. The EXACT keyword is also handled. The default
+# messages include information about the required version and the version
+# which has been actually found, both if the version is ok or not.
+# Use the option CONFIG_MODE if your FindXXX.cmake module is a wrapper for
+# a find_package(... NO_MODULE) call, in this case all the information
+# provided by the config-mode of find_package() will be evaluated
+# automatically.
+# Via FAIL_MESSAGE a custom failure message can be specified, if this is not
+# used, the default message will be displayed.
+#
+# Example for mode 1:
+#
+#    FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibXml2  DEFAULT_MSG  LIBXML2_LIBRARY LIBXML2_INCLUDE_DIR)
+#
+# LibXml2 is considered to be found, if both LIBXML2_LIBRARY and
+# LIBXML2_INCLUDE_DIR are valid. Then also LIBXML2_FOUND is set to TRUE.
+# If it is not found and REQUIRED was used, it fails with FATAL_ERROR,
+# independent whether QUIET was used or not.
+# If it is found, success will be reported, including the content of <var1>.
+# On repeated Cmake runs, the same message won't be printed again.
+#
+# Example for mode 2:
+#
+#    FIND_PACKAGE_HANDLE_STANDARD_ARGS(BISON  REQUIRED_VARS BISON_EXECUTABLE
+#                                             VERSION_VAR BISON_VERSION)
+# In this case, BISON is considered to be found if the variable(s) listed
+# after REQUIRED_VAR are all valid, i.e. BISON_EXECUTABLE in this case.
+# Also the version of BISON will be checked by using the version contained
+# in BISON_VERSION.
+# Since no FAIL_MESSAGE is given, the default messages will be printed.
+#
+# Another example for mode 2:
+#
+#    FIND_PACKAGE(Automoc4 QUIET NO_MODULE HINTS /opt/automoc4)
+#    FIND_PACKAGE_HANDLE_STANDARD_ARGS(Automoc4  CONFIG_MODE)
+# In this case, FindAutmoc4.cmake wraps a call to FIND_PACKAGE(Automoc4 NO_MODULE)
+# and adds an additional search directory for automoc4.
+# The following FIND_PACKAGE_HANDLE_STANDARD_ARGS() call produces a proper
+# success/error message.
 
 #=============================================================================
 # Copyright 2007-2009 Kitware, Inc.
@@ -139,258 +82,179 @@ message.
 # (To distribute this file outside of CMake, substitute the full
 #  License text for the above reference.)
 
-include(${CMAKE_CURRENT_LIST_DIR}/FindPackageMessage.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/CMakeParseArguments.cmake)
+INCLUDE(FindPackageMessage)
+INCLUDE(CMakeParseArguments)
 
 # internal helper macro
-macro(_FPHSA_FAILURE_MESSAGE _msg)
-  if (${_NAME}_FIND_REQUIRED)
-    message(FATAL_ERROR "${_msg}")
-  else ()
-    if (NOT ${_NAME}_FIND_QUIETLY)
-      message(STATUS "${_msg}")
-    endif ()
-  endif ()
-endmacro()
+MACRO(_FPHSA_FAILURE_MESSAGE _msg)
+  IF (${_NAME}_FIND_REQUIRED)
+    MESSAGE(FATAL_ERROR "${_msg}")
+  ELSE (${_NAME}_FIND_REQUIRED)
+    IF (NOT ${_NAME}_FIND_QUIETLY)
+      MESSAGE(STATUS "${_msg}")
+    ENDIF (NOT ${_NAME}_FIND_QUIETLY)
+  ENDIF (${_NAME}_FIND_REQUIRED)
+ENDMACRO(_FPHSA_FAILURE_MESSAGE _msg)
 
 
 # internal helper macro to generate the failure message when used in CONFIG_MODE:
-macro(_FPHSA_HANDLE_FAILURE_CONFIG_MODE)
+MACRO(_FPHSA_HANDLE_FAILURE_CONFIG_MODE)
   # <name>_CONFIG is set, but FOUND is false, this means that some other of the REQUIRED_VARS was not found:
-  if(${_NAME}_CONFIG)
+  IF(${_NAME}_CONFIG)
     _FPHSA_FAILURE_MESSAGE("${FPHSA_FAIL_MESSAGE}: missing: ${MISSING_VARS} (found ${${_NAME}_CONFIG} ${VERSION_MSG})")
-  else()
+  ELSE(${_NAME}_CONFIG)
     # If _CONSIDERED_CONFIGS is set, the config-file has been found, but no suitable version.
     # List them all in the error message:
-    if(${_NAME}_CONSIDERED_CONFIGS)
-      set(configsText "")
-      list(LENGTH ${_NAME}_CONSIDERED_CONFIGS configsCount)
-      math(EXPR configsCount "${configsCount} - 1")
-      foreach(currentConfigIndex RANGE ${configsCount})
-        list(GET ${_NAME}_CONSIDERED_CONFIGS ${currentConfigIndex} filename)
-        list(GET ${_NAME}_CONSIDERED_VERSIONS ${currentConfigIndex} version)
-        set(configsText "${configsText}    ${filename} (version ${version})\n")
-      endforeach()
-      if (${_NAME}_NOT_FOUND_MESSAGE)
-        set(configsText "${configsText}    Reason given by package: ${${_NAME}_NOT_FOUND_MESSAGE}\n")
-      endif()
+    IF(${_NAME}_CONSIDERED_CONFIGS)
+      SET(configsText "")
+      LIST(LENGTH ${_NAME}_CONSIDERED_CONFIGS configsCount)
+      MATH(EXPR configsCount "${configsCount} - 1")
+      FOREACH(currentConfigIndex RANGE ${configsCount})
+        LIST(GET ${_NAME}_CONSIDERED_CONFIGS ${currentConfigIndex} filename)
+        LIST(GET ${_NAME}_CONSIDERED_VERSIONS ${currentConfigIndex} version)
+        SET(configsText "${configsText}    ${filename} (version ${version})\n")
+      ENDFOREACH(currentConfigIndex)
       _FPHSA_FAILURE_MESSAGE("${FPHSA_FAIL_MESSAGE} ${VERSION_MSG}, checked the following files:\n${configsText}")
 
-    else()
+    ELSE(${_NAME}_CONSIDERED_CONFIGS)
       # Simple case: No Config-file was found at all:
       _FPHSA_FAILURE_MESSAGE("${FPHSA_FAIL_MESSAGE}: found neither ${_NAME}Config.cmake nor ${_NAME_LOWER}-config.cmake ${VERSION_MSG}")
-    endif()
-  endif()
-endmacro()
+    ENDIF(${_NAME}_CONSIDERED_CONFIGS)
+  ENDIF(${_NAME}_CONFIG)
+ENDMACRO(_FPHSA_HANDLE_FAILURE_CONFIG_MODE)
 
 
-function(FIND_PACKAGE_HANDLE_STANDARD_ARGS _NAME _FIRST_ARG)
+FUNCTION(FIND_PACKAGE_HANDLE_STANDARD_ARGS _NAME _FIRST_ARG)
 
 # set up the arguments for CMAKE_PARSE_ARGUMENTS and check whether we are in
 # new extended or in the "old" mode:
-  set(options  CONFIG_MODE  HANDLE_COMPONENTS)
-  set(oneValueArgs  FAIL_MESSAGE  VERSION_VAR  FOUND_VAR)
-  set(multiValueArgs REQUIRED_VARS)
-  set(_KEYWORDS_FOR_EXTENDED_MODE  ${options} ${oneValueArgs} ${multiValueArgs} )
-  list(FIND _KEYWORDS_FOR_EXTENDED_MODE "${_FIRST_ARG}" INDEX)
+  SET(options CONFIG_MODE)
+  SET(oneValueArgs FAIL_MESSAGE VERSION_VAR)
+  SET(multiValueArgs REQUIRED_VARS)
+  SET(_KEYWORDS_FOR_EXTENDED_MODE  ${options} ${oneValueArgs} ${multiValueArgs} )
+  LIST(FIND _KEYWORDS_FOR_EXTENDED_MODE "${_FIRST_ARG}" INDEX)
 
-  if(${INDEX} EQUAL -1)
-    set(FPHSA_FAIL_MESSAGE ${_FIRST_ARG})
-    set(FPHSA_REQUIRED_VARS ${ARGN})
-    set(FPHSA_VERSION_VAR)
-  else()
+  IF(${INDEX} EQUAL -1)
+    SET(FPHSA_FAIL_MESSAGE ${_FIRST_ARG})
+    SET(FPHSA_REQUIRED_VARS ${ARGN})
+    SET(FPHSA_VERSION_VAR)
+  ELSE(${INDEX} EQUAL -1)
 
     CMAKE_PARSE_ARGUMENTS(FPHSA "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${_FIRST_ARG} ${ARGN})
 
-    if(FPHSA_UNPARSED_ARGUMENTS)
-      message(FATAL_ERROR "Unknown keywords given to FIND_PACKAGE_HANDLE_STANDARD_ARGS(): \"${FPHSA_UNPARSED_ARGUMENTS}\"")
-    endif()
+    IF(FPHSA_UNPARSED_ARGUMENTS)
+      MESSAGE(FATAL_ERROR "Unknown keywords given to FIND_PACKAGE_HANDLE_STANDARD_ARGS(): \"${FPHSA_UNPARSED_ARGUMENTS}\"")
+    ENDIF(FPHSA_UNPARSED_ARGUMENTS)
 
-    if(NOT FPHSA_FAIL_MESSAGE)
-      set(FPHSA_FAIL_MESSAGE  "DEFAULT_MSG")
-    endif()
-  endif()
+    IF(NOT FPHSA_FAIL_MESSAGE)
+      SET(FPHSA_FAIL_MESSAGE  "DEFAULT_MSG")
+    ENDIF(NOT FPHSA_FAIL_MESSAGE)
+  ENDIF(${INDEX} EQUAL -1)
 
 # now that we collected all arguments, process them
 
-  if("x${FPHSA_FAIL_MESSAGE}" STREQUAL "xDEFAULT_MSG")
-    set(FPHSA_FAIL_MESSAGE "Could NOT find ${_NAME}")
-  endif()
+  IF("${FPHSA_FAIL_MESSAGE}" STREQUAL "DEFAULT_MSG")
+    SET(FPHSA_FAIL_MESSAGE "Could NOT find ${_NAME}")
+  ENDIF("${FPHSA_FAIL_MESSAGE}" STREQUAL "DEFAULT_MSG")
 
   # In config-mode, we rely on the variable <package>_CONFIG, which is set by find_package()
   # when it successfully found the config-file, including version checking:
-  if(FPHSA_CONFIG_MODE)
-    list(INSERT FPHSA_REQUIRED_VARS 0 ${_NAME}_CONFIG)
-    list(REMOVE_DUPLICATES FPHSA_REQUIRED_VARS)
-    set(FPHSA_VERSION_VAR ${_NAME}_VERSION)
-  endif()
+  IF(FPHSA_CONFIG_MODE)
+    LIST(INSERT FPHSA_REQUIRED_VARS 0 ${_NAME}_CONFIG)
+    LIST(REMOVE_DUPLICATES FPHSA_REQUIRED_VARS)
+    SET(FPHSA_VERSION_VAR ${_NAME}_VERSION)
+  ENDIF(FPHSA_CONFIG_MODE)
 
-  if(NOT FPHSA_REQUIRED_VARS)
-    message(FATAL_ERROR "No REQUIRED_VARS specified for FIND_PACKAGE_HANDLE_STANDARD_ARGS()")
-  endif()
+  IF(NOT FPHSA_REQUIRED_VARS)
+    MESSAGE(FATAL_ERROR "No REQUIRED_VARS specified for FIND_PACKAGE_HANDLE_STANDARD_ARGS()")
+  ENDIF(NOT FPHSA_REQUIRED_VARS)
 
-  list(GET FPHSA_REQUIRED_VARS 0 _FIRST_REQUIRED_VAR)
+  LIST(GET FPHSA_REQUIRED_VARS 0 _FIRST_REQUIRED_VAR)
 
-  string(TOUPPER ${_NAME} _NAME_UPPER)
-  string(TOLOWER ${_NAME} _NAME_LOWER)
-
-  if(FPHSA_FOUND_VAR)
-    if(FPHSA_FOUND_VAR MATCHES "^${_NAME}_FOUND$"  OR  FPHSA_FOUND_VAR MATCHES "^${_NAME_UPPER}_FOUND$")
-      set(_FOUND_VAR ${FPHSA_FOUND_VAR})
-    else()
-      message(FATAL_ERROR "The argument for FOUND_VAR is \"${FPHSA_FOUND_VAR}\", but only \"${_NAME}_FOUND\" and \"${_NAME_UPPER}_FOUND\" are valid names.")
-    endif()
-  else()
-    set(_FOUND_VAR ${_NAME_UPPER}_FOUND)
-  endif()
+  STRING(TOUPPER ${_NAME} _NAME_UPPER)
+  STRING(TOLOWER ${_NAME} _NAME_LOWER)
 
   # collect all variables which were not found, so they can be printed, so the
   # user knows better what went wrong (#6375)
-  set(MISSING_VARS "")
-  set(DETAILS "")
+  SET(MISSING_VARS "")
+  SET(DETAILS "")
+  SET(${_NAME_UPPER}_FOUND TRUE)
   # check if all passed variables are valid
-  set(FPHSA_FOUND_${_NAME} TRUE)
-  foreach(_CURRENT_VAR ${FPHSA_REQUIRED_VARS})
-    if(NOT ${_CURRENT_VAR})
-      set(FPHSA_FOUND_${_NAME} FALSE)
-      set(MISSING_VARS "${MISSING_VARS} ${_CURRENT_VAR}")
-    else()
-      set(DETAILS "${DETAILS}[${${_CURRENT_VAR}}]")
-    endif()
-  endforeach()
-  if(FPHSA_FOUND_${_NAME})
-    set(${_NAME}_FOUND TRUE)
-    set(${_NAME_UPPER}_FOUND TRUE)
-  else()
-    set(${_NAME}_FOUND FALSE)
-    set(${_NAME_UPPER}_FOUND FALSE)
-  endif()
+  FOREACH(_CURRENT_VAR ${FPHSA_REQUIRED_VARS})
+    IF(NOT ${_CURRENT_VAR})
+      SET(${_NAME_UPPER}_FOUND FALSE)
+      SET(MISSING_VARS "${MISSING_VARS} ${_CURRENT_VAR}")
+    ELSE(NOT ${_CURRENT_VAR})
+      SET(DETAILS "${DETAILS}[${${_CURRENT_VAR}}]")
+    ENDIF(NOT ${_CURRENT_VAR})
+  ENDFOREACH(_CURRENT_VAR)
 
-  # component handling
-  unset(FOUND_COMPONENTS_MSG)
-  unset(MISSING_COMPONENTS_MSG)
-
-  if(FPHSA_HANDLE_COMPONENTS)
-    foreach(comp ${${_NAME}_FIND_COMPONENTS})
-      if(${_NAME}_${comp}_FOUND)
-
-        if(NOT DEFINED FOUND_COMPONENTS_MSG)
-          set(FOUND_COMPONENTS_MSG "found components: ")
-        endif()
-        set(FOUND_COMPONENTS_MSG "${FOUND_COMPONENTS_MSG} ${comp}")
-
-      else()
-
-        if(NOT DEFINED MISSING_COMPONENTS_MSG)
-          set(MISSING_COMPONENTS_MSG "missing components: ")
-        endif()
-        set(MISSING_COMPONENTS_MSG "${MISSING_COMPONENTS_MSG} ${comp}")
-
-        if(${_NAME}_FIND_REQUIRED_${comp})
-          set(${_NAME}_FOUND FALSE)
-          set(MISSING_VARS "${MISSING_VARS} ${comp}")
-        endif()
-
-      endif()
-    endforeach()
-    set(COMPONENT_MSG "${FOUND_COMPONENTS_MSG} ${MISSING_COMPONENTS_MSG}")
-    set(DETAILS "${DETAILS}[c${COMPONENT_MSG}]")
-  endif()
 
   # version handling:
-  set(VERSION_MSG "")
-  set(VERSION_OK TRUE)
-  set(VERSION ${${FPHSA_VERSION_VAR}})
+  SET(VERSION_MSG "")
+  SET(VERSION_OK TRUE)
+  SET(VERSION ${${FPHSA_VERSION_VAR}} )
+  IF (${_NAME}_FIND_VERSION)
 
-  # check with DEFINED here as the requested or found version may be "0"
-  if (DEFINED ${_NAME}_FIND_VERSION)
-    if(DEFINED ${FPHSA_VERSION_VAR})
+    IF(VERSION)
 
-      if(${_NAME}_FIND_VERSION_EXACT)       # exact version required
-        # count the dots in the version string
-        string(REGEX REPLACE "[^.]" "" _VERSION_DOTS "${VERSION}")
-        # add one dot because there is one dot more than there are components
-        string(LENGTH "${_VERSION_DOTS}." _VERSION_DOTS)
-        if (_VERSION_DOTS GREATER ${_NAME}_FIND_VERSION_COUNT)
-          # Because of the C++ implementation of find_package() ${_NAME}_FIND_VERSION_COUNT
-          # is at most 4 here. Therefore a simple lookup table is used.
-          if (${_NAME}_FIND_VERSION_COUNT EQUAL 1)
-            set(_VERSION_REGEX "[^.]*")
-          elseif (${_NAME}_FIND_VERSION_COUNT EQUAL 2)
-            set(_VERSION_REGEX "[^.]*\\.[^.]*")
-          elseif (${_NAME}_FIND_VERSION_COUNT EQUAL 3)
-            set(_VERSION_REGEX "[^.]*\\.[^.]*\\.[^.]*")
-          else ()
-            set(_VERSION_REGEX "[^.]*\\.[^.]*\\.[^.]*\\.[^.]*")
-          endif ()
-          string(REGEX REPLACE "^(${_VERSION_REGEX})\\..*" "\\1" _VERSION_HEAD "${VERSION}")
-          unset(_VERSION_REGEX)
-          if (NOT ${_NAME}_FIND_VERSION VERSION_EQUAL _VERSION_HEAD)
-            set(VERSION_MSG "Found unsuitable version \"${VERSION}\", but required is exact version \"${${_NAME}_FIND_VERSION}\"")
-            set(VERSION_OK FALSE)
-          else ()
-            set(VERSION_MSG "(found suitable exact version \"${VERSION}\")")
-          endif ()
-          unset(_VERSION_HEAD)
-        else ()
-          if (NOT ${_NAME}_FIND_VERSION VERSION_EQUAL VERSION)
-            set(VERSION_MSG "Found unsuitable version \"${VERSION}\", but required is exact version \"${${_NAME}_FIND_VERSION}\"")
-            set(VERSION_OK FALSE)
-          else ()
-            set(VERSION_MSG "(found suitable exact version \"${VERSION}\")")
-          endif ()
-        endif ()
-        unset(_VERSION_DOTS)
+      IF(${_NAME}_FIND_VERSION_EXACT)       # exact version required
+        IF (NOT "${${_NAME}_FIND_VERSION}" VERSION_EQUAL "${VERSION}")
+          SET(VERSION_MSG "Found unsuitable version \"${VERSION}\", but required is exact version \"${${_NAME}_FIND_VERSION}\"")
+          SET(VERSION_OK FALSE)
+        ELSE (NOT "${${_NAME}_FIND_VERSION}" VERSION_EQUAL "${VERSION}")
+          SET(VERSION_MSG "(found suitable exact version \"${VERSION}\")")
+        ENDIF (NOT "${${_NAME}_FIND_VERSION}" VERSION_EQUAL "${VERSION}")
 
-      else()     # minimum version specified:
-        if (${_NAME}_FIND_VERSION VERSION_GREATER VERSION)
-          set(VERSION_MSG "Found unsuitable version \"${VERSION}\", but required is at least \"${${_NAME}_FIND_VERSION}\"")
-          set(VERSION_OK FALSE)
-        else ()
-          set(VERSION_MSG "(found suitable version \"${VERSION}\", minimum required is \"${${_NAME}_FIND_VERSION}\")")
-        endif ()
-      endif()
+      ELSE(${_NAME}_FIND_VERSION_EXACT)     # minimum version specified:
+        IF ("${${_NAME}_FIND_VERSION}" VERSION_GREATER "${VERSION}")
+          SET(VERSION_MSG "Found unsuitable version \"${VERSION}\", but required is at least \"${${_NAME}_FIND_VERSION}\"")
+          SET(VERSION_OK FALSE)
+        ELSE ("${${_NAME}_FIND_VERSION}" VERSION_GREATER "${VERSION}")
+          SET(VERSION_MSG "(found suitable version \"${VERSION}\", required is \"${${_NAME}_FIND_VERSION}\")")
+        ENDIF ("${${_NAME}_FIND_VERSION}" VERSION_GREATER "${VERSION}")
+      ENDIF(${_NAME}_FIND_VERSION_EXACT)
 
-    else()
+    ELSE(VERSION)
 
       # if the package was not found, but a version was given, add that to the output:
-      if(${_NAME}_FIND_VERSION_EXACT)
-         set(VERSION_MSG "(Required is exact version \"${${_NAME}_FIND_VERSION}\")")
-      else()
-         set(VERSION_MSG "(Required is at least version \"${${_NAME}_FIND_VERSION}\")")
-      endif()
+      IF(${_NAME}_FIND_VERSION_EXACT)
+         SET(VERSION_MSG "(Required is exact version \"${${_NAME}_FIND_VERSION}\")")
+      ELSE(${_NAME}_FIND_VERSION_EXACT)
+         SET(VERSION_MSG "(Required is at least version \"${${_NAME}_FIND_VERSION}\")")
+      ENDIF(${_NAME}_FIND_VERSION_EXACT)
 
-    endif()
-  else ()
-    if(VERSION)
-      set(VERSION_MSG "(found version \"${VERSION}\")")
-    endif()
-  endif ()
+    ENDIF(VERSION)
+  ELSE (${_NAME}_FIND_VERSION)
+    IF(VERSION)
+      SET(VERSION_MSG "(found version \"${VERSION}\")")
+    ENDIF(VERSION)
+  ENDIF (${_NAME}_FIND_VERSION)
 
-  if(VERSION_OK)
-    set(DETAILS "${DETAILS}[v${VERSION}(${${_NAME}_FIND_VERSION})]")
-  else()
-    set(${_NAME}_FOUND FALSE)
-  endif()
+  IF(VERSION_OK)
+    SET(DETAILS "${DETAILS}[v${VERSION}(${${_NAME}_FIND_VERSION})]")
+  ELSE(VERSION_OK)
+    SET(${_NAME_UPPER}_FOUND FALSE)
+  ENDIF(VERSION_OK)
 
 
   # print the result:
-  if (${_NAME}_FOUND)
-    FIND_PACKAGE_MESSAGE(${_NAME} "Found ${_NAME}: ${${_FIRST_REQUIRED_VAR}} ${VERSION_MSG} ${COMPONENT_MSG}" "${DETAILS}")
-  else ()
+  IF (${_NAME_UPPER}_FOUND)
+    FIND_PACKAGE_MESSAGE(${_NAME} "Found ${_NAME}: ${${_FIRST_REQUIRED_VAR}} ${VERSION_MSG}" "${DETAILS}")
+  ELSE (${_NAME_UPPER}_FOUND)
 
-    if(FPHSA_CONFIG_MODE)
+    IF(FPHSA_CONFIG_MODE)
       _FPHSA_HANDLE_FAILURE_CONFIG_MODE()
-    else()
-      if(NOT VERSION_OK)
+    ELSE(FPHSA_CONFIG_MODE)
+      IF(NOT VERSION_OK)
         _FPHSA_FAILURE_MESSAGE("${FPHSA_FAIL_MESSAGE}: ${VERSION_MSG} (found ${${_FIRST_REQUIRED_VAR}})")
-      else()
+      ELSE(NOT VERSION_OK)
         _FPHSA_FAILURE_MESSAGE("${FPHSA_FAIL_MESSAGE} (missing: ${MISSING_VARS}) ${VERSION_MSG}")
-      endif()
-    endif()
+      ENDIF(NOT VERSION_OK)
+    ENDIF(FPHSA_CONFIG_MODE)
 
-  endif ()
+  ENDIF (${_NAME_UPPER}_FOUND)
 
-  set(${_NAME}_FOUND ${${_NAME}_FOUND} PARENT_SCOPE)
-  set(${_NAME_UPPER}_FOUND ${${_NAME}_FOUND} PARENT_SCOPE)
-endfunction()
+  SET(${_NAME_UPPER}_FOUND ${${_NAME_UPPER}_FOUND} PARENT_SCOPE)
+
+ENDFUNCTION(FIND_PACKAGE_HANDLE_STANDARD_ARGS _FIRST_ARG)
