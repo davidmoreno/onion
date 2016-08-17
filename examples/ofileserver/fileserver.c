@@ -27,7 +27,7 @@
 #include <sys/stat.h>
 #include <onion/shortcuts.h>
 #include <locale.h>
-#ifdef GETTEXT_ENABLED
+#ifdef HAVE_GETTEXT
 # include <libintl.h>
 #endif
 #include <onion/handlers/webdav.h>
@@ -102,7 +102,7 @@ int main(int argc, char **argv){
 		onion_handler_add(root, onion_handler_export_local_new(dirname));
 		
 // This is the root directory where the translations are.
-#ifdef GETTEXT_ENABLED
+#ifdef HAVE_GETTEXT
 #define W "."
 	setenv("LANGUAGE","locale",1); // Remove LANGUAGE env var, set it to the locale name,
 	setlocale(LC_ALL,""); 
