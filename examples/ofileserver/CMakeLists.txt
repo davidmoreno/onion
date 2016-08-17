@@ -43,12 +43,15 @@ endif(HAVE_MSGFMT)
 
 add_executable(ofileserver fileserver.c fileserver_html.c)
 target_link_libraries(ofileserver onion_static m)
+
 if (GETTEXT_ENABLED)
    target_link_libraries(ofileserver ${Intl_LIBRARIES})
 endif (GETTEXT_ENABLED)
-if (${Z_LIB})
-   target_link_libraries(ofileserver ${Z_LIB})
-endif(${Z_LIB})
+
+find_package(ZLIB)
+if (${ZLIB_FOUND})
+   target_link_libraries(ofileserver ${ZLIB_LIBRARIES})
+endif(${ZLIB_FOUND})
 
 set_target_properties(ofileserver PROPERTIES OUTPUT_NAME "onion-ofileserver")
 install(TARGETS ofileserver	DESTINATION ${CMAKE_INSTALL_BINDIR})
