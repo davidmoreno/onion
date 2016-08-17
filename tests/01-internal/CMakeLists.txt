@@ -20,15 +20,15 @@ add_test(internal-server 05-server)
 
 if (GNUTLS_ENABLED)
 IF (CURL)
-message(STATUS "Looking for certool")
-FIND_PROGRAM(CERTTOOL certtool)
-IF (CERTTOOL)
-message(STATUS "Found certool compiling all tests")
+message(STATUS "Looking for gnutls-certtool")
+find_program(GNUTLS_CERTTOOL gnutls-certtool)
+IF (GNUTLS_CERTTOOL)
+message(STATUS "Found gnutls-certtool compiling all tests")
 add_custom_command(
    OUTPUT mycert.pem
    COMMAND
-		${CERTTOOL} --generate-privkey --outfile mycert.key &&
-		${CERTTOOL} --generate-self-signed --load-privkey mycert.key --outfile mycert.crt --template ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg  &&
+		${GNUTLS_CERTTOOL} --generate-privkey --outfile mycert.key &&
+		${GNUTLS_CERTTOOL} --generate-self-signed --load-privkey mycert.key --outfile mycert.crt --template ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg  &&
 		cat mycert.crt mycert.key > mycert.pem
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg
    )
@@ -40,9 +40,9 @@ if(PTHREADS)
 	add_test(internal-onion 06-onion)
 endif(PTHREADS)
 
-ELSE(CERTTOOL)
-message(STATUS "Not found certool not compiling 06-server")
-ENDIF (CERTTOOL)
+ELSE(GNUTLS_CERTTOOL)
+message(STATUS "Not found gnutls-certool not compiling 06-server")
+ENDIF (GNUTLS_CERTTOOL)
 ENDIF (CURL)
 endif(GNUTLS_ENABLED)
 
