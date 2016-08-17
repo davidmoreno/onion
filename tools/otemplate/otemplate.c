@@ -144,7 +144,7 @@ void help(const char *msg){
 "                              error reporting refers to the C file, not the template.\n"
 "  --asset-file|-a             Write function definitions to an asset file. Defaults to assets.h\n"
 "  <infilename>                Input filename or '-' to use stdin.\n"
-"  <infilename>                Output filename or '-' to use stdin.\n"
+"  <outfilename>               Output filename or '-' to use stdout.\n"
 "\n"
 "Templatetags plugins are search in this order, always libPLUGIN.so, where PLUGIN is the plugin name:\n"
 "   1. Set by command line with --templatetagsdir or -t\n"
