@@ -1,9 +1,9 @@
-# - Try to find Cairo
+# - Try to find Boehm GC
 #   Once done, this will define
 #
-#   BOEHM_GC_FOUND - system has Cairo
-#   BOEHM_GC_INCLUDE_DIR - the Bohem GC include directories
-#   BOEHM_GC_LIBRARIES - link these to use Bohem GC
+#   BOEHM_GC_FOUND - system has Boehm GC
+#   BOEHM_GC_INCLUDE_DIR - the Boehm GC include directories
+#   BOEHM_GC_LIBRARIES - link these to use Boehm GC
 # 
 #   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
 # 

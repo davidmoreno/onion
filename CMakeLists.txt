@@ -161,7 +161,7 @@ if (${ONION_USE_JPEG})
 endif (${ONION_USE_JPEG})
 
 if (${ONION_USE_GC})
-	find_package(BohemGC)
+	find_package(BoehmGC)
 	if (BOEHM_GC_FOUND)
 		message(STATUS "compiling Boehm GC examples")
 		set(GC_ENABLED true)

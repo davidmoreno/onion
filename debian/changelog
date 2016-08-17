@@ -10,7 +10,7 @@ libonion (0.8.0) stable; urgency=low
   * Rework on request parser to allow OCS_YIELD (David Moreno).
   * Overall API improvements (David Moreno)
   * Use of custom low level functions: onion_malloc, onion_free... (Basile Starynkevitch)
-  * Bohem GC support (Basile Starynkevitch)
+  * Boehm GC support (Basile Starynkevitch)
   * Man pages for the tools. (David Moreno)
   * Semantic Versioning.
   * Many small fixes and improvements.
