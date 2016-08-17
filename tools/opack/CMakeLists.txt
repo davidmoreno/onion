@@ -4,7 +4,7 @@ add_executable(opack opack.c ../common/updateassets.c ../../src/onion/log.c ../.
 target_link_libraries(opack ${PTHREADS_LIB})
 
 if(GNUTLS_ENABLED)
-	target_link_libraries(opack ${GNUTLS_LIB})
+	target_link_libraries(opack ${GNUTLS_LIBRARIES})
 endif(GNUTLS_ENABLED)
 
 install(TARGETS opack DESTINATION ${CMAKE_INSTALL_BINDIR})

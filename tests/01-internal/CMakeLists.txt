@@ -36,7 +36,7 @@ add_custom_command(
 
 if(PTHREADS)
 	add_executable(06-onion 06-onion.c utils.c mycert.pem)
-	target_link_libraries(06-onion onion curl)
+	target_link_libraries(06-onion onion ${CURL_LIBRARIES})
 	add_test(internal-onion 06-onion)
 endif(PTHREADS)
 
@@ -68,7 +68,7 @@ add_test(internal-sessions 11-sessions)
 
 IF (CURL)
 add_executable(12-cloexec 12-cloexec.c)
-target_link_libraries(12-cloexec onion curl)
+target_link_libraries(12-cloexec onion ${CURL_LIBRARIES})
 add_test(internal-cloexec 12-cloexec)
 ENDIF (CURL)
 
