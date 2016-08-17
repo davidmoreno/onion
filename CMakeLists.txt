@@ -125,7 +125,7 @@ if (${ONION_USE_XML2})
 endif(${ONION_USE_XML2})
 
 if (${ONION_USE_PAM})
-	find_library(PAM_LIB NAMES pam pam_misc PATH ${LIBPATH})
+	find_library(PAM_LIB NAMES pam PATH ${LIBPATH})
 	if (PAM_LIB)
 		set(PAM_ENABLED true)
 		message(STATUS "pam found. PAM support is compiled in in handlers.")
