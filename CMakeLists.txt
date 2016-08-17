@@ -276,6 +276,7 @@ project (onion)
 
 INCLUDE(CPackConfig.cmake)
 INCLUDE(CPack)
+INCLUDE(CTest)
 
 add_subdirectory(src)
 add_subdirectory(tools)
