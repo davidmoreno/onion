@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <libgen.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 #include "updateassets.h"
 
