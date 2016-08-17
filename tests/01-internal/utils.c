@@ -15,17 +15,22 @@
 	You should have received a copy of the GNU Affero General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
+#define _DARWIN_C_SOURCE
 
 #include "utils.h"
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <string.h>
 
 #include <onion/log.h>
 
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC O_CLOEXEC
+#endif
 
 int connect_to(const char *addr, const char *port){
   struct addrinfo hints;
