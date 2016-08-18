@@ -1,5 +1,5 @@
 /** Licensed under AGPL 3.0. (C) 2010 David Moreno Montero. http://coralbits.com */
-#define GC_THREADS 1
+#define GC_THREADS
 
 #include <gc.h>
 
@@ -48,8 +48,8 @@ int main(int argc, char **argv){
 		memory_allocation_error);
 	onion_low_initialize_threads(
 		GC_pthread_create, GC_pthread_join,
-		GC_pthread_cancel, GC_pthread_detach,
-		GC_pthread_exit, GC_pthread_sigmask);	
+		pthread_cancel, GC_pthread_detach,
+		pthread_exit, pthread_sigmask);
 
 	signal(SIGINT,shutdown_server);
 	signal(SIGTERM,shutdown_server);
