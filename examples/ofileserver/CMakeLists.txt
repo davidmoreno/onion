@@ -45,7 +45,7 @@ add_executable(ofileserver fileserver.c fileserver_html.c)
 target_link_libraries(ofileserver onion_static m)
 
 if (GETTEXT_ENABLED)
-   target_link_libraries(ofileserver ${Intl_LIBRARIES})
+   target_link_libraries(ofileserver ${INTL_LIBRARIES})
 endif (GETTEXT_ENABLED)
 
 find_package(ZLIB)

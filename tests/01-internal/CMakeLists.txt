@@ -88,7 +88,7 @@ add_custom_command(
    )
 target_link_libraries(13-otemplates onion)
 if (GETTEXT_ENABLED)
-   target_link_libraries(13-otemplates ${Intl_LIBRARIES})
+   target_link_libraries(13-otemplates ${INTL_LIBRARIES})
 endif (GETTEXT_ENABLED)
 add_test(internal-otemplates 13-otemplates)
 endif (OTEMPLATE)
