@@ -48,17 +48,21 @@ find_path(INTL_INCLUDE_DIR
         DOC "libintl include directory")
 mark_as_advanced(INTL_INCLUDE_DIR)
 
-# Find all INTL libraries
+# Find all Intl libraries
 find_library(INTL_LIBRARY "intl"
         DOC "libintl libraries (if not in the C library)")
 mark_as_advanced(INTL_LIBRARY)
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(Intl
-        REQUIRED_VARS INTL_INCLUDE_DIR INTL_LIBRARY
+        REQUIRED_VARS INTL_INCLUDE_DIR
         FAIL_MESSAGE "Failed to find Gettext libintl")
 
 if (INTL_FOUND)
     set(INTL_INCLUDE_DIRS "${INTL_INCLUDE_DIR}")
-    set(INTL_LIBRARIES "${INTL_LIBRARY}")
+    if (INTL_LIBRARY)
+        set(INTL_LIBRARIES "${INTL_LIBRARY}")
+    else ()
+        unset(INTL_LIBRARIES)
+    endif ()
 endif ()
