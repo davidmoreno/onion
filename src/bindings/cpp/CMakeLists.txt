@@ -6,7 +6,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++0x")
 SET(INCLUDES_ONIONCPP onion.hpp dict.hpp request.hpp response.hpp url.hpp handler.hpp extrahandlers.hpp shortcuts.hpp exceptions.hpp listen_point.hpp http.hpp https.hpp mime.hpp)
 
 target_link_libraries(onioncpp onion)
-target_link_libraries(onioncpp_static onioncpp_static)
+target_link_libraries(onioncpp_static onion)
 
 MESSAGE(STATUS "Found include files ${INCLUDES_ONIONCPP}")
 
