@@ -1,5 +1,9 @@
 language: cpp
 
+os:
+  - linux
+  - osx
+
 compiler:
   - gcc
   - clang
@@ -9,39 +13,34 @@ sudo: false
 git:
   depth: 1
 
-env:
-  global:
-    - LLVM_VERSION=3.7.0
-    - LLVM_ARCHIVE_PATH=$HOME/clang+llvm.tar.xz
-
 before_install:
-  - wget http://llvm.org/releases/$LLVM_VERSION/clang+llvm-$LLVM_VERSION-x86_64-linux-gnu-ubuntu-14.04.tar.xz -O $LLVM_ARCHIVE_PATH
-  - mkdir $HOME/clang+llvm
-  - tar xf $LLVM_ARCHIVE_PATH -C $HOME/clang+llvm --strip-components 1
-  - export PATH=$HOME/clang+llvm/bin:$PATH
-  - ln -s $HOME/clang+llvm/bin/clang++ $HOME/clang+llvm/bin/clang++-3.7
+  - gem install md2man --no-rdoc --no-ri
+  - chmod +x ./install-dependencies.sh
+  - ./install-dependencies.sh
 
 addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
+      - llvm-toolchain-precise-3.7
     packages:
-      - g++-5
       - gcc-5
+      - g++-5
+      - clang-3.7
+      - gettext
       - libhiredis-dev
 
 install:
   # install some packages from Ubuntu's default sources
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
-  - if [ "$CXX" = "clang++" ]; then export CXX="clang++-3.7" CC="clang-3.7"; fi
+  - if [[ $CXX == 'g++' ]]; then export CXX="g++-5" CC="gcc-5"; fi
+  - if [[ $CXX == 'clang++' ]]; then export CXX="clang++-3.7"; fi
 
+#FIXME: removes -Werror flag for osx check
 script:
   # make distcheck still does not work on travis
   - mkdir build
     && cd build
     && cmake ..
-       -DCMAKE_C_FLAGS="-Werror"
-       -DCMAKE_CXX_FLAGS="-Werror"
     && make VERBOSE=1
     && (make test || true)
 

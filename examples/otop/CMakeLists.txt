@@ -10,7 +10,7 @@ add_executable(otop otop.c otop_data.c)
 target_link_libraries(otop onion  )
 
 if(${ONION_POLLER} STREQUAL "libev")
-	target_link_libraries(otop -lev)
+	target_link_libraries(otop ${LIBEV_LIBRARIES})
 endif()
 
 install(TARGETS otop DESTINATION ${CMAKE_INSTALL_BINDIR})

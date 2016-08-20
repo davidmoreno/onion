@@ -17,14 +17,14 @@ endif  (${JPEG_ENABLED})
 add_library(onion_extras STATIC ${PNG} ${JPEG})
 
 if (${PNG_ENABLED})
-target_link_libraries(onion_extras ${PNG_LIB})
+target_link_libraries(onion_extras ${PNG_LIBRARIES})
 endif (${PNG_ENABLED})
 
 if (${JPEG_ENABLED})
-target_link_libraries(onion_extras ${JPEG_LIB})
+target_link_libraries(onion_extras ${JPEG_LIBRARIES})
 endif (${JPEG_ENABLED})
 
-SET(INCLUDES_EXTRAS ${PNG_HEADER} ${JPEG_HEADER})
+SET(INCLUDES_EXTRAS png.h jpeg.h)
 MESSAGE(STATUS "Found include files ${INCLUDES_EXTRAS}")
 
 

@@ -20,15 +20,19 @@ add_test(internal-server 05-server)
 
 if (GNUTLS_ENABLED)
 IF (CURL)
-message(STATUS "Looking for certool")
-FIND_PROGRAM(CERTTOOL certtool)
-IF (CERTTOOL)
-message(STATUS "Found certool compiling all tests")
+message(STATUS "Looking for gnutls-certtool")
+if (APPLE)
+   find_program(GNUTLS_CERTTOOL gnutls-certtool)
+else (APPLE)
+   find_program(GNUTLS_CERTTOOL certtool)
+endif (APPLE)
+IF (GNUTLS_CERTTOOL)
+message(STATUS "Found gnutls-certtool compiling all tests")
 add_custom_command(
    OUTPUT mycert.pem
    COMMAND
-		${CERTTOOL} --generate-privkey --outfile mycert.key &&
-		${CERTTOOL} --generate-self-signed --load-privkey mycert.key --outfile mycert.crt --template ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg  &&
+		${GNUTLS_CERTTOOL} --generate-privkey --outfile mycert.key &&
+		${GNUTLS_CERTTOOL} --generate-self-signed --load-privkey mycert.key --outfile mycert.crt --template ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg  &&
 		cat mycert.crt mycert.key > mycert.pem
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mycert.cfg
    )
@@ -36,13 +40,13 @@ add_custom_command(
 
 if(PTHREADS)
 	add_executable(06-onion 06-onion.c utils.c mycert.pem)
-	target_link_libraries(06-onion onion curl)
+	target_link_libraries(06-onion onion ${CURL_LIBRARIES})
 	add_test(internal-onion 06-onion)
 endif(PTHREADS)
 
-ELSE(CERTTOOL)
-message(STATUS "Not found certool not compiling 06-server")
-ENDIF (CERTTOOL)
+ELSE(GNUTLS_CERTTOOL)
+message(STATUS "Not found gnutls-certool not compiling 06-server")
+ENDIF (GNUTLS_CERTTOOL)
 ENDIF (CURL)
 endif(GNUTLS_ENABLED)
 
@@ -68,7 +72,7 @@ add_test(internal-sessions 11-sessions)
 
 IF (CURL)
 add_executable(12-cloexec 12-cloexec.c)
-target_link_libraries(12-cloexec onion curl)
+target_link_libraries(12-cloexec onion ${CURL_LIBRARIES})
 add_test(internal-cloexec 12-cloexec)
 ENDIF (CURL)
 
@@ -87,6 +91,11 @@ add_custom_command(
    DEPENDS ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/../../AGPL.txt
    )
 target_link_libraries(13-otemplates onion)
+if (GETTEXT_ENABLED)
+   if (INTL_LIBRARIES)
+     target_link_libraries(13-otemplates ${INTL_LIBRARIES})
+   endif (INTL_LIBRARIES)
+endif (GETTEXT_ENABLED)
 add_test(internal-otemplates 13-otemplates)
 endif (OTEMPLATE)
 

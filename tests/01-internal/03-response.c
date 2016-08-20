@@ -182,6 +182,7 @@ void t05_printf(){
 	onion_add_listen_point(server,NULL,NULL,onion_buffer_listen_point_new());
 	onion_request *request;
 	char buffer[4096];
+	char expected_result[4096];
 	memset(buffer,0,sizeof(buffer));
 
 	request=onion_request_new(server->listen_points[0]);
@@ -196,7 +197,8 @@ void t05_printf(){
 	onion_request_free(request);
 	onion_free(server);
 
-	FAIL_IF_NOT_STRSTR(buffer, "Hello world 123 (nil)");
+	sprintf(expected_result, "%s %d %p", "Hello world", 123, NULL);
+    FAIL_IF_NOT_STRSTR(buffer, expected_result);
 
 	END_LOCAL();
 }

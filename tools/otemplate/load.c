@@ -16,6 +16,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
+#define _DARWIN_C_SOURCE
+
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
