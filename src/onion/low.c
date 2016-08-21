@@ -41,7 +41,7 @@
 #include "low.h"
 #include "log.h"
 
-/// @defgroup low Low level OS functions. Encapsulates some low level functions to allow other OS implementations (Bohem GC)
+/// @defgroup low Low level OS functions. Encapsulates some low level functions to allow other OS implementations (Boehm GC)
 
 /* the pointers to user provided routines for memory management &
    memory failure */
