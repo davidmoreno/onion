@@ -434,16 +434,16 @@ static onion_connection_status onion_websocket_read_packet_header(onion_websocke
 	  r= (*lpreader) (ws->req, tmp, 2);
 		if (r!=2){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 		ONION_DEBUG("%d %d", utmp[0], utmp[1]);
-		ws->data_left=utmp[0] + utmp[1]*256;
+		ws->data_left=utmp[1] + utmp[0]*256;
 	}
 	else if (ws->data_left==127){
 	  r= (*lpreader) (ws->req, tmp, 8);
-		ONION_DEBUG("%d %d %d %d %d %d %d", utmp[0], utmp[1], utmp[2], utmp[3], utmp[4], utmp[5], utmp[6], utmp[7]);
+		//ONION_DEBUG("%d %d %d %d %d %d %d", utmp[0], utmp[1], utmp[2], utmp[3], utmp[4], utmp[5], utmp[6], utmp[7]);
 		if (r!=8){ ONION_DEBUG("Error reading header"); return OCS_CLOSE_CONNECTION; }
 		ws->data_left=0;
 		int i;
 		for(i=0;i<8;i++)
-			ws->data_left+=((uint64_t)utmp[i])<<(i*8); // Maybe problematic on 32bits systems
+			ws->data_left+=((uint64_t)utmp[i])<<((7-i)*8); // Maybe problematic on 32bits systems
 	}
 	ONION_DEBUG("Data left %d", ws->data_left);
 	if (ws->flags&WS_MASK){
