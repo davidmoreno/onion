@@ -509,7 +509,7 @@ onion_connection_status onion_websocket_call(onion_websocket* ws)
 			do{
 				last_d_l=ws->data_left;
 				ret=ws->callback(ws->user_data, ws, ws->data_left);
-			}while(ws->data_left!=0 && last_d_l!=ws->data_left);
+			}while(ws->data_left!=0 && last_d_l!=ws->data_left && ws->callback);
 		}
 
 		if (!ws->callback) // ws->callback can change ws->callback, so another test, not else.
