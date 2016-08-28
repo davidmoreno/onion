@@ -4,20 +4,20 @@
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of, at your choice:
-	
-	a. the Apache License Version 2.0. 
-	
-	b. the GNU General Public License as published by the 
-		Free Software Foundation; either version 2.0 of the License, 
+
+	a. the Apache License Version 2.0.
+
+	b. the GNU General Public License as published by the
+		Free Software Foundation; either version 2.0 of the License,
 		or (at your option) any later version.
-	 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	You should have received a copy of both libraries, if not see 
-	<http://www.gnu.org/licenses/> and 
+	You should have received a copy of both libraries, if not see
+	<http://www.gnu.org/licenses/> and
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
@@ -64,8 +64,8 @@ struct onion_t{
 	int timeout;   ///< Timeout in milliseconds
 	char *username;
 	onion_poller *poller;
-	onion_listen_point **listen_points; ///< List of listen_point. Everytime a new listen point adds, 
-														 ///< it reallocs the full list. Its NULL terminated. 
+	onion_listen_point **listen_points; ///< List of listen_point. Everytime a new listen point adds,
+														 ///< it reallocs the full list. Its NULL terminated.
 														 ///< If NULL at listen, creates a http at 8080.
 	onion_handler *root_handler;	/// Root processing handler for this server.
 	onion_handler *internal_error_handler;	/// Root processing handler for this server.
@@ -80,6 +80,8 @@ struct onion_t{
 	pthread_t *threads;
 	int nthreads;
 #endif
+	onion_ptr_list **hooks;
+	int hooks_maxid;
 };
 
 struct onion_ptr_list_t{
@@ -110,7 +112,7 @@ struct onion_request_t{
 	char *session_id;     /// Session id of the request, if any.
 	void *parser;         /// When recieving data, where to put it. Check at request_parser.c.
 	void *parser_data;    /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
-	onion_websocket *websocket; /// Websocket handler. 
+	onion_websocket *websocket; /// Websocket handler.
 	onion_ptr_list *free_list; /// Memory that should be freed when the request finishes. IT allows to have simpler onion_dict, which dont copy/free data, but just splits a long string inplace.
 };
 
@@ -119,7 +121,7 @@ struct onion_response_t{
 	onion_dict *headers;			/// Headers to write when appropiate.
 	int code;									/// Response code
 	int flags;								/// Flags. @see onion_response_flags_e
-	unsigned int length;			/// Length, if known, of the response, to create the Content-Lenght header. 
+	unsigned int length;			/// Length, if known, of the response, to create the Content-Lenght header.
 	unsigned int sent_bytes; 	/// Sent bytes at content.
 	unsigned int sent_bytes_total; /// Total sent bytes, including headers.
 	char buffer[ONION_RESPONSE_BUFFER_SIZE]; /// buffer of output data. This way its do not send small chunks all the time, but blocks, so better network use. Also helps to keep alive connections with less than block size bytes.
@@ -130,7 +132,7 @@ struct onion_handler_t{
 	onion_handler_handler handler;  /// callback that should return an onion_connection_status, and maybe process the request.
 	onion_handler_private_data_free priv_data_free;  /// When freeing some memory, how to remove the private memory.
 	void *priv_data;                /// Private data as needed by the handler
-	
+
 	struct onion_handler_t *next; /// If parser returns null, i try next handler. If no next handler i go up, or return an error. @see onion_handler_handle
 };
 
@@ -141,7 +143,7 @@ struct onion_handler_t{
 
 struct onion_sessions_t{
 	void *data;
-	
+
 	onion_dict *(*get)(onion_sessions *sessions, const char *sessionid);
 	void (*save)(onion_sessions *sessions, const char *sessionid, onion_dict *data);
 	void (*free)(onion_sessions *sessions);
@@ -164,40 +166,40 @@ struct onion_listen_point_t{
 	char *port;     ///< Stated port, if none then 8080
 	int listenfd;   ///< For socket listening listen points, the listen fd. For others may be -1 as not used, or an fd to watch and when changed calls the request_init with a new request.
 	bool secure;    ///< Is this listen point secure?
-	
+
 	/// Internal data used by the listen point, for example in HTTPS is the certificate loaded data.
-	void *user_data; 
+	void *user_data;
 	/// Method to call to free the user data
-	void (*free_user_data)(onion_listen_point *lp); 
-	
+	void (*free_user_data)(onion_listen_point *lp);
+
 	/**
-	 * @short How to start the listening phase. 
-	 * 
-	 * Normally NULL means socket listening. 
-	 * 
+	 * @short How to start the listening phase.
+	 *
+	 * Normally NULL means socket listening.
+	 *
 	 * Must set at listenfd a file descriptor that will be polled, and when data arrives,
 	 * it will call the request_init with a new request object.
 	 */
 	void (*listen)(onion_listen_point *lp);
 	/**
-	 * @short Frees internal data and state of listen point, but not listen point itself. 
-	 * 
-	 * If NULL means socket listen, and should be closed calling onion_listen_point_listen_stop. 
+	 * @short Frees internal data and state of listen point, but not listen point itself.
+	 *
+	 * If NULL means socket listen, and should be closed calling onion_listen_point_listen_stop.
 	 * If a port is open must be closed. Its the exact oposite of listen.
-	 * 
+	 *
 	 * May be called in a loop: listen -> ... -> listen_stop -> ... -> listen.
-	 * 
+	 *
 	 * It also may be called two succesive times, and should do nothing on second.
 	 */
 	void (*listen_stop)(onion_listen_point *lp);
 
 	/// @{ @name To be used by requests, but as these methods are shared by protocol, done here.
-	/** 
+	/**
 	 * @short Initialize the request object. Data is already malloc'd but specific listen protocols may need custom data
-	 * 
-	 * Has default implementation that do the socket accept and set of default params. On some protocols may be 
+	 *
+	 * Has default implementation that do the socket accept and set of default params. On some protocols may be
 	 * reimplemented to do non socket-petition accept.
-	 * 
+	 *
 	 * @returns 0 if everything ok, <0 if request is invalid and should be closed.
 	 */
 	int (*request_init)(onion_request *req);
@@ -212,10 +214,10 @@ struct onion_listen_point_t{
 struct onion_websocket_t{
 	onion_request *req; /// Associated request
 	onion_websocket_callback_t callback; /// Callback to call, if any, when new data is available.
-	
+
 	void *user_data;
 	void (*free_user_data)(void *);
-	
+
 	int64_t data_left;
 	char mask[4];
 	int8_t mask_pos;

@@ -238,6 +238,7 @@ enum onion_connection_status_e{
 	OCS_KEEP_ALIVE=3,
 	OCS_WEBSOCKET=4,
   OCS_REQUEST_READY=5, ///< Internal. After parsing the request, it is ready to handle.
+	OCS_CONTINUE=0, /// < Used at hooks to continue as normal.
 	OCS_INTERNAL_ERROR=-500,
 	OCS_NOT_IMPLEMENTED=-501,
   OCS_FORBIDDEN=-502,
@@ -331,6 +332,8 @@ enum onion_hook_e{
 	OH_AFTER_REQUEST_HANDLER,
 	OH_CLOSE_CONNECTION,
 	OH_TIMEOUT,
+
+	__OH_LAST, // Marker for last hook
 };
 
 typedef enum onion_hook_e onion_hook;

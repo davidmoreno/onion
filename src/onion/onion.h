@@ -116,9 +116,9 @@ long onion_count_poller_threads(void);
 #endif /*HAVE_PTHREADS*/
 
 /// Set a hook into the request processor
-int onion_hook_add(onion_hook hook, onion_handler_handler *handler, void *userdata, onion_handler_private_data_free *freef);
+int onion_hook_add(onion *server, onion_hook hook, onion_handler_handler handler, void *userdata, onion_handler_private_data_free freef);
 /// Removes a hook using the id from adding.
-void onion_hook_remove(int hookid);
+bool onion_hook_remove(onion *server, int hookid);
 
 /// @}
 

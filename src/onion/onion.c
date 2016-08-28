@@ -167,6 +167,7 @@ onion_url_add_url(url, ...); // Nesting
 #include "mime.h"
 #include "http.h"
 #include "https.h"
+#include "ptr_list.h"
 
 static int onion_default_error(void *handler, onion_request *req, onion_response *res);
 // Import it here as I need it to know if we have a HTTP port.
@@ -182,6 +183,16 @@ ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 /// Used by onion_sigterm handler. Only takes into account last onion.
 static onion *last_onion=NULL;
 static void shutdown_server(int _);
+
+/// Internal struct for onion hooks
+struct onion_hook_slot_t{
+	int id;
+	onion_handler_handler handler;
+	void *userdata;
+	onion_handler_private_data_free freef;
+};
+
+typedef struct onion_hook_slot_t onion_hook_slot;
 
 /**
  * @short Creates the onion structure to fill with the server data, and later do the onion_listen()
@@ -303,6 +314,22 @@ void onion_free(onion *onion){
 		signal(SIGINT,SIG_DFL);
 		signal(SIGTERM,SIG_DFL);
 	}
+
+	if (onion->hooks){
+		for(int i=0;i<__OH_LAST; i++){
+			onion_hook_slot *hookd;
+			onion_ptr_list *l=onion->hooks[i];
+			while(l){
+				hookd=l->ptr;
+				if (hookd->freef)
+					hookd->freef(hookd->userdata);
+				l=l->next;
+			}
+			onion_ptr_list_free(onion->hooks[i]);
+			onion_low_free(onion->hooks);
+		}
+	}
+
 	last_onion=NULL;
 	onion_low_free(onion);
 }
@@ -911,4 +938,99 @@ void onion_set_max_file_size(onion *server, size_t max_size){
 void onion_set_session_backend(onion *server, onion_sessions *sessions_backend){
 	onion_sessions_free(server->sessions);
 	server->sessions=sessions_backend;
+}
+
+/**
+ * @short Adds a hook to the middleware and hook points.
+ *
+ * These hooks are called whenever any request achieves the onion_hook_e points.
+ *
+ * The called handler has the same format as request handlers, but should only
+ * be used to modify the request (for example set PUT mode: file or mem), or
+ * Logging.
+ *
+ * Nothing prevents to do full request response cycle here, but its easier to
+ * do it at the proper request handler.
+ *
+ * The handler can return OCS_CONTINUE to continue as normal, or any other value
+ * to stop the request to go further with that value. For example OCS_PROCESSED
+ * indicates that this request should be tought as processed, and it can
+ * be discarded. OCS_INTERNAL_ERROR would return an 500 and so on.
+ * OCS_NOT_PROCESSED is the same as OCS_CONTINUE.
+ *
+ * @param server The onion server
+ * @param hook Hook id
+ * @param handler The handler that will be called at such point
+ * @param userdata Data passed as first parameter at handler
+ * @param free_userdata Function to free the user data
+ *
+ * @returns Hook description, used to remove it later.
+ */
+int onion_hook_add(
+			onion *server, onion_hook hook, onion_handler_handler handler,
+			void *userdata, onion_handler_private_data_free freef){
+	if (hook<0 || hook >= __OH_LAST){
+		ONION_WARNING("Trying to set an unknown hook: %d", hook);
+		return -1;
+	}
+	if (!server->hooks){
+		server->hooks=onion_low_calloc(__OH_LAST, sizeof(onion_ptr_list*)); // Empty lists are NULL, so no need for new
+	}
+
+	onion_hook_slot *hookd=onion_low_calloc(1, sizeof(onion_hook_slot));
+	hookd->id=server->hooks_maxid++;
+	hookd->handler=handler;
+	hookd->userdata=userdata;
+	hookd->freef=freef;
+	server->hooks[hook]=onion_ptr_list_add( server->hooks[hook], hookd );
+
+	return hookd->id;
+}
+
+/**
+ * @short Removes a hook by id
+ *
+ * At onion free all hooks are properly removed, but before exit they can
+ * individually be removed.
+ *
+ * WARNING: This operation IS NOT THREAD SAFE. User can not expect it to
+ * work if handling requests and removing hooks at the same time. Server should
+ * stop listening, remove the hook and listen again.
+ *
+ * @returns If any hook was removed or not
+ */
+bool onion_hook_remove(onion *server, int hook_id){
+	for(int i=0;i<__OH_LAST;i++){
+		onion_ptr_list *l=server->hooks[i];
+		while(l){
+			onion_hook_slot *hookd=l->ptr;
+			if (hookd->id==hook_id){
+				if (hookd->freef)
+					hookd->freef(hookd->userdata);
+				onion_low_free(l->ptr);
+				server->hooks[i]=onion_ptr_list_remove(server->hooks[i], l->ptr);
+				return true;
+			}
+			l=l->next;
+		}
+	}
+	return false;
+}
+
+// Run all hooks, or until !OCS_CONTINUE.
+onion_connection_status onion_hook_run(onion *server, onion_hook hook, onion_request *req, onion_response *res){
+	if (!server->hooks)
+		return OCS_CONTINUE;
+	onion_hook_slot *hookd;
+	onion_ptr_list *l=server->hooks[hook];
+	while(l){
+		hookd=l->ptr;
+		if (hookd->handler){
+			onion_connection_status ret = hookd->handler(hookd->userdata, req, res);
+			if (ret!=OCS_CONTINUE)
+				return ret;
+		}
+		l=l->next;
+	}
+	return OCS_CONTINUE;
 }

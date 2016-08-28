@@ -88,6 +88,17 @@ void onion_ptr_list_foreach(onion_ptr_list* l, void (*f)(void *)){
 }
 
 /**
+ * @short Executes a function on all ptrs with some extra data
+ * @ingroup ptr_list
+ */
+void onion_ptr_list_foreach_with_data(onion_ptr_list *l, void (*f)(void *data, void *ptr), void *data){
+	while(l){
+		f(data, l->ptr);
+		l=l->next;
+	}
+}
+
+/**
  * @short Executes a function on all ptrs with some extra data, leaving only those that return true
  * @ingroup ptr_list
  *
