@@ -110,6 +110,8 @@ void onion_response_finish(onion_response *res);
 void onion_response_set_header(onion_response *res, const char *key, const char *value);
 /// Sets the header length. Normally it should be through set_header, but as its very common and needs some procesing here is a shortcut
 void onion_response_set_length(onion_response *res, size_t length);
+/// Gets how many data was really written so far
+ssize_t onion_response_get_length(onion_response *res);
 /// Sets the return code
 void onion_response_set_code(onion_response *res, int code);
 /// Gets the headers dictionary

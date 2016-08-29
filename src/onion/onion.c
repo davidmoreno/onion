@@ -323,11 +323,12 @@ void onion_free(onion *onion){
 				hookd=l->ptr;
 				if (hookd->freef)
 					hookd->freef(hookd->userdata);
+				onion_low_free(hookd);
 				l=l->next;
 			}
 			onion_ptr_list_free(onion->hooks[i]);
-			onion_low_free(onion->hooks);
 		}
+		onion_low_free(onion->hooks);
 	}
 
 	last_onion=NULL;
@@ -1027,6 +1028,7 @@ onion_connection_status onion_hook_run(onion *server, onion_hook hook, onion_req
 		hookd=l->ptr;
 		if (hookd->handler){
 			onion_connection_status ret = hookd->handler(hookd->userdata, req, res);
+			ONION_DEBUG0("Run hook %d, %p -> %d", hook, hookd->handler, ret);
 			if (ret!=OCS_CONTINUE)
 				return ret;
 		}

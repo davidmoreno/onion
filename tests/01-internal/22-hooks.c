@@ -17,29 +17,42 @@
 	*/
 
 #include "../ctest.h"
-#include <onion.h>
+#include <onion/onion.h>
+#include <onion/response.h>
+#include <onion/request.h>
+#include <onion/log.h>
+#include "buffer_listen_point.h"
 
+int ncalls=0;
 /// Very basic log of request
 onion_connection_status log_request(void *_, onion_request *req, onion_response *res){
   const char *method_str=onion_request_methods[onion_request_get_flags(req) & OR_METHODS];
-  size_t length=-1; // Need something like onion_response_length(res) and response quering in general
+  size_t length=onion_response_get_length(res);
   ONION_INFO("%s %d bytes", method_str, length);
-  return OCS_OK; // Other code may close connection
+  ncalls++;
+  return OCS_CONTINUE; // Other code may close connection
+}
+/// Very basic log of request
+onion_connection_status log_request_before(void *_, onion_request *req, onion_response *res){
+  const char *method_str=onion_request_methods[onion_request_get_flags(req) & OR_METHODS];
+  ONION_INFO("Before parse %s %s", method_str, onion_request_get_fullpath(req));
+  ncalls++;
+  return OCS_CONTINUE; // Other code may close connection
 }
 
 /// Adds an extra header to response
 onion_connection_status extra_header(void *kv_, onion_request *req, onion_response *res){
   const char **kv=(const char **)kv_;
-  onion_response_add_header(res, kv[0], kv[1]);
-  return OCS_OK; // Other code may close connection
+  onion_response_set_header(res, kv[0], kv[1]);
+  return OCS_CONTINUE; // Other code may close connection
 }
 
 /// Change flag dynamically after knowing the method
-onion_connection_status method_ready(void, *_, onion_request *req, onion_response *res){
-  if (onion_request_get_method(req)==PUT){
+onion_connection_status method_ready(void *_, onion_request *req, onion_response *res){
+  if ((onion_request_get_flags(req)&OR_METHODS)==OR_PUT){
     // onion_request_set_flag(req, OF_PUT_INTO_FILE); // Needs this functionality
   }
-  return OCS_OK; // Other code may close connection
+  return OCS_CONTINUE; // Other code may close connection
 }
 
 void t01_hooks_api(){
@@ -47,15 +60,17 @@ void t01_hooks_api(){
 
   onion *o=onion_new(O_POOL);
 
-  int log_request_id=onion_hook_add(OH_AFTER_REQUEST_HANDLER, log_request, NULL, NULL);
-  int extra_headers_id=onion_hook_add(OH_AFTER_REQUEST_HANDLER, extra_header, [ "Extra-Header", "OK" ], NULL);
+  int log_request_id=onion_hook_add(o, OH_AFTER_REQUEST_HANDLER, log_request, NULL, NULL);
+  const char *kv[2]={ "Extra-Header", "OK" };
+  int extra_headers_id=onion_hook_add(o, OH_AFTER_REQUEST_HANDLER, extra_header, kv, NULL);
 
-  int method_ready_id=onion_hook_add(OH_ON_METHOD_READY, method_ready, NULL, NULL);
+  //int _method_ready_id=
+  onion_hook_add(o, OH_ON_METHOD_READY, method_ready, NULL, NULL);
 
   // onion_listen(o);
 
-  onion_hook_remove(log_request_id);
-  onion_hook_remove(extra_headers_id);
+  onion_hook_remove(o, log_request_id);
+  onion_hook_remove(o, extra_headers_id);
 
   // Of course at onion_free also freed all data.
   //onion_hook_remove(method_ready_id);
@@ -64,10 +79,44 @@ void t01_hooks_api(){
   END_LOCAL();
 }
 
+void t02_hooks_calls(){
+  onion *server=onion_new(0);
+
+  ncalls=0;
+  onion_hook_add(server, OH_ON_METHOD_READY, log_request_before, NULL, NULL);
+  onion_hook_add(server, OH_ON_HEADERS_READY, log_request_before, NULL, NULL);
+  onion_hook_add(server, OH_BEFORE_REQUEST_HANDLER, log_request_before, NULL, NULL);
+  onion_hook_add(server, OH_AFTER_REQUEST_HANDLER, log_request, NULL, NULL);
+  onion_hook_add(server, OH_AFTER_REQUEST_HANDLER, log_request, NULL, NULL);
+  onion_hook_add(server, OH_AFTER_REQUEST_HANDLER, log_request, NULL, NULL);
+
+  onion_url *urls=onion_root_url(server);
+  onion_url_add_static(urls, "/", "OK", 200);
+
+  onion_listen_point *lp=onion_buffer_listen_point_new();
+  onion_add_listen_point(server,NULL,NULL,lp);
+
+  onion_request *req=onion_request_new(lp);
+  onion_connection_status rs=onion_request_write(req, "GET /\n\n", 8);
+  FAIL_IF_NOT_EQUAL_INT(rs, OCS_REQUEST_READY);
+  onion_request_process(req);
+
+  const char *buffer=onion_buffer_listen_point_get_buffer_data(req);
+
+  FAIL_IF_EQUAL_STR(buffer,"");
+  FAIL_IF_NOT_STRSTR(buffer,"404");
+
+  onion_request_free(req);
+  onion_free(server);
+
+  FAIL_IF_NOT_EQUAL_INT(ncalls, 6);
+}
+
 int main(int argc, char **argv){
   START();
 
   t01_hooks_api();
+  t02_hooks_calls();
 
   END();
 }

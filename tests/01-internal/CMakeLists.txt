@@ -127,3 +127,7 @@ endif(SQLITE3_ENABLED)
 add_executable(21-version 21-version.c)
 target_link_libraries(21-version onion)
 add_test(version 21-version)
+
+add_executable(22-hooks 22-hooks.c buffer_listen_point.c)
+target_link_libraries(22-hooks onion)
+add_test(hooks 22-hooks)

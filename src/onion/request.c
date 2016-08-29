@@ -566,11 +566,6 @@ onion_connection_status onion_request_process(onion_request *req){
 	// Call the main handler.
 	onion_connection_status hs=onion_handler_handle(req->connection.listen_point->server->root_handler, req, res);
 
-
-	hook_result=onion_hook_run(req->connection.listen_point->server, OH_AFTER_REQUEST_HANDLER, req, req->response);
-	if ( hook_result != OCS_CONTINUE )
-		return hook_result;
-
 	if (hs==OCS_INTERNAL_ERROR ||
 		hs==OCS_NOT_IMPLEMENTED ||
 		hs==OCS_NOT_PROCESSED){
@@ -596,6 +591,10 @@ onion_connection_status onion_request_process(onion_request *req){
 	}
 
 	onion_response_finish(res);
+
+	hook_result=onion_hook_run(req->connection.listen_point->server, OH_AFTER_REQUEST_HANDLER, req, req->response);
+	if ( hook_result != OCS_CONTINUE )
+		return hook_result;
 
 	bool keep_alive=onion_response_keep_alive(res);
 	if ((onion_log_flags & OF_NOINFO)!=OF_NOINFO){

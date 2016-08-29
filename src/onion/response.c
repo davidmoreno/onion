@@ -250,6 +250,15 @@ void onion_response_set_length(onion_response *res, size_t len){
 }
 
 /**
+ * @short Returns how many bytes were already sent
+ * @memberof onion_response_t
+ * @ingroup response
+ */
+ssize_t onion_response_get_length(onion_response *res){
+	return res->sent_bytes;
+}
+
+/**
  * @short Sets the return code
  * @memberof onion_response_t
  * @ingroup response

@@ -56,9 +56,15 @@ onion_ptr_list* onion_ptr_list_remove(onion_ptr_list* l, void* ptr)
 {
 	if (!l)
 		return l;
-	if (ptr==l->ptr)
-		return l->next;
-	return onion_ptr_list_remove(l, ptr);
+
+	if (l->ptr==ptr){
+		onion_ptr_list *next=l->next;
+		onion_low_free(l);
+		return next;
+	}
+
+	l->next=onion_ptr_list_remove(l->next, ptr);
+	return l;
 }
 
 /**
