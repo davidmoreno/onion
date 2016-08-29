@@ -37,6 +37,7 @@
 #include "low.h"
 #include "ptr_list.h"
 #include "utils.h"
+#include "onion.h"
 
 /**
  * @short Known token types. This is merged with onion_connection_status as return value at token readers.

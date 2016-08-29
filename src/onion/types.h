@@ -326,12 +326,12 @@ typedef onion_connection_status (*onion_websocket_callback_t)(void *privdata, on
  * This is the list of all hook points.
  */
 enum onion_hook_e{
-	OH_ON_HEADERS_READY,
 	OH_ON_METHOD_READY,
+	OH_ON_HEADERS_READY,
 	OH_BEFORE_REQUEST_HANDLER,
 	OH_AFTER_REQUEST_HANDLER,
-	OH_CLOSE_CONNECTION,
-	OH_TIMEOUT,
+	OH_ON_CLOSE_CONNECTION,
+	//OH_TIMEOUT,
 
 	__OH_LAST, // Marker for last hook
 };

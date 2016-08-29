@@ -71,6 +71,7 @@ onion_request *onion_request_new(onion_listen_point *op){
 
 	req->connection.listen_point=op;
 	req->connection.fd=-1;
+	req->response=onion_response_new(req);
 
 	//req->connection=con;
 	req->headers=onion_dict_new();
@@ -158,6 +159,9 @@ void onion_request_free(onion_request *req){
 		onion_ptr_list_foreach(req->free_list, onion_low_free);
 		onion_ptr_list_free(req->free_list);
 	}
+	if (req->response){
+		onion_response_free(req->response);
+	}
 	onion_low_free(req);
 }
 
@@ -222,6 +226,7 @@ void onion_request_clean(onion_request* req){
 		onion_ptr_list_free(req->free_list);
 		req->free_list=NULL;
 	}
+	onion_response_clean(req->response);
 }
 
 
@@ -549,7 +554,7 @@ const onion_block *onion_request_get_data(onion_request *req){
  * @returns The connection status: if it should be closed, error codes...
  */
 onion_connection_status onion_request_process(onion_request *req){
-	onion_response *res=onion_response_new(req);
+	onion_response *res=req->response;
 	if (!req->path){
 		onion_request_polish(req);
 	}
@@ -579,10 +584,25 @@ onion_connection_status onion_request_process(onion_request *req){
 
 		return hs;
 	}
-	int rs=onion_response_free(res);
-	if (hs>=0 && rs==OCS_KEEP_ALIVE) // if keep alive, reset struct to get the new petition.
-		onion_request_clean(req);
-	return hs>0 ? rs : hs;
+
+	onion_response_finish(res);
+
+	bool keep_alive=onion_response_keep_alive(res);
+	if ((onion_log_flags & OF_NOINFO)!=OF_NOINFO){
+		ONION_INFO("[%s] \"%s %s\" %d %d (%s)", onion_request_get_client_description(req),
+							onion_request_methods[req->flags&OR_METHODS],
+						req->fullpath, res->code, res->sent_bytes,
+						(keep_alive) ? "Keep-Alive" : "Close connection");
+	}
+
+	if (hs>=0){
+		if (keep_alive){ // if keep alive, reset struct to get the new petition.
+			onion_request_clean(req);
+			return OCS_KEEP_ALIVE;
+		}
+		hs = OCS_CLOSE_CONNECTION;
+	}
+	return hs;
 }
 
 /**

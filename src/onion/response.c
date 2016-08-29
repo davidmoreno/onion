@@ -55,6 +55,7 @@ pthread_rwlock_t onion_response_date_lock=PTHREAD_RWLOCK_INITIALIZER;
 #endif
 #endif
 
+static void onion_response_set_default_headers(onion_response *res);
 
 /**
  * @short Generates a new response object
@@ -88,6 +89,26 @@ onion_response *onion_response_new(onion_request *req){
 	res->sent_bytes_total=res->length=res->sent_bytes=0;
 	res->buffer_pos=0;
 
+	onion_response_set_default_headers(res);
+
+	return res;
+}
+
+/**
+ * @short Clean the response for reuse.
+ */
+void onion_response_clean(onion_response *res){
+	onion_dict_free(res->headers);
+	res->headers=onion_dict_new();
+	res->code=200; // The most normal code, so no need to overwrite it in other codes.
+	res->flags=0;
+	res->sent_bytes_total=res->length=res->sent_bytes=0;
+	res->buffer_pos=0;
+
+	onion_response_set_default_headers(res);
+}
+
+static void onion_response_set_default_headers(onion_response *res){
 #ifndef DONT_USE_DATE_HEADER
 	{
 		time_t t;
@@ -139,8 +160,6 @@ onion_response *onion_response_new(onion_request *req){
 	onion_dict_add(res->headers, "Content-Type", "text/html", 0); // Maybe not the best guess, but really useful.
 	//time_t t=time(NULL);
 	//onion_dict_add(res->headers, "Date", asctime(localtime(&t)), OD_DUP_VALUE);
-
-	return res;
 }
 
 /**
@@ -148,13 +167,11 @@ onion_response *onion_response_new(onion_request *req){
  * @memberof onion_response_t
  * @ingroup response
  *
- * This function returns the close status: OR_KEEP_ALIVE or OR_CLOSE_CONNECTION as needed.
- *
- * @returns Whether the connection should be closed or not, or an error status to be handled by server.
  * @see onion_connection_status
  */
-onion_connection_status onion_response_free(onion_response *res){
-	// write pending data.
+void onion_response_finish(onion_response *res){	// write pending data.
+	if (res->flags&OR_FINISHED)
+		return;
 	if (!(res->flags&OR_HEADER_SENT) && res->buffer_pos<sizeof(res->buffer))
 		onion_response_set_length(res, res->buffer_pos);
 
@@ -167,40 +184,50 @@ onion_connection_status onion_response_free(onion_response *res){
 	if (res->flags&OR_CHUNKED){ // Set the chunked data end.
 		req->connection.listen_point->write(req, "0\r\n\r\n",5);
 	}
+	res->flags|=OR_FINISHED;
+}
 
-	int r=OCS_CLOSE_CONNECTION;
-
-	// it is a rare ocasion that there is no request, but although unlikely, it may happen
-	if (req){
-		// keep alive only on HTTP/1.1.
-		ONION_DEBUG0("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d==%d || [chunked] %d)",
-								onion_request_keep_alive(req),
-								res->flags&OR_SKIP_CONTENT,res->length, res->sent_bytes, res->flags&OR_CHUNKED);
-		if ( onion_request_keep_alive(req) &&
-				 ( res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes || res->flags&OR_CHUNKED )
-			 )
-			r=OCS_KEEP_ALIVE;
-
-		if ((onion_log_flags & OF_NOINFO)!=OF_NOINFO)
-			// FIXME! This is no proper logging at all. Maybe use a handler.
-			ONION_INFO("[%s] \"%s %s\" %d %d (%s)", onion_request_get_client_description(res->request),
-								onion_request_methods[res->request->flags&OR_METHODS],
-							res->request->fullpath, res->code, res->sent_bytes,
-							(r==OCS_KEEP_ALIVE) ? "Keep-Alive" : "Close connection");
-	}
+void onion_response_free(onion_response *res){
 
 	onion_dict_free(res->headers);
 	onion_low_free(res);
-
-	return r;
 }
 
+/**
+ * @short Returns if response allows to keep alive
+ *
+ * Both the request and response must allow keep alive.
+ *
+ * On the request side it boilds down to that if the client has enought
+ * information to know all data has been received.
+ *
+ * @see onion_request_keep_alive
+ */
+bool onion_response_keep_alive(onion_response *res){
+	bool keep_alive=false;
+
+	onion_request *req=res->request;
+	// keep alive only on HTTP/1.1.
+	ONION_DEBUG0("keep alive [req wants] %d && ([skip] %d || [lenght ok] %d==%d || [chunked] %d)",
+							onion_request_keep_alive(req),
+							res->flags&OR_SKIP_CONTENT,res->length, res->sent_bytes, res->flags&OR_CHUNKED);
+	if ( onion_request_keep_alive(req) && res->flags&OR_FINISHED &&
+			 ( res->flags&OR_SKIP_CONTENT || res->length==res->sent_bytes || res->flags&OR_CHUNKED )
+		 )
+		keep_alive=true;
+
+	return keep_alive;
+}
 /**
  * @short Adds a header to the response object
  * @memberof onion_response_t
  * @ingroup response
  */
 void onion_response_set_header(onion_response *res, const char *key, const char *value){
+	if (res->flags&OR_FINISHED){
+		ONION_WARNING("Trying to set more headers on a finished response. Check your code.");
+		return;
+	}
 	ONION_DEBUG0("Adding header %s = %s", key, value);
 	onion_dict_add(res->headers, key, value, OD_DUP_ALL|OD_REPLACE); // DUP_ALL not so nice on memory side...
 }
@@ -266,6 +293,10 @@ static void write_header(onion_response *res, const char *key, const char *value
  * @returns 0 if should procced to normal data write, or OR_SKIP_CONTENT if should not write content.
  */
 int onion_response_write_headers(onion_response *res){
+	if (res->flags&OR_FINISHED){
+		ONION_WARNING("Trying to set more headers on a finished response. Check your code.");
+		return -1;
+	}
 	if (!res->request){
 		ONION_ERROR("Bad formed response. Need a request at creation. Will not write headers.");
 		return -1;
@@ -337,6 +368,10 @@ int onion_response_write_headers(onion_response *res){
  * @returns The bytes written, normally just length. On error returns OCS_CLOSE_CONNECTION.
  */
 ssize_t onion_response_write(onion_response *res, const char *data, size_t length){
+	if (res->flags&OR_FINISHED){
+		ONION_WARNING("Trying write more data on a finished response. Check your code.");
+		return -1;
+	}
 	if (res->flags&OR_SKIP_CONTENT){
 		if (!(res->flags&OR_HEADER_SENT)){ // Automatic header write
 			onion_response_write_headers(res);
@@ -382,6 +417,10 @@ ssize_t onion_response_write(onion_response *res, const char *data, size_t lengt
  * on more cases.
  */
 int onion_response_flush(onion_response *res){
+	if (res->flags&OR_FINISHED){
+		ONION_WARNING("Trying to flush data at a finished response. Check your code.");
+		return -1;
+	}
 	res->sent_bytes+=res->buffer_pos;
 	res->sent_bytes_total+=res->buffer_pos;
 	if(res->buffer_pos==0) // Not used.
