@@ -761,6 +761,10 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
   ONION_DEBUG0("Got %d at KEY",res);
 
 	if ( res == NEW_LINE ){
+		onion_connection_status hook_result=onion_hook_run(req->connection.listen_point->server, OH_ON_HEADERS_READY, req, req->response);
+		if ( hook_result != OCS_CONTINUE )
+			return hook_result;
+
 		if ((req->flags&OR_METHODS)==OR_POST){
 			const char *content_type=onion_request_get_header(req, "Content-Type");
 			if (content_type && (strstr(content_type,"application/x-www-form-urlencoded") || strstr(content_type, "boundary")))
@@ -859,6 +863,10 @@ static onion_connection_status parse_headers_GET(onion_request *req, onion_buffe
 			break;
 		}
 	}
+	onion_connection_status hook_result=onion_hook_run(req->connection.listen_point->server, OH_ON_METHOD_READY, req, req->response);
+	if ( hook_result != OCS_CONTINUE )
+		return hook_result;
+
 	req->parser=parse_headers_URL;
 
 	return parse_headers_URL(req, data);

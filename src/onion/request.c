@@ -558,8 +558,18 @@ onion_connection_status onion_request_process(onion_request *req){
 	if (!req->path){
 		onion_request_polish(req);
 	}
+
+	onion_connection_status hook_result=onion_hook_run(req->connection.listen_point->server, OH_BEFORE_REQUEST_HANDLER, req, req->response);
+	if ( hook_result != OCS_CONTINUE )
+		return hook_result;
+
 	// Call the main handler.
 	onion_connection_status hs=onion_handler_handle(req->connection.listen_point->server->root_handler, req, res);
+
+
+	hook_result=onion_hook_run(req->connection.listen_point->server, OH_AFTER_REQUEST_HANDLER, req, req->response);
+	if ( hook_result != OCS_CONTINUE )
+		return hook_result;
 
 	if (hs==OCS_INTERNAL_ERROR ||
 		hs==OCS_NOT_IMPLEMENTED ||
@@ -601,6 +611,11 @@ onion_connection_status onion_request_process(onion_request *req){
 			return OCS_KEEP_ALIVE;
 		}
 		hs = OCS_CLOSE_CONNECTION;
+	}
+	if (hs == OCS_CLOSE_CONNECTION){
+		hook_result=onion_hook_run(req->connection.listen_point->server, OH_ON_CLOSE_CONNECTION, req, req->response);
+		if ( hook_result != OCS_CONTINUE )
+			return hook_result;
 	}
 	return hs;
 }
