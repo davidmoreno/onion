@@ -295,3 +295,10 @@ We try hard to keep binary compatibility, but sometimes its hard. Here is a list
 
 * Onion object private flags have moved. If on your code you rely on them, must recompile. If
   dont rely on them, everything should keep working.
+
+### 0.9.0
+
+* PUT used to be saved directly into a file; now by default goes into memory, as
+  `onion_block onion_request_data(req)`, but can be changed globally at
+  `onion_new(...|O_PUT_TO_FILE)` or at `OH_ON_HEADERS_READY` hook with
+  `onion_request_set_flags(onion_request_get_flags(req) | O_PUT_TO_FILE)`.

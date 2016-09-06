@@ -258,6 +258,17 @@ onion_request_flags onion_request_get_flags(onion_request *req){
 }
 
 /**
+ * @short Sets the current flags, as in onion_request_flags_e
+ * @memberof onion_request_t
+ * @ingroup request
+ *
+ * Normally used at OH_ON_METHOD_READY or OH_ON_HEADERS_READY hooks
+ */
+void onion_request_set_flags(onion_request *req, onion_request_flags flags){
+	req->flags=flags;
+}
+
+/**
  * @short  Moves the pointer inside fullpath to this new position, relative to current path.
  * @memberof onion_request_t
  * @ingroup request

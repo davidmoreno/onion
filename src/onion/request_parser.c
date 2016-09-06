@@ -770,8 +770,12 @@ static onion_connection_status parse_headers_KEY(onion_request *req, onion_buffe
 			if (content_type && (strstr(content_type,"application/x-www-form-urlencoded") || strstr(content_type, "boundary")))
 				return prepare_POST(req);
 		}
-		if ((req->flags&OR_METHODS)==OR_PUT)
-			return prepare_PUT(req);
+		// Will send to file if perserver send to file, or per request send to file
+		if (((req->flags&OR_METHODS)==OR_PUT) &&
+					((req->flags&OR_PUT_TO_FILE) ||
+					 (req->connection.listen_point->server->flags&O_PUT_TO_FILE))
+				)
+					return prepare_PUT(req);
 		if (onion_request_get_header(req, "Content-Length")){ // Some length, not POST, get data.
 			int n=atoi(onion_request_get_header(req, "Content-Length"));
 			if (n>0)

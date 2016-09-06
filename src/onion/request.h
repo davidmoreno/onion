@@ -60,6 +60,7 @@ enum onion_request_flags_e{
 	/// Server flags are at 0x0F00.
 	OR_NO_KEEP_ALIVE=0x0100,
   OR_HEADER_SENT_=0x0200,  ///< Dup name from onion_response_flags, same meaning.
+  OR_PUT_TO_FILE=0x0400, ///< Since 0.9 by default PUT sets the content into a memory block , but can be changed at OH_ON_HEADERS_READY hook, or globally at onion_new.
 
 	/// Errors at 0x0F000.
 	OR_INTERNAL_ERROR=0x01000,
@@ -96,6 +97,9 @@ const char *onion_request_get_fullpath(onion_request *req);
 
 /// Gets the current flags, as in onion_request_flags_e
 onion_request_flags onion_request_get_flags(onion_request *req);
+
+/// Sets the current flags, as in onion_request_flags_e
+void onion_request_set_flags(onion_request *req, onion_request_flags flags);
 
 /// Moves the path pointer to later in the fullpath
 void onion_request_advance_path(onion_request *req, off_t addtopos);
