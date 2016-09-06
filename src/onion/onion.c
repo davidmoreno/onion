@@ -970,7 +970,7 @@ void onion_set_session_backend(onion *server, onion_sessions *sessions_backend){
 int onion_hook_add(
 			onion *server, onion_hook hook, onion_handler_handler handler,
 			void *userdata, onion_handler_private_data_free freef){
-	if (hook<0 || hook >= __OH_LAST){
+	if (hook >= __OH_LAST){
 		ONION_WARNING("Trying to set an unknown hook: %d", hook);
 		return -1;
 	}
