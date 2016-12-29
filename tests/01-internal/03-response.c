@@ -138,22 +138,27 @@ void t04_cookies(){
 
 	onion_response *res=onion_response_new(NULL);
 	onion_dict *h=onion_response_get_headers(res);
+	bool ok;
 
-	onion_response_add_cookie(res, "key1", "value1", -1, NULL, NULL, 0);
+	ok = onion_response_add_cookie(res, "key1", "value1", -1, NULL, NULL, 0);
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key1=value1");
+	FAIL_IF_NOT_EQUAL(ok, true);
 
 	onion_dict_remove(h, "Set-Cookie");
-	onion_response_add_cookie(res, "key2", "value2", -1, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	ok = onion_response_add_cookie(res, "key2", "value2", -1, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key2=value2; path=/; domain=*.example.org; HttpOnly; Secure");
+	FAIL_IF_NOT_EQUAL(ok, true);
 
 	onion_dict_remove(h, "Set-Cookie");
-	onion_response_add_cookie(res, "key3", "value3", 0, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	ok = onion_response_add_cookie(res, "key3", "value3", 0, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
 	FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key3=value3; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=*.example.org; HttpOnly; Secure");
+	FAIL_IF_NOT_EQUAL(ok, true);
 
 	onion_dict_remove(h, "Set-Cookie");
-	onion_response_add_cookie(res, "key4", "value4", 60, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	ok = onion_response_add_cookie(res, "key4", "value4", 60, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
 	FAIL_IF_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key4=value4; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=*.example.org; HttpOnly; Secure");
 	FAIL_IF_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key4=value4; domain=*.example.org; HttpOnly; path=/; Secure");
+	FAIL_IF_NOT_EQUAL(ok, true);
 
 	int i;
 	int valid_expires=0;
@@ -169,6 +174,20 @@ void t04_cookies(){
 			valid_expires=1;
 	}
 	FAIL_IF_NOT(valid_expires);
+
+	// cookie too long
+	onion_dict_remove(h, "Set-Cookie");
+	const int long_value_len=1024*8;
+	char *long_value=malloc(long_value_len);
+	for(i=0;i<long_value_len;i++){
+		long_value[i]='a';
+	}
+	long_value[long_value_len-1]=0;
+	ok = onion_response_add_cookie(res, "key5", long_value, 60, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE);
+	FAIL_IF_NOT_EQUAL(ok, false);
+	FAIL_IF_NOT_EQUAL(onion_dict_get(h, "Set-Cookie"), NULL); // cookie not set
+
+	free(long_value);
 
 	onion_response_free(res);
 

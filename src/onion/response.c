@@ -591,11 +591,15 @@ onion_dict *onion_response_get_headers(onion_response *res){
  * @param Domain Cookie valid only for this domain (www.example.com, or *.example.com).
  * @param flags Flags from onion_cookie_flags_t, for example OC_SECURE or OC_HTTP_ONLY
  *
+ * @returns boolean indicating succesfully added the cookie or not.
  *
  * If validity is 0, cookie is set to expire right now.
+ *
+ * If the cookie is too long (all data > 4096), it is not added. A warning is
+ * emmited and returns false.
  */
-void onion_response_add_cookie(onion_response *res, const char *cookiename, const char *cookievalue, time_t validity_t, const char *path, const char *domain, int flags){
-	char data[512];
+bool onion_response_add_cookie(onion_response *res, const char *cookiename, const char *cookievalue, time_t validity_t, const char *path, const char *domain, int flags){
+	char data[4096];
 	int pos;
 	pos=snprintf(data,sizeof(data),"%s=%s",cookiename, cookievalue);
 	if (validity_t==0)
@@ -615,6 +619,13 @@ void onion_response_add_cookie(onion_response *res, const char *cookiename, cons
 	if (flags&OC_SECURE)
 		pos+=snprintf(data+pos, sizeof(data)-pos, "; Secure");
 
+	if (pos>=sizeof(data)){
+		ONION_WARNING("Cookie too long to be constructed. Not added to response.");
+		return false;
+	}
+
 	onion_response_set_header(res, "Set-Cookie",data);
 	ONION_DEBUG("Set cookie %s", data);
+
+	return true;
 }
