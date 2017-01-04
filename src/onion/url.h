@@ -43,7 +43,7 @@ int onion_url_add(onion_url *url, const char *regexp, void *handler_f);
 int onion_url_add_with_data(onion_url *url, const char *regexp, void *handler_f, void *data, void *datafree);
 /// Adds a handler, using handler methods
 int onion_url_add_handler(onion_url *url, const char *regexp, onion_handler *handler);
-/// Addsa another url on this regexp
+/// Adds another url on this regexp
 int onion_url_add_url(onion_url *url, const char *regexp, onion_url *handler);
 /// Adds a simple handler, it has static data and a default return code
 int onion_url_add_static(onion_url *url, const char *regexp, const char *text, int http_code);
