@@ -28,41 +28,42 @@
 
 #include <onion/shortcuts.h>
 
-using namespace Onion;
+namespace Onion{
+	namespace Shortcuts{
+		Handler static_file(const std::string& path)
+		{
+			return Handler::make<HandlerFunction>([path](Onion::Request &req, Onion::Response &res){
+				return onion_shortcut_response_file(path.c_str(), req.c_handler(), res.c_handler());
+			});
+		}
 
-Handler Shortcuts::static_file(const std::string& path)
-{
-	return Handler::make<HandlerFunction>([path](Onion::Request &req, Onion::Response &res){
-		return onion_shortcut_response_file(path.c_str(), req.c_handler(), res.c_handler()); 
-	});
+		Handler internal_redirect(const std::string& uri)
+		{
+			return Handler::make<HandlerFunction>([uri](Onion::Request &req, Onion::Response &res){
+				return onion_shortcut_internal_redirect(uri.c_str(), req.c_handler(), res.c_handler());
+			});
+		}
+
+		Handler redirect(const std::string& uri)
+		{
+			return new HandlerFunction([uri](Onion::Request &req, Onion::Response &res){
+				return onion_shortcut_redirect(uri.c_str(), req.c_handler(), res.c_handler());
+			});
+		}
+	}
+
+	Handler StaticHandler(const std::string &path)
+	{
+		return Shortcuts::static_file(path);
+	}
+
+	Handler InternalRedirectHandler(const std::string& uri)
+	{
+		return Shortcuts::internal_redirect(uri);
+	}
+
+	Handler RedirectHandler(const std::string& uri)
+	{
+		return Shortcuts::redirect(uri);
+	}
 }
-
-Handler Shortcuts::internal_redirect(const std::string& uri)
-{
-	return Handler::make<HandlerFunction>([uri](Onion::Request &req, Onion::Response &res){
-		return onion_shortcut_internal_redirect(uri.c_str(), req.c_handler(), res.c_handler());
-	});
-}
-
-Handler Shortcuts::redirect(const std::string& uri)
-{
-	return new HandlerFunction([uri](Onion::Request &req, Onion::Response &res){
-		return onion_shortcut_redirect(uri.c_str(), req.c_handler(), res.c_handler());
-	});
-}
-
-Handler StaticHandler(const std::string &path)
-{
-	return Shortcuts::static_file(path);
-}
-
-Handler InternalRedirectHandler(const std::string& uri)
-{
-	return Shortcuts::internal_redirect(uri);
-}
-
-Handler RedirectHandler(const std::string& uri)
-{
-	return Shortcuts::redirect(uri);
-}
-
