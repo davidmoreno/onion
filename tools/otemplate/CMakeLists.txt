@@ -1,6 +1,7 @@
 include_directories (${PROJECT_SOURCE_DIR}/src) 
 
 remove_definitions(-DHAVE_PTHREADS)
+remove_definitions(-DHAVE_OPENSSL)
 remove_definitions(-DHAVE_GNUTLS)
 
 add_executable(otemplate otemplate.c parser.c tags.c variables.c list.c functions.c tag_builtins.c load.c

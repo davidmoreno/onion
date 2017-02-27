@@ -14,7 +14,7 @@ int main(int argc, char*argv[]){
 	o.addListenPoint("localhost", "8080", Onion::HttpListenPoint());
 	o.addListenPoint("localhost", "8081", Onion::HttpListenPoint());
 
-#ifdef HAVE_GNUTLS
+#if defined(HAVE_GNUTLS) || defined(HAVE_OPENSSL)
 	Onion::HttpsListenPoint https;
 	https.setCertificate(O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
 	o.addListenPoint("localhost", "4443", std::move(https));

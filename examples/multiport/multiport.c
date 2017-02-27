@@ -23,8 +23,10 @@ int main(int argc, char **argv){
 	onion_set_root_handler(o, onion_handler_export_local_new("."));
 	onion_add_listen_point(o, "localhost", "8080", onion_http_new());
 	onion_add_listen_point(o, "localhost", "8081", onion_http_new());
-#ifdef HAVE_GNUTLS
-	onion_add_listen_point(o, "localhost", "4443", onion_https_new(O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key"));
+#if defined(HAVE_GNUTLS) || defined(HAVE_OPENSSL)
+	onion_listen_point *https = onion_https_new();
+	onion_https_set_certificate(https, O_SSL_CERTIFICATE_KEY, "cert.pem", "cert.key");
+	onion_add_listen_point(o, "localhost", "4443", https);
 #else
 	ONION_WARNING("HTTPS support is not enabled. Recompile with gnutls");
 #endif

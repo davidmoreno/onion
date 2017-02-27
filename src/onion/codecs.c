@@ -24,7 +24,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef HAVE_GNUTLS
+#if defined(HAVE_GNUTLS) || defined(HAVE_OPENSSL)
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 #if GNUTLS_VERSION_NUMBER < 0x020A00
@@ -385,7 +385,7 @@ char *onion_c_quote(const char *str, char *ret, int l){
  * @ingroup codecs
  */
 void onion_sha1(const char *data, int length, char *result){
-#ifndef HAVE_GNUTLS
+#if !defined(HAVE_GNUTLS) && !defined(HAVE_OPENSSL)
 	ONION_ERROR("Cant calculate SHA1 if gnutls is not compiled in! Aborting now");
 	exit(1);
 #else
