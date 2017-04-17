@@ -95,11 +95,24 @@ namespace Onion{
 	class HandlerMethod : public HandlerBase{
 	public:
 		typedef onion_connection_status (T::*fn_t)(Onion::Request&,Onion::Response&);
-	private:
+	protected:
 		T *obj;
 		fn_t fn;
 	public:
 		HandlerMethod(T *_obj, fn_t _fn) : obj(_obj), fn(_fn) {} ;
+
+		HandlerMethod(const HandlerMethod<T>& o)
+			: obj { o.obj }, fn { o.fn }
+		{
+		}
+
+		HandlerMethod<T>& operator=(const HandlerMethod<T>& o)
+		{
+			obj = o.obj;
+			fn = o.fn;
+			return *this;
+		}
+
 		virtual onion_connection_status operator()(Onion::Request &req, Onion::Response &res){
 			return (obj->*fn)(req, res);
 		}
