@@ -92,6 +92,11 @@ Required:
 * C compiler
 * cmake
 * make
+* One of:
+  - epoll (Linux)
+  - [libevent](http://libevent.org/) (Multiarch)
+  - [libev](https://github.com/enki/libev) (Multiarch)
+
 
 This compilers and minimum versions are known to work:
 
