@@ -232,6 +232,24 @@ void onion_response_set_code(onion_response *res, int  code){
 }
 
 /**
+ * @short Sets whether or not to allow the app to send additional headers
+ *
+ * If set to true the framework will not end the header section automatically,
+ * allowing the app to write additional headers on-the-fly. This also transfers
+ * responsibility for closing the headers section to the app.
+ *
+ * Use with caution, but can be convenient e.g. for proxying requests to CGI scripts.
+ *
+ * @memberof onion_response_t
+ */
+void onion_response_set_app_headers(onion_response *res, bool allow){
+	if (allow)
+		res->flags|=OR_APP_HEADERS;
+	else
+		res->flags&=~OR_APP_HEADERS;
+}
+
+/**
  * @short Helper that is called on each header, and writes the header
  * @memberof onion_response_t
  * @ingroup response
@@ -278,7 +296,7 @@ int onion_response_write_headers(onion_response *res){
 	if (res->request->flags&OR_HTTP11){
 		onion_response_printf(res, "HTTP/1.1 %d %s\r\n",res->code, onion_response_code_description(res->code));
 		//ONION_DEBUG("Response header: HTTP/1.1 %d %s\n",res->code, onion_response_code_description(res->code));
-		if (!(res->flags&OR_LENGTH_SET)  && onion_request_keep_alive(res->request)){
+		if (!(res->flags&OR_LENGTH_SET) && !(res->flags&OR_APP_HEADERS) && onion_request_keep_alive(res->request)){
 			onion_response_write(res, CONNECTION_CHUNK_ENCODING, sizeof(CONNECTION_CHUNK_ENCODING)-1);
 			chunked=1;
 		}
@@ -301,7 +319,8 @@ int onion_response_write_headers(onion_response *res){
 	if (res->request->session_id && (onion_dict_count(res->request->session)>0)) // I have session with something, tell user
 		onion_response_printf(res, "Set-Cookie: sessionid=%s; httponly; Path=/\n", res->request->session_id);
 
-	onion_response_write(res,"\r\n",2);
+	if (!(res->flags&OR_APP_HEADERS))
+		onion_response_write(res,"\r\n",2);
 
 	ONION_DEBUG0("Headers written");
 	res->sent_bytes=-res->buffer_pos; // the header size is not counted here. It will add again so start negative.
