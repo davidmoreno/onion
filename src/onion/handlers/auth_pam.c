@@ -21,6 +21,7 @@
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
