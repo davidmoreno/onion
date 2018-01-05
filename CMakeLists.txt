@@ -238,6 +238,12 @@ endif(JPEG_ENABLED)
 
 add_definitions(-DONION_VERSION="${ONION_VERSION}")
 
+# pkg-config
+include(GNUInstallDirs)
+configure_file("onion.pc.in" "onion.pc" @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/onion.pc"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+
 
 ##
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")

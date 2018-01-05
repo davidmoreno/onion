@@ -1,0 +1,9 @@
+libdir=@CMAKE_INSTALL_FULL_LIBDIR@
+includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+
+Name: @PROJECT_NAME@
+Description: Awesome C/C++ server http library
+Version: @VERSION@
+Libs: -L${libdir} -lonion
+Cflags: -I${includedir}
+Requires:@REQUIRES_LIBS@
