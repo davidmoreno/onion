@@ -55,9 +55,9 @@ private:
 #ifdef PNG_ENABLED
 /**
  * @short Calculates the given mandelbrot, and returns the PNG image
- * 
+ *
  * It can receive several query parameters, but all are optional:
- * 
+ *
  * * X, Y -- Top left complex area position
  * * W, H -- Width and Height of the complex area to show
  * * C -- 0 grayscale image , 1 - coloured image
@@ -97,7 +97,7 @@ int mandelbrotPNG(void *p, onion_request *req, onion_response *res){
 				if (z.lenlen() > steps)
 					break;
 			}
-			char P;
+			unsigned char P;
 			if (n >= steps) P=255;
 			else P=(n*256)/steps;
 
