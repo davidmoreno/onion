@@ -157,7 +157,7 @@ int mandelbrotJPEG(void *p, onion_request *req, onion_response *res){
 				if (z.lenlen() > steps)
 					break;
 			}
-			char P;
+			int P;
 			if (n >= steps) P=255;
 			else P=(n*256)/steps;
 
