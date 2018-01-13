@@ -98,7 +98,7 @@ int websocket_forge_small_packet(char **buffer){
 	char *buf = *buffer;
 	memset(*buffer, '\0', length);
 	buf[0]=0x81; // FIN flag to 1, opcode: 0x01; one message, of type text;
-	buf[1]=0x1 << 7; // MASK Flag to 1;
+	buf[1]=((char)(0x01 << 7)); // MASK Flag to 1;
 	buf[1]+=length-header_length; // length: 113 bytes of Data;
 	// Next 4 bytes: Masking-key
 	buf[2]=0xF2;
@@ -125,7 +125,7 @@ int websocket_forge_close_packet(char **buffer){
 	char *buf = *buffer;
 	memset(*buffer, '\0', length);
 	buf[0]=0x88; // FIN flag to 1, opcode: 0x08
-	buf[1]=0x1 << 7; // MASK Flag to 1;
+	buf[1]=((char)(0x01 << 7)); // MASK Flag to 1;
 	buf[1]+=length-header_length; // length: 2 bytes of Data;
 	// Next 4 bytes: Masking-key
 	buf[2]=0xF2;
