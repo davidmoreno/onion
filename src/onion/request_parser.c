@@ -640,7 +640,7 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *r
 	}
 
 	// Only interested in one header
-	if (strcmp(token->str,"Content-Disposition")==0){
+	if (strcasecmp(token->str,"Content-Disposition")==0){
 		req->parser=parse_POST_multipart_content_type;
 		return parse_POST_multipart_content_type(req,data);
 	}
