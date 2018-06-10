@@ -26,44 +26,41 @@
 #include <onion/request.h>
 #include <onion/block.h>
 
-static void oblp_onion_request_close(onion_request *req){
-	ONION_DEBUG("Free onion buffer listen point");
-	onion_block_free(req->connection.user_data);
+static void oblp_onion_request_close(onion_request * req) {
+  ONION_DEBUG("Free onion buffer listen point");
+  onion_block_free(req->connection.user_data);
 }
 
-ssize_t oblp_write_append(onion_request *a, const char *b, size_t size){
-	ONION_DEBUG("Write %d bytes.",size);
-	onion_block_add_data(a->connection.user_data,b,size);
-	return size;
+ssize_t oblp_write_append(onion_request * a, const char *b, size_t size) {
+  ONION_DEBUG("Write %d bytes.", size);
+  onion_block_add_data(a->connection.user_data, b, size);
+  return size;
 }
 
-static void oblp_listen(onion_listen_point *lp){
-	ONION_DEBUG("Empty listen for buffer listen point.");
-	return;
+static void oblp_listen(onion_listen_point * lp) {
+  ONION_DEBUG("Empty listen for buffer listen point.");
+  return;
 }
 
-static int oblp_onion_request_init(onion_request *req){
-	ONION_DEBUG("Empty init.");
-	req->connection.user_data=onion_block_new();
-	return 0;
+static int oblp_onion_request_init(onion_request * req) {
+  ONION_DEBUG("Empty init.");
+  req->connection.user_data = onion_block_new();
+  return 0;
 }
 
-const char* onion_buffer_listen_point_get_buffer_data(onion_request* req)
-{
-		return onion_block_data(req->connection.user_data);
+const char *onion_buffer_listen_point_get_buffer_data(onion_request * req) {
+  return onion_block_data(req->connection.user_data);
 }
 
-onion_block* onion_buffer_listen_point_get_buffer(onion_request* req)
-{
-		return req->connection.user_data;
+onion_block *onion_buffer_listen_point_get_buffer(onion_request * req) {
+  return req->connection.user_data;
 }
 
-onion_listen_point* onion_buffer_listen_point_new()
-{
-	onion_listen_point *lp=onion_http_new();
-	lp->request_init=oblp_onion_request_init;
-	lp->write=oblp_write_append;
-	lp->close=oblp_onion_request_close;
-	lp->listen=oblp_listen;
-	return lp;
+onion_listen_point *onion_buffer_listen_point_new() {
+  onion_listen_point *lp = onion_http_new();
+  lp->request_init = oblp_onion_request_init;
+  lp->write = oblp_write_append;
+  lp->close = oblp_onion_request_close;
+  lp->listen = oblp_listen;
+  return lp;
 }

@@ -25,7 +25,7 @@
 #include <string.h>
 #include <hiredis/hiredis.h>
 #ifdef HAVE_PTHREADS
-# include <pthread.h>
+#include <pthread.h>
 #endif
 
 #include "sessions.h"
@@ -38,147 +38,137 @@
 #include "low.h"
 
 typedef struct onion_session_redis_t {
-	redisContext* context;
+  redisContext *context;
 #ifdef HAVE_PTHREADS
-	pthread_mutex_t mutex;
+  pthread_mutex_t mutex;
 #endif
 } onion_session_redis;
 
-static void onion_sessions_redis_free(onion_sessions *sessions)
-{
-	ONION_DEBUG0("Free onion sessions redis");
-	onion_session_redis *p = sessions->data;
+static void onion_sessions_redis_free(onion_sessions * sessions) {
+  ONION_DEBUG0("Free onion sessions redis");
+  onion_session_redis *p = sessions->data;
 
 #ifdef HAVE_PTHREADS
-	pthread_mutex_destroy(&p->mutex);
+  pthread_mutex_destroy(&p->mutex);
 #endif
 
-	redisFree(p->context);
-	onion_low_free(sessions->data);
-	onion_low_free(sessions);
+  redisFree(p->context);
+  onion_low_free(sessions->data);
+  onion_low_free(sessions);
 }
 
-static onion_dict* onion_sessions_redis_get(onion_sessions* sessions, const char *session_id)
-{
-	onion_session_redis *p = sessions->data;
-	ONION_DEBUG0("Load session %s", session_id);
-	onion_dict *ret = NULL;
+static onion_dict *onion_sessions_redis_get(onion_sessions * sessions,
+                                            const char *session_id) {
+  onion_session_redis *p = sessions->data;
+  ONION_DEBUG0("Load session %s", session_id);
+  onion_dict *ret = NULL;
 
 #ifdef HAVE_PTHREADS
-	pthread_mutex_lock(&p->mutex);
+  pthread_mutex_lock(&p->mutex);
 #endif
 
-        // When commands are sent via redisCommand, they are interpolated by the library
-        // so it will avoid any type of command injection. No need to worry about sending
-        // the session_id directly to redis.
-	redisReply* reply = redisCommand(p->context, "HEXISTS SESSIONS %b", session_id, strlen(session_id));
+  // When commands are sent via redisCommand, they are interpolated by the library
+  // so it will avoid any type of command injection. No need to worry about sending
+  // the session_id directly to redis.
+  redisReply *reply =
+      redisCommand(p->context, "HEXISTS SESSIONS %b", session_id,
+                   strlen(session_id));
 
-	if(reply->type != REDIS_REPLY_INTEGER)
-	{
-		ONION_ERROR("Error getting session_id");
-		freeReplyObject(reply);
-		goto exit;
-	}
-	else
-	{
-		if(reply->integer == 1)
-		{
-			freeReplyObject(reply);
-			reply = redisCommand(p->context, "HGET SESSIONS %b", session_id, strlen(session_id));
+  if (reply->type != REDIS_REPLY_INTEGER) {
+    ONION_ERROR("Error getting session_id");
+    freeReplyObject(reply);
+    goto exit;
+  } else {
+    if (reply->integer == 1) {
+      freeReplyObject(reply);
+      reply =
+          redisCommand(p->context, "HGET SESSIONS %b", session_id,
+                       strlen(session_id));
 
-			if(reply->type != REDIS_REPLY_STRING)
-			{
-				ONION_ERROR("Error loading session.");
-				freeReplyObject(reply);
-				goto exit;
-			}
-			else
-			{
-				ret = onion_dict_from_json(reply->str);
-				freeReplyObject(reply);
-				goto exit;
-			}
-		}
-		else
-		{
-			ONION_DEBUG0("No session found. Returning NULL");
-			freeReplyObject(reply);
-			goto exit;
-		}
-	}
-exit:
+      if (reply->type != REDIS_REPLY_STRING) {
+        ONION_ERROR("Error loading session.");
+        freeReplyObject(reply);
+        goto exit;
+      } else {
+        ret = onion_dict_from_json(reply->str);
+        freeReplyObject(reply);
+        goto exit;
+      }
+    } else {
+      ONION_DEBUG0("No session found. Returning NULL");
+      freeReplyObject(reply);
+      goto exit;
+    }
+  }
+ exit:
 #ifdef HAVE_PTHREADS
-	pthread_mutex_unlock(&p->mutex);
+  pthread_mutex_unlock(&p->mutex);
 #endif
-	return ret;
+  return ret;
 }
 
-void onion_sessions_redis_save(onion_sessions *sessions, const char *session_id, onion_dict* data)
-{
-	onion_block *bl = onion_dict_to_json(data);
+void onion_sessions_redis_save(onion_sessions * sessions,
+                               const char *session_id, onion_dict * data) {
+  onion_block *bl = onion_dict_to_json(data);
 
-	ONION_DEBUG0("Save session %s: %s", session_id, onion_block_data(bl));
+  ONION_DEBUG0("Save session %s: %s", session_id, onion_block_data(bl));
 
-	onion_session_redis *p = sessions->data;
+  onion_session_redis *p = sessions->data;
 #ifdef HAVE_PTHREADS
-	pthread_mutex_lock(&p->mutex);
+  pthread_mutex_lock(&p->mutex);
 #endif
 
-	if(p == NULL)
-	{
-		redisReply* reply = redisCommand(p->context, "HDEL SESSIONS %b", session_id, strlen(session_id));
+  if (p == NULL) {
+    redisReply *reply = redisCommand(p->context, "HDEL SESSIONS %b", session_id,
+                                     strlen(session_id));
 
-		if(reply->type != REDIS_REPLY_INTEGER)
-		{
-			ONION_ERROR("Error removing session");
-		}
-		freeReplyObject(reply);
-	} else
-    {
-		const char* json = onion_block_data(bl);
-		redisReply* reply = redisCommand(p->context, "HSET SESSIONS %b %b", session_id, strlen(session_id), json, strlen(json));
+    if (reply->type != REDIS_REPLY_INTEGER) {
+      ONION_ERROR("Error removing session");
+    }
+    freeReplyObject(reply);
+  } else {
+    const char *json = onion_block_data(bl);
+    redisReply *reply =
+        redisCommand(p->context, "HSET SESSIONS %b %b", session_id,
+                     strlen(session_id), json, strlen(json));
 
-		if(reply->type != REDIS_REPLY_INTEGER)
-		{
-			ONION_ERROR("Error saving session");
-		}
-		freeReplyObject(reply);
-		onion_block_free(bl);
-	}
+    if (reply->type != REDIS_REPLY_INTEGER) {
+      ONION_ERROR("Error saving session");
+    }
+    freeReplyObject(reply);
+    onion_block_free(bl);
+  }
 
 #ifdef HAVE_PTHREADS
-	pthread_mutex_unlock(&p->mutex);
+  pthread_mutex_unlock(&p->mutex);
 #endif
-	return;
+  return;
 }
 
 /**
  * @short Creates a redis backend for sessions
  * @ingroup sessions
  */
-onion_sessions* onion_sessions_redis_new(const char* server_ip, int port)
-{
-	onion_random_init();
+onion_sessions *onion_sessions_redis_new(const char *server_ip, int port) {
+  onion_random_init();
 
-	onion_sessions *ret = onion_low_malloc(sizeof(onion_sessions));
-	ret->data = onion_low_malloc(sizeof(onion_session_redis));
-	ret->free=onion_sessions_redis_free;
-	ret->get=onion_sessions_redis_get;
-	ret->save=onion_sessions_redis_save;
+  onion_sessions *ret = onion_low_malloc(sizeof(onion_sessions));
+  ret->data = onion_low_malloc(sizeof(onion_session_redis));
+  ret->free = onion_sessions_redis_free;
+  ret->get = onion_sessions_redis_get;
+  ret->save = onion_sessions_redis_save;
 
-	onion_session_redis *p = ret->data;
-	p->context = redisConnect(server_ip, port);
+  onion_session_redis *p = ret->data;
+  p->context = redisConnect(server_ip, port);
 
-	if(p->context != NULL && p->context->err)
-	{
-		ONION_ERROR("Can't connect to redis. Error (%s)", p->context->errstr);
-		redisFree(p->context);
-		return NULL;
-	}
-
+  if (p->context != NULL && p->context->err) {
+    ONION_ERROR("Can't connect to redis. Error (%s)", p->context->errstr);
+    redisFree(p->context);
+    return NULL;
+  }
 #ifdef HAVE_PTHREADS
-	pthread_mutex_init(&p->mutex, NULL);
+  pthread_mutex_init(&p->mutex, NULL);
 #endif
 
-	return ret;
+  return ret;
 }

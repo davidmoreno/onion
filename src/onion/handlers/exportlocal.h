@@ -27,21 +27,28 @@
 #include <onion/types.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-struct stat;
+  struct stat;
 
 /// Creates an export local handler. When path matches, it returns a file from localpath (final localpath + path). No dir listing.
-onion_handler *onion_handler_export_local_new(const char *localpath);
+  onion_handler *onion_handler_export_local_new(const char *localpath);
 
 /// Calls to render a header after the "Listing of directory..."
-void onion_handler_export_local_set_header(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
+  void onion_handler_export_local_set_header(onion_handler * dir,
+                                             void (*renderer) (onion_response *
+                                                               res,
+                                                               const char
+                                                               *dirname));
 /// Calls to render a footers before end.
-void onion_handler_export_local_set_footer(onion_handler *dir, void (*renderer)(onion_response *res, const char *dirname));
+  void onion_handler_export_local_set_footer(onion_handler * dir,
+                                             void (*renderer) (onion_response *
+                                                               res,
+                                                               const char
+                                                               *dirname));
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

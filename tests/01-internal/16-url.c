@@ -26,100 +26,102 @@
 #include "../ctest.h"
 #include "../01-internal/buffer_listen_point.h"
 
-int handler_called=0;
+int handler_called = 0;
 char *urltxt;
 
-int handler1(void *p, onion_request *r, onion_response *res){
-	ONION_DEBUG("1");
-	handler_called=1;
-	urltxt=strdup(onion_request_get_path(r));
-	return OCS_PROCESSED;
+int handler1(void *p, onion_request * r, onion_response * res) {
+  ONION_DEBUG("1");
+  handler_called = 1;
+  urltxt = strdup(onion_request_get_path(r));
+  return OCS_PROCESSED;
 }
 
-int handler2(void *p, onion_request *r, onion_response *res){
-	ONION_DEBUG("2");
-	handler_called=2;
-	urltxt=strdup(onion_request_get_path(r));
-	return OCS_PROCESSED;
+int handler2(void *p, onion_request * r, onion_response * res) {
+  ONION_DEBUG("2");
+  handler_called = 2;
+  urltxt = strdup(onion_request_get_path(r));
+  return OCS_PROCESSED;
 }
 
-int handler3(void *p, onion_request *r, onion_response *res){
-	ONION_DEBUG("3");
-	handler_called=3;
-	urltxt=strdup(onion_request_get_path(r));
-	return OCS_PROCESSED;
+int handler3(void *p, onion_request * r, onion_response * res) {
+  ONION_DEBUG("3");
+  handler_called = 3;
+  urltxt = strdup(onion_request_get_path(r));
+  return OCS_PROCESSED;
 }
 
 onion *server;
 
-void t01_url(){
-	INIT_LOCAL();
+void t01_url() {
+  INIT_LOCAL();
 
-	onion_url *url=onion_url_new();
-	onion_url_add_handler(url, "^handler1.$", onion_handler_new((onion_handler_handler)handler1, NULL, NULL));
-	onion_url_add(url, "handler2/", handler2);
-	onion_url_add_with_data(url, "^handler(3|4)/", handler3, NULL, NULL);
+  onion_url *url = onion_url_new();
+  onion_url_add_handler(url, "^handler1.$",
+                        onion_handler_new((onion_handler_handler) handler1,
+                                          NULL, NULL));
+  onion_url_add(url, "handler2/", handler2);
+  onion_url_add_with_data(url, "^handler(3|4)/", handler3, NULL, NULL);
 
-	onion_set_root_handler(server, onion_url_to_handler(url));
+  onion_set_root_handler(server, onion_url_to_handler(url));
 
-	onion_request *req=onion_request_new(onion_get_listen_point(server, 0));
+  onion_request *req = onion_request_new(onion_get_listen_point(server, 0));
 
 #define R "GET /handler1/ HTTP/1.1\n\n"
-	onion_request_write(req,R,sizeof(R));
-	onion_request_process(req);
-	FAIL_IF_NOT_EQUAL_INT(handler_called, 1);
-	FAIL_IF_NOT_EQUAL_STR(urltxt, "");
-	free(urltxt);
-	urltxt=NULL;
+  onion_request_write(req, R, sizeof(R));
+  onion_request_process(req);
+  FAIL_IF_NOT_EQUAL_INT(handler_called, 1);
+  FAIL_IF_NOT_EQUAL_STR(urltxt, "");
+  free(urltxt);
+  urltxt = NULL;
 
-	onion_request_clean(req);
-	onion_request_write(req,"GET /handler2/ HTTP/1.1\n\n",sizeof(R));
-	onion_request_process(req);
-	FAIL_IF_NOT_EQUAL_INT(handler_called, 2);
-	ONION_DEBUG("%s", urltxt);
-	FAIL_IF_NOT_EQUAL_STR(urltxt, "");
-	free(urltxt);
-	urltxt=NULL;
+  onion_request_clean(req);
+  onion_request_write(req, "GET /handler2/ HTTP/1.1\n\n", sizeof(R));
+  onion_request_process(req);
+  FAIL_IF_NOT_EQUAL_INT(handler_called, 2);
+  ONION_DEBUG("%s", urltxt);
+  FAIL_IF_NOT_EQUAL_STR(urltxt, "");
+  free(urltxt);
+  urltxt = NULL;
 
-	onion_request_clean(req);
-	onion_request_write(req,"GET /handler3/hello HTTP/1.1\n\n",sizeof(R)+5);
-	onion_request_process(req);
-	FAIL_IF_NOT_EQUAL_INT(handler_called, 3);
-	FAIL_IF_NOT_EQUAL_STR(urltxt, "hello");
-	free(urltxt);
-	urltxt=NULL;
+  onion_request_clean(req);
+  onion_request_write(req, "GET /handler3/hello HTTP/1.1\n\n", sizeof(R) + 5);
+  onion_request_process(req);
+  FAIL_IF_NOT_EQUAL_INT(handler_called, 3);
+  FAIL_IF_NOT_EQUAL_STR(urltxt, "hello");
+  free(urltxt);
+  urltxt = NULL;
 
-	handler_called=0;
-	onion_request_clean(req);
-	onion_request_write(req,"GET /handler2/hello HTTP/1.1\n\n",sizeof(R)+5);
-	onion_request_process(req);
-	FAIL_IF_NOT_EQUAL_INT(handler_called, 0);
-	FAIL_IF_EQUAL_STR(urltxt, "");
-	free(urltxt);
-	urltxt=NULL;
+  handler_called = 0;
+  onion_request_clean(req);
+  onion_request_write(req, "GET /handler2/hello HTTP/1.1\n\n", sizeof(R) + 5);
+  onion_request_process(req);
+  FAIL_IF_NOT_EQUAL_INT(handler_called, 0);
+  FAIL_IF_EQUAL_STR(urltxt, "");
+  free(urltxt);
+  urltxt = NULL;
 
-	onion_request_free(req);
-	onion_url_free(url);
-	onion_set_root_handler(server, NULL);
+  onion_request_free(req);
+  onion_url_free(url);
+  onion_set_root_handler(server, NULL);
 
-	END_LOCAL();
+  END_LOCAL();
 }
 
-void init(){
-	server=onion_new(0);
-	onion_add_listen_point(server, NULL, NULL, onion_buffer_listen_point_new());
+void init() {
+  server = onion_new(0);
+  onion_add_listen_point(server, NULL, NULL, onion_buffer_listen_point_new());
 }
 
-void end(){
-	onion_free(server);
+void end() {
+  onion_free(server);
 }
 
-int main(int argc, char **argv){
-	START();
+int main(int argc, char **argv) {
+  START();
 
-	init();
-	t01_url();
+  init();
+  t01_url();
 
-	end();
-	END();
+  end();
+  END();
 }

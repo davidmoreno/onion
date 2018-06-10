@@ -25,7 +25,7 @@
 #include <string.h>
 #include <sqlite3.h>
 #ifdef HAVE_PTHREADS
-# include <pthread.h>
+#include <pthread.h>
 #endif
 
 #include "sessions.h"
@@ -37,106 +37,105 @@
 #include "log.h"
 #include "low.h"
 
-typedef struct onion_session_sqlite3_t{
-	sqlite3 *db;
-	sqlite3_stmt *save;
-	sqlite3_stmt *get;
+typedef struct onion_session_sqlite3_t {
+  sqlite3 *db;
+  sqlite3_stmt *save;
+  sqlite3_stmt *get;
 #ifdef HAVE_PTHREADS
-	pthread_mutex_t mutex;
+  pthread_mutex_t mutex;
 #endif
 } onion_session_sqlite3;
 
-
-static void onion_sessions_sqlite3_free(onion_sessions *sessions)
-{
-	ONION_DEBUG0("Free onion sessions sqlite3");
-	onion_session_sqlite3 *p=sessions->data;
+static void onion_sessions_sqlite3_free(onion_sessions * sessions) {
+  ONION_DEBUG0("Free onion sessions sqlite3");
+  onion_session_sqlite3 *p = sessions->data;
 
 #ifdef HAVE_PTHREADS
-	pthread_mutex_destroy(&p->mutex);
+  pthread_mutex_destroy(&p->mutex);
 #endif
-	sqlite3_finalize(p->save);
-	sqlite3_finalize(p->get);
-	sqlite3_close(p->db);
-	onion_low_free(sessions->data);
+  sqlite3_finalize(p->save);
+  sqlite3_finalize(p->get);
+  sqlite3_close(p->db);
+  onion_low_free(sessions->data);
 
-	onion_low_free(sessions);
+  onion_low_free(sessions);
 }
 
-static onion_dict* onion_sessions_sqlite3_get(onion_sessions *sessions, const char *session_id){
-	onion_session_sqlite3 *p=sessions->data;
-	ONION_DEBUG0("Load session %s", session_id);
-	onion_dict *ret=NULL;
+static onion_dict *onion_sessions_sqlite3_get(onion_sessions * sessions,
+                                              const char *session_id) {
+  onion_session_sqlite3 *p = sessions->data;
+  ONION_DEBUG0("Load session %s", session_id);
+  onion_dict *ret = NULL;
 
 #ifdef HAVE_PTHREADS
-	pthread_mutex_lock(&p->mutex);
+  pthread_mutex_lock(&p->mutex);
 #endif
-	sqlite3_reset(p->get);
-	int rc=sqlite3_bind_text(p->get, 1, session_id, -1, SQLITE_STATIC);
-	if( rc!=SQLITE_OK ){
-		ONION_ERROR("Error binding session_id");
-		goto exit;
-	}
-	rc=sqlite3_step(p->get);
-	if( rc==SQLITE_DONE ){
-		ONION_DEBUG0("No session found. Returning NULL");
-		goto exit;
-	}
-	else if( rc!=SQLITE_ROW ){
-		ONION_ERROR("Error loading session (%d)", rc);
-		goto exit;
-	}
-	const char * text;
-	text  = (const char *)sqlite3_column_text (p->get, 0);
+  sqlite3_reset(p->get);
+  int rc = sqlite3_bind_text(p->get, 1, session_id, -1, SQLITE_STATIC);
+  if (rc != SQLITE_OK) {
+    ONION_ERROR("Error binding session_id");
+    goto exit;
+  }
+  rc = sqlite3_step(p->get);
+  if (rc == SQLITE_DONE) {
+    ONION_DEBUG0("No session found. Returning NULL");
+    goto exit;
+  } else if (rc != SQLITE_ROW) {
+    ONION_ERROR("Error loading session (%d)", rc);
+    goto exit;
+  }
+  const char *text;
+  text = (const char *)sqlite3_column_text(p->get, 0);
 
-	ret=onion_dict_from_json(text);
-	if (!ret){
-		ONION_DEBUG0("Invalid session parsing for id %s: %s", session_id, text);
-		ONION_ERROR("Invalid session data");
-	}
-exit:
+  ret = onion_dict_from_json(text);
+  if (!ret) {
+    ONION_DEBUG0("Invalid session parsing for id %s: %s", session_id, text);
+    ONION_ERROR("Invalid session data");
+  }
+ exit:
 #ifdef HAVE_PTHREADS
-	pthread_mutex_unlock(&p->mutex);
+  pthread_mutex_unlock(&p->mutex);
 #endif
 
-	return ret;
+  return ret;
 }
 
-void onion_sessions_sqlite3_save(onion_sessions *sessions, const char *session_id, onion_dict *data){
-	onion_block *bl=onion_dict_to_json(data);
+void onion_sessions_sqlite3_save(onion_sessions * sessions,
+                                 const char *session_id, onion_dict * data) {
+  onion_block *bl = onion_dict_to_json(data);
 
-	ONION_DEBUG0("Save session %s: %s", session_id, onion_block_data(bl));
-	const char *json=onion_block_data(bl);
+  ONION_DEBUG0("Save session %s: %s", session_id, onion_block_data(bl));
+  const char *json = onion_block_data(bl);
 
-	int rc;
-	onion_session_sqlite3 *p=sessions->data;
+  int rc;
+  onion_session_sqlite3 *p = sessions->data;
 #ifdef HAVE_PTHREADS
-	pthread_mutex_lock(&p->mutex);
+  pthread_mutex_lock(&p->mutex);
 #endif
-	sqlite3_reset(p->save);
-	rc=sqlite3_bind_text(p->save, 1, session_id, -1, SQLITE_STATIC);
-	if( rc!=SQLITE_OK ){
-		ONION_ERROR("Error binding session_id");
-		goto error;
-	}
-	rc=sqlite3_bind_text(p->save, 2, json, -1, SQLITE_STATIC);
-	if( rc!=SQLITE_OK ){
-		ONION_ERROR("Error binding json data");
-		goto error;
-	}
-	rc=sqlite3_step(p->save);
-	if( rc!=SQLITE_DONE ){
-		ONION_ERROR("Error saving session (%d)", rc);
-		goto error;
-	}
+  sqlite3_reset(p->save);
+  rc = sqlite3_bind_text(p->save, 1, session_id, -1, SQLITE_STATIC);
+  if (rc != SQLITE_OK) {
+    ONION_ERROR("Error binding session_id");
+    goto error;
+  }
+  rc = sqlite3_bind_text(p->save, 2, json, -1, SQLITE_STATIC);
+  if (rc != SQLITE_OK) {
+    ONION_ERROR("Error binding json data");
+    goto error;
+  }
+  rc = sqlite3_step(p->save);
+  if (rc != SQLITE_DONE) {
+    ONION_ERROR("Error saving session (%d)", rc);
+    goto error;
+  }
 
-	ONION_DEBUG0("Session saved");
-error:
-	onion_block_free(bl);
+  ONION_DEBUG0("Session saved");
+ error:
+  onion_block_free(bl);
 #ifdef HAVE_PTHREADS
-	pthread_mutex_unlock(&p->mutex);
+  pthread_mutex_unlock(&p->mutex);
 #endif
-	return;
+  return;
 }
 
 /**
@@ -145,53 +144,54 @@ error:
  *
  * @see onion_set_session_backend
  */
-onion_sessions* onion_sessions_sqlite3_new(const char *database_filename)
-{
-	onion_random_init();
+onion_sessions *onion_sessions_sqlite3_new(const char *database_filename) {
+  onion_random_init();
 
-	int rc;
-	sqlite3 *db;
-	sqlite3_stmt *save;
-	sqlite3_stmt *get;
-	rc = sqlite3_open(database_filename, &db);
-	if( rc ){
-		ONION_ERROR("Can't open database: %s", sqlite3_errmsg(db));
-		sqlite3_close(db);
-		return NULL;
-	}
-	// I blindly try to create tables. If they exist, error, if not, create
-	sqlite3_exec(db, "CREATE TABLE sessions (id TEXT PRIMARY KEY, data TEXT)", 0,0,0);
+  int rc;
+  sqlite3 *db;
+  sqlite3_stmt *save;
+  sqlite3_stmt *get;
+  rc = sqlite3_open(database_filename, &db);
+  if (rc) {
+    ONION_ERROR("Can't open database: %s", sqlite3_errmsg(db));
+    sqlite3_close(db);
+    return NULL;
+  }
+  // I blindly try to create tables. If they exist, error, if not, create
+  sqlite3_exec(db, "CREATE TABLE sessions (id TEXT PRIMARY KEY, data TEXT)", 0,
+               0, 0);
 
-	const char *GET_SQL="SELECT data FROM sessions WHERE id=?";
-	rc=sqlite3_prepare_v2(db, GET_SQL, strlen(GET_SQL), &get, NULL);
-	if( rc != SQLITE_OK ){
-		ONION_ERROR("Cant prepare statement to get (%d)", rc);
-		sqlite3_close(db);
-		return NULL;
-	}
+  const char *GET_SQL = "SELECT data FROM sessions WHERE id=?";
+  rc = sqlite3_prepare_v2(db, GET_SQL, strlen(GET_SQL), &get, NULL);
+  if (rc != SQLITE_OK) {
+    ONION_ERROR("Cant prepare statement to get (%d)", rc);
+    sqlite3_close(db);
+    return NULL;
+  }
 
-	const char *SAVE_SQL="INSERT OR REPLACE INTO sessions (id, data) VALUES (?, ?);";
-	rc=sqlite3_prepare_v2(db, SAVE_SQL, strlen(SAVE_SQL), &save, NULL);
-	if( rc != SQLITE_OK ){
-		ONION_ERROR("Cant prepare statement to save (%d)", rc);
-		sqlite3_close(db);
-		return NULL;
-	}
+  const char *SAVE_SQL =
+      "INSERT OR REPLACE INTO sessions (id, data) VALUES (?, ?);";
+  rc = sqlite3_prepare_v2(db, SAVE_SQL, strlen(SAVE_SQL), &save, NULL);
+  if (rc != SQLITE_OK) {
+    ONION_ERROR("Cant prepare statement to save (%d)", rc);
+    sqlite3_close(db);
+    return NULL;
+  }
 
-	onion_sessions *ret=onion_low_malloc(sizeof(onion_sessions));
+  onion_sessions *ret = onion_low_malloc(sizeof(onion_sessions));
 
-	ret->data=onion_low_malloc(sizeof(onion_session_sqlite3));
-	ret->free=onion_sessions_sqlite3_free;
-	ret->get=onion_sessions_sqlite3_get;
-	ret->save=onion_sessions_sqlite3_save;
+  ret->data = onion_low_malloc(sizeof(onion_session_sqlite3));
+  ret->free = onion_sessions_sqlite3_free;
+  ret->get = onion_sessions_sqlite3_get;
+  ret->save = onion_sessions_sqlite3_save;
 
-	onion_session_sqlite3 *p=ret->data;
-	p->db=db;
-	p->save=save;
-	p->get=get;
+  onion_session_sqlite3 *p = ret->data;
+  p->db = db;
+  p->save = save;
+  p->get = get;
 #ifdef HAVE_PTHREADS
-	pthread_mutex_init(&p->mutex, NULL);
+  pthread_mutex_init(&p->mutex, NULL);
 #endif
 
-	return ret;
+  return ret;
 }

@@ -24,14 +24,15 @@
 #include "../functions.h"
 
 /// Following text is for gettext
-void tag_trans(parser_status *st, list *l){
-	char *s=onion_c_quote_new(tag_value_arg(l,1));
-	function_add_code(st, "  onion_response_write0(res, dgettext(onion_dict_get(context, \"LANG\"), %s));\n", s);
-	free(s);
+void tag_trans(parser_status * st, list * l) {
+  char *s = onion_c_quote_new(tag_value_arg(l, 1));
+  function_add_code(st,
+                    "  onion_response_write0(res, dgettext(onion_dict_get(context, \"LANG\"), %s));\n",
+                    s);
+  free(s);
 }
 
 /// Adds the tags.
-void plugin_init(){
-	tag_add("trans", tag_trans);
+void plugin_init() {
+  tag_add("trans", tag_trans);
 }
-

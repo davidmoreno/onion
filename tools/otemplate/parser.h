@@ -26,8 +26,7 @@
 #include "functions.h"
 #include "list.h"
 
-typedef enum parser_mode_e
-{
+typedef enum parser_mode_e {
   TEXT = 0,
   VARIABLE = 2,
   TAG = 3,
@@ -39,38 +38,35 @@ typedef enum parser_mode_e
   BEGIN = 17,
   END_VARIABLE = 18,
   END_TAG = 19,
-  COMMENT = 20,			// inside comments
-  COMMENTHASH = 21,		// got an hash in a comment
+  COMMENT = 20,                 // inside comments
+  COMMENTHASH = 21,             // got an hash in a comment
 
 } parser_mode;
 
-
-struct parser_status_t
-{
+struct parser_status_t {
   parser_mode last_wmode;
   parser_mode mode;
   FILE *in;
   FILE *out;
 
-  const char *infilename;	/// Needed for includes using relative path
+  const char *infilename;       /// Needed for includes using relative path
 
-  onion_block *rawblock;	/// Current block of data as readed by the parser.
+  onion_block *rawblock;        /// Current block of data as readed by the parser.
 
-  list *functions;		/// List of all known functions
-  list *function_stack;		/// Current stack of functions, to know where to write.
-  function_data *blocks_init;	/// List of block names
-  onion_block *current_code;	/// Blocks of C code to be printed. this is final code.
-  char c;			/// Last character read
-  int status;			/// Exit status.
+  list *functions;              /// List of all known functions
+  list *function_stack;         /// Current stack of functions, to know where to write.
+  function_data *blocks_init;   /// List of block names
+  onion_block *current_code;    /// Blocks of C code to be printed. this is final code.
+  char c;                       /// Last character read
+  int status;                   /// Exit status.
   int function_count;
   int line;
 };
 typedef struct parser_status_t parser_status;
 
-void parse_template (parser_status * status);
+void parse_template(parser_status * status);
 
-void add_char (parser_status * st, char c);
-void write_block (parser_status * st, onion_block * b);
-
+void add_char(parser_status * st, char c);
+void write_block(parser_status * st, onion_block * b);
 
 #endif

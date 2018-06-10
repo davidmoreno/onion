@@ -24,26 +24,26 @@
 #define ONION_UTILS_H
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 // In the HTTP RFC whitespace is always these characters
 // and is not locale independent, we'll need this when
 // parsing
-static int __attribute__ ((unused)) is_space(char c) {
-	if(c == '\t' || c == '\n' || c == '\r' || c == ' ')
-		return 1;
-	return 0;
-}
-static int __attribute__ ((unused)) is_alnum(char c) {
-	if((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-		return 1;
-	return 0;
-}
+  static int __attribute__ ((unused)) is_space(char c) {
+    if (c == '\t' || c == '\n' || c == '\r' || c == ' ')
+      return 1;
+    return 0;
+  }
+  static int __attribute__ ((unused)) is_alnum(char c) {
+    if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z')
+        || (c >= 'a' && c <= 'z'))
+      return 1;
+    return 0;
+  }
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

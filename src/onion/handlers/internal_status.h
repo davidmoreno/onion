@@ -27,14 +27,13 @@
 #include <onion/types.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /// Creates an auth handler that do not allow to pass unless user is authenticated using a pam name.
-onion_handler *onion_internal_status();
+  onion_handler *onion_internal_status();
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

@@ -32,16 +32,16 @@
 
 /// @defgroup http HTTP. Specific bits for http listen points. Mostly used internally.
 
-static ssize_t onion_http_read(onion_request *req, char *data, size_t len);
-ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
-int onion_http_read_ready(onion_request *req);
+static ssize_t onion_http_read(onion_request * req, char *data, size_t len);
+ssize_t onion_http_write(onion_request * req, const char *data, size_t len);
+int onion_http_read_ready(onion_request * req);
 
 /**
  * @struct onion_http_t
  * @memberof onion_http_t
  * @ingroup http
  */
-struct onion_http_t{
+struct onion_http_t {
 };
 
 /**
@@ -49,17 +49,16 @@ struct onion_http_t{
  * @memberof onion_http_t
  * @ingroup http
  */
-onion_listen_point* onion_http_new()
-{
-	onion_listen_point *ret=onion_listen_point_new();
+onion_listen_point *onion_http_new() {
+  onion_listen_point *ret = onion_listen_point_new();
 
-	ret->read=onion_http_read;
-	ret->write=onion_http_write;
-	ret->close=onion_listen_point_request_close_socket;
-	ret->read_ready=onion_http_read_ready;
-	ret->secure = false;
+  ret->read = onion_http_read;
+  ret->write = onion_http_write;
+  ret->close = onion_listen_point_request_close_socket;
+  ret->read_ready = onion_http_read_ready;
+  ret->secure = false;
 
-	return ret;
+  return ret;
 }
 
 /**
@@ -67,8 +66,8 @@ onion_listen_point* onion_http_new()
  * @memberof onion_http_t
  * @ingroup http
  */
-static ssize_t onion_http_read(onion_request *con, char *data, size_t len){
-	return read(con->connection.fd, data, len);
+static ssize_t onion_http_read(onion_request * con, char *data, size_t len) {
+  return read(con->connection.fd, data, len);
 }
 
 /**
@@ -76,22 +75,22 @@ static ssize_t onion_http_read(onion_request *con, char *data, size_t len){
  * @memberof onion_http_t
  * @ingroup http
  */
-int onion_http_read_ready(onion_request *con){
-	char buffer[1500];
-	ssize_t len=con->connection.listen_point->read(con, buffer, sizeof(buffer));
+int onion_http_read_ready(onion_request * con) {
+  char buffer[1500];
+  ssize_t len = con->connection.listen_point->read(con, buffer, sizeof(buffer));
 
-	if (len<=0)
-		return OCS_CLOSE_CONNECTION;
+  if (len <= 0)
+    return OCS_CLOSE_CONNECTION;
 
-	onion_connection_status st=onion_request_write(con, buffer, len);
-	if (st!=OCS_NEED_MORE_DATA){
-		if (st==OCS_REQUEST_READY)
-			st=onion_request_process(con); // May give error to the connection, or yield or whatever.
-		if (st<0)
-			return st;
-	}
+  onion_connection_status st = onion_request_write(con, buffer, len);
+  if (st != OCS_NEED_MORE_DATA) {
+    if (st == OCS_REQUEST_READY)
+      st = onion_request_process(con);  // May give error to the connection, or yield or whatever.
+    if (st < 0)
+      return st;
+  }
 
-	return OCS_PROCESSED;
+  return OCS_PROCESSED;
 }
 
 /**
@@ -99,6 +98,6 @@ int onion_http_read_ready(onion_request *con){
  * @memberof onion_http_t
  * @ingroup http
  */
-ssize_t onion_http_write(onion_request *con, const char *data, size_t len){
-	return write(con->connection.fd, data, len);
+ssize_t onion_http_write(onion_request * con, const char *data, size_t len) {
+  return write(con->connection.fd, data, len);
 }

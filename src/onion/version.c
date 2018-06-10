@@ -24,7 +24,6 @@
 #include <onion/log.h>
 #include <onion/version.h>
 
-
 /**
  * @defgroup version Version. Onion Semantic Versioning
  * @{
@@ -48,30 +47,30 @@
 /**
  * @short Current running onion version as a string
  */
-const char *onion_version(){
+const char *onion_version() {
   return ONION_VERSION;
 }
-
 
 /**
  * @short Current running onion major version
  */
-int onion_version_major(){
+int onion_version_major() {
   return ONION_VERSION_MAJOR;
 }
 
 /**
  * @short Current running onion minor version
  */
-int onion_version_minor(){
+int onion_version_minor() {
   return ONION_VERSION_MINOR;
 }
+
 /**
  * @short Patch version of the current release
  *
  * If on a dirty git version (not tagged), it will return 1000
  */
-int onion_version_patch(){
+int onion_version_patch() {
   return ONION_VERSION_PATCH;
 }
 
@@ -91,13 +90,17 @@ int onion_version_patch(){
  *   if (!onion_version_is_compatible()) abort();
  *
  */
-bool onion_version_is_compatible3(int major, int minor, int patch){
-  if (major != ONION_VERSION_MAJOR){
-    ONION_DEBUG("Onion major version (%d) is not compatible with program's (%d). Should match.", ONION_VERSION_MAJOR, major);
+bool onion_version_is_compatible3(int major, int minor, int patch) {
+  if (major != ONION_VERSION_MAJOR) {
+    ONION_DEBUG
+        ("Onion major version (%d) is not compatible with program's (%d). Should match.",
+         ONION_VERSION_MAJOR, major);
     return false;
   }
-  if (minor > ONION_VERSION_MINOR){
-    ONION_DEBUG("Onion minor version (%d) is not compatible with program's (%d). Program's has to be equal or greater.", ONION_VERSION_MINOR, minor);
+  if (minor > ONION_VERSION_MINOR) {
+    ONION_DEBUG
+        ("Onion minor version (%d) is not compatible with program's (%d). Program's has to be equal or greater.",
+         ONION_VERSION_MINOR, minor);
     return false;
   }
   return true;

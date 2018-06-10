@@ -29,16 +29,14 @@
  * 
  * It can go deep inside a dict or list, and apply filters.
  */
-void variable_write(parser_status *st, onion_block *b){
-	
-	function_add_code(st,
-"  {\n"
-"    const char *tmp;\n");
-	variable_solve(st, onion_block_data(b), "tmp", STRING);
-	function_add_code(st,
-"    if (tmp)\n"
-"      onion_response_write_html_safe(res, tmp);\n"
-"  }\n");
+void variable_write(parser_status * st, onion_block * b) {
+
+  function_add_code(st, "  {\n" "    const char *tmp;\n");
+  variable_solve(st, onion_block_data(b), "tmp", STRING);
+  function_add_code(st,
+                    "    if (tmp)\n"
+                    "      onion_response_write_html_safe(res, tmp);\n"
+                    "  }\n");
 }
 
 /**
@@ -46,66 +44,63 @@ void variable_write(parser_status *st, onion_block *b){
  * 
  * It uses the type to check it its a literal string, a dcit string or a dict.
  */
-void variable_solve(parser_status *st, const char *data, const char *tmpname, vartype_e type){
-	if (type==LITERAL){
-		char *s=onion_c_quote_new(data);
-		function_add_code(st,
-"    %s=%s;\n", tmpname, s);
-		free(s);
-		return;
-	}
-	if (! (type==STRING || type==DICT) ){
-		ONION_ERROR("Invalid type for variable solve");
-		exit(1);
-	}
-	
-	
-	list *parts=list_new(onion_block_free);
-	onion_block *lastblock;
-	list_add(parts, lastblock=onion_block_new());
-	
-	
-	int i=0;
-	int l=strlen(data);
-	const char *d=data;
-	for (i=0;i<l;i++){
-		if (d[i]=='.')
-			list_add(parts, lastblock=onion_block_new());
-		else if (d[i]==' ')
-			continue;
-		else
-			onion_block_add_char(lastblock, d[i]);
-	}
+void variable_solve(parser_status * st, const char *data, const char *tmpname,
+                    vartype_e type) {
+  if (type == LITERAL) {
+    char *s = onion_c_quote_new(data);
+    function_add_code(st, "    %s=%s;\n", tmpname, s);
+    free(s);
+    return;
+  }
+  if (!(type == STRING || type == DICT)) {
+    ONION_ERROR("Invalid type for variable solve");
+    exit(1);
+  }
 
-	if (list_count(parts)==1){
-		char *s=onion_c_quote_new(onion_block_data(lastblock));
-		if (type==STRING)
-			function_add_code(st, 
-	"    %s=onion_dict_get(context, %s);\n", tmpname, s);
-		else if (type==DICT)
-			function_add_code(st, 
-	"    %s=onion_dict_get_dict(context, %s);\n", tmpname, s);
-		free(s);
-	}
-	else{
-		if (type==STRING)
-			function_add_code(st,"    %s=onion_dict_rget(context", tmpname);
-		else if (type==DICT)
-			function_add_code(st,"    %s=onion_dict_rget_dict(context", tmpname);
-		else{
-			ONION_ERROR("Invalid type for variable solve");
-			exit(1);
-		}
-		list_item *it=parts->head;
-		while (it){
-			lastblock=it->data;
-			char *s=onion_c_quote_new(onion_block_data(lastblock));
-			function_add_code(st,", %s", s);
-			free(s);
-			it=it->next;
-		}
-		function_add_code(st,", NULL);\n");
-	}
-	list_free(parts);
+  list *parts = list_new(onion_block_free);
+  onion_block *lastblock;
+  list_add(parts, lastblock = onion_block_new());
+
+  int i = 0;
+  int l = strlen(data);
+  const char *d = data;
+  for (i = 0; i < l; i++) {
+    if (d[i] == '.')
+      list_add(parts, lastblock = onion_block_new());
+    else if (d[i] == ' ')
+      continue;
+    else
+      onion_block_add_char(lastblock, d[i]);
+  }
+
+  if (list_count(parts) == 1) {
+    char *s = onion_c_quote_new(onion_block_data(lastblock));
+    if (type == STRING)
+      function_add_code(st,
+                        "    %s=onion_dict_get(context, %s);\n", tmpname, s);
+    else if (type == DICT)
+      function_add_code(st,
+                        "    %s=onion_dict_get_dict(context, %s);\n", tmpname,
+                        s);
+    free(s);
+  } else {
+    if (type == STRING)
+      function_add_code(st, "    %s=onion_dict_rget(context", tmpname);
+    else if (type == DICT)
+      function_add_code(st, "    %s=onion_dict_rget_dict(context", tmpname);
+    else {
+      ONION_ERROR("Invalid type for variable solve");
+      exit(1);
+    }
+    list_item *it = parts->head;
+    while (it) {
+      lastblock = it->data;
+      char *s = onion_c_quote_new(onion_block_data(lastblock));
+      function_add_code(st, ", %s", s);
+      free(s);
+      it = it->next;
+    }
+    function_add_code(st, ", NULL);\n");
+  }
+  list_free(parts);
 }
-

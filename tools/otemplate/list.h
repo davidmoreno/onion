@@ -20,31 +20,31 @@
 #define __LIST_H__
 
 enum LIST_FREE_FLAGS {
-	LIST_ITEM_NO_FREE,
-	LIST_ITEM_FREE
+  LIST_ITEM_NO_FREE,
+  LIST_ITEM_FREE
 };
 
-typedef struct list_item_t{
-	void *data;
-	struct list_item_t *next;
-	struct list_item_t *prev;
-	int flags;
-}list_item;
+typedef struct list_item_t {
+  void *data;
+  struct list_item_t *next;
+  struct list_item_t *prev;
+  int flags;
+} list_item;
 
-typedef struct list_t{
-	list_item *head;
-	list_item *tail;
-	
-	void *free;
-}list;
+typedef struct list_t {
+  list_item *head;
+  list_item *tail;
+
+  void *free;
+} list;
 
 list *list_new(void *free_function);
-void list_free(list *l);
-void list_add(list *l, void *p);
-void list_add_with_flags(list *l, void *p, int flags);
-void list_loop(list *l, void *f, void *extra);
-void list_pop(list *l);
-int list_count(list *l);
-void *list_get_n(list *l, int n);
+void list_free(list * l);
+void list_add(list * l, void *p);
+void list_add_with_flags(list * l, void *p, int flags);
+void list_loop(list * l, void *f, void *extra);
+void list_pop(list * l);
+int list_count(list * l);
+void *list_get_n(list * l, int n);
 
 #endif

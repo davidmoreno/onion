@@ -21,18 +21,22 @@
 	<http://www.apache.org/licenses/LICENSE-2.0>.
 	*/
 
-
 #ifndef __WEBDAV_H__
 #define __WEBDAV_H__
 #include <onion/handler.h>
 
 /// Typedef with the signature of the permission checker.
-typedef int (*onion_webdav_permissions_check)(const char *exported_path, const char *file, onion_request *req);
+typedef int (*onion_webdav_permissions_check) (const char *exported_path,
+                                               const char *file,
+                                               onion_request * req);
 
 /// Exports the given path through webdav.
-onion_handler *onion_handler_webdav(const char *path, onion_webdav_permissions_check);
+onion_handler *onion_handler_webdav(const char *path,
+                                    onion_webdav_permissions_check);
 
 /// Default permission checker
-int onion_webdav_default_check_permissions(const char *exported_path, const char *file, onion_request *req);
+int onion_webdav_default_check_permissions(const char *exported_path,
+                                           const char *file,
+                                           onion_request * req);
 
 #endif

@@ -25,7 +25,7 @@
 #define __ONION_JPEG_H__
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #include <stdio.h>
@@ -35,17 +35,12 @@ extern "C"{
 #include <onion/types.h>
 
 /// Writes image data to a response object
-int onion_jpeg_response ( unsigned char * image,
-		int image_num_color_channels,
-		J_COLOR_SPACE image_color_space, /* See jpeglib.h for list of available color spaces. */
-		int image_width,
-		int image_height,
-		int output_quality,
-		onion_response *res
-		);
+  int onion_jpeg_response(unsigned char *image, int image_num_color_channels, J_COLOR_SPACE image_color_space,  /* See jpeglib.h for list of available color spaces. */
+                          int image_width,
+                          int image_height,
+                          int output_quality, onion_response * res);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

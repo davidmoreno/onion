@@ -19,7 +19,7 @@
 #include "../ctest.h"
 #include <onion/version.h>
 
-void t01_current_version(){
+void t01_current_version() {
   INIT_LOCAL();
 
   FAIL_IF_NOT_EQUAL_STR(ONION_VERSION, onion_version());
@@ -27,47 +27,65 @@ void t01_current_version(){
   FAIL_IF_NOT_EQUAL_INT(ONION_VERSION_MINOR, onion_version_minor());
   FAIL_IF_NOT_EQUAL_INT(ONION_VERSION_PATCH, onion_version_patch());
   FAIL_IF_NOT(ONION_VERSION_IS_COMPATIBLE());
-  
+
   ONION_VERSION_IS_COMPATIBLE_OR_ABORT();
 
   // Patch version is not important
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR,ONION_VERSION_MINOR,0));
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR,ONION_VERSION_MINOR,1));
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR,ONION_VERSION_MINOR,1234));
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR,ONION_VERSION_MINOR,1000));
+  FAIL_IF_NOT(onion_version_is_compatible3
+              (ONION_VERSION_MAJOR, ONION_VERSION_MINOR, 0));
+  FAIL_IF_NOT(onion_version_is_compatible3
+              (ONION_VERSION_MAJOR, ONION_VERSION_MINOR, 1));
+  FAIL_IF_NOT(onion_version_is_compatible3
+              (ONION_VERSION_MAJOR, ONION_VERSION_MINOR, 1234));
+  FAIL_IF_NOT(onion_version_is_compatible3
+              (ONION_VERSION_MAJOR, ONION_VERSION_MINOR, 1000));
 
   END_LOCAL();
 }
 
-void t02_older_version(){
+void t02_older_version() {
   INIT_LOCAL();
 
-  FAIL_IF(onion_version_is_compatible3(ONION_VERSION_MAJOR-1,0,0));
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR,0,0));
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR,ONION_VERSION_MINOR-1,0));
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR,ONION_VERSION_MINOR-1,1000));
+  FAIL_IF(onion_version_is_compatible3(ONION_VERSION_MAJOR - 1, 0, 0));
+  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR, 0, 0));
+  FAIL_IF_NOT(onion_version_is_compatible3
+              (ONION_VERSION_MAJOR, ONION_VERSION_MINOR - 1, 0));
+  FAIL_IF_NOT(onion_version_is_compatible3
+              (ONION_VERSION_MAJOR, ONION_VERSION_MINOR - 1, 1000));
 
   END_LOCAL();
 }
 
-void t03_newer_version(){
+void t03_newer_version() {
   INIT_LOCAL();
 
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR, ONION_VERSION_MINOR, 0));
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR, ONION_VERSION_MINOR, ONION_VERSION_PATCH+1));
-  FAIL_IF_NOT(onion_version_is_compatible3(ONION_VERSION_MAJOR, ONION_VERSION_MINOR, ONION_VERSION_PATCH+1000));
+  FAIL_IF_NOT(onion_version_is_compatible3
+              (ONION_VERSION_MAJOR, ONION_VERSION_MINOR, 0));
+  FAIL_IF_NOT(onion_version_is_compatible3
+              (ONION_VERSION_MAJOR, ONION_VERSION_MINOR,
+               ONION_VERSION_PATCH + 1));
+  FAIL_IF_NOT(onion_version_is_compatible3
+              (ONION_VERSION_MAJOR, ONION_VERSION_MINOR,
+               ONION_VERSION_PATCH + 1000));
 
-  FAIL_IF(onion_version_is_compatible3(ONION_VERSION_MAJOR+1, ONION_VERSION_MINOR, ONION_VERSION_PATCH));
-  FAIL_IF(onion_version_is_compatible3(ONION_VERSION_MAJOR+1000, ONION_VERSION_MINOR, ONION_VERSION_PATCH));
+  FAIL_IF(onion_version_is_compatible3
+          (ONION_VERSION_MAJOR + 1, ONION_VERSION_MINOR, ONION_VERSION_PATCH));
+  FAIL_IF(onion_version_is_compatible3
+          (ONION_VERSION_MAJOR + 1000, ONION_VERSION_MINOR,
+           ONION_VERSION_PATCH));
 
   // Cant use older minor versions, maybe new symbols
-  FAIL_IF(onion_version_is_compatible3(ONION_VERSION_MAJOR, ONION_VERSION_MINOR+1, ONION_VERSION_PATCH+1000));
-  FAIL_IF(onion_version_is_compatible3(ONION_VERSION_MAJOR, ONION_VERSION_MINOR+1000, ONION_VERSION_PATCH+1000));
+  FAIL_IF(onion_version_is_compatible3
+          (ONION_VERSION_MAJOR, ONION_VERSION_MINOR + 1,
+           ONION_VERSION_PATCH + 1000));
+  FAIL_IF(onion_version_is_compatible3
+          (ONION_VERSION_MAJOR, ONION_VERSION_MINOR + 1000,
+           ONION_VERSION_PATCH + 1000));
 
   END_LOCAL();
 }
 
-int main(int argc, char **argv){
+int main(int argc, char **argv) {
   START();
 
   t01_current_version();

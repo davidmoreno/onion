@@ -27,18 +27,20 @@
 #include <stdbool.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #include "types.h"
 
-onion_ptr_list *onion_ptr_list_new();
-onion_ptr_list *onion_ptr_list_add(onion_ptr_list *l, void *ptr);
-onion_ptr_list *onion_ptr_list_remove(onion_ptr_list *l, void *ptr);
-void onion_ptr_list_free(onion_ptr_list *l);
-void onion_ptr_list_foreach(onion_ptr_list *l, void (*f)(void *ptr));
-onion_ptr_list *onion_ptr_list_filter(onion_ptr_list *l, bool (*f)(void *data, void *ptr), void *data);
-size_t onion_ptr_list_count(onion_ptr_list *l);
+  onion_ptr_list *onion_ptr_list_new();
+  onion_ptr_list *onion_ptr_list_add(onion_ptr_list * l, void *ptr);
+  onion_ptr_list *onion_ptr_list_remove(onion_ptr_list * l, void *ptr);
+  void onion_ptr_list_free(onion_ptr_list * l);
+  void onion_ptr_list_foreach(onion_ptr_list * l, void (*f) (void *ptr));
+  onion_ptr_list *onion_ptr_list_filter(onion_ptr_list * l,
+                                        bool(*f) (void *data, void *ptr),
+                                        void *data);
+  size_t onion_ptr_list_count(onion_ptr_list * l);
 
 #ifdef __cplusplus
 }

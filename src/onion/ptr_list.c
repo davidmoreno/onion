@@ -31,47 +31,43 @@
  * @short Creates a new onion_ptr_list
  * @ingroup ptr_list
  */
-onion_ptr_list* onion_ptr_list_new()
-{
-	return NULL;
+onion_ptr_list *onion_ptr_list_new() {
+  return NULL;
 }
 
 /**
  * @short Adds a ptr to the list. Elements are added to the head, so must use return value as new list pointer.
  * @ingroup ptr_list
  */
-onion_ptr_list* onion_ptr_list_add(onion_ptr_list* l, void* ptr)
-{
-	onion_ptr_list *n=onion_low_malloc(sizeof(onion_ptr_list));
-	n->next=l;
-	n->ptr=ptr;
-	return n;
+onion_ptr_list *onion_ptr_list_add(onion_ptr_list * l, void *ptr) {
+  onion_ptr_list *n = onion_low_malloc(sizeof(onion_ptr_list));
+  n->next = l;
+  n->ptr = ptr;
+  return n;
 }
 
 /**
  * @short Removes a ptr from the list. Might return a NULL list if all elements removed.
  * @ingroup ptr_list
  */
-onion_ptr_list* onion_ptr_list_remove(onion_ptr_list* l, void* ptr)
-{
-	if (!l)
-		return l;
-	if (ptr==l->ptr)
-		return l->next;
-	return onion_ptr_list_remove(l, ptr);
+onion_ptr_list *onion_ptr_list_remove(onion_ptr_list * l, void *ptr) {
+  if (!l)
+    return l;
+  if (ptr == l->ptr)
+    return l->next;
+  return onion_ptr_list_remove(l, ptr);
 }
 
 /**
  * @short Free the list, but do nothing on the ptrs.
  * @ingroup ptr_list
  */
-void onion_ptr_list_free(onion_ptr_list* l)
-{
-	if (l==NULL)
-		return;
-	onion_ptr_list *next=l->next;
-	onion_low_free(l);
-	onion_ptr_list_free(next); // Tail recursion, same as loop.
+void onion_ptr_list_free(onion_ptr_list * l) {
+  if (l == NULL)
+    return;
+  onion_ptr_list *next = l->next;
+  onion_low_free(l);
+  onion_ptr_list_free(next);    // Tail recursion, same as loop.
 }
 
 /**
@@ -80,11 +76,11 @@ void onion_ptr_list_free(onion_ptr_list* l)
  *
  * Internally is allowed to do this manually.
  */
-void onion_ptr_list_foreach(onion_ptr_list* l, void (*f)(void *)){
-	while(l){
-		f(l->ptr);
-		l=l->next;
-	}
+void onion_ptr_list_foreach(onion_ptr_list * l, void (*f) (void *)) {
+  while (l) {
+    f(l->ptr);
+    l = l->next;
+  }
 }
 
 /**
@@ -93,31 +89,31 @@ void onion_ptr_list_foreach(onion_ptr_list* l, void (*f)(void *)){
  *
  * Internally is allowed to do this manually.
  */
-onion_ptr_list *onion_ptr_list_filter(onion_ptr_list* l, bool (*f)(void *data, void *ptr), void *data){
-	if (!l)
-		return l;
-	bool r=f(data, l->ptr);
-	onion_ptr_list *next=onion_ptr_list_filter(l->next, f, data);
-	if (r){
-		l->next=next;
-		return l;
-	}
-	else{
-		free(l);
-		return next;
-	}
+onion_ptr_list *onion_ptr_list_filter(onion_ptr_list * l,
+                                      bool(*f) (void *data, void *ptr),
+                                      void *data) {
+  if (!l)
+    return l;
+  bool r = f(data, l->ptr);
+  onion_ptr_list *next = onion_ptr_list_filter(l->next, f, data);
+  if (r) {
+    l->next = next;
+    return l;
+  } else {
+    free(l);
+    return next;
+  }
 }
 
 /**
  * @short Counts how many elements there are
  * @ingroup ptr_list
  */
-size_t onion_ptr_list_count(onion_ptr_list* l)
-{
-	size_t n=0;
-	while(l){
-		n+=1;
-		l=l->next;
-	}
-	return n;
+size_t onion_ptr_list_count(onion_ptr_list * l) {
+  size_t n = 0;
+  while (l) {
+    n += 1;
+    l = l->next;
+  }
+  return n;
 }

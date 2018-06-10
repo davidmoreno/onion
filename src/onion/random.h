@@ -27,25 +27,24 @@
 #include "types.h"
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /// @defgroup random Random. Cryptographically secure random generators.
 
 /// Initializes the global random number generator
 /// @ingroup random
-void onion_random_init();
+  void onion_random_init();
 
 /// Frees the global random number generator
 /// @ingroup random
-void onion_random_free();
+  void onion_random_free();
 
 /// Generate size bytes of random data and put on data
 /// @ingroup random
-void onion_random_generate(void* data, size_t size);
+  void onion_random_generate(void *data, size_t size);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

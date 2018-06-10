@@ -23,38 +23,38 @@
 #include "../ctest.h"
 
 // this is a simple test to check the implementation, not the algorithm
-void t01_test_random(){
-	INIT_LOCAL();
-	
-	onion_random_init();
+void t01_test_random() {
+  INIT_LOCAL();
 
-	unsigned char rand_generated[256];
-	onion_random_generate(rand_generated,256);
+  onion_random_init();
 
-	//set of which numbers were generated
-	char char_set[256];
-	memset(char_set,0,256);
+  unsigned char rand_generated[256];
+  onion_random_generate(rand_generated, 256);
 
-	unsigned unique_numbers_generated=0;
-	unsigned i;
-	for( i=0; i<256; ++i ) {
-		if( char_set[ rand_generated[i] ] == 0) {
-			char_set[ rand_generated[i] ] = 1;
-			unique_numbers_generated++;
-		}
-	}
+  //set of which numbers were generated
+  char char_set[256];
+  memset(char_set, 0, 256);
 
-	FAIL_IF_NOT( unique_numbers_generated > 256/2 );
+  unsigned unique_numbers_generated = 0;
+  unsigned i;
+  for (i = 0; i < 256; ++i) {
+    if (char_set[rand_generated[i]] == 0) {
+      char_set[rand_generated[i]] = 1;
+      unique_numbers_generated++;
+    }
+  }
 
-	onion_random_free();
+  FAIL_IF_NOT(unique_numbers_generated > 256 / 2);
 
-	END_LOCAL();
+  onion_random_free();
+
+  END_LOCAL();
 }
 
-int main(int argc, char **argv){
+int main(int argc, char **argv) {
   START();
-  
-	t01_test_random();
-	
-	END();
+
+  t01_test_random();
+
+  END();
 }

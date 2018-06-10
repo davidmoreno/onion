@@ -50,41 +50,44 @@
  *
  * @returns If can not, returns OCS_NOT_PROCESSED (0), else the onion_connection_status. (normally OCS_PROCESSED)
  */
-onion_connection_status onion_handler_handle(onion_handler *handler, onion_request *request, onion_response *response){
-	onion_connection_status res;
-	while (handler){
-		if (handler->handler){
+onion_connection_status onion_handler_handle(onion_handler * handler,
+                                             onion_request * request,
+                                             onion_response * response) {
+  onion_connection_status res;
+  while (handler) {
+    if (handler->handler) {
 #ifdef __DEBUG0__
-			char **bs=backtrace_symbols((void * const *)&handler->handler, 1);
-			ONION_DEBUG0("Calling handler: %s",bs[0]);
-			/* backtrace_symbols is explicitly documented
-			   to malloc. We need to call the system free
-			   routine, not our onion_low_free ! */
-			onion_low_free(bs); /* Can't be onion_low_free.... */
+      char **bs = backtrace_symbols((void *const *)&handler->handler, 1);
+      ONION_DEBUG0("Calling handler: %s", bs[0]);
+      /* backtrace_symbols is explicitly documented
+         to malloc. We need to call the system free
+         routine, not our onion_low_free ! */
+      onion_low_free(bs);       /* Can't be onion_low_free.... */
 #endif
-			res=handler->handler(handler->priv_data, request, response);
-			ONION_DEBUG0("Result: %d",res);
-			if (res){
-				// write pending data.
-				if (!(response->flags&OR_HEADER_SENT) && response->buffer_pos<sizeof(response->buffer))
-					onion_response_set_length(response, response->buffer_pos);
-				onion_response_flush(response);
-				if (res==OCS_WEBSOCKET){
-					if (request->websocket)
-						return onion_websocket_call(request->websocket);
-					else{
-						ONION_ERROR("Handler did set the OCS_WEBSOCKET, but did not initialize the websocket on this request.");
-						return OCS_INTERNAL_ERROR;
-					}
-				}
-				return res;
-			}
-		}
-		handler=handler->next;
-	}
-	return OCS_NOT_PROCESSED;
+      res = handler->handler(handler->priv_data, request, response);
+      ONION_DEBUG0("Result: %d", res);
+      if (res) {
+        // write pending data.
+        if (!(response->flags & OR_HEADER_SENT)
+            && response->buffer_pos < sizeof(response->buffer))
+          onion_response_set_length(response, response->buffer_pos);
+        onion_response_flush(response);
+        if (res == OCS_WEBSOCKET) {
+          if (request->websocket)
+            return onion_websocket_call(request->websocket);
+          else {
+            ONION_ERROR
+                ("Handler did set the OCS_WEBSOCKET, but did not initialize the websocket on this request.");
+            return OCS_INTERNAL_ERROR;
+          }
+        }
+        return res;
+      }
+    }
+    handler = handler->next;
+  }
+  return OCS_NOT_PROCESSED;
 }
-
 
 /**
  * @short Creates an onion handler with that private datas.
@@ -92,12 +95,14 @@ onion_connection_status onion_handler_handle(onion_handler *handler, onion_reque
  * @ingroup handler
  *
  */
-onion_handler *onion_handler_new(onion_handler_handler handler, void *priv_data, onion_handler_private_data_free priv_data_free){
-	onion_handler *phandler=onion_low_calloc(1, sizeof(onion_handler));
-	phandler->handler=handler;
-	phandler->priv_data=priv_data;
-	phandler->priv_data_free=priv_data_free;
-	return phandler;
+onion_handler *onion_handler_new(onion_handler_handler handler, void *priv_data,
+                                 onion_handler_private_data_free
+                                 priv_data_free) {
+  onion_handler *phandler = onion_low_calloc(1, sizeof(onion_handler));
+  phandler->handler = handler;
+  phandler->priv_data = priv_data;
+  phandler->priv_data_free = priv_data_free;
+  return phandler;
 }
 
 /**
@@ -112,19 +117,19 @@ onion_handler *onion_handler_new(onion_handler_handler handler, void *priv_data,
  *
  * Returns the number of handlers freed on this level.
  */
-int onion_handler_free(onion_handler *handler){
-	int n=0;
-	onion_handler *next=handler;
-	while (next){
-		handler=next;
-		if (handler->priv_data_free && handler->priv_data){
-			handler->priv_data_free(handler->priv_data);
-		}
-		next=handler->next;
-		onion_low_free(handler);
-		n++;
-	}
-	return n;
+int onion_handler_free(onion_handler * handler) {
+  int n = 0;
+  onion_handler *next = handler;
+  while (next) {
+    handler = next;
+    if (handler->priv_data_free && handler->priv_data) {
+      handler->priv_data_free(handler->priv_data);
+    }
+    next = handler->next;
+    onion_low_free(handler);
+    n++;
+  }
+  return n;
 }
 
 /**
@@ -135,10 +140,10 @@ int onion_handler_free(onion_handler *handler){
  * Adds a handler at the end of the list of handlers of this level. Each handler is called in order,
  * until one of them succeds. So each handler is in charge of cheching if its itself who is being called.
  */
-void onion_handler_add(onion_handler *base, onion_handler *new_handler){
-	while(base->next)
-		base=base->next;
-	base->next=new_handler;
+void onion_handler_add(onion_handler * base, onion_handler * new_handler) {
+  while (base->next)
+    base = base->next;
+  base->next = new_handler;
 }
 
 /**
@@ -149,6 +154,6 @@ void onion_handler_add(onion_handler *base, onion_handler *new_handler){
  * This is useful to allow external users of a given handler to modify the behaviour. For example
  * on the directory handler this helps to change the default header and footers.
  */
-void *onion_handler_get_private_data(onion_handler *handler){
-	return handler->priv_data;
+void *onion_handler_get_private_data(onion_handler * handler) {
+  return handler->priv_data;
 }

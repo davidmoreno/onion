@@ -27,14 +27,14 @@
 #include <onion/types.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /// Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
-onion_handler *onion_handler_path(const char *path, onion_handler *inside_level);
+  onion_handler *onion_handler_path(const char *path,
+                                    onion_handler * inside_level);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

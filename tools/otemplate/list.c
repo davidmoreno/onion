@@ -23,99 +23,99 @@
 
 #include "list.h"
 
-list *list_new(void *free_function){
-	list *l=malloc(sizeof(list));
-	l->head=NULL;
-	l->tail=NULL;
-	l->free=free_function;
-	return l;
+list *list_new(void *free_function) {
+  list *l = malloc(sizeof(list));
+  l->head = NULL;
+  l->tail = NULL;
+  l->free = free_function;
+  return l;
 }
 
-void list_free(list *l){
-	list_item *i=l->head;
-	void (*f)(void *p);
-	f=l->free;
-	while (i){
-		if (f && (i->flags & LIST_ITEM_FREE))
-			f(i->data);
-		list_item *last_i=i;
-		i=i->next;
-		free(last_i);
-	}
-	free(l);
+void list_free(list * l) {
+  list_item *i = l->head;
+  void (*f) (void *p);
+  f = l->free;
+  while (i) {
+    if (f && (i->flags & LIST_ITEM_FREE))
+      f(i->data);
+    list_item *last_i = i;
+    i = i->next;
+    free(last_i);
+  }
+  free(l);
 }
 
-void list_add(list *l, void *p){
-	list_item *item=malloc(sizeof(list_item));
-	item->data=p;
-	item->next=NULL;
-	item->flags = LIST_ITEM_FREE;
-	item->prev=l->tail;
-	if (l->tail)
-		l->tail->next=item;
-	l->tail=item;
-	if (!l->head)
-		l->head=item;
+void list_add(list * l, void *p) {
+  list_item *item = malloc(sizeof(list_item));
+  item->data = p;
+  item->next = NULL;
+  item->flags = LIST_ITEM_FREE;
+  item->prev = l->tail;
+  if (l->tail)
+    l->tail->next = item;
+  l->tail = item;
+  if (!l->head)
+    l->head = item;
 }
 
-void list_add_with_flags(list *l, void *p, int flags) {
-	list_item *item = malloc(sizeof(list_item));
-	item->data = p;
-	item->next=NULL;
-	item->flags = flags;
-	item->prev = l->tail;
-	if(l->tail)
-		l->tail->next=item;
-	l->tail = item;
-	if(!l->head)
-		l->head=item;
+void list_add_with_flags(list * l, void *p, int flags) {
+  list_item *item = malloc(sizeof(list_item));
+  item->data = p;
+  item->next = NULL;
+  item->flags = flags;
+  item->prev = l->tail;
+  if (l->tail)
+    l->tail->next = item;
+  l->tail = item;
+  if (!l->head)
+    l->head = item;
 }
 
-void list_loop(list *l, void *ff, void *extra){
-	void (*f)(void *extra, void *p);
-	f=ff;
-	list_item *i=l->head;
-	while (i){
-		f(extra, i->data);
-		i=i->next;
-	}
+void list_loop(list * l, void *ff, void *extra) {
+  void (*f) (void *extra, void *p);
+  f = ff;
+  list_item *i = l->head;
+  while (i) {
+    f(extra, i->data);
+    i = i->next;
+  }
 }
 
-void list_pop(list *l){
-	if (!l->tail)
-		return;
-	
-	void (*f)(void *p);
-	list_item *tail=l->tail;
-	f=l->free;
-	if (f)
-		f(tail->data);
-	
-	l->tail=tail->prev;
-	l->tail->next=NULL;
-	free(tail);
+void list_pop(list * l) {
+  if (!l->tail)
+    return;
+
+  void (*f) (void *p);
+  list_item *tail = l->tail;
+  f = l->free;
+  if (f)
+    f(tail->data);
+
+  l->tail = tail->prev;
+  l->tail->next = NULL;
+  free(tail);
 }
 
-int list_count(list *l){
-	list_item *it=l->head;
-	int c=0;
-	while(it){
-		c++;
-		it=it->next;
-	}
-	return c;
+int list_count(list * l) {
+  list_item *it = l->head;
+  int c = 0;
+  while (it) {
+    c++;
+    it = it->next;
+  }
+  return c;
 }
 
-void *list_get_n(list *l, int n){
-	int i=0;
-	list_item *it=l->head;
-	while (it){
-		if (i==n){
-			//ONION_DEBUG("Found");
-			return it->data;
-		}
-		i++;
-		it=it->next;
-	}
-	return NULL;
+void *list_get_n(list * l, int n) {
+  int i = 0;
+  list_item *it = l->head;
+  while (it) {
+    if (i == n) {
+      //ONION_DEBUG("Found");
+      return it->data;
+    }
+    i++;
+    it = it->next;
+  }
+  return NULL;
 }

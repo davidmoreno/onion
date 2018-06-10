@@ -32,9 +32,9 @@
 
 #include "static.h"
 
-struct onion_handler_static_data_t{
-	int code;
-	const char *data;
+struct onion_handler_static_data_t {
+  int code;
+  const char *data;
 };
 
 typedef struct onion_handler_static_data_t onion_handler_static_data;
@@ -42,22 +42,24 @@ typedef struct onion_handler_static_data_t onion_handler_static_data;
 /**
  * @short Performs the real request: set the code and write data
  */
-int onion_handler_static_handler(onion_handler_static_data *d, onion_request *request, onion_response *res){
-	int length=strlen(d->data);
-	onion_response_set_length(res, length);
-	onion_response_set_code(res, d->code);
-	
-	onion_response_write_headers(res);
-	//fprintf(stderr,"Write %d bytes\n",length);
-	onion_response_write(res, d->data, length);
+int onion_handler_static_handler(onion_handler_static_data * d,
+                                 onion_request * request,
+                                 onion_response * res) {
+  int length = strlen(d->data);
+  onion_response_set_length(res, length);
+  onion_response_set_code(res, d->code);
 
-	return OCS_PROCESSED;
+  onion_response_write_headers(res);
+  //fprintf(stderr,"Write %d bytes\n",length);
+  onion_response_write(res, d->data, length);
+
+  return OCS_PROCESSED;
 }
 
 /// Removes internal data for this handler.
-void onion_handler_static_delete(onion_handler_static_data *d){
-	onion_low_free((char*)d->data);
-	onion_low_free(d);
+void onion_handler_static_delete(onion_handler_static_data * d) {
+  onion_low_free((char *)d->data);
+  onion_low_free(d);
 }
 
 /**
@@ -65,16 +67,19 @@ void onion_handler_static_delete(onion_handler_static_data *d){
  *
  * Path is a regex for the url, as arrived here.
  */
-onion_handler *onion_handler_static(const char *text, int code){
-	onion_handler_static_data *priv_data=onion_low_malloc(sizeof(onion_handler_static_data));
-	if (!priv_data)
-		return NULL;
+onion_handler *onion_handler_static(const char *text, int code) {
+  onion_handler_static_data *priv_data =
+      onion_low_malloc(sizeof(onion_handler_static_data));
+  if (!priv_data)
+    return NULL;
 
-	priv_data->code=code;
-	priv_data->data=onion_low_strdup(text);
+  priv_data->code = code;
+  priv_data->data = onion_low_strdup(text);
 
-	onion_handler *ret=onion_handler_new((onion_handler_handler)onion_handler_static_handler,
-																			 priv_data,(onion_handler_private_data_free) onion_handler_static_delete);
-	return ret;
+  onion_handler *ret =
+      onion_handler_new((onion_handler_handler) onion_handler_static_handler,
+                        priv_data,
+                        (onion_handler_private_data_free)
+                        onion_handler_static_delete);
+  return ret;
 }
-

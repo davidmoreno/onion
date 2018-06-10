@@ -30,32 +30,35 @@
 #include "random.h"
 #include "low.h"
 
-char *last_data=NULL;
+char *last_data = NULL;
 
-static onion_dict *onion_sessions_mem_get(onion_sessions *sessions, const char *session_id){
-	ONION_DEBUG0("Accessing session '%s'",session_id);
-	onion_dict *sess=onion_dict_get_dict(sessions->data, session_id);
-	if (!sess){
-		ONION_DEBUG0("Unknown session '%s'.", session_id);
-		return NULL;
-	}
-	return onion_dict_dup(sess);
+static onion_dict *onion_sessions_mem_get(onion_sessions * sessions,
+                                          const char *session_id) {
+  ONION_DEBUG0("Accessing session '%s'", session_id);
+  onion_dict *sess = onion_dict_get_dict(sessions->data, session_id);
+  if (!sess) {
+    ONION_DEBUG0("Unknown session '%s'.", session_id);
+    return NULL;
+  }
+  return onion_dict_dup(sess);
 }
 
-static void onion_sessions_mem_save(onion_sessions *sessions, const char *session_id, onion_dict *data){
-	if (data==NULL){
-		data=onion_dict_get_dict(sessions->data, session_id);
-		if (data){
-			onion_dict_remove(sessions->data, session_id);
-		}
-		return;
-	}
-	onion_dict_add(sessions->data, session_id, onion_dict_dup(data), OD_DUP_KEY|OD_FREE_VALUE|OD_DICT|OD_REPLACE);
+static void onion_sessions_mem_save(onion_sessions * sessions,
+                                    const char *session_id, onion_dict * data) {
+  if (data == NULL) {
+    data = onion_dict_get_dict(sessions->data, session_id);
+    if (data) {
+      onion_dict_remove(sessions->data, session_id);
+    }
+    return;
+  }
+  onion_dict_add(sessions->data, session_id, onion_dict_dup(data),
+                 OD_DUP_KEY | OD_FREE_VALUE | OD_DICT | OD_REPLACE);
 }
 
-static void onion_sessions_mem_free(onion_sessions *sessions){
-	onion_dict_free(sessions->data);
-	onion_low_free(sessions);
+static void onion_sessions_mem_free(onion_sessions * sessions) {
+  onion_dict_free(sessions->data);
+  onion_low_free(sessions);
 }
 
 /**
@@ -66,15 +69,15 @@ static void onion_sessions_mem_free(onion_sessions *sessions){
  *
  * @see onion_set_session_backend
  */
-onion_sessions *onion_sessions_mem_new(){
-	onion_random_init();
+onion_sessions *onion_sessions_mem_new() {
+  onion_random_init();
 
-	onion_sessions *ret=onion_low_malloc(sizeof(onion_sessions));
-	ret->data=onion_dict_new();
+  onion_sessions *ret = onion_low_malloc(sizeof(onion_sessions));
+  ret->data = onion_dict_new();
 
-	ret->get=onion_sessions_mem_get;
-	ret->save=onion_sessions_mem_save;
-	ret->free=onion_sessions_mem_free;
+  ret->get = onion_sessions_mem_get;
+  ret->save = onion_sessions_mem_save;
+  ret->free = onion_sessions_mem_free;
 
-	return ret;
+  return ret;
 }

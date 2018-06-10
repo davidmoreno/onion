@@ -19,25 +19,23 @@
 #include <onion/mime.h>
 #include "../ctest.h"
 
-void t01_test_mime(){
-	INIT_LOCAL();
-	
-	FAIL_IF_NOT_EQUAL_STR("text/plain", onion_mime_get("txt"));
-	FAIL_IF_NOT_EQUAL_STR("text/plain", onion_mime_get("fdsfds"));
-	FAIL_IF_NOT_EQUAL_STR("text/html", onion_mime_get("html"));
-	FAIL_IF_NOT_EQUAL_STR("image/png", onion_mime_get("file.png"));
-	FAIL_IF_NOT_EQUAL_STR("application/javascript", onion_mime_get("js"));
+void t01_test_mime() {
+  INIT_LOCAL();
 
-	
-	onion_mime_set(NULL);
-	END_LOCAL();
+  FAIL_IF_NOT_EQUAL_STR("text/plain", onion_mime_get("txt"));
+  FAIL_IF_NOT_EQUAL_STR("text/plain", onion_mime_get("fdsfds"));
+  FAIL_IF_NOT_EQUAL_STR("text/html", onion_mime_get("html"));
+  FAIL_IF_NOT_EQUAL_STR("image/png", onion_mime_get("file.png"));
+  FAIL_IF_NOT_EQUAL_STR("application/javascript", onion_mime_get("js"));
+
+  onion_mime_set(NULL);
+  END_LOCAL();
 }
 
+int main(int argc, char **argv) {
+  START();
 
-int main(int argc, char **argv){
-	START();
-	
-	t01_test_mime();
-	
-	END();
+  t01_test_mime();
+
+  END();
 }

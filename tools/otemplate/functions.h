@@ -22,32 +22,32 @@
 #include <onion/types.h>
 #include "../common/updateassets.h"
 
-enum function_data_flags_e{
-	F_NO_MORE_WRITE=1,
+enum function_data_flags_e {
+  F_NO_MORE_WRITE = 1,
 };
 
 typedef enum function_data_flags_e function_data_flags;
 
-struct function_data_t{
-	char *id;
-	onion_block *code; /// Blocks of C code to be printed.
-	int is_static:1;
-	const char *signature; /// The function signature. If NULL its the standard
-	int flags;
+struct function_data_t {
+  char *id;
+  onion_block *code;            /// Blocks of C code to be printed.
+  int is_static:1;
+  const char *signature;        /// The function signature. If NULL its the standard
+  int flags;
 };
 
 typedef struct function_data_t function_data;
 
 struct parser_status_t;
 
-void functions_write_declarations_assets(struct parser_status_t *st, onion_assets_file *assets);
+void functions_write_declarations_assets(struct parser_status_t *st,
+                                         onion_assets_file * assets);
 void functions_write_declarations(struct parser_status_t *st);
 void functions_write_code(struct parser_status_t *st);
 void functions_write_main_code(struct parser_status_t *st);
 
-
 function_data *function_new(struct parser_status_t *st, const char *fmt, ...);
-void function_free(function_data *d);
+void function_free(function_data * d);
 function_data *function_pop(struct parser_status_t *st);
 void function_add_code(struct parser_status_t *st, const char *fmt, ...);
 void function_add_code_f(struct function_data_t *f, const char *fmt, ...);

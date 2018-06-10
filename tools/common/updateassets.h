@@ -22,7 +22,6 @@
 struct onion_assets_file_t;
 typedef struct onion_assets_file_t onion_assets_file;
 
-
 /**
  * @short Prepares the structure to load the assets file, to be able to upload it later.
  */
@@ -34,12 +33,10 @@ onion_assets_file *onion_assets_file_new(const char *filename);
  * 
  * Does not work on multilines.
  */
-int onion_assets_file_update(onion_assets_file *file, const char *line);
+int onion_assets_file_update(onion_assets_file * file, const char *line);
 /**
  * @short Closes and saves all data on the onion assets file.
  */
-int onion_assets_file_free(onion_assets_file *file);
-
+int onion_assets_file_free(onion_assets_file * file);
 
 #endif
-

@@ -27,52 +27,51 @@
  * It checks if its a HEAD in which case it writes the headers, and if not just printfs the
  * user data.
  */
-onion_connection_status post_data(void *_, onion_request *req, onion_response *res){
-	if (onion_request_get_flags(req)&OR_HEAD){
-		onion_response_write_headers(res);
-		return OCS_PROCESSED;
-	}
-	const char *user_data=onion_request_get_post(req,"text");
-	onion_response_printf(res, "The user wrote: %s", user_data);
-	return OCS_PROCESSED;
+onion_connection_status post_data(void *_, onion_request * req,
+                                  onion_response * res) {
+  if (onion_request_get_flags(req) & OR_HEAD) {
+    onion_response_write_headers(res);
+    return OCS_PROCESSED;
+  }
+  const char *user_data = onion_request_get_post(req, "text");
+  onion_response_printf(res, "The user wrote: %s", user_data);
+  return OCS_PROCESSED;
 }
 
-onion *o=NULL;
+onion *o = NULL;
 
-void onexit(int _){
-	ONION_INFO("Exit");
-	if (o)
-		onion_listen_stop(o);
+void onexit(int _) {
+  ONION_INFO("Exit");
+  if (o)
+    onion_listen_stop(o);
 }
 
 /**
  * This example creates a onion server and adds two urls: the base one is a static content with a form, and the
  * "data" URL is the post_data handler.
  */
-int main(int argc, char **argv){
-	o=onion_new(O_ONE_LOOP);
-	onion_url *urls=onion_root_url(o);
-	
-	onion_url_add_static(urls, "", 
-"<html>\n"
-"<head>\n"
-" <title>Simple post example</title>\n"
-"</head>\n"
-"\n"
-"Write something: \n"
-"<form method=\"POST\" action=\"data\">\n"
-"<input type=\"text\" name=\"text\">\n"
-"<input type=\"submit\">\n"
-"</form>\n"
-"\n"
-"</html>\n", HTTP_OK);
+int main(int argc, char **argv) {
+  o = onion_new(O_ONE_LOOP);
+  onion_url *urls = onion_root_url(o);
 
-	onion_url_add(urls, "data", post_data);
+  onion_url_add_static(urls, "",
+                       "<html>\n"
+                       "<head>\n"
+                       " <title>Simple post example</title>\n"
+                       "</head>\n"
+                       "\n"
+                       "Write something: \n"
+                       "<form method=\"POST\" action=\"data\">\n"
+                       "<input type=\"text\" name=\"text\">\n"
+                       "<input type=\"submit\">\n"
+                       "</form>\n" "\n" "</html>\n", HTTP_OK);
 
-	signal(SIGTERM, onexit);	
-	signal(SIGINT, onexit);	
-	onion_listen(o);
+  onion_url_add(urls, "data", post_data);
 
-	onion_free(o);
-	return 0;
+  signal(SIGTERM, onexit);
+  signal(SIGINT, onexit);
+  onion_listen(o);
+
+  onion_free(o);
+  return 0;
 }

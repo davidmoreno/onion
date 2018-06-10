@@ -22,4 +22,3 @@
 int load_external(const char *filename);
 
 #endif
-

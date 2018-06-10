@@ -27,14 +27,14 @@
 #include <onion/types.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /// Creates an auth handler that do not allow to pass unless user is authenticated using a pam name.
-onion_handler *onion_handler_auth_pam(const char *realm, const char *pamname, onion_handler *inside_level);
+  onion_handler *onion_handler_auth_pam(const char *realm, const char *pamname,
+                                        onion_handler * inside_level);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

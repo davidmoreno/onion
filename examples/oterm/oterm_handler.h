@@ -16,22 +16,20 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-
 #ifndef __OTERM_HANDLER__
 #define __OTERM_HANDLER__
 
 #include <onion/types.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-onion_handler *oterm_handler(onion *, const char *exec_command);
-onion_connection_status oterm_uuid(void *_, onion_request *req, onion_response *res);
+  onion_handler *oterm_handler(onion *, const char *exec_command);
+  onion_connection_status oterm_uuid(void *_, onion_request * req,
+                                     onion_response * res);
 
 #ifdef __cplusplus
 }
 #endif
-
-
 #endif

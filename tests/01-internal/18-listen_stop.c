@@ -31,89 +31,88 @@
 
 onion *o;
 
-
-static void shutdown_server(int _){
-	if (o)
-		onion_listen_stop(o);
+static void shutdown_server(int _) {
+  if (o)
+    onion_listen_stop(o);
 }
 
-int ok_listening=0;
+int ok_listening = 0;
 
-void *listen_thread_f(void *_){
-	ok_listening=1;
-	ONION_INFO("Start listening");
-	onion_listen(o);
-	ONION_INFO("End listening");
-	ok_listening=0;
+void *listen_thread_f(void *_) {
+  ok_listening = 1;
+  ONION_INFO("Start listening");
+  onion_listen(o);
+  ONION_INFO("End listening");
+  ok_listening = 0;
 
-	return NULL;
+  return NULL;
 }
 
-void t01_stop_listening(){
-	INIT_LOCAL();
+void t01_stop_listening() {
+  INIT_LOCAL();
 
-	signal(SIGTERM, shutdown_server);
+  signal(SIGTERM, shutdown_server);
 
-	o=onion_new(O_POOL);
+  o = onion_new(O_POOL);
 
-	pthread_t th;
+  pthread_t th;
 
-	pthread_create(&th, NULL, listen_thread_f, NULL);
+  pthread_create(&th, NULL, listen_thread_f, NULL);
 
-	sleep(2);
-	FAIL_IF_NOT(ok_listening);
-	kill(getpid(), SIGTERM);
-	sleep(2);
-	FAIL_IF(ok_listening);
+  sleep(2);
+  FAIL_IF_NOT(ok_listening);
+  kill(getpid(), SIGTERM);
+  sleep(2);
+  FAIL_IF(ok_listening);
 
-	pthread_join(th, NULL);
-	onion_free(o);
+  pthread_join(th, NULL);
+  onion_free(o);
 
-	END_LOCAL();
+  END_LOCAL();
 }
 
-void t02_stop_listening_some_petitions(){
-	INIT_LOCAL();
+void t02_stop_listening_some_petitions() {
+  INIT_LOCAL();
 
-	signal(SIGTERM, shutdown_server);
+  signal(SIGTERM, shutdown_server);
 
-	o=onion_new(O_POOL);
+  o = onion_new(O_POOL);
 
-	pthread_t th;
+  pthread_t th;
 
-	pthread_create(&th, NULL, listen_thread_f, NULL);
+  pthread_create(&th, NULL, listen_thread_f, NULL);
 
-	sleep(2);
-	ONION_INFO("Connecting to server");
-	int connfd=connect_to("localhost","8080");
-	FAIL_IF( connfd < 0 );
-	FAIL_IF_NOT(ok_listening);
-  if (connfd>0){
-    send(connfd,"GET /\n\n",7,0);
+  sleep(2);
+  ONION_INFO("Connecting to server");
+  int connfd = connect_to("localhost", "8080");
+  FAIL_IF(connfd < 0);
+  FAIL_IF_NOT(ok_listening);
+  if (connfd > 0) {
+    send(connfd, "GET /\n\n", 7, 0);
     char msg[1024];
     size_t smsg;
-    smsg=recv(connfd,msg,sizeof(msg),0);
-    FAIL_IF(smsg<=0);
+    smsg = recv(connfd, msg, sizeof(msg), 0);
+    FAIL_IF(smsg <= 0);
     ONION_DEBUG("Got %s", msg);
   }
 
-	kill(getpid(), SIGTERM);
-	sleep(2);
-	FAIL_IF(ok_listening);
+  kill(getpid(), SIGTERM);
+  sleep(2);
+  FAIL_IF(ok_listening);
 
-	pthread_join(th, NULL);
-	onion_free(o);
+  pthread_join(th, NULL);
+  onion_free(o);
 
-	if (connfd>=0)
-		close(connfd);
-	END_LOCAL();
+  if (connfd >= 0)
+    close(connfd);
+  END_LOCAL();
 }
 
-int main(int argc, char **argv){
-	START();
+int main(int argc, char **argv) {
+  START();
 
-	t01_stop_listening();
-	t02_stop_listening_some_petitions();
+  t01_stop_listening();
+  t02_stop_listening_some_petitions();
 
-	END();
+  END();
 }

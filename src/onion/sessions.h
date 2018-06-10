@@ -27,29 +27,30 @@
 #include "types.h"
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /// Initializes the sessions object
-onion_sessions *onion_sessions_new();
+  onion_sessions *onion_sessions_new();
 
 /// Frees the sessions object
-void onion_sessions_free(onion_sessions *sessions);
+  void onion_sessions_free(onion_sessions * sessions);
 
 /// Creates a session. Returns the session name. 
-char *onion_sessions_create(onion_sessions *sessions);
+  char *onion_sessions_create(onion_sessions * sessions);
 
 /// Returns the session object.
-onion_dict *onion_sessions_get(onion_sessions *sessions, const char *sessionId);
+  onion_dict *onion_sessions_get(onion_sessions * sessions,
+                                 const char *sessionId);
 
 /// Store session
-void onion_sessions_save(onion_sessions *sessions, const char *sessionId, onion_dict *data);
+  void onion_sessions_save(onion_sessions * sessions, const char *sessionId,
+                           onion_dict * data);
 
 /// Removes a session from the storage.
-void onion_sessions_remove(onion_sessions *sessions, const char *sessionId);
+  void onion_sessions_remove(onion_sessions * sessions, const char *sessionId);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

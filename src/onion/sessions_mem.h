@@ -25,15 +25,14 @@
 #define ONION_SESSIONS_SQLITE3_H
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #include "types.h"
 
-onion_sessions *onion_sessions_mem_new();
+  onion_sessions *onion_sessions_mem_new();
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

@@ -35,36 +35,36 @@ extern list *plugin_search_path;
  * 
  * @returns 0 on success, -1 on error
  */
-int load_external(const char *filename){
-	char tmp[256];
+int load_external(const char *filename) {
+  char tmp[256];
 
-	list_item *it=plugin_search_path->head;
-	void *dl=NULL;
-	while (it){
-		snprintf(tmp, sizeof(tmp), it->data, filename);
-		dl=dlopen(tmp, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
-		ONION_DEBUG("Check at %s %p: %s %d", tmp, dl, dlerror(), fopen(tmp, "ro"));
-		if (dl)
-			break;
-		it=it->next;
-	}
-	if (!dl){
-		ONION_ERROR("Could not load external library %s. Check plugin location rules at otemplate --help.", filename);
-		return -1;
-	}
-	void (*f)(void)=dlsym(dl, "plugin_init");
-	if (!f){
-		ONION_ERROR("Loaded library %s do not have otemplate_init", filename);
-		dlclose(dl);
-		return -1;
-	}
-	
-	ONION_DEBUG("Executing external %s/plugin_init()", tmp);
-	
-	f();
-	
-	
-	dlclose(dl); /// Closes the handle, but the library is kept open.
-	return 0;
+  list_item *it = plugin_search_path->head;
+  void *dl = NULL;
+  while (it) {
+    snprintf(tmp, sizeof(tmp), it->data, filename);
+    dl = dlopen(tmp, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
+    ONION_DEBUG("Check at %s %p: %s %d", tmp, dl, dlerror(), fopen(tmp, "ro"));
+    if (dl)
+      break;
+    it = it->next;
+  }
+  if (!dl) {
+    ONION_ERROR
+        ("Could not load external library %s. Check plugin location rules at otemplate --help.",
+         filename);
+    return -1;
+  }
+  void (*f) (void) = dlsym(dl, "plugin_init");
+  if (!f) {
+    ONION_ERROR("Loaded library %s do not have otemplate_init", filename);
+    dlclose(dl);
+    return -1;
+  }
+
+  ONION_DEBUG("Executing external %s/plugin_init()", tmp);
+
+  f();
+
+  dlclose(dl);                  /// Closes the handle, but the library is kept open.
+  return 0;
 }
-

@@ -27,16 +27,17 @@
 #include <onion/types.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-typedef void (*onion_opack_renderer)(onion_response *res);
+  typedef void (*onion_opack_renderer) (onion_response * res);
 
 /// Creates a opak handler.
-onion_handler *onion_handler_opack(const char *path, onion_opack_renderer opack, unsigned int length);
+  onion_handler *onion_handler_opack(const char *path,
+                                     onion_opack_renderer opack,
+                                     unsigned int length);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

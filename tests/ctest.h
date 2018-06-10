@@ -16,7 +16,6 @@
   *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
   */
 
-
 #ifndef __CORALBITS_TEST_H__
 
 #include <stdio.h>
@@ -48,21 +47,22 @@
  * - FAIL_IF_NOT_EXCEPTION( code )
  */
 
-static int __ctest__failures=0;
-static int __ctest__successes=0;
+static int __ctest__failures = 0;
+static int __ctest__successes = 0;
 
-static int __ctest__local_failures=0;
-static int __ctest__local_successes=0;
-static int __ctest__ctest_log=0;
+static int __ctest__local_failures = 0;
+static int __ctest__local_successes = 0;
+static int __ctest__ctest_log = 0;
 
-static char *__ctest__one_test=NULL;
+static char *__ctest__one_test = NULL;
 
 #ifndef ERROR
-static const char * __attribute__((unused)) __BASENAME__="please set the START() macro at main()";
-# define ERROR(...) { fprintf(stderr, "%s:%d ERROR ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
+static const char * __attribute__ ((unused)) __BASENAME__ =
+    "please set the START() macro at main()";
+#define ERROR(...) { fprintf(stderr, "%s:%d ERROR ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
 #endif
 #ifndef INFO
-# define INFO(...) { fprintf(stderr, "%s:%d INFO ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
+#define INFO(...) { fprintf(stderr, "%s:%d INFO ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
 #endif
 
 #define LOG(...) { if (__ctest__ctest_log) { fprintf(stderr, "CTEST %s:%d ",__BASENAME__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); } }
@@ -132,7 +132,6 @@ static const char * __attribute__((unused)) __BASENAME__="please set the START()
 #define FAIL_IF(v) if (v){ FAIL("FAIL IF %s",#v); } else { SUCCESS(); }
 #define FAIL_IF_NOT(v) if ( !(v) ){ FAIL("FAIL IF NOT %s",#v); } else { SUCCESS(); }
 
-
 #define FAIL_IF_EQUAL(A,B) if ((A)==(B)){ FAIL("FAIL IF EQUAL %s == %s",#A,#B); } else { SUCCESS(); }
 #define FAIL_IF_NOT_EQUAL(A,B) if ((A)!=(B)){ FAIL("FAIL IF NOT EQUAL %s != %s",#A,#B); } else { SUCCESS(); }
 
@@ -155,4 +154,4 @@ static const char * __attribute__((unused)) __BASENAME__="please set the START()
 #define FAIL_IF_NOT_EXCEPTION(A) { try{ A; FAIL("FAIL IF NOT EXCEPTION Code did not throw an exception"); } catch(...){ SUCCESS(); } }
 #endif
 
-#endif //__CORALBITS_TEST_H__
+#endif                          //__CORALBITS_TEST_H__

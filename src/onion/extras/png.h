@@ -25,16 +25,16 @@
 #define __ONION_PNG_H__
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #include <onion/types.h>
 
 /// Writes an image data to a response object
-int onion_png_response(unsigned char *image, int Bpp, int width, int height, onion_response *res);
+  int onion_png_response(unsigned char *image, int Bpp, int width, int height,
+                         onion_response * res);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif
