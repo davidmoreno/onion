@@ -30,7 +30,7 @@ Onion::Dict::key_not_found::key_not_found(const std::string & key)
 Onion::Dict::key_not_found::~key_not_found()noexcept {
 }
 
-const char *Onion::Dict::key_not_found::what() const const noexcept {
+const char *Onion::Dict::key_not_found::what() const noexcept {
   return msg.c_str();
 }
 
@@ -93,15 +93,15 @@ Onion::Dict & Onion::Dict::operator=(onion_dict * o) {
   return *this;
 }
 
-Onion::Dict Onion::Dict::hard_dup() constconst {
+Onion::Dict Onion::Dict::hard_dup() const {
   return Dict(onion_dict_hard_dup(ptr.get()), true);
 }
 
-bool Onion::Dict::has(const std::string & k) constconst noexcept {
+bool Onion::Dict::has(const std::string & k) const noexcept {
   return onion_dict_get(ptr.get(), k.c_str()) != nullptr;
 }
 
-Onion::Dict Onion::Dict::getDict(const std::string & k) constconst noexcept {
+Onion::Dict Onion::Dict::getDict(const std::string & k) const noexcept {
   return Dict(onion_dict_get_dict(ptr.get(), k.c_str()));
 }
 
@@ -122,7 +122,7 @@ Onion::Dict & Onion::Dict::remove(const std::string & k)noexcept {
   return *this;
 }
 
-std::string Onion::Dict::toJSON() constconst noexcept {
+std::string Onion::Dict::toJSON() const noexcept {
   onion_block *bl = onion_dict_to_json(ptr.get());
   std::string str = onion_block_data(bl);
   onion_block_free(bl);
@@ -138,7 +138,7 @@ Onion::Dict & Onion::Dict::merge(const Dict & other)noexcept {
   return *this;
 }
 
-onion_dict *Onion::Dict::c_handler() const const noexcept {
+onion_dict *Onion::Dict::c_handler() const noexcept {
   return ptr.get();
 }
 

@@ -32,7 +32,7 @@
 onion_connection_status _13_otemplate_html_handler_page(onion_dict * context,
                                                         onion_request * req,
                                                         onion_response * res);
-onion_connection_status AGPL_txt_handler_page(onion_dict * context,
+onion_connection_status GPLv2_txt_handler_page(onion_dict * context,
                                               onion_request * req,
                                               onion_response * res);
 
@@ -168,7 +168,7 @@ void t02_long_template() {
   onion *s = onion_new(0);
 
   onion_set_root_handler(s,
-                         onion_handler_new((void *)AGPL_txt_handler_page, NULL,
+                         onion_handler_new((void *)GPLv2_txt_handler_page, NULL,
                                            NULL));
   onion_listen_point *lp = onion_buffer_listen_point_new();
   onion_add_listen_point(s, NULL, NULL, lp);
@@ -183,7 +183,7 @@ void t02_long_template() {
                         OCS_REQUEST_READY);
   FAIL_IF_NOT_EQUAL_INT(onion_request_process(req), OCS_CLOSE_CONNECTION);
 
-  FAIL_IF(count < 30000);
+  FAIL_IF(count < 15000);
 
   onion_request_free(req);
   onion_free(s);

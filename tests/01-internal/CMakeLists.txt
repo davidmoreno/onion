@@ -73,7 +73,7 @@ add_test(internal-cloexec 12-cloexec)
 ENDIF (CURL)
 
 if (OTEMPLATE)
-add_executable(13-otemplates 13-otemplates.c 13-otemplate_html.c buffer_listen_point.c AGPL_txt.c)
+add_executable(13-otemplates 13-otemplates.c 13-otemplate_html.c buffer_listen_point.c GPLv2_txt.c)
 add_custom_command(
    OUTPUT 13-otemplate_html.c
    COMMAND ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/13-otemplate.html
@@ -81,10 +81,10 @@ add_custom_command(
    DEPENDS ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/13-otemplate.html
    )
 add_custom_command(
-   OUTPUT AGPL_txt.c
-   COMMAND ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/../../AGPL.txt
-                 ${CMAKE_CURRENT_BINARY_DIR}/AGPL_txt.c
-   DEPENDS ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/../../AGPL.txt
+   OUTPUT GPLv2_txt.c
+   COMMAND ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/../../GPLv2.txt
+                 ${CMAKE_CURRENT_BINARY_DIR}/GPLv2_txt.c
+   DEPENDS ${OTEMPLATE} ${CMAKE_CURRENT_SOURCE_DIR}/../../GPLv2.txt
    )
 target_link_libraries(13-otemplates onion)
 add_test(internal-otemplates 13-otemplates)

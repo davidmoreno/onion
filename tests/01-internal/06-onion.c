@@ -343,7 +343,9 @@ void t05_server_timeout_threaded_ssl() {
   int w = write(fd, "GET /\n\n", 7);
   FAIL_IF_NOT_EQUAL_INT(w, 7);
   char data[256];
-  FAIL_IF(read(fd, data, sizeof(data)) > 0);
+  ssize_t n = read(fd, data, sizeof(data));
+  ONION_DEBUG("Read should be 0/7, is %d: <%s>, %X %X %X %X", n, data, data[0], data[1], data[2], data[3]);
+  FAIL_IF_NOT(n<=0 || n == 7); // 2018-06 -- Before was 0 bytes, now there is a close connection data leftover on newer GNUTLS
   close(fd);
 
   FAIL_IF_NOT(curl_get(curl, "https://localhost:8081"));
