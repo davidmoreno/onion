@@ -29,13 +29,13 @@
 
 using namespace Onion;
 
-onion_connection_status Onion::HttpException::handle(Onion::Request& req, Onion::Response& res)
-{
-	return onion_shortcut_response(what(), code, req.c_handler(), res.c_handler());
+onion_connection_status Onion::HttpException::handle(Onion::Request & req,
+                                                     Onion::Response & res) {
+  return onion_shortcut_response(what(), code, req.c_handler(),
+                                 res.c_handler());
 }
 
-onion_connection_status Onion::HttpRedirect::handle(Onion::Request& req, Onion::Response& res)
-{
-	return onion_shortcut_redirect(what(), req.c_handler(), res.c_handler());
+onion_connection_status Onion::HttpRedirect::handle(Onion::Request & req,
+                                                    Onion::Response & res) {
+  return onion_shortcut_redirect(what(), req.c_handler(), res.c_handler());
 }
-

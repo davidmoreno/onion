@@ -34,8 +34,7 @@ extern "C" {
     if (c == '\t' || c == '\n' || c == '\r' || c == ' ')
       return 1;
     return 0;
-  }
-  static int __attribute__ ((unused)) is_alnum(char c) {
+  } static int __attribute__ ((unused)) is_alnum(char c) {
     if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z')
         || (c >= 'a' && c <= 'z'))
       return 1;

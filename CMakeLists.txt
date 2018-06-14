@@ -279,7 +279,8 @@ add_subdirectory(tests)
 add_subdirectory(manpages)
 
 file(GLOB_RECURSE ALL_C_H_FILES RELATIVE ${CMAKE_SOURCE_DIR}
-	"src/*.c" "src/*.h" "examples/*.c" "examples/*.h"
+	"src/*.c" "src/*.h" "src/*.cpp" "src/*.hpp"
+	"examples/*.c" "examples/*.h"
 	"tools/*.c" "tools/*.h"
 )
 add_custom_target(indent

@@ -577,8 +577,8 @@ onion_connection_status onion_request_process(onion_request * req) {
     if (hs == OCS_FORBIDDEN)
       req->flags |= OR_FORBIDDEN;
 
-    hs = onion_handler_handle(req->connection.listen_point->
-                              server->internal_error_handler, req, res);
+    hs = onion_handler_handle(req->connection.listen_point->server->
+                              internal_error_handler, req, res);
   }
 
   if (hs == OCS_YIELD) {

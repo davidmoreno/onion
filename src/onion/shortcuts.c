@@ -133,8 +133,8 @@ onion_connection_status onion_shortcut_internal_redirect(const char *newurl,
                                                          onion_response * res) {
   onion_low_free(req->fullpath);
   req->fullpath = req->path = onion_low_strdup(newurl);
-  return onion_handler_handle(req->connection.listen_point->
-                              server->root_handler, req, res);
+  return onion_handler_handle(req->connection.listen_point->server->
+                              root_handler, req, res);
 }
 
 /**

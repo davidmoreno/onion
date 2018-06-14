@@ -30,8 +30,8 @@
 #include <onion/log.h>
 #include <onion/onion.h>
 
-namespace Onion{
-	/**
+namespace Onion {
+        /**
 	 * @short Url management for Onion
 	 * 
 	 * With this class its possible to create the muxer necesary to redirect the petitions to the proper handler.
@@ -66,63 +66,64 @@ namespace Onion{
 	 * 
 	 * As it can se regex without full matching, be careful or its possible to just match substrings: "o$" matches "Hello", "Hello/World/o" and so on.
 	 */
-	class Url : public Handler {
-		using internal_pointer = std::unique_ptr<onion_url, decltype(onion_url_free)*>;
-		internal_pointer ptr;
-	public:
-		/**
+  class Url:public Handler {
+    using internal_pointer =
+        std::unique_ptr < onion_url, decltype(onion_url_free) * >;
+    internal_pointer ptr;
+ public:
+                /**
 		 * @short Creates an empty url handler.
 		 */
-		Url();
-		/**
+     Url();
+                /**
 		 * @short Creates an url handler from the C url handler.
 		 */
-		Url(onion_url *_ptr);
-		/**
+     Url(onion_url * _ptr);
+                /**
 		 * @short Creates the onion_root_handler as an Url object.
 		 */
-		Url(Onion *o);
-		/**
+     Url(Onion * o);
+                /**
 		 * @short Creates the onion_root_handler as an Url object, from a onion reference.
 		 */
-		Url(Onion &o);
-		/**
+     Url(Onion & o);
+                /**
 		 * @short Move constructor
 		 * 
 		 * Its slightly diferent from standard as it allows to keep using the original to add data; normally the state is undefined.
 		 */
-		Url(Url &&o);
+     Url(Url && o);
 
-		Url(Url &) = delete;
-		Url &operator=(Url &o) = delete;
+     Url(Url &) = delete;
+     Url & operator=(Url & o) = delete;
 
-		virtual ~Url();
+     virtual ~ Url();
 
-		/**
+                /**
 		 * @short Returns the C handler to use onion_url C functions.
 		 */
-		onion_url *c_handler();
-		
-		/**
+    onion_url *c_handler();
+
+                /**
 		 * @short Adds an url that calls an Onion::Handler-
 		 */
-		Url& add(const std::string &url, Handler &&h);
+     Url & add(const std::string & url, Handler && h);
 
-		/**
+                /**
 		 * @short Adds an url that calls a C onion_handler.
 		 */
-		Url& add(const std::string &url, onion_handler *h);
-		
-		/**
+     Url & add(const std::string & url, onion_handler * h);
+
+                /**
 		 * @short Adds an url that calls a C++ function.
 		 * 
 		 * Example:
 		 * 
 		 *   url.add("", [](Onion::Request &req, Onion::Response &res){ return OCS_INTERNAL_ERROR; });
 		 */
-		Url& add(const std::string &url, HandlerFunction::fn_t fn);
+     Url & add(const std::string & url, HandlerFunction::fn_t fn);
 
-		/**
+                /**
 		 * @short Adds an url that calls a C++ method.
 		 * 
 		 * This is the most normal way to add several calls to methods on the same class.
@@ -142,30 +143,33 @@ namespace Onion{
 		 *   url.add("mycall", &c, MyClass::index);
 		 * \endcode
 		 */
-		template<class T>
-		Url& add(const std::string &url, T *o, onion_connection_status (T::*fn)(Request &,Response &)){
-			return add(url, (Handler&&)Handler::make<HandlerMethod<T>>(o,fn));
-		}
-		/**
+     template < class T >
+        Url & add(const std::string & url, T * o,
+                  onion_connection_status(T::*fn) (Request &, Response &)) {
+      return add(url,
+                 (Handler &&) Handler::make < HandlerMethod < T >> (o, fn));
+    }
+                /**
 		 * @short Adds an url with a static response.
 		 */
-		Url &add(const std::string &url, const std::string &s, int http_code=200);
+        Url & add(const std::string & url, const std::string & s,
+                      int http_code = 200);
 
-		/**
+                /**
 		 * @short Adds an url that calls a C style onion handler.
 		 * 
 		 * With this method is possible to use the C handlers as onion_webdav.
 		 */
-		Url &add(const std::string &url, onion_handler_handler handler);
+     Url & add(const std::string & url, onion_handler_handler handler);
 
-		/**
+                /**
 		 * @short Allows to call am Onion::Url to continue the processing of this request.
 		 * 
 		 * A use case is a have a handler that controls access by means of a session (or CSRF control), and
 		 * if the conditions are OK, call the url handler to continue with the processing.
 		 */
-		virtual onion_connection_status operator()(Request &req, Response &res);
-	};
+    virtual onion_connection_status operator() (Request & req, Response & res);
+  };
 }
 
 #endif

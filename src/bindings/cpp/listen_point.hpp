@@ -27,40 +27,45 @@
 #include <memory>
 
 namespace Onion {
-	/**
+        /**
 	 * @short Creates a listen point for an Onion::Onion object.
 	 * Not meant to be used directly, as a default listen point doesn't
 	 * do very much.
 	 */
-	class ListenPoint {
-	protected:
-		using internal_pointer = std::unique_ptr<onion_listen_point, decltype(onion_listen_point_free)*>;
-		internal_pointer ptr;
-	public:
-		ListenPoint() 
-			: ptr(onion_listen_point_new(), onion_listen_point_free)
-		{}
+  class ListenPoint {
+ protected:
+    using internal_pointer =
+        std::unique_ptr < onion_listen_point,
+        decltype(onion_listen_point_free) * >;
+    internal_pointer ptr;
+ public:
+     ListenPoint()
+    :ptr(onion_listen_point_new(), onion_listen_point_free) {
+    } ListenPoint(onion_listen_point * lp)
+    :ptr(lp,[](onion_listen_point *) {
+         return;
+         }
+    ) {
+    }
 
-		ListenPoint(onion_listen_point* lp)
-			: ptr(lp, [](onion_listen_point*) { return; })
-		{}
+ ListenPoint(ListenPoint && other):ptr {
+    std::move(other.ptr)}
+    {
+    }
 
-		ListenPoint(ListenPoint&& other) : ptr { std::move(other.ptr) }
-		{}
-
-		/**
+                /**
 		 * @short Release ownership of the underlying pointer.
 		 */
-		void release() {
-			ptr.reset(nullptr);
-		}
+    void release() {
+      ptr.reset(nullptr);
+    }
 
-		/**
+                /**
 		 * @short Get the underlying C object.
 		 */
-		onion_listen_point* c_handler() const { return ptr.get(); }
-	};
+    onion_listen_point *c_handler() const {
+      return ptr.get();
+  }};
 }
 
 #endif
-

@@ -31,20 +31,22 @@
 #include <onion/handler.h>
 #include <onion/handlers/exportlocal.h>
 
-onion_connection_status Onion::render_to_response(::Onion::template_f fn, const ::Onion::Dict& context, ::Onion::Response &res){
-	ONION_DEBUG("Context: %s", context.toJSON().c_str());
+onion_connection_status Onion::render_to_response(::Onion::template_f fn,
+                                                  const::Onion::
+                                                  Dict & context,::Onion::
+                                                  Response & res) {
+  ONION_DEBUG("Context: %s", context.toJSON().c_str());
 
-	fn(context.c_handler(), res.c_handler());
-	
-	return OCS_PROCESSED;
+  fn(context.c_handler(), res.c_handler());
+
+  return OCS_PROCESSED;
 }
 
-onion_connection_status Onion::redirect(const std::string& url, ::Onion::Request& req, ::Onion::Response& res)
-{
-	return onion_shortcut_redirect(url.c_str(), req.c_handler(), res.c_handler());
+onion_connection_status Onion::redirect(const std::string & url,::Onion::
+                                        Request & req,::Onion::Response & res) {
+  return onion_shortcut_redirect(url.c_str(), req.c_handler(), res.c_handler());
 }
 
-Onion::Handler Onion::ExportLocal(const std::string& path)
-{
-	return onion_handler_c_to_cpp(onion_handler_export_local_new(path.c_str()));
+Onion::Handler Onion::ExportLocal(const std::string & path) {
+  return onion_handler_c_to_cpp(onion_handler_export_local_new(path.c_str()));
 }

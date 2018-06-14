@@ -113,8 +113,8 @@ int onion_listen_point_accept(onion_listen_point * op) {
       if (!slot)
         return 1;
       onion_poller_slot_set_timeout(slot,
-                                    req->connection.listen_point->
-                                    server->timeout);
+                                    req->connection.listen_point->server->
+                                    timeout);
       onion_poller_slot_set_shutdown(slot, (void *)onion_request_free, req);
       onion_poller_add(req->connection.listen_point->server->poller, slot);
       return 1;

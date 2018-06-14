@@ -32,18 +32,17 @@
 #include "request.hpp"
 #include "response.hpp"
 
-namespace Onion{
+namespace Onion {
 
-	namespace Shortcuts{
-		Handler static_file(const std::string &path);
-		Handler internal_redirect(const std::string &uri);
-		Handler redirect(const std::string &uri);
-	};
+  namespace Shortcuts {
+    Handler static_file(const std::string & path);
+    Handler internal_redirect(const std::string & uri);
+    Handler redirect(const std::string & uri);
+  };
 
-	Handler StaticHandler(const std::string &path);
-	Handler InternalRedirectHandler(const std::string &uri);
-	Handler RedirectHandler(const std::string &uri);
+  Handler StaticHandler(const std::string & path);
+  Handler InternalRedirectHandler(const std::string & uri);
+  Handler RedirectHandler(const std::string & uri);
 };
 
 #endif
-

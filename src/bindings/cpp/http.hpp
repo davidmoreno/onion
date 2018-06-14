@@ -27,7 +27,7 @@
 #include <onion/http.h>
 
 namespace Onion {
-	/**
+        /**
 	 * @short A HTTP listen point for an Onion::Onion object.
 	 *
 	 * This is a short example of how to use this object.
@@ -37,12 +37,10 @@ namespace Onion {
 	 * o.listen();
 	 * @endcode
 	 */
-	class HttpListenPoint : public ListenPoint {
-	public:
-		HttpListenPoint() : ListenPoint(onion_http_new()) {
-		}
-	};
+  class HttpListenPoint:public ListenPoint {
+ public:
+    HttpListenPoint():ListenPoint(onion_http_new()) {
+  }};
 }
 
 #endif
-

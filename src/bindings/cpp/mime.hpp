@@ -28,37 +28,34 @@
 #include "dict.hpp"
 
 namespace Onion {
-	class Mime {
-	public:
-		/**
+  class Mime {
+ public:
+                /**
 		 * @short Sets the mime dictionary (extension -> mime_type)
 		 */
-		static void set(Onion::Dict& dict) {
-			onion_mime_set(dict.c_handler());
-		}
-
-		/**
+    static void set(Onion::Dict & dict) {
+      onion_mime_set(dict.c_handler());
+    }
+                /**
 		 * @short Get the mime type based on the file name.
-		 */
-		static std::string get(const std::string& filename) {
-			return onion_mime_get(filename.c_str());
-		}
-
-		/**
+		 */ static std::string get(const std::string & filename) {
+      return onion_mime_get(filename.c_str());
+    }
+                /**
 		 * @short Update a mime record.
 		 */
-		static void update(const std::string& extension, const std::string& mimetype) {
-			onion_mime_update(extension.c_str(), mimetype.c_str());
-		}
+        static void update(const std::string & extension,
+                               const std::string & mimetype) {
+      onion_mime_update(extension.c_str(), mimetype.c_str());
+    }
 
-		/**
+                /**
 		 * @short Removes a mime record for the given extension.
 		 */
-		static void remove(const std::string& extension) {
-			onion_mime_update(extension.c_str(), nullptr);
-		}
-	};
+    static void remove(const std::string & extension) {
+      onion_mime_update(extension.c_str(), nullptr);
+    }
+  };
 }
 
 #endif
-
