@@ -56,9 +56,16 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
  * It has the main data for the connection; the setup certificate and such.
  */
 struct onion_https_t{
+#ifdef HAVE_GNUTLS
 	gnutls_certificate_credentials_t x509_cred;
 	gnutls_dh_params_t dh_params;
 	gnutls_priority_t priority_cache;
+#else /* HAVE_GNUTLS */
+#define x509_cred	ctx
+#define priority_cache	ctx
+	SSL_CTX *ctx;
+	DH *dh_params;
+#endif /* HAVE_GNUTLS */
 };
 
 typedef struct onion_https_t onion_https;
@@ -110,6 +117,9 @@ onion_listen_point *onion_https_new(){
 	//}
 
 	gnutls_global_init ();
+
+#ifdef HAVE_GNUTLS
+
 	gnutls_certificate_allocate_credentials (&https->x509_cred);
 
 	// set cert here??
@@ -150,6 +160,32 @@ onion_listen_point *onion_https_new(){
 	}
 	gnutls_certificate_set_dh_params (https->x509_cred, https->dh_params);
 
+#else /* HAVE_GNUTLS */
+
+	https->ctx = SSL_CTX_new(SSLv23_server_method());
+	https->dh_params = DH_get_1024_160();
+
+	if (!SSL_CTX_set_tmp_dh(https->ctx, https->dh_params)){
+		ONION_ERROR("Error initializing HTTPS: %s", gnutls_strerror());
+		SSL_CTX_free(https->ctx);
+		DH_free(https->dh_params);
+		op->free_user_data=NULL;
+		onion_listen_point_free(op);
+		onion_low_free(https);
+		return NULL;
+	}
+	if (!SSL_CTX_set_cipher_list(https->ctx, "HIGH:!aNULL:!MD5:!RC4")){
+		ONION_ERROR("Error initializing HTTPS: %s", gnutls_strerror());
+		SSL_CTX_free(https->ctx);
+		DH_free(https->dh_params);
+		op->free_user_data=NULL;
+		onion_listen_point_free(op);
+		onion_low_free(https);
+		return NULL;
+	}
+
+#endif /* HAVE_GNUTLS */
+
 	ONION_DEBUG("HTTPS connection ready");
 
 	return op;
@@ -182,9 +218,14 @@ static void onion_https_free_user_data(onion_listen_point *op){
 	ONION_DEBUG("Free HTTPS %s:%s", op->hostname, op->port);
 	onion_https *https=(onion_https*)op->user_data;
 
+#ifdef HAVE_GNUTLS
 	gnutls_certificate_free_credentials (https->x509_cred);
 	gnutls_dh_params_deinit(https->dh_params);
 	gnutls_priority_deinit (https->priority_cache);
+#else /* HAVE_GNUTLS */
+	SSL_CTX_free(https->ctx);
+	DH_free(https->dh_params);
+#endif /* HAVE_GNUTLS */
 	//if (op->server->flags&O_SSL_NO_DEINIT)
 	gnutls_global_deinit(); // This may cause problems if several characters use the gnutls on the same binary.
 	onion_low_free(https);
@@ -208,6 +249,8 @@ static int onion_https_request_init(onion_request *req){
 
 	gnutls_session_t session;
 
+#ifdef HAVE_GNUTLS
+
   gnutls_init (&session, GNUTLS_SERVER);
   gnutls_priority_set (session, https->priority_cache);
   gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, https->x509_cred);
@@ -228,6 +271,37 @@ static int onion_https_request_init(onion_request *req){
 		onion_listen_point_request_close_socket(req);
 		return -1;
 	}
+
+#else /* HAVE_GNUTLS */
+
+	session = SSL_new(https->ctx);
+
+	SSL_set_fd(session, req->connection.fd);
+	int ret = SSL_accept(session);
+	while (ret <= 0) {
+		switch (SSL_get_error(session, ret)) {
+		case SSL_ERROR_NONE:
+			break;
+		case SSL_ERROR_WANT_WRITE:
+		case SSL_ERROR_WANT_READ:
+			continue;
+		case SSL_ERROR_SYSCALL:
+		case SSL_ERROR_SSL:
+		case SSL_ERROR_ZERO_RETURN:
+			ONION_ERROR("Handshake has failed (%s)", gnutls_strerror());
+			gnutls_bye (session, GNUTLS_SHUT_WR);
+			gnutls_deinit(session);
+			onion_listen_point_request_close_socket(req);
+			return -1;
+		default:
+			break;
+		}
+
+		SSL_renegotiate(session);
+		SSL_write(session, NULL, 0);
+	}
+
+#endif /* HAVE_GNUTLS */
 
 	req->connection.user_data=(void*)session;
 	return 0;

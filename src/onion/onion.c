@@ -122,7 +122,7 @@ onion_url_add_url(url, ...); // Nesting
  *
  * @subsection SSL SSL support
  *
- * libonion has SSL support by using GNUTLS. This is however optional, and you can disable compilation by
+ * libonion has SSL support by using GNUTLS/OpenSSL. This is however optional, and you can disable compilation by
  * not having the development libraries, or modifing /CMakeLists.txt.
  *
  * Once you have support most basic use is just to set a certificate and key file (can be be on the same PEM file).
@@ -171,7 +171,7 @@ onion_url_add_url(url, ...); // Nesting
 static int onion_default_error(void *handler, onion_request *req, onion_response *res);
 // Import it here as I need it to know if we have a HTTP port.
 ssize_t onion_http_write(onion_request *req, const char *data, size_t len);
-#ifdef HAVE_GNUTLS
+#if defined(HAVE_GNUTLS) || defined(HAVE_OPENSSL)
 ssize_t onion_https_write(onion_request *req, const char *data, size_t len);
 #endif
 
@@ -827,7 +827,7 @@ int onion_set_certificate(onion *onion, onion_ssl_certificate_type type, const c
 
 /// Set a certificate for use in the connection
 int onion_set_certificate_va(onion *onion, onion_ssl_certificate_type type, const char *filename, va_list va){
-#ifdef HAVE_GNUTLS
+#if defined(HAVE_GNUTLS) || defined(HAVE_OPENSSL)
 	if (!onion->listen_points){
 		onion_add_listen_point(onion,NULL,NULL,onion_https_new());
 	}
@@ -859,7 +859,7 @@ int onion_set_certificate_va(onion *onion, onion_ssl_certificate_type type, cons
 
 	return r;
 #else
-	ONION_ERROR("GNUTLS is not enabled. Recompile onion with GNUTLS support");
+	ONION_ERROR("SSL is not enabled. Recompile onion with SSL support");
 	return -1;
 #endif
 }

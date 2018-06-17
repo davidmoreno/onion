@@ -7,6 +7,10 @@ if(GNUTLS_ENABLED)
 	target_link_libraries(opack ${GNUTLS_LIBRARIES})
 endif(GNUTLS_ENABLED)
 
+if(OPENSSL_ENABLED)
+	target_link_libraries(opack ${OPENSSL_LIBRARIES})
+endif(OPENSSL_ENABLED)
+
 install(TARGETS opack DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 
