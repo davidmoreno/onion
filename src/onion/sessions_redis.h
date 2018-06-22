@@ -26,17 +26,14 @@
 #define ONION_SESSIONS_REDIS_H
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #include "types.h"
 
-onion_sessions *onion_sessions_redis_new(const char *server_ip, int port);
+  onion_sessions *onion_sessions_redis_new(const char *server_ip, int port);
 
 #ifdef __cplusplus
 }
 #endif
-
-
 #endif
-
