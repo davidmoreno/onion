@@ -554,9 +554,18 @@ int onion_listen(onion * o) {
  * If there is any pending connection, it can finish if onion not freed before.
  */
 void onion_listen_stop(onion * server) {
+#ifdef HAVE_PTHREADS
+    pthread_mutex_lock(&server->mutex);
+  /// Not listening
+    if ((server->flags & O_LISTENING) == 0) {
+      pthread_mutex_unlock(&server->mutex);
+    return;
+    }
+#else /*no pthreads*/
   /// Not listening
   if ((server->flags & O_LISTENING) == 0)
     return;
+#endif /*HAVE_PTHREADS*/
 
   /// Stop listening
   onion_listen_point **lp = server->listen_points;
@@ -571,7 +580,8 @@ void onion_listen_stop(onion * server) {
 #ifdef HAVE_PTHREADS
   if (server->flags & O_DETACHED)
     onion_low_pthread_join(server->listen_thread, NULL);
-#endif
+  pthread_mutex_unlock (&server->mutex);
+#endif	/* end HAVE_PTHREADS */
 }
 
 /**
