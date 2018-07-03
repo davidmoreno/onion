@@ -101,7 +101,7 @@ extern "C" {
  * Sessions are thread safe to use.
  *
  * The sessions themselves are not created until some data is written to it by the program. This way we avoid
- * "session attack" where a malicious user sends many petitions asking for new sessions.
+ * "session attack" where a malicious user sends many requests asking for new sessions.
  *
  * FIXME to add some LRU so that on some moment we can remove old sessions.
  */
@@ -185,9 +185,9 @@ extern "C" {
 /// Flags for the mode of operation of the onion server.
 /// @ingroup onion
   enum onion_mode_e {
-    O_ONE = 1,                  ///< Perform just one petition
-    O_ONE_LOOP = 3,             ///< Perform one petition at a time; lineal processing
-    O_THREADED = 4,             ///< Threaded processing, process many petitions at a time. Needs pthread support.
+    O_ONE = 1,                  ///< Perform just one request
+    O_ONE_LOOP = 3,             ///< Perform one request at a time; lineal processing
+    O_THREADED = 4,             ///< Threaded processing, process many requests at a time. Needs pthread support.
     O_DETACH_LISTEN = 8,        ///< When calling onion_listen, it returns inmediatly and do the listening on another thread. Only if threading is available.
     O_SYSTEMD = 0x010,          ///< Allow to start as systemd service. It try to start as if from systemd, but if not, start normally, so its "transparent".
 /**

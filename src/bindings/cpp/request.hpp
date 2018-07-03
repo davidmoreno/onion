@@ -147,12 +147,12 @@ namespace Onion {
 		 * portion important for this handler on.
 		 * 
 		 * In practice this means that if you have several handlers, on for "myapp/", other for "users/",
-		 * and finally you get this petition for "myapp/users/XXX", on this path there is only a XXX.
+		 * and finally you get this request for "myapp/users/XXX", on this path there is only a XXX.
 		 */ std::string path() const {
       return onion_request_get_path(ptr);
     }
                 /**
-		 * @short Returns the full path for this petition, as originally asked by the client.
+		 * @short Returns the full path for this request, as originally asked by the client.
 		 */ std::string fullpath() const {
       return onion_request_get_fullpath(ptr);
     }

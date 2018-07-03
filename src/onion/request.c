@@ -540,7 +540,7 @@ const char *onion_request_get_language_code(onion_request * req) {
 }
 
 /**
- * @short Some extra data, normally when the petition is propfind or POST with non-form data.
+ * @short Some extra data, normally when the request is propfind or POST with non-form data.
  * @memberof onion_request_t
  * @ingroup request
  */
@@ -591,7 +591,7 @@ onion_connection_status onion_request_process(onion_request * req) {
     return hs;
   }
   int rs = onion_response_free(res);
-  if (hs >= 0 && rs == OCS_KEEP_ALIVE)  // if keep alive, reset struct to get the new petition.
+  if (hs >= 0 && rs == OCS_KEEP_ALIVE)  // if keep alive, reset struct to get the new request.
     onion_request_clean(req);
   return hs > 0 ? rs : hs;
 }

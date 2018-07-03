@@ -34,7 +34,7 @@ extern "C" {
 #endif
 
 /**
- * @short Flags about the petition, including method, error status, http version.
+ * @short Flags about the request, including method, error status, http version.
  * @ingroup request
  */
   enum onion_request_flags_e {

@@ -46,7 +46,7 @@ static onion_connection_status onion_internal_handler(void *_,
   onion_response_write_headers(res);
 
   onion_response_write0(res,
-                        "<html><head><title>Internal status</title></head><body><h1>This petition</h1><h2>Headers</h2><ul>");
+                        "<html><head><title>Internal status</title></head><body><h1>This request</h1><h2>Headers</h2><ul>");
 
   // headers
   onion_dict_preorder(onion_request_get_header_dict(req), header_write, res);

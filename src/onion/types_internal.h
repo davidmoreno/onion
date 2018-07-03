@@ -193,7 +193,7 @@ extern "C" {
 	 * @short Initialize the request object. Data is already malloc'd but specific listen protocols may need custom data
 	 * 
 	 * Has default implementation that do the socket accept and set of default params. On some protocols may be 
-	 * reimplemented to do non socket-petition accept.
+	 * reimplemented to do non socket-request accept.
 	 * 
 	 * @returns 0 if everything ok, <0 if request is invalid and should be closed.
 	 */

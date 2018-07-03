@@ -113,7 +113,7 @@ namespace Onion {
                 /**
 		* @short Sets the root handler.
 		* 
-		* The root handler is the entry point for all petitions, so it should redirect to other handlers as needed.
+		* The root handler is the entry point for all requests, so it should redirect to other handlers as needed.
 		* Normally user dont set this handler manually, but use the Onion::Url constructor to set a Url handler as
 		* the root one.
 		*/

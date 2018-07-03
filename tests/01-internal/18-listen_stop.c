@@ -76,7 +76,7 @@ void t01_stop_listening() {
   END_LOCAL();
 }
 
-void t02_stop_listening_some_petitions() {
+void t02_stop_listening_some_requests() {
   INIT_LOCAL();
 
   signal(SIGTERM, shutdown_server);
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   START();
 
   t01_stop_listening();
-  t02_stop_listening_some_petitions();
+  t02_stop_listening_some_requests();
 
   END();
 }

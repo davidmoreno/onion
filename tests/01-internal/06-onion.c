@@ -122,7 +122,7 @@ void *do_requests(params_t * t) {
   const char *url = "http://localhost:8080/";
   CURL *curl = prepare_curl(url);
 
-  ONION_DEBUG("Do %d petitions", t->n_requests);
+  ONION_DEBUG("Do %d requests", t->n_requests);
   int i;
   usleep(t->wait_s * 1000000);
   for (i = 0; i < t->n_requests; i++) {
@@ -152,9 +152,9 @@ void do_listen() {
   onion_listen(o);
 }
 
-void do_petition_set_threaded(float wait_s, float wait_c, int nrequests,
+void do_request_set_threaded(float wait_s, float wait_c, int nrequests,
                               char close, int nthreads) {
-  ONION_DEBUG("Using %d threads, %d petitions per thread", nthreads, nrequests);
+  ONION_DEBUG("Using %d threads, %d requests per thread", nthreads, nrequests);
   processed = 0;
 
   params_t params;
@@ -183,8 +183,8 @@ void do_petition_set_threaded(float wait_s, float wait_c, int nrequests,
   FAIL_IF_NOT_EQUAL_INT(params.n_requests * nthreads, processed);
 }
 
-void do_petition_set(float wait_s, float wait_c, int n_requests, char close) {
-  do_petition_set_threaded(wait_s, wait_c, n_requests, close, 1);
+void do_request_set(float wait_s, float wait_c, int n_requests, char close) {
+  do_request_set_threaded(wait_s, wait_c, n_requests, close, 1);
 }
 
 void t01_server_one() {
@@ -194,14 +194,14 @@ void t01_server_one() {
   onion_set_root_handler(o,
                          onion_handler_new((void *)process_request, NULL,
                                            NULL));
-  do_petition_set(1, 0.1, 1, 0);
+  do_request_set(1, 0.1, 1, 0);
   onion_free(o);
 
   o = onion_new(O_ONE_LOOP);
   onion_set_root_handler(o,
                          onion_handler_new((void *)process_request, NULL,
                                            NULL));
-  do_petition_set(1, 0.1, 1, 1);
+  do_request_set(1, 0.1, 1, 1);
   onion_free(o);
 
   o = onion_new(O_ONE_LOOP);
@@ -213,7 +213,7 @@ void t01_server_one() {
   onion_set_root_handler(o,
                          onion_handler_new((void *)process_request, NULL,
                                            NULL));
-  do_petition_set(1, 0.001, 100, 1);
+  do_request_set(1, 0.001, 100, 1);
   onion_free(o);
 
   END_LOCAL();
@@ -226,42 +226,42 @@ void t02_server_epoll() {
   onion_set_root_handler(o,
                          onion_handler_new((void *)process_request, NULL,
                                            NULL));
-  do_petition_set(1, 0.1, 1, 1);
+  do_request_set(1, 0.1, 1, 1);
   onion_free(o);
 
   o = onion_new(O_POLL);
   onion_set_root_handler(o,
                          onion_handler_new((void *)process_request, NULL,
                                            NULL));
-  do_petition_set(1, 0.001, 100, 1);
+  do_request_set(1, 0.001, 100, 1);
   onion_free(o);
 
   o = onion_new(O_POOL);
   onion_set_root_handler(o,
                          onion_handler_new((void *)process_request, NULL,
                                            NULL));
-  do_petition_set(1, 0.001, 100, 1);
+  do_request_set(1, 0.001, 100, 1);
   onion_free(o);
 
   o = onion_new(O_POOL);
   onion_set_root_handler(o,
                          onion_handler_new((void *)process_request, NULL,
                                            NULL));
-  do_petition_set_threaded(1, 0.001, 100, 2, 10);
+  do_request_set_threaded(1, 0.001, 100, 2, 10);
   onion_free(o);
 
   o = onion_new(O_POOL);
   onion_set_root_handler(o,
                          onion_handler_new((void *)process_request, NULL,
                                            NULL));
-  do_petition_set_threaded(1, 0.001, 100, 2, 15);
+  do_request_set_threaded(1, 0.001, 100, 2, 15);
   onion_free(o);
 
   o = onion_new(O_POOL);
   onion_set_root_handler(o,
                          onion_handler_new((void *)process_request, NULL,
                                            NULL));
-  do_petition_set_threaded(1, 0.001, 100, 2, 100);
+  do_request_set_threaded(1, 0.001, 100, 2, 100);
   onion_free(o);
 
   END_LOCAL();
@@ -279,7 +279,7 @@ void t03_server_https() {
                         (o, O_SSL_CERTIFICATE_KEY, "mycert.pem", "mycert.pem"),
                         0);
   FAIL_IF_NOT_EQUAL_INT(onion_listen(o), 0);
-  //do_petition_set(1,1,1,1);
+  //do_request_set(1,1,1,1);
   sleep(1);
   //FAIL_IF_EQUAL_INT(  curl_get_to_fail("http://localhost:8080"), HTTP_OK);
   sleep(1);

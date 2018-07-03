@@ -217,36 +217,36 @@ addText = function(text, length){
 }
 
 cacheSendKeys=''
-onpetitionIn=false // no two petitions at the same time.
-onpetitionOut=false // no two petitions at the same time.
+onrequestIn=false // no two requests at the same time.
+onrequestOut=false // no two requests at the same time.
 readDataPos=0
 
 /**
- * @short Request new data, and do the timeout for next petition
+ * @short Request new data, and do the timeout for next request
  *
- * Data send is serialized: only one for each direction (in/out) petition can be on the air. If a new petition is done, then 
+ * Data send is serialized: only one for each direction (in/out) request can be on the air. If a new request is done, then 
  * it must wait until the reponse of latest arrives, and then make a new one. This helps a lot the interactivity, and solves
  * serialization problems.
  */
 requestNewData = function(keyvalue){
 	if (keyvalue)
 		cacheSendKeys+=keyvalue
-	if (!onpetitionIn && cacheSendKeys){
-		onpetitionIn=true
-		$.post('in',{type:cacheSendKeys}, function(){ onpetitionIn=false; requestNewData(); })
+	if (!onrequestIn && cacheSendKeys){
+		onrequestIn=true
+		$.post('in',{type:cacheSendKeys}, function(){ onrequestIn=false; requestNewData(); })
 		cacheSendKeys=''
 	}
-	if (!onpetitionOut){
-		onpetitionOut=true
+	if (!onrequestOut){
+		onrequestOut=true
 		$.get('out',{pos:readDataPos},updateRequestData,'text')
 	}
 }
 
-/// Sets the result of data load, and set a new petition for later.
+/// Sets the result of data load, and set a new request for later.
 updateRequestData = function(text){
 	updateData(text)
 	
-	onpetitionOut=false
+	onrequestOut=false
 	if (text!="")
 		requestNewData()
 	else
@@ -299,7 +299,7 @@ $(document).ready(function(){
 	newLine()
 	
 	// Ask for stored buffer data
-	onpetitionOut=true
+	onrequestOut=true
 	$.get('out?initial',updateRequestData, 'text')
 	
 	$('#msg').fadeOut().html('')

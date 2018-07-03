@@ -34,7 +34,7 @@ namespace Onion {
         /**
 	 * @short Url management for Onion
 	 * 
-	 * With this class its possible to create the muxer necesary to redirect the petitions to the proper handler.
+	 * With this class its possible to create the muxer necesary to redirect the requests to the proper handler.
 	 * 
 	 * Normally user writes some regex* to map from the path to a request handler. It follows Django trail and urls can
 	 * be nested, so a regex matches the start of an url, and the next handler the next part of the url. It also allows 

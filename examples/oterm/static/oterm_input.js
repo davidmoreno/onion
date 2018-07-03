@@ -30,7 +30,7 @@ keypress = function(event){
 	//showMsg('Key pressed '+keyCode+" "+charCode)
 	var keyValue=keyValue=String.fromCharCode(charCode)
 	
-	/// If any text, do the petition.
+	/// If any text, do the request.
 	requestNewData(keyValue)
 }
 

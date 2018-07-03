@@ -40,7 +40,7 @@
 /// @defgroup handler Handler. Creates and manages the user handlers so that onion can call them when required.
 
 /**
- * @short Tryes to handle the petition with that handler.
+ * @short Tryes to handle the request with that handler.
  * @memberof onion_handler_t
  * @ingroup handler
  *
