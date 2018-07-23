@@ -66,7 +66,7 @@ static onion_low_pthread_sigmask_sigt *thrsigmask_onion_f = pthread_sigmask;
 
 /* macro in case of memory failure. */
 #define MEMORY_FAILURE(Fmt,...) do {			\
-  char errmsg[48];					\
+  char errmsg[50];					\
   memset (errmsg, 0, sizeof(errmsg));			\
   snprintf (errmsg, sizeof(errmsg), Fmt, __VA_ARGS__);	\
   memoryfailure_onion_f (errmsg);			\
