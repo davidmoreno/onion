@@ -273,9 +273,9 @@ endif (${ONION_EXAMPLES})
 
 if (${ONION_USE_TESTS})
 	enable_testing()
+	add_subdirectory(tests)
 endif(${ONION_USE_TESTS})
 
-add_subdirectory(tests)
 add_subdirectory(manpages)
 
 file(GLOB_RECURSE ALL_C_H_FILES RELATIVE ${CMAKE_SOURCE_DIR}
