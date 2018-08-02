@@ -190,6 +190,8 @@ onion_connection_status onion_shortcut_response_file(const char *filename,
   size_t length = st.st_size;
   if (length < (1024 * 16))     // No sendfile for small files
     use_sendfile = 0;
+  if (length > 0x7ffff000) // ~2GB
+    use_sendfile = 0; // - a documented limitation for sendfile() command
 
   char etag[64];
   onion_shortcut_etag(&st, etag);
