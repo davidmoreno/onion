@@ -44,6 +44,7 @@ int onion_http_read_ready(onion_request * req);
 struct onion_http_t {
 };
 
+
 /**
  * @short Creates an HTTP listen point
  * @memberof onion_http_t
@@ -60,6 +61,7 @@ onion_listen_point *onion_http_new() {
 
   return ret;
 }
+
 
 /**
  * @short Reads data from the http connection

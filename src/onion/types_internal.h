@@ -202,6 +202,14 @@ extern "C" {
      ssize_t(*write) (onion_request * req, const char *data, size_t len);       ///< Write data to the given request.
      ssize_t(*read) (onion_request * req, char *data, size_t len);      ///< Read data from the given request and write it in data.
     void (*close) (onion_request * req);        ///< Closes the connection and frees listen point user data. Request itself it left. It is called from onion_request_free ONLY.
+
+    int (*mks_att)(char* filename_tmpl); // callback for creating temp file
+    ssize_t (*write_att)(int fd, const void *data, size_t len); // callback for writing data in temp file
+    int (*close_att)(int fd); // callback for closing temp file
+    int (*unlink_att)(const char* filename); // callback for unlinking temp file
+    //int (*needs_mks_att)(onion_request * req); // callback (may be NULL), defines need or not to create temp file, used only fot PUT, for example if Content-Length is 0, it may prevent creating temp file
+    int (*mks_tmpl_att)(onion_request * req, char* tmpl); // callback for generating filename template for mks_att according request context, returns 0 if needn't to create temp file otherwise 1
+
     /// @}
   };
 

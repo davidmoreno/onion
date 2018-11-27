@@ -63,7 +63,26 @@ static int onion_listen_point_read_ready(onion_request * req);
  */
 onion_listen_point *onion_listen_point_new() {
   onion_listen_point *ret = onion_low_calloc(1, sizeof(onion_listen_point));
+  ret->mks_att = mkstemp;
+  ret->write_att = write;
+  ret->close_att = close;
+  ret->unlink_att = unlink;
+  ret->mks_tmpl_att = NULL;  // it means default behaviour
+
   return ret;
+}
+
+void onion_listen_point_set_attachment_handlers(onion_listen_point* ret,
+      int (*f_open)(char*),
+      ssize_t (*f_write)(int, const void*, size_t),
+      int (*f_close)(int),
+      int (*f_unlink)(const char*),
+      int (*f_tmpl)(onion_request*, char*)){
+  ret->mks_att = f_open;       //mkstemp;
+  ret->write_att = f_write;    //write;
+  ret->close_att = f_close;    //close;
+  ret->unlink_att = f_unlink;  //unlink
+  ret->mks_tmpl_att = f_tmpl; // defines needs to create temp file ( used for PUT request only)
 }
 
 /**

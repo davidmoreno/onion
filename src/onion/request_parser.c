@@ -38,6 +38,8 @@
 #include "ptr_list.h"
 #include "utils.h"
 
+#define MAX_FILENAME_LEN 512  // needs for mkstemp or user-defined handler
+
 /**
  * @short Known token types. This is merged with onion_connection_status as return value at token readers.
  * @private
@@ -362,11 +364,13 @@ static onion_connection_status parse_PUT(onion_request * req,
   }
   //ONION_DEBUG0("Writing %d. %d / %d bytes", length, token->pos+length, token->extra_size);
 
-  int *fd = (int *)token->extra;
-  ssize_t w = write(*fd, &data->data[data->pos], length);
+  int* fd = (int *)token->extra;
+  //ssize_t w = write(*fd, &data->data[data->pos], length);
+  ssize_t w = req->connection.listen_point->write_att(*fd, &data->data[data->pos], length);
   if (w < 0) {
     // cleanup
-    close(*fd);
+    //close(*fd);
+    req->connection.listen_point->close_att(*fd);
     onion_low_free(token->extra);
     token->extra = NULL;
     ONION_ERROR("Could not write all data to temporal file.");
@@ -381,7 +385,8 @@ static onion_connection_status parse_PUT(onion_request * req,
 #endif
 
   if (exit) {
-    close(*fd);
+    //close(*fd);
+    req->connection.listen_point->close_att(*fd);
     onion_low_free(token->extra);
     token->extra = NULL;
     return OCS_REQUEST_READY;
@@ -417,15 +422,18 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         multipart->startpos = multipart->pos = 0;
         data->pos++;            // Not sure why this is needed. FIXME.
 
-        int w = write(multipart->fd, tmp, tmppos);
+        //int w = write(multipart->fd, tmp, tmppos);
+        int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
               ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
-          close(multipart->fd);
+          //close(multipart->fd);
+          req->connection.listen_point->close_att(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
 
-        close(multipart->fd);
+        //close(multipart->fd);
+        req->connection.listen_point->close_att(multipart->fd);
         req->parser = parse_POST_multipart_next;
         return OCS_NEED_MORE_DATA;
       }
@@ -439,20 +447,24 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         multipart->file_total_size += multipart->pos;
         int r = multipart->pos - multipart->startpos;
         //ONION_DEBUG0("Write %d bytes",r);
-        int w = write(multipart->fd, tmp, tmppos);
+        //int w = write(multipart->fd, tmp, tmppos);
+        int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
               ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
-          close(multipart->fd);
+          //close(multipart->fd);
+          req->connection.listen_point->close_att(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
         tmppos = 0;
 
-        w = write(multipart->fd, multipart->boundary + multipart->startpos, r);
+        //w = write(multipart->fd, multipart->boundary + multipart->startpos, r);
+        w = req->connection.listen_point->write_att(multipart->fd, multipart->boundary + multipart->startpos, r);
         if (w != r) {
           ONION_ERROR
               ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
-          close(multipart->fd);
+          //close(multipart->fd);
+          req->connection.listen_point->close_att(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
         multipart->startpos = multipart->pos = 0;
@@ -462,11 +474,13 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
       //ONION_DEBUG0("Write 1 byte");
       tmp[tmppos++] = *p;
       if (tmppos == sizeof(tmp)) {
-        int w = write(multipart->fd, tmp, tmppos);
+        //int w = write(multipart->fd, tmp, tmppos);
+        int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
               ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
-          close(multipart->fd);
+          //close(multipart->fd);
+          req->connection.listen_point->close_att(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
         tmppos = 0;
@@ -475,11 +489,13 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
     multipart->file_total_size++;
     p++;
   }
-  int w = write(multipart->fd, tmp, tmppos);
+  //int w = write(multipart->fd, tmp, tmppos);
+  int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
   if (w != tmppos) {
     ONION_ERROR
         ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
-    close(multipart->fd);
+    //close(multipart->fd);
+    req->connection.listen_point->close_att(multipart->fd);
     return OCS_INTERNAL_ERROR;
   }
   return OCS_NEED_MORE_DATA;
@@ -644,8 +660,12 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *
     multipart->pos = 0;
 
     if (multipart->filename) {
-      char filename[] = "/tmp/onion-XXXXXX";
-      multipart->fd = mkstemp(filename);
+      char filename[MAX_FILENAME_LEN];
+      strcpy(filename, "/tmp/onion-XXXXXX");
+      if (req->connection.listen_point->mks_tmpl_att){
+        req->connection.listen_point->mks_tmpl_att(req, filename); //generate template for mks_att
+      }
+      multipart->fd = req->connection.listen_point->mks_att(filename);
       if (multipart->fd < 0)
         ONION_ERROR("Could not create temporal file at %s.", filename);
       if (!req->FILES)
@@ -927,6 +947,7 @@ onion_connection_status onion_request_write(onion_request * req,
         return r;
       }
       parse = req->parser;
+      // if parse == prepare_PUT
     }
     return OCS_NEED_MORE_DATA;
   }
@@ -1133,11 +1154,20 @@ static onion_connection_status prepare_PUT(onion_request * req) {
     return OCS_INTERNAL_ERROR;
   }
 
+  char filename[MAX_FILENAME_LEN];
+  strcpy(filename, "/tmp/onion-XXXXXX");
+
+  if ( req->connection.listen_point->mks_tmpl_att
+       && ! req->connection.listen_point->mks_tmpl_att(req, filename)){
+    ONION_DEBUG0("No need to create temp file for PUT request");
+    return OCS_REQUEST_READY;
+  }
+
   req->data = onion_block_new();
 
-  char filename[] = "/tmp/onion-XXXXXX";
-  int fd = mkstemp(filename);
-  if (fd < 0)
+  //int fd = mkstemp(filename);
+  int fd = req->connection.listen_point->mks_att(filename);
+  if (fd < 0 )
     ONION_ERROR("Could not create temporary file at %s.", filename);
 
   onion_block_add_str(req->data, filename);
@@ -1154,7 +1184,8 @@ static onion_connection_status prepare_PUT(onion_request * req) {
 
   if (cl == 0) {
     ONION_DEBUG0("Created 0 length file");
-    close(fd);
+    //close(fd);
+    req->connection.listen_point->close_att(fd);
     return OCS_REQUEST_READY;
   }
 

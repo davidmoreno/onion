@@ -86,6 +86,10 @@ extern "C" {
 /// Gets a single listen point, or NULL if not that many.
   onion_listen_point *onion_get_listen_point(onion * server, int nlisten_point);
 
+  void onion_set_attachment_handlers(onion* server, int (*f_mks)(char*),
+    ssize_t (*f_write)(int, const void*, size_t),
+    int (*f_close)(int), int (*f_unlink)(const char*), int (*f_tmpl)(onion_request*, char*));
+
 /// Gets the current flags, for example to check SSL support.
   int onion_flags(onion * onion);
 
