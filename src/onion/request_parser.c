@@ -362,13 +362,13 @@ static onion_connection_status parse_PUT(onion_request * req,
   }
   //ONION_DEBUG0("Writing %d. %d / %d bytes", length, token->pos+length, token->extra_size);
 
-  int *fd = (int *)token->extra;
+  int* fd = (int *)token->extra;
   //ssize_t w = write(*fd, &data->data[data->pos], length);
-  ssize_t w = req->connection.listen_point->write_attachment(*fd, &data->data[data->pos], length);
+  ssize_t w = req->connection.listen_point->write_att(*fd, &data->data[data->pos], length);
   if (w < 0) {
     // cleanup
     //close(*fd);
-    req->connection.listen_point->close_attachment(*fd);
+    req->connection.listen_point->close_att(*fd);
     onion_low_free(token->extra);
     token->extra = NULL;
     ONION_ERROR("Could not write all data to temporal file.");
@@ -384,7 +384,7 @@ static onion_connection_status parse_PUT(onion_request * req,
 
   if (exit) {
     //close(*fd);
-    req->connection.listen_point->close_attachment(*fd);
+    req->connection.listen_point->close_att(*fd);
     onion_low_free(token->extra);
     token->extra = NULL;
     return OCS_REQUEST_READY;
@@ -1132,7 +1132,7 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   }
   size_t cl = atol(content_size);
 
-  int is_temp = (req->connection.listen_point->open_attachment==mkstemp) ? 1 : 0;
+  int is_temp = (req->connection.listen_point->mks_att==mkstemp) ? 1 : 0;
 
   if (is_temp && cl > req->connection.listen_point->server->max_file_size) {
     ONION_ERROR("Trying to PUT a file bigger than allowed size");
@@ -1146,8 +1146,8 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   char filename_tmpl[] = "/tmp/onion-XXXXXX";
   char *filename =  is_temp ? filename_tmpl : req->fullpath;
   //int fd = mkstemp(filename);
-  int fd = req->connection.listen_point->open_attachment(filename);
-  if (fd < 0)
+  int fd = req->connection.listen_point->mks_att(filename);
+  if (fd < 0 )
     ONION_ERROR("Could not create temporary file at %s.", filename);
 
   onion_block_add_str(req->data, filename);
@@ -1167,7 +1167,7 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   if (cl == 0) {
     ONION_DEBUG0("Created 0 length file");
     //close(fd);
-    req->connection.listen_point->close_attachment(fd);
+    req->connection.listen_point->close_att(fd);
     return OCS_REQUEST_READY;
   }
 
