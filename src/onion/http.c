@@ -58,8 +58,25 @@ onion_listen_point *onion_http_new() {
   ret->read_ready = onion_http_read_ready;
   ret->secure = false;
 
+  ret->open_attachment = mkstemp;
+  ret->write_attachment = write;
+  ret->close_attachment = close;
+
   return ret;
 }
+
+
+void onion_set_attachment_handlers(onion_listen_point* lp,
+		  int (*f_open)(char*),
+		  ssize_t (*f_write)(int, const char*, size_t),
+		  int (*f_close)(int) ){
+	  lp->open_attachment = f_open; //mkstemp;
+	  lp->write_attachment = f_write; //write;
+	  lp->close_attachment = f_close; //close;
+}
+
+
+
 
 /**
  * @short Reads data from the http connection

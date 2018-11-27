@@ -32,6 +32,12 @@ extern "C" {
 
   onion_listen_point *onion_http_new();
 
+
+  void onion_set_attachment_handlers(onion_listen_point* lp,
+		  int (*f_open)(char*),
+		  ssize_t (*f_write)(int, const char*, size_t),
+		  int (*f_close)(int) );
+
 #ifdef __cplusplus
 }
 #endif

@@ -363,10 +363,12 @@ static onion_connection_status parse_PUT(onion_request * req,
   //ONION_DEBUG0("Writing %d. %d / %d bytes", length, token->pos+length, token->extra_size);
 
   int *fd = (int *)token->extra;
-  ssize_t w = write(*fd, &data->data[data->pos], length);
+  //ssize_t w = write(*fd, &data->data[data->pos], length);
+  ssize_t w = req->connection.listen_point->write_attachment(*fd, &data->data[data->pos], length);
   if (w < 0) {
     // cleanup
-    close(*fd);
+    //close(*fd);
+    req->connection.listen_point->close_attachment(*fd);
     onion_low_free(token->extra);
     token->extra = NULL;
     ONION_ERROR("Could not write all data to temporal file.");
@@ -381,7 +383,8 @@ static onion_connection_status parse_PUT(onion_request * req,
 #endif
 
   if (exit) {
-    close(*fd);
+    //close(*fd);
+    req->connection.listen_point->close_attachment(*fd);
     onion_low_free(token->extra);
     token->extra = NULL;
     return OCS_REQUEST_READY;
@@ -927,6 +930,7 @@ onion_connection_status onion_request_write(onion_request * req,
         return r;
       }
       parse = req->parser;
+      // if parse == prepare_PUT
     }
     return OCS_NEED_MORE_DATA;
   }
@@ -1128,15 +1132,21 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   }
   size_t cl = atol(content_size);
 
-  if (cl > req->connection.listen_point->server->max_file_size) {
+  int is_temp = (req->connection.listen_point->open_attachment==mkstemp) ? 1 : 0;
+
+  if (is_temp && cl > req->connection.listen_point->server->max_file_size) {
     ONION_ERROR("Trying to PUT a file bigger than allowed size");
     return OCS_INTERNAL_ERROR;
   }
 
   req->data = onion_block_new();
 
-  char filename[] = "/tmp/onion-XXXXXX";
-  int fd = mkstemp(filename);
+  //char filename[] = "/tmp/onion-XXXXXX";
+
+  char filename_tmpl[] = "/tmp/onion-XXXXXX";
+  char *filename =  is_temp ? filename_tmpl : req->fullpath;
+  //int fd = mkstemp(filename);
+  int fd = req->connection.listen_point->open_attachment(filename);
   if (fd < 0)
     ONION_ERROR("Could not create temporary file at %s.", filename);
 
@@ -1144,17 +1154,20 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   ONION_DEBUG0("Creating PUT file %s (%d bytes long)", filename,
                token->extra_size);
 
-  if (!req->FILES) {
-    req->FILES = onion_dict_new();
-  }
-  {
-    const char *filename = onion_block_data(req->data);
-    onion_dict_add(req->FILES, "filename", filename, 0);
+  if (is_temp){  // to prevent unlink is not tmp
+    if (!req->FILES) {
+      req->FILES = onion_dict_new();
+    }
+    {
+      const char *filename = onion_block_data(req->data);
+      onion_dict_add(req->FILES, "filename", filename, 0);
+    }
   }
 
   if (cl == 0) {
     ONION_DEBUG0("Created 0 length file");
-    close(fd);
+    //close(fd);
+    req->connection.listen_point->close_attachment(fd);
     return OCS_REQUEST_READY;
   }
 
