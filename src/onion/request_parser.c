@@ -38,6 +38,8 @@
 #include "ptr_list.h"
 #include "utils.h"
 
+#define MAX_FILENAME_LEN 512  // needs for mkstemp or user-defined handler
+
 /**
  * @short Known token types. This is merged with onion_connection_status as return value at token readers.
  * @private
@@ -659,8 +661,9 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *
 
     if (multipart->filename) {
       int is_temp = (req->connection.listen_point->mks_att==mkstemp) ? 1 : 0;
-      char filename_tmpl[] = "/tmp/onion-XXXXXX";
-      char *filename =  is_temp ? filename_tmpl : req->fullpath;
+      char filename[MAX_FILENAME_LEN];
+      bzero(filename, MAX_FILENAME_LEN);
+      strncpy(filename, (is_temp==1) ? "/tmp/onion-XXXXXX" : req->fullpath, MAX_FILENAME_LEN-1);
       //char filename[] = "/tmp/onion-XXXXXX";
       //multipart->fd = mkstemp(filename);
       multipart->fd = req->connection.listen_point->mks_att(filename);
@@ -1147,8 +1150,6 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   }
   size_t cl = atol(content_size);
 
-  int is_temp = (req->connection.listen_point->mks_att==mkstemp) ? 1 : 0;
-
   if (cl > req->connection.listen_point->server->max_file_size) {
     ONION_ERROR("Trying to PUT a file bigger than allowed size");
     return OCS_INTERNAL_ERROR;
@@ -1157,9 +1158,10 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   req->data = onion_block_new();
 
   //char filename[] = "/tmp/onion-XXXXXX";
-
-  char filename_tmpl[] = "/tmp/onion-XXXXXX";
-  char *filename =  is_temp ? filename_tmpl : req->fullpath;
+  int is_temp = (req->connection.listen_point->mks_att==mkstemp) ? 1 : 0;
+  char filename[MAX_FILENAME_LEN];
+  bzero(filename, MAX_FILENAME_LEN);
+  strncpy(filename, (is_temp==1) ? "/tmp/onion-XXXXXX" : req->fullpath, MAX_FILENAME_LEN-1);
   //int fd = mkstemp(filename);
   int fd = req->connection.listen_point->mks_att(filename);
   if (fd < 0 )
