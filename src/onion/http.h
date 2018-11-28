@@ -34,9 +34,10 @@ extern "C" {
 
 
   void onion_set_attachment_handlers(onion_listen_point* lp,
-		  int (*f_mks)(char*),
-		  ssize_t (*f_write)(int, const void*, size_t),
-		  int (*f_close)(int) );
+      int (*f_mks)(char *filename_tmpl),
+      ssize_t (*f_write)(int fd, const void *data, size_t len),
+      int (*f_close)(int fd),
+      int (*f_unlink)(const char*));
 
 #ifdef __cplusplus
 }

@@ -203,9 +203,10 @@ extern "C" {
      ssize_t(*read) (onion_request * req, char *data, size_t len);      ///< Read data from the given request and write it in data.
     void (*close) (onion_request * req);        ///< Closes the connection and frees listen point user data. Request itself it left. It is called from onion_request_free ONLY.
 
-    int (*mks_att)(char*);
-    ssize_t (*write_att)(int, const void*, size_t);
-    int (*close_att)(int);
+    int (*mks_att)(char* filename_tmpl);
+    ssize_t (*write_att)(int fd, const void *data, size_t len);
+    int (*close_att)(int fd);
+    int (*unlink_att)(const char* filename);
 
 
     /// @}
