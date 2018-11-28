@@ -59,24 +59,7 @@ onion_listen_point *onion_http_new() {
   ret->read_ready = onion_http_read_ready;
   ret->secure = false;
 
-  ret->mks_att = mkstemp;
-  ret->write_att = write;
-  ret->close_att = close;
-  ret->unlink_att = unlink;
-
   return ret;
-}
-
-
-void onion_set_attachment_handlers(onion_listen_point* ret,
-      int (*f_open)(char*),
-      ssize_t (*f_write)(int, const void*, size_t),
-      int (*f_close)(int),
-      int (*f_unlink)(const char*)){
-  ret->mks_att = f_open;       //mkstemp;
-  ret->write_att = f_write;    //write;
-  ret->close_att = f_close;    //close;
-  ret->unlink_att = f_unlink;  //unlink
 }
 
 

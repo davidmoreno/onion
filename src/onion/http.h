@@ -32,13 +32,6 @@ extern "C" {
 
   onion_listen_point *onion_http_new();
 
-
-  void onion_set_attachment_handlers(onion_listen_point* lp,
-      int (*f_mks)(char *filename_tmpl),
-      ssize_t (*f_write)(int fd, const void *data, size_t len),
-      int (*f_close)(int fd),
-      int (*f_unlink)(const char*));
-
 #ifdef __cplusplus
 }
 #endif

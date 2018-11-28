@@ -252,6 +252,18 @@ onion *onion_new(int flags) {
   return o;
 }
 
+void onion_set_attachment_handlers(onion* onion, int (*f_mks)(char*),
+  ssize_t (*f_write)(int, const void*, size_t),
+  int (*f_close)(int), int (*f_unlink)(const char*)){
+  if (onion->listen_points) {
+    onion_listen_point **p = onion->listen_points;
+    while (*p != NULL) {
+      onion_listen_point_set_attachment_handlers(*p++, f_mks, f_write, f_close, f_unlink);
+    }
+  }
+}
+
+
 /**
  * @short Removes the allocated data
  * @ingroup onion

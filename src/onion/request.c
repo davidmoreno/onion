@@ -110,7 +110,7 @@ onion_request *onion_request_new_from_socket(onion_listen_point * con, int fd,
  */
 static void unlink_files(void *p, const char *key, const char *value, int flags) {
   ONION_DEBUG0("Unlinking temporal file %s", value);
-  int (*f) (const void *value);
+  int (*f) (const char *value);
   f = p;
   f(value);
   //unlink(value);
@@ -197,7 +197,8 @@ void onion_request_clean(onion_request * req) {
     req->POST = NULL;
   }
   if (req->FILES) {
-    onion_dict_preorder(req->FILES, unlink_files, NULL);
+    //onion_dict_preorder(req->FILES, unlink_files, NULL);
+    onion_dict_preorder(req->FILES, unlink_files, req->connection.listen_point->unlink_att);
     onion_dict_free(req->FILES);
     req->FILES = NULL;
   }
