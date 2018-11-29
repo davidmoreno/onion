@@ -88,7 +88,7 @@ extern "C" {
 
   void onion_set_attachment_handlers(onion* server, int (*f_mks)(char*),
     ssize_t (*f_write)(int, const void*, size_t),
-    int (*f_close)(int), int (*f_unlink)(const char*));
+    int (*f_close)(int), int (*f_unlink)(const char*), int (*f_needs)(onion_request*));
 
 /// Gets the current flags, for example to check SSL support.
   int onion_flags(onion * onion);

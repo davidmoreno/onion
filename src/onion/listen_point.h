@@ -41,7 +41,8 @@ extern "C" {
       int (*f_mks)(char *filename_tmpl),
       ssize_t (*f_write)(int fd, const void *data, size_t len),
       int (*f_close)(int fd),
-      int (*f_unlink)(const char*));
+      int (*f_unlink)(const char*),
+      int (*f_needs)(onion_request*));
 
 #ifdef __cplusplus
 }

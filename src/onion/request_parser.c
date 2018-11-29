@@ -1155,6 +1155,12 @@ static onion_connection_status prepare_PUT(onion_request * req) {
     return OCS_INTERNAL_ERROR;
   }
 
+  if ( req->connection.listen_point->needs_mks_att
+       && ! req->connection.listen_point->needs_mks_att(req)){
+    ONION_DEBUG0("No need to create temp file for PUT request");
+    return OCS_REQUEST_READY;
+  }
+
   req->data = onion_block_new();
 
   //char filename[] = "/tmp/onion-XXXXXX";
