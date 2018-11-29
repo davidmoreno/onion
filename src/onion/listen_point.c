@@ -67,10 +67,13 @@ onion_listen_point *onion_listen_point_new() {
   ret->write_att = write;
   ret->close_att = close;
   ret->unlink_att = unlink;
-  ret->needs_mks_att = 0;
+  ret->needs_mks_att = NULL;  // it means default behaviour
+
+  ret->new_hash_ctx = NULL;
+  ret->update_hash_ctx = NULL;
+  ret->free_hash_ctx = NULL;
   return ret;
 }
-
 
 void onion_listen_point_set_attachment_handlers(onion_listen_point* ret,
       int (*f_open)(char*),
@@ -85,6 +88,16 @@ void onion_listen_point_set_attachment_handlers(onion_listen_point* ret,
   ret->needs_mks_att = f_needs; // defines needs to create temp file ( used for PUT request only)
 }
 
+void onion_listen_point_set_hash_handlers(onion_listen_point* ret,
+      void* (*f_new)(), int (*f_init)(void*),
+      int (*f_update)(void* , const void *, size_t ),
+      int (*f_final)(unsigned char*, void*), void (*f_free)(void* ctx) ){
+  ret->new_hash_ctx = f_new;
+  ret->init_hash_ctx = f_init;
+  ret->update_hash_ctx = f_update;
+  ret->final_hash_ctx = f_final;
+  ret->free_hash_ctx = f_free;
+}
 
 /**
  * @short Free and closes the listen point

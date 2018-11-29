@@ -182,6 +182,8 @@ extern "C" {
 
 /// Determine if the request was sent over a secure listen point
   bool onion_request_is_secure(onion_request * req);
+
+  void onion_request_get_hash(onion_request * req, unsigned char* value);
 #ifdef __cplusplus
 }
 #endif

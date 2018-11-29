@@ -376,6 +376,8 @@ static onion_connection_status parse_PUT(onion_request * req,
     ONION_ERROR("Could not write all data to temporal file.");
     return OCS_INTERNAL_ERROR;
   }
+  if (req->connection.listen_point->update_hash_ctx)
+    req->connection.listen_point->update_hash_ctx(req->hash_ctx, &data->data[data->pos], w);
   data->pos += length;
   token->pos += length;
 
@@ -1172,6 +1174,9 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   int fd = req->connection.listen_point->mks_att(filename);
   if (fd < 0 )
     ONION_ERROR("Could not create temporary file at %s.", filename);
+
+  if (req->connection.listen_point->init_hash_ctx)
+    req->connection.listen_point->init_hash_ctx(req->hash_ctx);
 
   onion_block_add_str(req->data, filename);
   ONION_DEBUG0("Creating PUT file %s (%d bytes long)", filename,

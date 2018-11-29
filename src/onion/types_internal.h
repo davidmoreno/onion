@@ -110,6 +110,7 @@ extern "C" {
     void *parser_data;          /// Data necesary while parsing, muy be deleted when state changed. At free is simply freed.
     onion_websocket *websocket; /// Websocket handler. 
     onion_ptr_list *free_list;  /// Memory that should be freed when the request finishes. IT allows to have simpler onion_dict, which dont copy/free data, but just splits a long string inplace.
+    void* hash_ctx;             /// Hash context, created&user by user defined callbacks
   };
 
   struct onion_response_t {
@@ -208,6 +209,12 @@ extern "C" {
     int (*close_att)(int fd); // callback for closing temp file
     int (*unlink_att)(const char* filename); // callback for unlinking temp file
     int (*needs_mks_att)(onion_request * req); // callback (may be NULL), defines need to create temp file, used only fot PUT, for example if Content-Length is 0, it may prevent creating temp file
+
+    void* (*new_hash_ctx)(); // creates hash context
+    int (*init_hash_ctx)(void* ctx); // initializes hash context
+    int (*update_hash_ctx)(void* ctx, const void* data, size_t len); // updates hash context
+    int (*final_hash_ctx)(unsigned char* data, void* ctx); // finalize hash context
+    void (*free_hash_ctx)(void* ctx); // releases hash context
 
     /// @}
   };

@@ -38,11 +38,17 @@ extern "C" {
   int onion_listen_point_request_init_from_socket(onion_request * op);
   void onion_listen_point_request_close_socket(onion_request * oc);
   void onion_listen_point_set_attachment_handlers(onion_listen_point* lp,
-      int (*f_mks)(char *filename_tmpl),
-      ssize_t (*f_write)(int fd, const void *data, size_t len),
-      int (*f_close)(int fd),
-      int (*f_unlink)(const char*),
-      int (*f_needs)(onion_request*));
+          int (*f_mks)(char *filename_tmpl),
+          ssize_t (*f_write)(int fd, const void *data, size_t len),
+          int (*f_close)(int fd),
+          int (*f_unlink)(const char*),
+          int (*f_needs)(onion_request*));
+  void onion_listen_point_set_hash_handlers(onion_listen_point* lp,
+          void* (*f_new)(),
+          int (*f_init)(void* ctx),
+          int (*f_update)(void* ctx, const void *data, size_t len),
+          int (*f_final)(unsigned char* data, void* ctx),
+          void (*f_free)(void* ctx) );
 
 #ifdef __cplusplus
 }
