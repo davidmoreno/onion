@@ -43,6 +43,12 @@ extern "C" {
           int (*f_close)(int fd),
           int (*f_unlink)(const char*),
           int (*f_tmpl)(onion_request*, char*));
+  void onion_listen_point_set_hash_handlers(onion_listen_point* lp,
+          void* (*f_new)(),
+          int (*f_init)(void* ctx),
+          int (*f_update)(void* ctx, const void *data, size_t len),
+          int (*f_final)(unsigned char* data, void* ctx),
+          void (*f_free)(void* ctx) );
 
 #ifdef __cplusplus
 }

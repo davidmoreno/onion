@@ -76,6 +76,7 @@ onion_request *onion_request_new(onion_listen_point * op) {
   //req->connection=con;
   req->headers = onion_dict_new();
   onion_dict_set_flags(req->headers, OD_ICASE);
+  req->hash_ctx = (op->new_hash_ctx) ? op->new_hash_ctx() : NULL;
   ONION_DEBUG0("Create request %p", req);
 
   if (op) {
@@ -165,6 +166,10 @@ void onion_request_free(onion_request * req) {
   if (req->free_list) {
     onion_ptr_list_foreach(req->free_list, onion_low_free);
     onion_ptr_list_free(req->free_list);
+  }
+  if (req->hash_ctx){
+    req->connection.listen_point->free_hash_ctx(req->hash_ctx);
+    req->hash_ctx = NULL;
   }
   onion_low_free(req);
 }
@@ -734,4 +739,10 @@ const char *onion_request_get_cookie(onion_request * req,
 /// @ingroup request
 bool onion_request_is_secure(onion_request * req) {
   return req->connection.listen_point->secure;
+}
+
+void onion_request_get_hash(onion_request * req, unsigned char* value){
+  if (req->hash_ctx && req->connection.listen_point->final_hash_ctx){
+    req->connection.listen_point->final_hash_ctx(value, req->hash_ctx);
+  }
 }

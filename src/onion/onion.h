@@ -90,6 +90,11 @@ extern "C" {
     ssize_t (*f_write)(int, const void*, size_t),
     int (*f_close)(int), int (*f_unlink)(const char*), int (*f_tmpl)(onion_request*, char*));
 
+  void onion_set_hash_handlers(onion* server, void* (*f_new)(),
+    int (*f_init)(void*), int (*f_update)(void * , const void *, size_t ),
+    int (*f_final)(unsigned char* , void*), void (*f_free)(void* ) );
+
+
 /// Gets the current flags, for example to check SSL support.
   int onion_flags(onion * onion);
 
