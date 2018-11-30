@@ -70,7 +70,9 @@ onion_listen_point *onion_listen_point_new() {
   ret->needs_mks_att = NULL;  // it means default behaviour
 
   ret->new_hash_ctx = NULL;
+  ret->init_hash_ctx = NULL;
   ret->update_hash_ctx = NULL;
+  ret->final_hash_ctx = NULL;
   ret->free_hash_ctx = NULL;
   return ret;
 }
