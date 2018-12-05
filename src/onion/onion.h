@@ -88,7 +88,7 @@ extern "C" {
 
   void onion_set_attachment_handlers(onion* server, int (*f_mks)(char*),
     ssize_t (*f_write)(int, const void*, size_t),
-    int (*f_close)(int), int (*f_unlink)(const char*), int (*f_needs)(onion_request*));
+    int (*f_close)(int), int (*f_unlink)(const char*), int (*f_tmpl)(onion_request*, char*));
 
   void onion_set_hash_handlers(onion* server, void* (*f_new)(),
     int (*f_init)(void*), int (*f_update)(void * , const void *, size_t ),

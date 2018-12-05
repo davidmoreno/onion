@@ -662,12 +662,11 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *
     multipart->pos = 0;
 
     if (multipart->filename) {
-      int is_temp = (req->connection.listen_point->mks_att==mkstemp) ? 1 : 0;
       char filename[MAX_FILENAME_LEN];
-      bzero(filename, MAX_FILENAME_LEN);
-      strncpy(filename, (is_temp==1) ? "/tmp/onion-XXXXXX" : req->fullpath, MAX_FILENAME_LEN-1);
-      //char filename[] = "/tmp/onion-XXXXXX";
-      //multipart->fd = mkstemp(filename);
+      strcpy(filename, "/tmp/onion-XXXXXX");
+      if (req->connection.listen_point->mks_tmpl_att){
+        req->connection.listen_point->mks_tmpl_att(req, filename); //generate template for mks_att
+      }
       multipart->fd = req->connection.listen_point->mks_att(filename);
       if (multipart->fd < 0)
         ONION_ERROR("Could not create temporal file at %s.", filename);
@@ -1157,19 +1156,17 @@ static onion_connection_status prepare_PUT(onion_request * req) {
     return OCS_INTERNAL_ERROR;
   }
 
-  if ( req->connection.listen_point->needs_mks_att
-       && ! req->connection.listen_point->needs_mks_att(req)){
+  char filename[MAX_FILENAME_LEN];
+  strcpy(filename, "/tmp/onion-XXXXXX");
+
+  if ( req->connection.listen_point->mks_tmpl_att
+       && ! req->connection.listen_point->mks_tmpl_att(req, filename)){
     ONION_DEBUG0("No need to create temp file for PUT request");
     return OCS_REQUEST_READY;
   }
 
   req->data = onion_block_new();
 
-  //char filename[] = "/tmp/onion-XXXXXX";
-  int is_temp = (req->connection.listen_point->mks_att==mkstemp) ? 1 : 0;
-  char filename[MAX_FILENAME_LEN];
-  bzero(filename, MAX_FILENAME_LEN);
-  strncpy(filename, (is_temp==1) ? "/tmp/onion-XXXXXX" : req->fullpath, MAX_FILENAME_LEN-1);
   //int fd = mkstemp(filename);
   int fd = req->connection.listen_point->mks_att(filename);
   if (fd < 0 )

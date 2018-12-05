@@ -42,7 +42,7 @@ extern "C" {
           ssize_t (*f_write)(int fd, const void *data, size_t len),
           int (*f_close)(int fd),
           int (*f_unlink)(const char*),
-          int (*f_needs)(onion_request*));
+          int (*f_tmpl)(onion_request*, char*));
   void onion_listen_point_set_hash_handlers(onion_listen_point* lp,
           void* (*f_new)(),
           int (*f_init)(void* ctx),

@@ -208,7 +208,8 @@ extern "C" {
     ssize_t (*write_att)(int fd, const void *data, size_t len); // callback for writing data in temp file
     int (*close_att)(int fd); // callback for closing temp file
     int (*unlink_att)(const char* filename); // callback for unlinking temp file
-    int (*needs_mks_att)(onion_request * req); // callback (may be NULL), defines need to create temp file, used only fot PUT, for example if Content-Length is 0, it may prevent creating temp file
+    //int (*needs_mks_att)(onion_request * req); // callback (may be NULL), defines need or not to create temp file, used only fot PUT, for example if Content-Length is 0, it may prevent creating temp file
+    int (*mks_tmpl_att)(onion_request * req, char* tmpl); // callback for generating filename template for mks_att according request context, returns 0 if needn't to create temp file otherwise 1
 
     void* (*new_hash_ctx)(); // creates hash context
     int (*init_hash_ctx)(void* ctx); // initializes hash context
