@@ -104,6 +104,7 @@ static void onion_mime_fill() {
     onion_dict_add(onion_mime_dict, "html", "text/html", 0);
     onion_dict_add(onion_mime_dict, "htm", "text/html", 0);
     onion_dict_add(onion_mime_dict, "js", "application/javascript", 0);
+    onion_dict_add(onion_mime_dict, "mjs", "application/javascript", 0);
     onion_dict_add(onion_mime_dict, "css", "text/css", 0);
     onion_dict_add(onion_mime_dict, "png", "image/png", 0);
     onion_dict_add(onion_mime_dict, "jpg", "image/jpeg", 0);
