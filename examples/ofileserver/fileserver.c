@@ -130,8 +130,6 @@ int main(int argc, char **argv) {
     perror("Cant create the server");
   }
 
-  onion_free(o);
-
   return 0;
 }
 
