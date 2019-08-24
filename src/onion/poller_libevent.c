@@ -47,8 +47,6 @@ struct onion_poller_slot_t {
   void (*shutdown) (void *);
 };
 
-typedef struct onion_poller_slot_t onion_poller_slot;
-
 /// Create a new slot for the poller
 onion_poller_slot *onion_poller_slot_new(int fd, int (*f) (void *), void *data) {
   onion_poller_slot *ret = onion_low_calloc(1, sizeof(onion_poller_slot));
@@ -81,7 +79,7 @@ void onion_poller_slot_set_timeout(onion_poller_slot * el, int timeout_ms) {
 }
 
 /// Sets the polling type: read/write/other. O_POLL_READ | O_POLL_WRITE | O_POLL_OTHER
-void onion_poller_slot_set_type(onion_poller_slot * el, int type) {
+void onion_poller_slot_set_type(onion_poller_slot * el, onion_poller_slot_type_e type) {
   el->type = EV_PERSIST;
   if (type & O_POLL_READ)
     el->type |= EV_READ;
