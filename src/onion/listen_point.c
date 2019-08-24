@@ -42,6 +42,12 @@
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC 0
 #define accept4(a,b,c,d) accept(a,b,c);
+#else
+#include <features.h>
+// This is when accept4 was added, before, just use accept.
+#if __GLIBC__ <= 2 && __GLIBC_MINOR__ < 10
+#define accept4(a,b,c,d) accept(a,b,c);
+#endif
 #endif
 
 #ifdef HAVE_SYSTEMD
