@@ -31,6 +31,7 @@
 #include <netdb.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <features.h>
 
 #include "types_internal.h"
 #include "low.h"
@@ -43,7 +44,6 @@
 #define SOCK_CLOEXEC 0
 #define accept4(a,b,c,d) accept(a,b,c);
 #else
-#include <features.h>
 // This is when accept4 was added, before, just use accept.
 #if __GLIBC__ <= 2 && __GLIBC_MINOR__ < 10
 #define accept4(a,b,c,d) accept(a,b,c);
@@ -196,7 +196,7 @@ int onion_listen_point_listen(onion_listen_point * op) {
   hints.ai_next = NULL;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_family = AF_UNSPEC;
-  hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV;
+  hints.ai_flags = AI_PASSIVE;
 
   ONION_DEBUG("Trying to listen at %s:%s", op->hostname,
               op->port ? op->port : "8080");
