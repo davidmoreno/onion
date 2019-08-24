@@ -43,7 +43,7 @@ static size_t onion_random_refcount = 0;
 
 /**
  * @short Initializes the global random number generator
- * 
+ *
  * Initializes the global random number generator with some random seed.
  *
  * onion_random_free() must be called later to free up used memory.
@@ -53,6 +53,11 @@ static size_t onion_random_refcount = 0;
 void onion_random_init() {
   onion_random_refcount_mutex_lock();
   if (onion_random_refcount == 0) {
+#ifdef ONION_UNSAFE_RANDOM
+    srand(time(NULL));
+    ONION_WARNING
+        ("Onion is configured with an unsafe random number generator.");
+#else
     int fd = open("/dev/random", O_RDONLY);
     if (fd < 0) {
       ONION_WARNING
@@ -72,6 +77,7 @@ void onion_random_init() {
         srand(sr);
       }
     }
+    #endif
   }
   onion_random_refcount++;
   onion_random_refcount_mutex_unlock();

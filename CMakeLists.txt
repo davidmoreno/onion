@@ -17,6 +17,7 @@ SET(ONION_USE_TESTS true CACHE BOOL "Compile the tests")
 SET(ONION_EXAMPLES true CACHE BOOL "Compile the examples")
 SET(ONION_USE_BINDINGS_CPP true CACHE BOOL "Compile the CPP bindings")
 SET(ONION_POLLER default CACHE string "Default poller to use: default | epoll | libev | libevent")
+SET(ONION_UNSAFE_RANDOM false CACHE BOOL "Use very unsafe `srand(time(NULL))` as PRNG. Needed in some embeded cases.")
 ########
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
@@ -234,7 +235,9 @@ endif(PNG_ENABLED)
 if(JPEG_ENABLED)
 	add_definitions(-DJPEG_ENABLED)
 endif(JPEG_ENABLED)
-
+if (ONION_UNSAFE_RANDOM)
+	add_definitions(-DONION_UNSAFE_RANDOM)
+endif(ONION_UNSAFE_RANDOM)
 
 add_definitions(-DONION_VERSION="${ONION_VERSION}")
 
