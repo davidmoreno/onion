@@ -20,6 +20,7 @@
   <http://www.gnu.org/licenses/> and
   <http://www.apache.org/licenses/LICENSE-2.0>.
 */
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -29,6 +30,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <string.h>
 
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
@@ -119,7 +121,7 @@ void (*onion_log) (onion_log_level level, const char *filename, int lineno,
  * When compiled in release mode (no __DEBUG__ defined), DEBUG and DEBUG0 are not compiled so they do
  * not incurr in any performance penalty.
  */
-void onion_log_stderr(onion_log_level level, const char *filename, int lineno,
+void onion_log_stderr(onion_log_level level, const char *cfilename, int lineno,
                       const char *fmt, ...) {
 #ifdef HAVE_PTHREADS
   pthread_once(&is_logging_initialized, onion_init_logging);
@@ -134,6 +136,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno,
       return;
     }
   }
+  char *filename = strdupa(cfilename);
 
   filename = basename((char *)filename);
 
