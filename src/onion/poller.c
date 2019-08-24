@@ -43,7 +43,6 @@
 #include "low.h"
 #include <sys/resource.h>
 #include <sys/socket.h>
-#include <sys/eventfd.h>
 #include <fcntl.h>
 
 #ifdef HAVE_PTHREADS
@@ -65,7 +64,8 @@
 
 struct onion_poller_t {
   int fd;
-  int eventfd;                  ///< fd to signal internal changes on poller.
+  int event_in;                 ///< fd to signal internal changes on poller. This is the write end.
+  int event_out;                ///< fd to signal internal changes on poller. This is the read end.
   int timerfd;                  ///< fd to set up timeouts
   time_t current_timeout_limit; ///< Currently set limit in seconds
 
@@ -324,16 +324,35 @@ onion_poller *onion_poller_new(int n) {
     onion_low_free(p);
     return NULL;
   }
-  p->eventfd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-#if EFD_CLOEXEC == 0
-  fcntl(p->eventfd, F_SETFD, FD_CLOEXEC);
-#endif
+  p->event_in = -1;
+  p->event_out = -1;
+
+  int inout[2];
+  if (pipe(inout) >= 0){
+    p->event_in = inout[1];
+    p->event_out = inout[0];
+    #if EFD_CLOEXEC == 0
+      int res = fcntl(p->event_in, F_SETFD, FD_CLOEXEC);
+      if (res < 0){
+        ONION_WARNING("Poller could not set FD_CLOEXEC, will leak fd on exec new process.");
+      }
+      res = fcntl(p->event_out, F_SETFD, FD_CLOEXEC);
+      if (res < 0){
+        ONION_WARNING("Poller could not set FD_CLOEXEC, will leak fd on exec new process.");
+      }
+    #endif
+    if (fcntl(p->event_out, F_SETFL, O_NONBLOCK) < 0){
+      ONION_WARNING("Poller event fd could not be set non blocking. Will block at close.");
+    }
+  } else {
+    ONION_WARNING("Could not create pipe for event management. Will not be stoppable.");
+  }
   p->head = NULL;
   p->n = 0;
   p->stop = 0;
 
 #ifdef HAVE_PTHREADS
-  ONION_DEBUG("Init thread stuff for poll. Eventfd at %d", p->eventfd);
+  ONION_DEBUG("Init thread stuff for poll.");
   p->npollers = 0;
   pthread_mutexattr_t attr;
   pthread_mutexattr_init(&attr);
@@ -344,12 +363,14 @@ onion_poller *onion_poller_new(int n) {
 
   onion_poller_static_init();
 
-  onion_poller_slot *ev =
-      onion_poller_slot_new(p->eventfd, onion_poller_stop_helper, p);
-  onion_poller_add(p, ev);
+  if (p->event_out >= 0){
+    onion_poller_slot *ev =
+        onion_poller_slot_new(p->event_out, onion_poller_stop_helper, p);
+    onion_poller_add(p, ev);
+  }
 
   p->timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
-  ev = onion_poller_slot_new(p->timerfd, &onion_poller_timer, p);
+  onion_poller_slot *ev = onion_poller_slot_new(p->timerfd, &onion_poller_timer, p);
   onion_poller_add(p, ev);
   onion_poller_timer(p);        // Force first timeout
 
@@ -376,8 +397,10 @@ void onion_poller_free(onion_poller * p) {
     }
     pthread_mutex_unlock(&p->mutex);
 
-    if (p->eventfd >= 0)
-      close(p->eventfd);
+    if (p->event_out >= 0)
+      close(p->event_out);
+    if (p->event_in >= 0)
+      close(p->event_in);
     if (p->timerfd >= 0)
       close(p->timerfd);
 
@@ -456,7 +479,7 @@ int onion_poller_remove(onion_poller * poller, int fd) {
       onion_poller_slot *t = el->next;
       el->next = t->next;
 
-      if (poller->head->next == NULL) { // This means only eventfd is here.
+      if (poller->head->next == NULL) { // This means only events are here.
         ONION_DEBUG0("Removed last, stopping poll");
         onion_poller_stop(poller);
       }
@@ -606,8 +629,8 @@ void onion_poller_stop(onion_poller * p) {
   p->stop = 1;
 #endif
 
-  char data[8] = { 0, 0, 0, 0, 0, 0, 0, 1 };
-  int __attribute__ ((unused)) r = read(p->eventfd, data, 8);   // Flush eventfd data, discard data
+  char data[8] = { 0, 0, 0, 0,  0, 0, 0, 1 };
+  int __attribute__ ((unused)) r = read(p->event_out, data, 8);   // Flush event data, discard data
 
 #ifdef HAVE_PTHREADS
   pthread_mutex_lock(&p->mutex);
@@ -615,7 +638,7 @@ void onion_poller_stop(onion_poller * p) {
   pthread_mutex_unlock(&p->mutex);
 
   if (n > 0) {
-    int w = write(p->eventfd, data, 8); // Tell another thread to exit
+    int w = write(p->event_in, data, 8); // Tell another thread to exit
     if (w < 0) {
       ONION_ERROR("Error signaling poller to stop!");
     }
