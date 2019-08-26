@@ -49,6 +49,10 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /// current running onion version as a string
 const char *onion_version();
 /// current running onion major version
@@ -71,5 +75,8 @@ bool onion_version_is_compatible3(int major, int minor, int patch);
 		abort(); \
  	} }
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
