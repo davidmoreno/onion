@@ -4,4 +4,6 @@
 build
 release
 debug
-
+obj-*
+debian/files
+debian/*.substvars
