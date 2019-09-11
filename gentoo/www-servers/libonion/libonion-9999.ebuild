@@ -14,7 +14,7 @@ EGIT_REPO_URI="git://github.com/davidmoreno/onion.git"
 LICENSE="LGPL-3,GPL-2,AGPL-3"
 SLOT="0"
 KEYWORDS=""
-IUSE="cxx gnutls threads pam png xml systemd redis examples test"
+IUSE="cxx gnutls threads pam png xml systemd examples test"
 
 RDEPEND="
     net-misc/curl
@@ -23,7 +23,6 @@ RDEPEND="
     png? ( || ( media-libs/libpng x11-libs/cairo ) )
     xml? ( dev-libs/libxml2 )
     systemd? ( sys-apps/systemd )
-    redis? ( dev-libs/hiredis )
     test? ( || ( net-analyzer/netcat net-analyzer/netcat6 ) )
 "
 DEPEND="${RDEPEND}"
@@ -41,7 +40,6 @@ src_configure() {
         $(cmake-utils_use xml      ONION_USE_XML2)
         $(cmake-utils_use systemd  ONION_USE_SYSTEMD)
         $(cmake-utils_use cxx      ONION_USE_BINDINGS_CPP)
-        $(cmake-utils_use redis    ONION_USE_REDIS)
         $(cmake-utils_use examples ONION_EXAMPLES)
         $(cmake-utils_use test     ONION_USE_TESTS)
     )
