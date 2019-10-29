@@ -42,8 +42,8 @@
 extern "C" {
 #endif
 
-#define ONION_REQUEST_BUFFER_SIZE 256
-#define ONION_RESPONSE_BUFFER_SIZE 1500
+#define ONION_REQUEST_BUFFER_SIZE 64*1024  //256
+#define ONION_RESPONSE_BUFFER_SIZE 64*1024 //1500
 
   struct onion_dict_node_t;
 
