@@ -420,7 +420,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         int w = write(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
-              ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+              ("Error writing multipart data to file. Check permissions on temp directory, and available disk.");
           close(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
@@ -442,7 +442,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         int w = write(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
-              ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+              ("Error writing multipart data to file. Check permissions on temp directory, and available disk.");
           close(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
@@ -451,7 +451,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         w = write(multipart->fd, multipart->boundary + multipart->startpos, r);
         if (w != r) {
           ONION_ERROR
-              ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+              ("Error writing multipart data to file. Check permissions on temp directory, and available disk.");
           close(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
@@ -465,7 +465,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         int w = write(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
-              ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+              ("Error writing multipart data to file. Check permissions on temp directory, and available disk.");
           close(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
@@ -478,7 +478,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
   int w = write(multipart->fd, tmp, tmppos);
   if (w != tmppos) {
     ONION_ERROR
-        ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
+        ("Error writing multipart data to file. Check permissions on temp directory, and available disk.");
     close(multipart->fd);
     return OCS_INTERNAL_ERROR;
   }
