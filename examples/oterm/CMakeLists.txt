@@ -3,11 +3,13 @@
 include_directories (${PROJECT_SOURCE_DIR}/src/) 
 include_directories (${CMAKE_CURRENT_BINARY_DIR}) 
 
+file(GLOB FILES_LIST_IN_DIR_STATIC "${CMAKE_CURRENT_SOURCE_DIR}/static/*")
+
 add_custom_command(
    OUTPUT oterm_data.c
    COMMAND ${OPACK} ${CMAKE_CURRENT_SOURCE_DIR}/static
               -o ${CMAKE_CURRENT_BINARY_DIR}/oterm_data.c
-   DEPENDS ${OPACK} ${CMAKE_CURRENT_SOURCE_DIR}/static/*
+   DEPENDS ${OPACK} ${FILES_LIST_IN_DIR_STATIC}
    )
 
 if(EXISTS /usr/share/javascript/jquery/jquery.min.js)
