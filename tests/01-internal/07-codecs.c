@@ -28,6 +28,7 @@
 #include <onion/codecs.h>
 #include <onion/block.h>
 #include <onion/low.h>
+#include <onion/log.h>
 
 #include "../ctest.h"
 
@@ -35,21 +36,62 @@ void t01_codecs_base64_decode() {
   INIT_LOCAL();
   {
     /// Text from wikipedia. Leviathan by Hobbes.
-    char *orig = "dGVzdDphYWE=";
+    char *orig = "dGVz dDph YWE=\n";
     char *realtext = "test:aaa";
 
-    char *res = onion_base64_decode(orig, NULL);
+    int len;
+    char *res = onion_base64_decode(orig, &len);
     FAIL_IF_NOT_EQUAL_STR(res, realtext);
+    FAIL_IF_NOT_EQUAL_INT(len, 8);
     free(res);
+  }
+  // END_LOCAL();
+  // return;
+  {
+    int len = 0;
+    char *res;
+    res = onion_base64_decode("", &len);
+    FAIL_IF_NOT_EQUAL(res, NULL);
+    FAIL_IF_NOT_EQUAL_INT(len, 0);
+    res = onion_base64_decode("A", &len);
+    FAIL_IF_NOT_EQUAL(res, NULL);
+    FAIL_IF_NOT_EQUAL_INT(len, 0);
+    res = onion_base64_decode("AA", &len);
+    FAIL_IF_NOT_EQUAL(res, NULL);
+    FAIL_IF_NOT_EQUAL_INT(len, 0);
+    res = onion_base64_decode("AAA", &len);
+    FAIL_IF_NOT_EQUAL(res, NULL);
+    FAIL_IF_NOT_EQUAL_INT(len, 0);
+
+    res = onion_base64_decode("MQ==", &len);
+    FAIL_IF_NOT_EQUAL_STR(res, "1");
+    FAIL_IF_NOT_EQUAL_INT(len, 1);
+    free(res);
+    res = onion_base64_decode("MTI=", &len);
+    FAIL_IF_NOT_EQUAL_STR(res, "12");
+    FAIL_IF_NOT_EQUAL_INT(len, 2);
+    free(res);
+    res = onion_base64_decode("MTIz", &len);
+    FAIL_IF_NOT_EQUAL_STR(res, "123");
+    FAIL_IF_NOT_EQUAL_INT(len, 3);
+    free(res);
+    res = onion_base64_decode("MTIzNA==", &len);
+    FAIL_IF_NOT_EQUAL_STR(res, "1234");
+    FAIL_IF_NOT_EQUAL_INT(len, 4);
+    res = onion_base64_decode("MTIzNDU=", &len);
+    FAIL_IF_NOT_EQUAL_STR(res, "12345");
+    FAIL_IF_NOT_EQUAL_INT(len, 5);
+    res = onion_base64_decode("11111", &len);
+    FAIL_IF_NOT_EQUAL(res, NULL);
   }
   {
     /// Text from wikipedia. Leviathan by Hobbes.
     char *orig =
-        "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz\n"
-        "IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg\n"
-        "dGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGlu\n"
-        "dWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRo\n"
-        "ZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=\n";
+        "TWFuIGlzIGR pc3Rpbmd1aX NoZWQsIG5vdCBvbmx5IGJ5IGhpcy  ByZWFzb24sIGJ1dCBieSB0aGlz\n"
+        "IHNpbmd 1bGFyIHBhc3Npb24gZnJ vbSBvdGhlciBhbmltYWxzLCB3 aGljaCBpcyBhIGx1c3Qgb2Yg\n"
+        "dGhlIG1pbmQ sIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2 YgZGVsaWdodCBpbiB0aGUgY29udGlu\n"
+        "dWVkIGF  uZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRo\n"
+        "ZSBzaG9ydCB2Z WhlbWVuY2Ugb2YgYW55IG Nhcm5hbCBw bGVhc3VyZS4=\n";
     char *realtext =
         "Man is distinguished, not only by his reason, but by this singular passion from other animals,"
         " which is a lust of the mind, that by a perseverance of delight in the continued and"
@@ -58,7 +100,7 @@ void t01_codecs_base64_decode() {
     int l;
     char *res = onion_base64_decode(orig, &l);
     //fprintf(stderr,"l %d len %ld\n",l,strlen(realtext));
-    FAIL_IF_NOT_EQUAL(l, strlen(realtext));
+    FAIL_IF_NOT_EQUAL_INT(l, strlen(realtext));
     FAIL_IF_NOT_EQUAL_STR(res, realtext);
     free(res);
   }

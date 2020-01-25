@@ -65,6 +65,17 @@ void printf_bin(const char c, int n) {
   fprintf(stderr, " ");
 }
 
+static u_int8_t onion_base64_decode_get_next(const char **I){
+  u_int8_t c = (int)**I;
+  while (c == '\n' || c == '\r' || c == ' '){
+    (*I)++;
+    c = (int)**I;
+  }
+  // ONION_DEBUG("GET %c", (char)c);
+  (*I)++;
+  return db64[c];
+}
+
 /**
  * @short Decodes a base64 into a new char* (must be freed later).
  * @ingroup codecs
@@ -72,54 +83,75 @@ void printf_bin(const char c, int n) {
  * At length, if not NULL we set the final length of the decoded base.
  *
  * The buffer might be sligthly bigger (up to 3 bytes), but length is always right.
+ *
+ * Returns NULL if invalid input.
  */
 char *onion_base64_decode(const char *orig, int *length) {
   if (orig == NULL)
     return NULL;
-  int ol = strlen(orig) - 1;
-  while ((ol >= 3)
-         && (orig[ol] == '\n' || orig[ol] == '\r' || orig[ol] == '\0'))
-    ol--;                       // go to real end, and set to next. Order of the && is important.
-  ol++;
+  if (length)
+    *length = 0;
+
+  // We use pointers all along. endI is exactly the last char. For an empty string is the one before I.
+  const char *I=orig, *endI=orig + strlen(orig) - 1;
+
+  if (I >= endI){
+    return NULL;
+  }
+
+  int ol = 0;
+  for (I=orig; I <= endI; ++I){
+    const char c = *I;
+    if (c != '\n' && c != '\r' && c != ' '){
+      ol++;
+    }
+  }
+
+  if ((ol & 3) != 0){
+    ONION_DEBUG("Invalid Base64 string. %d is not mod 4", ol);
+    return NULL;
+  }
 
   //fprintf(stderr,"ol %d\n",ol);
-  int l = ol * 3 / 4;           // Conservative, but always true.
-  char *ret = onion_low_scalar_malloc(l + 1);
+  int max_length = ((ol * 3) / 4) + 4;           // Conservative, but always true.
+  char *ret = onion_low_scalar_malloc(max_length);  // Reserve 4 extra bytes, as final padding which may or not be used.
 
-  if (ol < 4) {                 // Not even a block
-    if (length)
-      *length = 0;
-    ret[0] = 0;
+  if (ol == 0){
+    ONION_DEBUG("Empty base64 string.");
     return ret;
   }
 
-  int i, j;
-  char c = 0;                   // Always used properly, but gcc -O2 -Wall thinks it may get used not initialized.
-  for (i = 0, j = 0; i < ol; i += 4, j += 3) {
-    unsigned char o[4];
-    int k;
-    for (k = 0; k < 4; k++) {
-      while ((i + k) < ol && ((c = db64[(int)orig[i + k]]) & 192))
-        i++;
-      //fprintf(stderr,"%c ",orig[i+k]);
-      o[k] = c;
-    }
+  I = orig;
+  char *J = ret;
+  while (I < endI){
+    // ONION_DEBUG("I %p endI %p", I, endI);
+    const u_int8_t c1 = onion_base64_decode_get_next(&I);
+    const u_int8_t c2 = onion_base64_decode_get_next(&I);
+    const u_int8_t c3 = onion_base64_decode_get_next(&I);
+    const u_int8_t c4 = onion_base64_decode_get_next(&I);
 
-    ret[j] = ((o[0] & 0x3F) << 2) + ((o[1] & 0x30) >> 4);
-    ret[j + 1] = ((o[1] & 0x0F) << 4) + ((o[2] & 0x3C) >> 2);
-    ret[j + 2] = ((o[2] & 0x03) << 6) + (o[3]);
+    *J++ = ((c1 & 0x3F) << 2) + ((c2 & 0x30) >> 4);
+    *J++ = ((c2 & 0x0F) << 4) + ((c3 & 0x3C) >> 2);
+    *J++ = ((c3 & 0x03) << 6) + (c4);
+
+    // ONION_DEBUG("%d / %d: %d %d %d %d -> %c %c %c", I - orig, endI - I, c1, c2, c3, c4, *(J-3), *(J-2), *(J-1));
   }
-  int ll = j;
-  if (orig[ol - 2] == '=')
-    ll = j - 2;
-  else if (orig[ol - 1] == '=')
-    ll = j - 1;
+  *J = 0;
+
+  // ONION_DEBUG("Two end? %c %c // ll %d, %d", *(I - 2), *(I - 1), max_length,  J - ret);
+  int ll = J - ret;
+  if (*(I - 2) == '=')
+    ll = ll - 2;
+  else if (*(I - 1) == '=')
+    ll = ll - 1;
 
   ret[ll] = 0;
 
   if (length) {                 // Set the right size.. only if i need it.
     *length = ll;
   }
+
+  // ONION_DEBUG("Decoded. Length %d -> %d, final: %s", ol, ll, ret);
   return ret;
 }
 
