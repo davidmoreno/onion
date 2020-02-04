@@ -37,6 +37,13 @@
 #include <sys/types.h>
 #endif
 
+/* Using __xpg_basename() avoids the usage of Bionic libc's basename()
+ * on Android devices.
+ * Androids basename could be problematic if the usage of the return values
+ * of two calls interleaves.
+ */
+#include "xpg_basename.c"
+
 #include "log.h"
 
 /// @defgroup log Log. Functions to ease logging and debugging in onion programs
@@ -135,7 +142,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno,
     }
   }
 
-  filename = basename((char *)filename);
+  filename = __xpg_basename((char *)filename);
 
 #ifdef __DEBUG__
   if ((level == O_DEBUG0) && (!debug0 || !strstr(debug0, filename))) {
