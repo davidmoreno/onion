@@ -38,6 +38,7 @@
 #include <onion/log.h>
 #include <onion/dict.h>
 #include <onion/block.h>
+#include <onion/utils.h>
 
 #include "../ctest.h"
 #include "../01-internal/buffer_listen_point.h"
@@ -93,7 +94,7 @@ onion_connection_status allinfo_handler(void *data, onion_request * req,
 
 /**
  * @short Performs regexec on each line of string.
- * 
+ *
  * As regexec cant use ^$ to find the line limits, but the string limits, we split the string to make
  * the find of ^ and $ on each line.
  */
@@ -131,7 +132,7 @@ void prerecorded(const char *oscript, int do_r) {
     END_LOCAL();
     return;
   }
-  const char *script = basename((char *)oscript);
+  const char *script = onion_basename((char *)oscript);
 
   onion_listen_point *listen_point = onion_get_listen_point(server, 0);
   onion_request *req = onion_request_new(listen_point);
@@ -260,7 +261,7 @@ void prerecorded(const char *oscript, int do_r) {
 
 /**
  * @short Executes each script file passed as argument.
- * 
+ *
  * Optionally a -r sets the new lines to \r\n. It takes care of not changing content types.
  */
 int main(int argc, char **argv) {

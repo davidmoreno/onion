@@ -33,6 +33,7 @@
 #include <onion/log.h>
 #include <onion/codecs.h>
 #include <onion/block.h>
+#include <onion/utils.h>
 
 #include "functions.h"
 #include "parser.h"
@@ -211,7 +212,7 @@ void tag_block(parser_status * st, list * l) {
   assert(strlen(st->infilename) < sizeof(tmp));
   strncpy(tmp, st->infilename, sizeof(tmp) - 1);
   function_data *d =
-      function_new(st, "%s__block_%s", basename(tmp), block_name);
+      function_new(st, "%s__block_%s", onion_basename(tmp), block_name);
   function_add_code_f(st->blocks_init,
                       "  if (!onion_dict_get(context, \"__block_%s__\"))\n"
                       "    onion_dict_add(context, \"__block_%s__\", %s, 0);\n",

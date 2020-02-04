@@ -32,6 +32,7 @@
 
 #include "onion/log.h"
 #include "onion/block.h"
+#include "onion/utils.h"
 #include "list.h"
 #include "parser.h"
 #include "tags.h"
@@ -181,7 +182,7 @@ int work(const char *infilename, const char *outfilename,
   status.infilename = infilename;
   char tmp2[256];
   strncpy(tmp2, infilename, sizeof(tmp2) - 1);
-  const char *tname = basename(tmp2);
+  const char *tname = onion_basename(tmp2);
   ONION_DEBUG("Create init function on top, tname %s", tname);
   status.blocks_init = function_new(&status, "%s_blocks_init", tname);
   status.blocks_init->signature = "onion_dict *context";

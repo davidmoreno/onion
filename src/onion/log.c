@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
+#include "utils.h"
 
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
@@ -135,7 +136,7 @@ void onion_log_stderr(onion_log_level level, const char *filename, int lineno,
     }
   }
 
-  filename = basename((char *)filename);
+  filename = onion_basename((char *)filename);
 
 #ifdef __DEBUG__
   if ((level == O_DEBUG0) && (!debug0 || !strstr(debug0, filename))) {
