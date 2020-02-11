@@ -1,5 +1,6 @@
 {% load i18n %}
-<html>
+<!DOCTYPE html>
+<html lang="{% if LANG %}{{LANG}}{%else%}en{% endif %}">
 <head>
  <meta content="text/html; charset=UTF-8" http-equiv="content-type"/> 
  <title>{% trans "Current directory: " %} {{dirname}}</title>
@@ -10,9 +11,7 @@ th{	background: #eee; } tbody tr:hover td{ background: yellow; } tr.dir td{ back
 table a{ display: block; } th{ cursor: pointer} h1,h2{ color: black; text-align: center; }
 a{ color: red; text-decoration: none; }
 #copyright{ text-align: center; font-size: 0.7em; }
-#lang{ size: 0.6em; color: #aaa; }
-</style>
-
+#lang{ width: 0.6em; color: #aaa; }
 </style>
 </head>
 <body>
@@ -36,7 +35,7 @@ a{ color: red; text-decoration: none; }
 </tbody>
 </table>
 
-<div id="copyright">(C) 2011 <a href="http://www.coralbits.com">Coralbits S.L</a> {% if LANG %}<span id="lang">{{LANG}}{% endif %}</div>
+<div id="copyright">(C) 2020 <a href="http://www.coralbits.com">Coralbits S.L</a> {% if LANG %}<span id="lang">{{LANG}}</span>{% endif %}</div>
 
 </body>
 </html>
