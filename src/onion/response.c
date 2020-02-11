@@ -49,7 +49,7 @@ const char *onion_response_code_description(int code);
 
 #ifndef DONT_USE_DATE_HEADER
 static volatile time_t onion_response_last_time = 0;
-static char onion_response_last_date_header[200] = { 0 };
+static char onion_response_last_date_header[128] = { 0 };
 #ifdef HAVE_PTHREADS
 pthread_rwlock_t onion_response_date_lock = PTHREAD_RWLOCK_INITIALIZER;
 #endif
