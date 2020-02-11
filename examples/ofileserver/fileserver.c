@@ -115,6 +115,7 @@ int main(int argc, char **argv) {
   bindtextdomain("zh", W);
   bindtextdomain("fr", W);
   bindtextdomain("pl", W);
+  bindtextdomain("de", W);
   textdomain("C");              // Default language
   // All is configured now, now in hands of dgettext(LANG, txt);
 

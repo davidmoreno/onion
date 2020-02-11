@@ -1,4 +1,4 @@
-include_directories (${PROJECT_SOURCE_DIR}/src/) 
+include_directories (${PROJECT_SOURCE_DIR}/src/)
 find_program(HAVE_MSGFMT msgfmt)
 
 add_custom_command(
@@ -12,30 +12,37 @@ if(HAVE_MSGFMT)
 add_custom_target(
    fo_zh ALL
    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
-   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/zh.po 
+   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/zh.po
                  -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/zh.mo
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/zh.po
    )
 add_custom_target(
    fo_es ALL
    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
-   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/es.po 
+   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/es.po
                  -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/es.mo
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/es.po
    )
 add_custom_target(
    fo_fr ALL
    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
-   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/fr.po 
+   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/fr.po
                  -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/fr.mo
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fr.po
    )
 add_custom_target(
    fo_pl ALL
    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
-   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/pl.po 
+   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/pl.po
                  -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/pl.mo
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/pl.po
+   )
+add_custom_target(
+   fo_de ALL
+   COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/
+   COMMAND msgfmt  ${CMAKE_CURRENT_SOURCE_DIR}/de.po
+                 -o ${CMAKE_CURRENT_BINARY_DIR}/locale/LC_MESSAGES/de.mo
+   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/de.po
    )
 endif(HAVE_MSGFMT)
 
