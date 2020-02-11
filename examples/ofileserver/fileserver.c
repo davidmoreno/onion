@@ -28,6 +28,7 @@
 #include <onion/onion.h>
 #include <onion/log.h>
 #include <onion/dict.h>
+#include <onion/url.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <onion/shortcuts.h>
@@ -96,15 +97,45 @@ int main(int argc, char **argv) {
     }
   }
 
-  onion_handler *root =
-      onion_handler_new((onion_handler_handler) fileserver_page,
-                        (void *)dirname, NULL);
+  /* Handling of static files and directory listing */
+  onion_handler *fileserver_handler = onion_handler_new(
+      (onion_handler_handler) fileserver_page,
+      (void *)dirname, NULL);
+
 #ifdef HAVE_WEBDAV
   if (withwebdav)
-    onion_handler_add(root, onion_handler_webdav(dirname, NULL));       // fallback.
+    onion_handler_add(fileserver_handler, onion_handler_webdav(dirname, NULL));       // fallback.
   else
 #endif
-    onion_handler_add(root, onion_handler_export_local_new(dirname));
+    onion_handler_add(fileserver_handler, onion_handler_export_local_new(dirname));
+
+  /* Optional nesting of fileserver_handler into an url handler.
+   * This shows how url pattern could linked to different
+   * handlers.
+   */
+  onion_url *urls = onion_url_new();
+  onion_handler *root_handler = onion_url_to_handler(urls);
+
+  /* Redirect on index.html on top level */
+  //onion_url_add_with_data(urls, "", onion_shortcut_internal_redirect, "index.html", NULL);
+
+  /* Connect handler with all urls
+   *
+   * Note that the matching regex will be cut from the path
+   * of the inner handler!
+   * e.g. for the url '[server]:[port]/static/file.txt'
+   *   • "^", matches on every string, but consume no chars.
+   *          Fileserver returns '[directory to serve]/static/file.txt'
+   *
+   *   • "^.*" consumes the whole path.
+   *           Fileserver lists root folder '[directory to serve]/'
+   *
+   *   • "^static/" removes prefix 'static/'
+   *           Thus, the url will return '[directory to serve]/file.txt'
+   * */
+  onion_url_add_handler(urls, "^", fileserver_handler);
+
+
 
 // This is the root directory where the translations are.
 #define W "."
@@ -126,7 +157,7 @@ int main(int argc, char **argv) {
 
   o = onion_new(O_POOL);
 
-  onion_set_root_handler(o, root);
+  onion_set_root_handler(o, root_handler);
   onion_set_port(o, port);
   onion_set_hostname(o, hostname);
 
@@ -151,10 +182,16 @@ int fileserver_page(const char *basepath, onion_request * req,
                     onion_response * res) {
   if ((onion_request_get_flags(req) & OR_METHODS) == OR_GET) {  // only get.
     const char *path = onion_request_get_path(req);     // Try to get the real path, and check if its a dir
+    /* Note: onion_request_get_path(req) differs from
+     *       onion_request_get_fullpath(req)
+     *       The top level handler (here: url_handler) can cut of
+     *       parts of the url.
+     */
+    printf("    PATH: %s\n", onion_request_get_path(req));
+    printf("FULLPATH: %s\n", onion_request_get_fullpath(req));
 
     char dirname[256];
-    snprintf(dirname, sizeof(dirname), "%s/%s", basepath,
-             onion_request_get_path(req));
+    snprintf(dirname, sizeof(dirname), "%s/%s", basepath, path);
     char *realp = realpath(dirname, NULL);
     if (!realp)
       return OCS_INTERNAL_ERROR;
