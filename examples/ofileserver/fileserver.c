@@ -110,6 +110,11 @@ int main(int argc, char **argv) {
 #define W "."
   setenv("LANGUAGE", "locale", 1);      // Remove LANGUAGE env var, set it to the locale name,
   setlocale(LC_ALL, "");
+  /* Above setting is be problematic if you parse numbers (scanf)!
+   * Use following setup to parse numbers still in english notation.
+   * setlocale(LC_MESSAGES, "");
+   * bind_textdomain_codeset("your-language", "utf-8");
+  */
   bindtextdomain("locale", W);  // This is necesary because of the fake name
   bindtextdomain("es", W);      // One per language supported.
   bindtextdomain("zh", W);
