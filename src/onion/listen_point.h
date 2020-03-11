@@ -49,6 +49,7 @@ extern "C" {
           int (*f_update)(void* ctx, const void *data, size_t len),
           int (*f_final)(unsigned char* data, void* ctx),
           void (*f_free)(void* ctx) );
+  void onion_listen_point_set_cache_size(onion_listen_point* lp, size_t);
 
 #ifdef __cplusplus
 }

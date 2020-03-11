@@ -94,6 +94,7 @@ extern "C" {
     int (*f_init)(void*), int (*f_update)(void * , const void *, size_t ),
     int (*f_final)(unsigned char* , void*), void (*f_free)(void* ) );
 
+  void onion_set_cache_size(onion* server, size_t cache_size);
 
 /// Gets the current flags, for example to check SSL support.
   int onion_flags(onion * onion);

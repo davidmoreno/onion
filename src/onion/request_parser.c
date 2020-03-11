@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
+#include <sys/param.h>
 
 #include "dict.h"
 #include "request.h"
@@ -347,6 +348,21 @@ static onion_connection_status parse_CONTENT_LENGTH(onion_request * req,
   return OCS_NEED_MORE_DATA;
 }
 
+static ssize_t onion_http_flush_att(onion_request* req, int fd, const char* data, size_t len){
+  char* pos = (char*)data;
+  char* end = (char*)data + len;
+  while (pos<end){
+    ssize_t res = req->connection.listen_point->write_att(fd, pos, len);
+    if (res==-1){
+      return res;
+    }
+    pos += (size_t) res;
+    len -= (size_t) res;
+  }
+  return end - data;
+}
+
+
 /**
  * @short Reads from the data to fulfill content-length data.
  *
@@ -355,31 +371,35 @@ static onion_connection_status parse_CONTENT_LENGTH(onion_request * req,
 static onion_connection_status parse_PUT(onion_request * req,
                                          onion_buffer * data) {
   onion_token *token = req->parser_data;
-  int length = data->size - data->pos;
-  int exit = 0;
-
-  if (length >= token->extra_size - token->pos) {
-    exit = 1;
-    length = token->extra_size - token->pos;
-  }
-  //ONION_DEBUG0("Writing %d. %d / %d bytes", length, token->pos+length, token->extra_size);
-
   int* fd = (int *)token->extra;
-  //ssize_t w = write(*fd, &data->data[data->pos], length);
-  ssize_t w = req->connection.listen_point->write_att(*fd, &data->data[data->pos], length);
-  if (w < 0) {
-    // cleanup
-    //close(*fd);
-    req->connection.listen_point->close_att(*fd);
-    onion_low_free(token->extra);
-    token->extra = NULL;
-    ONION_ERROR("Could not write all data to temporal file.");
-    return OCS_INTERNAL_ERROR;
+  int exit = 0;
+  while ( (size_t)data->pos < data->size){
+    size_t available = (size_t)(req->end - req->pos);
+    size_t len = data->size - (size_t)data->pos;
+    len = MIN(len, available);
+    memcpy(req->pos, data->data + (size_t)data->pos, len);
+
+    req->pos +=len;
+    token->pos +=len;
+    data->pos += len;
+    if (token->extra_size == (size_t)token->pos){
+      exit = 1;
+    }
+
+    if (req->pos==req->end || exit==1){
+      ssize_t res = onion_http_flush_att(req, *fd, req->cache, (size_t)(req->pos-req->cache));
+      if (res==-1){
+        req->connection.listen_point->close_att(*fd);
+        onion_low_free(token->extra);
+        token->extra = NULL;
+        ONION_ERROR("Could not write all data to temporal file.");
+        return OCS_INTERNAL_ERROR;
+      }
+      req->pos = req->cache;
+      if (req->connection.listen_point->update_hash_ctx)
+        req->connection.listen_point->update_hash_ctx(req->hash_ctx, req->cache, (size_t)res);
+      }
   }
-  if (req->connection.listen_point->update_hash_ctx)
-    req->connection.listen_point->update_hash_ctx(req->hash_ctx, &data->data[data->pos], w);
-  data->pos += length;
-  token->pos += length;
 
 #if __DEBUG__
   const char *filename = onion_block_data(req->data);
@@ -1169,8 +1189,10 @@ static onion_connection_status prepare_PUT(onion_request * req) {
 
   //int fd = mkstemp(filename);
   int fd = req->connection.listen_point->mks_att(filename);
-  if (fd < 0 )
+  if (fd < 0 ){
     ONION_ERROR("Could not create temporary file at %s.", filename);
+    return OCS_INTERNAL_ERROR;
+  }
 
   if (req->connection.listen_point->init_hash_ctx)
     req->connection.listen_point->init_hash_ctx(req->hash_ctx);
@@ -1203,6 +1225,7 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   token->pos = 0;
 
   req->parser = parse_PUT;
+  req->pos = req->cache;
   return OCS_NEED_MORE_DATA;
 }
 

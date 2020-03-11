@@ -79,6 +79,10 @@ onion_request *onion_request_new(onion_listen_point * op) {
   req->hash_ctx = (op->new_hash_ctx) ? op->new_hash_ctx() : NULL;
   ONION_DEBUG0("Create request %p", req);
 
+  req->cache = (char*) malloc (op->cache_size);
+  req->pos = NULL;
+  req->end = req->cache + op->cache_size;
+
   if (op) {
     if (op->request_init) {
       if (op->request_init(req) < 0) {
@@ -123,6 +127,8 @@ static void unlink_files(void *p, const char *key, const char *value, int flags)
  * @ingroup request
  */
 void onion_request_free(onion_request * req) {
+
+  free(req->cache);
   ONION_DEBUG0("Free request %p", req);
   onion_dict_free(req->headers);
 

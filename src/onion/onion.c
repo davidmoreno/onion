@@ -274,6 +274,15 @@ void onion_set_hash_handlers(onion* onion, void* (*f_new)(), int (*f_init)(void*
   }
 }
 
+void onion_set_cache_size(onion* onion, size_t cache_size){
+  if (onion->listen_points) {
+    onion_listen_point **p = onion->listen_points;
+    while (*p != NULL) {
+      onion_listen_point_set_cache_size(*p++, cache_size);
+    }
+  }
+}
+
 /**
  * @short Removes the allocated data
  * @ingroup onion
