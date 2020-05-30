@@ -92,7 +92,8 @@ extern "C" {
 
   void onion_set_hash_handlers(onion* server, void* (*f_new)(),
     int (*f_init)(void*), int (*f_update)(void * , const void *, size_t ),
-    int (*f_final)(unsigned char* , void*), void (*f_free)(void* ) );
+    int (*f_final)(unsigned char* , void*), void (*f_free)(void* ),
+    bool multi);
 
   void onion_set_cache_size(onion* server, size_t cache_size);
 

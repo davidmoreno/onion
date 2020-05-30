@@ -57,6 +57,16 @@ extern "C" {
     int (*cmp) (const char *a, const char *b);
   };
 
+#ifdef HAVE_PTHREADS
+  typedef struct{
+      int (*update)(void* ctx, const void* data, size_t len);
+      void* ctx;
+      const void* data;
+      size_t len;
+      pthread_mutex_t* mtx;
+  }onion_update_hash_params;
+#endif
+
   struct onion_t {
     int flags;
     int timeout;                ///< Timeout in milliseconds
@@ -112,6 +122,11 @@ extern "C" {
     onion_ptr_list *free_list;  /// Memory that should be freed when the request finishes. IT allows to have simpler onion_dict, which dont copy/free data, but just splits a long string inplace.
     void* hash_ctx;             /// Hash context, created&user by user defined callbacks
     char* cache;
+#ifdef HAVE_PTHREADS
+    char* hash_base;
+    pthread_mutex_t mtx;
+    onion_update_hash_params hash_params;
+#endif
     char* pos;
     char* end;
   };
@@ -220,6 +235,7 @@ extern "C" {
     int (*update_hash_ctx)(void* ctx, const void* data, size_t len); // updates hash context
     int (*final_hash_ctx)(unsigned char* data, void* ctx); // finalize hash context
     void (*free_hash_ctx)(void* ctx); // releases hash context
+    bool multi;
 
     /// @}
   };

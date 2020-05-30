@@ -74,6 +74,7 @@ onion_listen_point *onion_listen_point_new() {
   ret->update_hash_ctx = NULL;
   ret->final_hash_ctx = NULL;
   ret->free_hash_ctx = NULL;
+  ret->multi = false;
 
   ret->cache_size = 4096;
 
@@ -96,12 +97,14 @@ void onion_listen_point_set_attachment_handlers(onion_listen_point* ret,
 void onion_listen_point_set_hash_handlers(onion_listen_point* ret,
       void* (*f_new)(), int (*f_init)(void*),
       int (*f_update)(void* , const void *, size_t ),
-      int (*f_final)(unsigned char*, void*), void (*f_free)(void* ctx) ){
+      int (*f_final)(unsigned char*, void*),
+      void (*f_free)(void* ctx), bool multi ){
   ret->new_hash_ctx = f_new;
   ret->init_hash_ctx = f_init;
   ret->update_hash_ctx = f_update;
   ret->final_hash_ctx = f_final;
   ret->free_hash_ctx = f_free;
+  ret->multi = multi;
 }
 
 void onion_listen_point_set_cache_size(onion_listen_point* ret, size_t cache_size){

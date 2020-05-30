@@ -265,11 +265,11 @@ void onion_set_attachment_handlers(onion* onion, int (*f_mks)(char*),
 
 void onion_set_hash_handlers(onion* onion, void* (*f_new)(), int (*f_init)(void*),
         int (*f_update)(void*, const void*, size_t), int (*f_final)(unsigned char*, void*),
-        void (*f_free)(void*)){
+        void (*f_free)(void*), bool multi){
   if (onion->listen_points) {
     onion_listen_point **p = onion->listen_points;
     while (*p != NULL) {
-      onion_listen_point_set_hash_handlers(*p++, f_new, f_init, f_update, f_final, f_free);
+      onion_listen_point_set_hash_handlers(*p++, f_new, f_init, f_update, f_final, f_free, multi);
     }
   }
 }

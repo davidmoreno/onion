@@ -79,10 +79,6 @@ onion_request *onion_request_new(onion_listen_point * op) {
   req->hash_ctx = (op->new_hash_ctx) ? op->new_hash_ctx() : NULL;
   ONION_DEBUG0("Create request %p", req);
 
-  req->cache = (char*) malloc (op->cache_size);
-  req->pos = NULL;
-  req->end = req->cache + op->cache_size;
-
   if (op) {
     if (op->request_init) {
       if (op->request_init(req) < 0) {
@@ -173,6 +169,15 @@ void onion_request_free(onion_request * req) {
     onion_ptr_list_foreach(req->free_list, onion_low_free);
     onion_ptr_list_free(req->free_list);
   }
+
+#ifdef HAVE_PTHREADS
+  if (req->connection.listen_point->multi){
+    pthread_mutex_lock( &req->mtx );
+    pthread_mutex_unlock( &req->mtx );
+    pthread_mutex_destroy( &req->mtx );
+    free(req->hash_base);
+  }
+#endif
   if (req->hash_ctx){
     req->connection.listen_point->free_hash_ctx(req->hash_ctx);
     req->hash_ctx = NULL;
@@ -747,8 +752,19 @@ bool onion_request_is_secure(onion_request * req) {
   return req->connection.listen_point->secure;
 }
 
+
 void onion_request_get_hash(onion_request * req, unsigned char* value){
   if (req->hash_ctx && req->connection.listen_point->final_hash_ctx){
+#ifdef HAVE_PTHREADS
+    if (req->connection.listen_point->multi){
+      pthread_mutex_lock( &req->mtx );
+    }
+#endif
     req->connection.listen_point->final_hash_ctx(value, req->hash_ctx);
+#ifdef HAVE_PTHREADS
+    if (req->connection.listen_point->multi){
+      pthread_mutex_unlock( &req->mtx );
+    }
+#endif
   }
 }

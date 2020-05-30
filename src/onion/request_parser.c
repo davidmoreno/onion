@@ -363,6 +363,17 @@ static ssize_t onion_http_flush_att(onion_request* req, int fd, const char* data
 }
 
 
+#ifdef HAVE_PTHREADS
+static void* update_hash_worker(void* args){
+    onion_update_hash_params* p = (onion_update_hash_params*)args;
+    p->update(p->ctx, p->data, p->len);
+    pthread_mutex_unlock(p->mtx);
+    pthread_exit( (void*)NULL );
+    return (void*) NULL;
+}
+#endif
+
+
 /**
  * @short Reads from the data to fulfill content-length data.
  *
@@ -388,6 +399,7 @@ static onion_connection_status parse_PUT(onion_request * req,
 
     if (req->pos==req->end || exit==1){
       ssize_t res = onion_http_flush_att(req, *fd, req->cache, (size_t)(req->pos-req->cache));
+
       if (res==-1){
         req->connection.listen_point->close_att(*fd);
         onion_low_free(token->extra);
@@ -395,11 +407,31 @@ static onion_connection_status parse_PUT(onion_request * req,
         ONION_ERROR("Could not write all data to temporal file.");
         return OCS_INTERNAL_ERROR;
       }
-      req->pos = req->cache;
-      if (req->connection.listen_point->update_hash_ctx)
-        req->connection.listen_point->update_hash_ctx(req->hash_ctx, req->cache, (size_t)res);
+#ifdef HAVE_PTHREADS
+      if (req->connection.listen_point->multi){
+          pthread_mutex_lock( &req->mtx );
+          char* link = req->cache;
+          req->cache = req->hash_base;
+          req->hash_base = link;
+          req->end = req->cache + req->connection.listen_point->cache_size;
+          req->hash_params.data = req->hash_base;
+          req->hash_params.len = (size_t) res;
+          pthread_t thread;
+          pthread_create(&thread, NULL, update_hash_worker, (void*)&req->hash_params);
+          pthread_detach( thread );
+      }else{
+          if (req->connection.listen_point->update_hash_ctx)
+              req->connection.listen_point->update_hash_ctx(req->hash_ctx, req->cache, (size_t)res);
       }
+#else
+      if (req->connection.listen_point->update_hash_ctx)
+          req->connection.listen_point->update_hash_ctx(req->hash_ctx, req->cache, (size_t)res);
+#endif
+      req->pos = req->cache;
+    }
+
   }
+
 
 #if __DEBUG__
   const char *filename = onion_block_data(req->data);
@@ -445,7 +477,9 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         data->pos++;            // Not sure why this is needed. FIXME.
 
         //int w = write(multipart->fd, tmp, tmppos);
+        //todo: chaching feature
         int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
+
         if (w != tmppos) {
           ONION_ERROR
               ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
@@ -470,6 +504,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         int r = multipart->pos - multipart->startpos;
         //ONION_DEBUG0("Write %d bytes",r);
         //int w = write(multipart->fd, tmp, tmppos);
+        //todo: caching feature
         int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
@@ -481,6 +516,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         tmppos = 0;
 
         //w = write(multipart->fd, multipart->boundary + multipart->startpos, r);
+        //todo: caching feature
         w = req->connection.listen_point->write_att(multipart->fd, multipart->boundary + multipart->startpos, r);
         if (w != r) {
           ONION_ERROR
@@ -497,6 +533,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
       tmp[tmppos++] = *p;
       if (tmppos == sizeof(tmp)) {
         //int w = write(multipart->fd, tmp, tmppos);
+        //todo: cashing
         int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
@@ -512,6 +549,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
     p++;
   }
   //int w = write(multipart->fd, tmp, tmppos);
+  //todo: cashing
   int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
   if (w != tmppos) {
     ONION_ERROR
@@ -1216,6 +1254,19 @@ static onion_connection_status prepare_PUT(onion_request * req) {
     return OCS_REQUEST_READY;
   }
 
+  req->cache = (char*) malloc (req->connection.listen_point->cache_size);
+#ifdef HAVE_PTHREADS
+  if (req->connection.listen_point->multi){
+    req->hash_base = (char*) malloc (req->connection.listen_point->cache_size);
+    pthread_mutex_init(&req->mtx, NULL);
+    req->hash_params.update = req->connection.listen_point->update_hash_ctx;
+    req->hash_params.ctx = req->hash_ctx;
+    req->hash_params.mtx = &(req->mtx);
+  }
+#endif
+  req->pos = req->cache;
+  req->end = req->cache + req->connection.listen_point->cache_size;
+
   int *pfd = onion_low_scalar_malloc(sizeof(fd));
   *pfd = fd;
 
@@ -1225,7 +1276,6 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   token->pos = 0;
 
   req->parser = parse_PUT;
-  req->pos = req->cache;
   return OCS_NEED_MORE_DATA;
 }
 
