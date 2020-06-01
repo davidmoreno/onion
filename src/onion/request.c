@@ -108,14 +108,14 @@ onion_request *onion_request_new_from_socket(onion_listen_point * con, int fd,
  * @short Helper to remove temporal files from req->files
  * @memberof onion_request_t
  * @ingroup request
- */
-static void unlink_files(void *p, const char *key, const char *value, int flags) {
+ static void unlink_files(void *p, const char *key, const char *value, int flags) {
   ONION_DEBUG0("Unlinking temporal file %s", value);
   int (*f) (const char *value);
   f = p;
   f(value);
   //unlink(value);
 }
+*/
 
 /**
  * @short Deletes a request and all its data
@@ -139,7 +139,7 @@ void onion_request_free(onion_request * req) {
     onion_dict_free(req->POST);
   if (req->FILES) {
     //onion_dict_preorder(req->FILES, unlink_files, NULL);
-    onion_dict_preorder(req->FILES, unlink_files, req->connection.listen_point->unlink_att);
+    //onion_dict_preorder(req->FILES, unlink_files, req->connection.listen_point->unlink);
     onion_dict_free(req->FILES);
   }
   if (req->session) {
@@ -214,7 +214,7 @@ void onion_request_clean(onion_request * req) {
   }
   if (req->FILES) {
     //onion_dict_preorder(req->FILES, unlink_files, NULL);
-    onion_dict_preorder(req->FILES, unlink_files, req->connection.listen_point->unlink_att);
+    //onion_dict_preorder(req->FILES, unlink_files, req->connection.listen_point->unlink_att);
     onion_dict_free(req->FILES);
     req->FILES = NULL;
   }

@@ -86,14 +86,21 @@ extern "C" {
 /// Gets a single listen point, or NULL if not that many.
   onion_listen_point *onion_get_listen_point(onion * server, int nlisten_point);
 
-  void onion_set_attachment_handlers(onion* server, int (*f_mks)(char*),
-    ssize_t (*f_write)(int, const void*, size_t),
-    int (*f_close)(int), int (*f_unlink)(const char*), int (*f_tmpl)(onion_request*, char*));
+  void onion_set_attachment_handlers(onion* server,
+          int (*f_auth)(onion_request*, char*),
+          int (*f_open)(const char*, int, ...),
+          ssize_t (*f_read)(const char*, void*, size_t, off_t),
+          ssize_t (*f_write)(const char*, const void*, size_t, off_t),
+          int (*f_close)(const char*),
+          int (*f_unlink)(const char*));
 
-  void onion_set_hash_handlers(onion* server, void* (*f_new)(),
-    int (*f_init)(void*), int (*f_update)(void * , const void *, size_t ),
-    int (*f_final)(unsigned char* , void*), void (*f_free)(void* ),
-    bool multi);
+  void onion_set_hash_handlers(onion* server,
+          void* (*f_new)(),
+          int (*f_init)(void*),
+          int (*f_update)(void * , const void *, size_t ),
+          int (*f_final)(unsigned char* , void*),
+          void (*f_free)(void* ),
+          bool multi);
 
   void onion_set_cache_size(onion* server, size_t cache_size);
 

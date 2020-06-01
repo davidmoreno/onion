@@ -138,6 +138,8 @@ extern "C" {
   int onion_response_flush(onion_response * res);
 /// @}
 
+  onion_listen_point* onion_response_get_listen_point(onion_response* req);
+
 #ifdef __cplusplus
 }
 #endif

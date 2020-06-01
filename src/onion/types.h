@@ -138,6 +138,10 @@ extern "C" {
   struct onion_poller_slot_t;
   typedef struct onion_poller_slot_t onion_poller_slot;
 
+  struct onion_attacment_handlers_t;
+  typedef struct onion_attachment_handlers_t onion_attachment_handlers;
+
+
 /**
  * @short Stored common data for each listen point: address, port, protocol status data...
  * @struct onion_listen_point_t

@@ -38,17 +38,24 @@ extern "C" {
   int onion_listen_point_request_init_from_socket(onion_request * op);
   void onion_listen_point_request_close_socket(onion_request * oc);
   void onion_listen_point_set_attachment_handlers(onion_listen_point* lp,
-          int (*f_mks)(char *filename_tmpl),
-          ssize_t (*f_write)(int fd, const void *data, size_t len),
-          int (*f_close)(int fd),
-          int (*f_unlink)(const char*),
-          int (*f_tmpl)(onion_request*, char*));
+          int (*f_auth)(onion_request*, char*),
+          int (*f_open)(const char*, int, ...),
+          ssize_t (*f_pread)(const char*, void*, size_t, off_t),
+          ssize_t (*f_pwrite)(const char*, const void*, size_t, off_t),
+          int (*f_close)(const char*),
+          int (*f_unlink)(const char*));
   void onion_listen_point_set_hash_handlers(onion_listen_point* lp,
           void* (*f_new)(),
           int (*f_init)(void* ctx),
           int (*f_update)(void* ctx, const void *data, size_t len),
           int (*f_final)(unsigned char* data, void* ctx),
           void (*f_free)(void* ctx), bool multi);
+
+  void* onion_listen_point_att_hndl_open(onion_listen_point*);
+  void* onion_listen_point_att_hndl_pread(onion_listen_point*);
+  void* onion_listen_point_att_hndl_close(onion_listen_point*);
+  void* onion_listen_point_att_hndl_unlink(onion_listen_point*);
+
   void onion_listen_point_set_cache_size(onion_listen_point* lp, size_t);
 
 #ifdef __cplusplus

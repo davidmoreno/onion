@@ -78,7 +78,7 @@ static ssize_t onion_http_read(onion_request * con, char *data, size_t len) {
  * @ingroup http
  */
 int onion_http_read_ready(onion_request * con) {
-  char buffer[1500];
+  char buffer[9100];
   ssize_t len = con->connection.listen_point->read(con, buffer, sizeof(buffer));
 
   if (len <= 0)

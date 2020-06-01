@@ -252,13 +252,18 @@ onion *onion_new(int flags) {
   return o;
 }
 
-void onion_set_attachment_handlers(onion* onion, int (*f_mks)(char*),
-        ssize_t (*f_write)(int, const void*, size_t),
-        int (*f_close)(int), int (*f_unlink)(const char*), int (*f_tmpl)(onion_request*, char*)){
+void onion_set_attachment_handlers(onion* onion,
+        int (*f_auth)(onion_request*, char*),
+        int (*f_open)(const char*, int, ...),
+        ssize_t (*f_read)(const char*, void*, size_t, off_t),
+        ssize_t (*f_write)(const char*, const void*, size_t, off_t),
+        int (*f_close)(const char*),
+        int (*f_unlink)(const char*) ){
   if (onion->listen_points) {
     onion_listen_point **p = onion->listen_points;
     while (*p != NULL) {
-      onion_listen_point_set_attachment_handlers(*p++, f_mks, f_write, f_close, f_unlink, f_tmpl);
+      onion_listen_point_set_attachment_handlers(*p++,
+              f_auth, f_open, f_read, f_write, f_close, f_unlink);
     }
   }
 }
@@ -266,13 +271,29 @@ void onion_set_attachment_handlers(onion* onion, int (*f_mks)(char*),
 void onion_set_hash_handlers(onion* onion, void* (*f_new)(), int (*f_init)(void*),
         int (*f_update)(void*, const void*, size_t), int (*f_final)(unsigned char*, void*),
         void (*f_free)(void*), bool multi){
-  if (onion->listen_points) {
+    if (onion->listen_points) {
     onion_listen_point **p = onion->listen_points;
     while (*p != NULL) {
       onion_listen_point_set_hash_handlers(*p++, f_new, f_init, f_update, f_final, f_free, multi);
     }
   }
 }
+
+/*
+void onion_set_s3_handlers(onion* onion,
+        int (*f_auth)(onion_request*, char*),
+        int (*f_open)(const char*),
+        ssize_t (*f_write)(const char* , const void*, size_t, off_t),
+        int (*f_close)(const char*),
+        int (*f_unlink)(const char*)){
+  if (onion->listen_points) {
+    onion_listen_point **p = onion->listen_points;
+    while (*p != NULL) {
+      onion_listen_point_set_s3_handlers(*p++, f_auth, f_open, f_write, f_close, f_unlink);
+    }
+  }
+}
+*/
 
 void onion_set_cache_size(onion* onion, size_t cache_size){
   if (onion->listen_points) {

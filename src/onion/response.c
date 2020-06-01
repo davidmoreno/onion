@@ -647,3 +647,8 @@ bool onion_response_add_cookie(onion_response * res, const char *cookiename,
 
   return true;
 }
+
+onion_listen_point* onion_response_get_listen_point(onion_response* resp){
+  return resp->request->connection.listen_point;
+}
+

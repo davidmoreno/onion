@@ -39,7 +39,7 @@
 #include "ptr_list.h"
 #include "utils.h"
 
-#define MAX_FILENAME_LEN 512  // needs for mkstemp or user-defined handler
+//#define MAX_FILENAME_LEN 128  // needs for mkstemp or user-defined handler
 
 /**
  * @short Known token types. This is merged with onion_connection_status as return value at token readers.
@@ -348,16 +348,30 @@ static onion_connection_status parse_CONTENT_LENGTH(onion_request * req,
   return OCS_NEED_MORE_DATA;
 }
 
-static ssize_t onion_http_flush_att(onion_request* req, int fd, const char* data, size_t len){
+static ssize_t onion_http_flush_att(onion_request* req, int* fd, const char* filename, const char* data, size_t len, off_t _offset){
+  off_t offset = _offset;
   char* pos = (char*)data;
   char* end = (char*)data + len;
   while (pos<end){
-    ssize_t res = req->connection.listen_point->write_att(fd, pos, len);
+    ssize_t res = 0;
+    if (req->connection.listen_point->att_hndl.pwrite){
+        if (*fd==0){
+            res = req->connection.listen_point->att_hndl.pwrite(filename, pos, len, offset);
+            //printf("flush s3 %ld at %ld \n", res, offset);
+        }else{
+            res = req->connection.listen_point->att_hndl.pwrite((const char*)fd, pos, len, offset);
+            //printf("flush s3 %ld at %ld \n", res, offset);
+        }
+    }else{
+        res = len;
+        //printf("flush nop %ld at %ld \n", res, offset);
+    }
     if (res==-1){
       return res;
     }
     pos += (size_t) res;
     len -= (size_t) res;
+    offset += res;
   }
   return end - data;
 }
@@ -381,6 +395,9 @@ static void* update_hash_worker(void* args){
  */
 static onion_connection_status parse_PUT(onion_request * req,
                                          onion_buffer * data) {
+
+  const char *filename = onion_block_data(req->data);
+  //printf("pp filename=%s\n", filename);
   onion_token *token = req->parser_data;
   int* fd = (int *)token->extra;
   int exit = 0;
@@ -398,10 +415,19 @@ static onion_connection_status parse_PUT(onion_request * req,
     }
 
     if (req->pos==req->end || exit==1){
-      ssize_t res = onion_http_flush_att(req, *fd, req->cache, (size_t)(req->pos-req->cache));
+      size_t f_len = (size_t)(req->pos-req->cache);
+      ssize_t res = onion_http_flush_att(req, fd, filename,
+              req->cache, f_len, token->pos - f_len);
 
       if (res==-1){
-        req->connection.listen_point->close_att(*fd);
+          if (req->connection.listen_point->att_hndl.close){
+            //todo:
+            if (*fd==0){
+                req->connection.listen_point->att_hndl.close(filename);
+            }else{
+                req->connection.listen_point->att_hndl.close((const char*)fd);
+            }
+          }
         onion_low_free(token->extra);
         token->extra = NULL;
         ONION_ERROR("Could not write all data to temporal file.");
@@ -429,18 +455,23 @@ static onion_connection_status parse_PUT(onion_request * req,
 #endif
       req->pos = req->cache;
     }
-
   }
 
 
 #if __DEBUG__
-  const char *filename = onion_block_data(req->data);
+  //const char *filename = onion_block_data(req->data);
   ONION_DEBUG0("Done with PUT. Created %s (%d bytes)", filename, token->pos);
 #endif
 
   if (exit) {
-    //close(*fd);
-    req->connection.listen_point->close_att(*fd);
+
+    if (req->connection.listen_point->att_hndl.close){
+      if (*fd==0){
+          req->connection.listen_point->att_hndl.close(filename);
+      }else{
+          req->connection.listen_point->att_hndl.close((const char*)fd);
+      }
+    }
     onion_low_free(token->extra);
     token->extra = NULL;
     return OCS_REQUEST_READY;
@@ -477,9 +508,8 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         data->pos++;            // Not sure why this is needed. FIXME.
 
         //int w = write(multipart->fd, tmp, tmppos);
-        //todo: chaching feature
-        int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
-
+        //int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
+/*
         if (w != tmppos) {
           ONION_ERROR
               ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
@@ -487,9 +517,9 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
           req->connection.listen_point->close_att(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
-
+*/
         //close(multipart->fd);
-        req->connection.listen_point->close_att(multipart->fd);
+        //req->connection.listen_point->close_att(multipart->fd);
         req->parser = parse_POST_multipart_next;
         return OCS_NEED_MORE_DATA;
       }
@@ -501,10 +531,10 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
       }
       if (multipart->pos != 0) {
         multipart->file_total_size += multipart->pos;
-        int r = multipart->pos - multipart->startpos;
+        //int r = multipart->pos - multipart->startpos;
         //ONION_DEBUG0("Write %d bytes",r);
         //int w = write(multipart->fd, tmp, tmppos);
-        //todo: caching feature
+        /*
         int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
@@ -516,8 +546,9 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
         tmppos = 0;
 
         //w = write(multipart->fd, multipart->boundary + multipart->startpos, r);
-        //todo: caching feature
-        w = req->connection.listen_point->write_att(multipart->fd, multipart->boundary + multipart->startpos, r);
+         */
+        //w = req->connection.listen_point->write_att(multipart->fd, multipart->boundary + multipart->startpos, r);
+        /*
         if (w != r) {
           ONION_ERROR
               ("Error writing multipart data to file. Check permissions on temp directory, and availabe disk.");
@@ -525,6 +556,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
           req->connection.listen_point->close_att(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
+        */
         multipart->startpos = multipart->pos = 0;
         data->pos--;            // Ignore read charater, try again. May be start of boundary.
         continue;
@@ -533,7 +565,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
       tmp[tmppos++] = *p;
       if (tmppos == sizeof(tmp)) {
         //int w = write(multipart->fd, tmp, tmppos);
-        //todo: cashing
+        /*
         int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
         if (w != tmppos) {
           ONION_ERROR
@@ -542,6 +574,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
           req->connection.listen_point->close_att(multipart->fd);
           return OCS_INTERNAL_ERROR;
         }
+        */
         tmppos = 0;
       }
     }
@@ -549,7 +582,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
     p++;
   }
   //int w = write(multipart->fd, tmp, tmppos);
-  //todo: cashing
+  /*
   int w = req->connection.listen_point->write_att(multipart->fd, tmp, tmppos);
   if (w != tmppos) {
     ONION_ERROR
@@ -558,6 +591,7 @@ static onion_connection_status parse_POST_multipart_file(onion_request * req,
     req->connection.listen_point->close_att(multipart->fd);
     return OCS_INTERNAL_ERROR;
   }
+  */
   return OCS_NEED_MORE_DATA;
 }
 
@@ -720,19 +754,19 @@ static onion_connection_status parse_POST_multipart_headers_key(onion_request *
     multipart->pos = 0;
 
     if (multipart->filename) {
-      char filename[MAX_FILENAME_LEN];
-      strcpy(filename, "/tmp/onion-XXXXXX");
-      if (req->connection.listen_point->mks_tmpl_att){
-        req->connection.listen_point->mks_tmpl_att(req, filename); //generate template for mks_att
-      }
-      multipart->fd = req->connection.listen_point->mks_att(filename);
-      if (multipart->fd < 0)
-        ONION_ERROR("Could not create temporal file at %s.", filename);
-      if (!req->FILES)
-        req->FILES = onion_dict_new();
-      onion_dict_add(req->POST, multipart->name, multipart->filename, 0);
-      onion_dict_add(req->FILES, multipart->name, filename, OD_DUP_VALUE);
-      ONION_DEBUG0("Created temporal file %s", filename);
+      //char filename[32*2+1]; //
+      //strcpy(filename, "/tmp/onion-XXXXXX");
+      //if (req->connection.listen_point->auth){
+      //  req->connection.listen_point->auth(req, filename); //generate template for mks_att
+      //}
+      //multipart->fd = req->connection.listen_point->mks_att(filename);
+      //if (multipart->fd < 0)
+      //  ONION_ERROR("Could not create temporal file at %s.", filename);
+      //if (!req->FILES)
+      //  req->FILES = onion_dict_new();
+      //onion_dict_add(req->POST, multipart->name, multipart->filename, 0);
+      //onion_dict_add(req->FILES, multipart->name, filename, OD_DUP_VALUE);
+      //ONION_DEBUG0("Created temporal file %s", filename);
 
       req->parser = parse_POST_multipart_file;
       return parse_POST_multipart_file(req, data);
@@ -1214,30 +1248,34 @@ static onion_connection_status prepare_PUT(onion_request * req) {
     return OCS_INTERNAL_ERROR;
   }
 
-  char filename[MAX_FILENAME_LEN];
-  strcpy(filename, "/tmp/onion-XXXXXX");
+  if (cl == 0) {
+      return OCS_REQUEST_READY;
+  }
 
-  if ( req->connection.listen_point->mks_tmpl_att
-       && ! req->connection.listen_point->mks_tmpl_att(req, filename)){
-    ONION_DEBUG0("No need to create temp file for PUT request");
-    return OCS_REQUEST_READY;
+  char filename[32*2+1]; // str repr of sha256
+
+  if ( req->connection.listen_point->att_hndl.auth){
+      int auth = req->connection.listen_point->att_hndl.auth(req, filename);
+      if (auth==-1){
+          return OCS_FORBIDDEN;
+      }else if(auth==0){
+          return OCS_REQUEST_READY;
+      }
+  }
+
+  int fd = -1;
+  if (req->connection.listen_point->att_hndl.open){
+    fd = req->connection.listen_point->att_hndl.open(filename, O_WRONLY|O_CREAT, req->connection.listen_point->cache_size);
+    if (fd < 0 ){
+      ONION_ERROR("Could not create temporary file at %s.", filename);
+      return OCS_INTERNAL_ERROR;
+    }
   }
 
   req->data = onion_block_new();
-
-  //int fd = mkstemp(filename);
-  int fd = req->connection.listen_point->mks_att(filename);
-  if (fd < 0 ){
-    ONION_ERROR("Could not create temporary file at %s.", filename);
-    return OCS_INTERNAL_ERROR;
-  }
-
-  if (req->connection.listen_point->init_hash_ctx)
-    req->connection.listen_point->init_hash_ctx(req->hash_ctx);
-
   onion_block_add_str(req->data, filename);
-  ONION_DEBUG0("Creating PUT file %s (%d bytes long)", filename,
-               token->extra_size);
+  ONION_DEBUG0("Creating PUT file %s (%lu bytes long)", filename,
+               cl);
 
   if (!req->FILES) {
     req->FILES = onion_dict_new();
@@ -1247,17 +1285,17 @@ static onion_connection_status prepare_PUT(onion_request * req) {
     onion_dict_add(req->FILES, "filename", filename, 0);
   }
 
-  if (cl == 0) {
-    ONION_DEBUG0("Created 0 length file");
-    //close(fd);
-    req->connection.listen_point->close_att(fd);
-    return OCS_REQUEST_READY;
-  }
+  if (req->connection.listen_point->init_hash_ctx)
+    req->connection.listen_point->init_hash_ctx(req->hash_ctx);
 
-  req->cache = (char*) malloc (req->connection.listen_point->cache_size);
+  if (!req->cache){
+      req->cache = (char*) malloc (req->connection.listen_point->cache_size);
+  }
 #ifdef HAVE_PTHREADS
   if (req->connection.listen_point->multi){
-    req->hash_base = (char*) malloc (req->connection.listen_point->cache_size);
+    if (!req->hash_base){
+        req->hash_base = (char*) malloc (req->connection.listen_point->cache_size);
+    }
     pthread_mutex_init(&req->mtx, NULL);
     req->hash_params.update = req->connection.listen_point->update_hash_ctx;
     req->hash_params.ctx = req->hash_ctx;
@@ -1274,7 +1312,6 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   token->extra = (char *)pfd;
   token->extra_size = cl;
   token->pos = 0;
-
   req->parser = parse_PUT;
   return OCS_NEED_MORE_DATA;
 }

@@ -63,11 +63,13 @@ static int onion_listen_point_read_ready(onion_request * req);
  */
 onion_listen_point *onion_listen_point_new() {
   onion_listen_point *ret = onion_low_calloc(1, sizeof(onion_listen_point));
-  ret->mks_att = mkstemp;
-  ret->write_att = write;
-  ret->close_att = close;
-  ret->unlink_att = unlink;
-  ret->mks_tmpl_att = NULL;  // it means default behaviour
+  ret->att_hndl.auth = NULL;
+  ret->att_hndl.open = NULL;
+  ret->att_hndl.pread = NULL;
+  ret->att_hndl.pwrite = NULL;
+  ret->att_hndl.close = NULL;
+  ret->att_hndl.unlink = NULL;
+  ret->cache_size = 4096;
 
   ret->new_hash_ctx = NULL;
   ret->init_hash_ctx = NULL;
@@ -76,22 +78,39 @@ onion_listen_point *onion_listen_point_new() {
   ret->free_hash_ctx = NULL;
   ret->multi = false;
 
-  ret->cache_size = 4096;
 
   return ret;
 }
 
 void onion_listen_point_set_attachment_handlers(onion_listen_point* ret,
-      int (*f_open)(char*),
-      ssize_t (*f_write)(int, const void*, size_t),
-      int (*f_close)(int),
-      int (*f_unlink)(const char*),
-      int (*f_tmpl)(onion_request*, char*)){
-  ret->mks_att = f_open;       //mkstemp;
-  ret->write_att = f_write;    //write;
-  ret->close_att = f_close;    //close;
-  ret->unlink_att = f_unlink;  //unlink
-  ret->mks_tmpl_att = f_tmpl; // defines needs to create temp file ( used for PUT request only)
+        int (*f_auth)(onion_request*, char*),
+        int (*f_open)(const char*, int, ...),
+        ssize_t (*f_pread)(const char*, void*, size_t, off_t),
+        ssize_t (*f_pwrite)(const char*, const void*, size_t, off_t),
+        int (*f_close)(const char*),
+        int (*f_unlink)(const char*) ){
+  ret->att_hndl.auth = f_auth;
+  ret->att_hndl.open = f_open;
+  ret->att_hndl.pread = f_pread;
+  ret->att_hndl.pwrite = f_pwrite;
+  ret->att_hndl.close = f_close;
+  ret->att_hndl.unlink = f_unlink;
+}
+
+void* onion_listen_point_att_hndl_open(onion_listen_point* lp){
+  return lp->att_hndl.open;
+}
+
+void* onion_listen_point_att_hndl_pread(onion_listen_point* lp){
+  return lp->att_hndl.pread;
+}
+
+void* onion_listen_point_att_hndl_close(onion_listen_point* lp){
+  return lp->att_hndl.close;
+}
+
+void* onion_listen_point_att_hndl_unlink(onion_listen_point* lp){
+  return lp->att_hndl.unlink;
 }
 
 void onion_listen_point_set_hash_handlers(onion_listen_point* ret,
