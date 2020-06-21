@@ -58,6 +58,9 @@ extern "C" {
 
   void onion_listen_point_set_cache_size(onion_listen_point* lp, size_t);
 
+  void onion_listen_point_set_context(onion_listen_point* lp, void* context);
+  void* onion_listen_point_get_context(onion_listen_point* lp);
+
 #ifdef __cplusplus
 }
 #endif

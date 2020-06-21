@@ -304,6 +304,16 @@ void onion_set_cache_size(onion* onion, size_t cache_size){
   }
 }
 
+
+void onion_set_context(onion* onion, void* context){
+  if (onion->listen_points) {
+    onion_listen_point **p = onion->listen_points;
+    while (*p != NULL) {
+      onion_listen_point_set_context(*p++, context);
+    }
+  }
+}
+
 /**
  * @short Removes the allocated data
  * @ingroup onion

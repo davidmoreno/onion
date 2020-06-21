@@ -104,6 +104,8 @@ extern "C" {
 
   void onion_set_cache_size(onion* server, size_t cache_size);
 
+  void onion_set_context(onion* server, void* context);
+
 /// Gets the current flags, for example to check SSL support.
   int onion_flags(onion * onion);
 

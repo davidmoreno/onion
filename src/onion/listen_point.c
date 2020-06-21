@@ -78,6 +78,7 @@ onion_listen_point *onion_listen_point_new() {
   ret->free_hash_ctx = NULL;
   ret->multi = false;
 
+  ret->context = NULL;
 
   return ret;
 }
@@ -127,7 +128,15 @@ void onion_listen_point_set_hash_handlers(onion_listen_point* ret,
 }
 
 void onion_listen_point_set_cache_size(onion_listen_point* ret, size_t cache_size){
-	ret->cache_size = cache_size;
+  ret->cache_size = cache_size;
+}
+
+void onion_listen_point_set_context(onion_listen_point* ret, void* context){
+  ret->context = context;
+}
+
+void* onion_listen_point_get_context(onion_listen_point* lp){
+    return lp->context;
 }
 
 /**

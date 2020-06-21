@@ -191,6 +191,7 @@ extern "C" {
     int listenfd;               ///< For socket listening listen points, the listen fd. For others may be -1 as not used, or an fd to watch and when changed calls the request_init with a new request.
     bool secure;                ///< Is this listen point secure?
     size_t cache_size;
+    void* context;
 
     /// Internal data used by the listen point, for example in HTTPS is the certificate loaded data.
     void *user_data;
