@@ -184,6 +184,9 @@ extern "C" {
   bool onion_request_is_secure(onion_request * req);
 
   void onion_request_get_hash(onion_request * req, unsigned char* value);
+
+  onion_listen_point* onion_request_get_listen_point(onion_request* req);
+
 #ifdef __cplusplus
 }
 #endif

@@ -39,8 +39,6 @@
 #include "ptr_list.h"
 #include "utils.h"
 
-//#define MAX_FILENAME_LEN 128  // needs for mkstemp or user-defined handler
-
 /**
  * @short Known token types. This is merged with onion_connection_status as return value at token readers.
  * @private
@@ -397,7 +395,6 @@ static onion_connection_status parse_PUT(onion_request * req,
                                          onion_buffer * data) {
 
   const char *filename = onion_block_data(req->data);
-  //printf("pp filename=%s\n", filename);
   onion_token *token = req->parser_data;
   int* fd = (int *)token->extra;
   int exit = 0;
@@ -1229,6 +1226,12 @@ static onion_connection_status prepare_CONTENT_LENGTH(onion_request * req) {
   return OCS_NEED_MORE_DATA;
 }
 
+static void to_hex(const unsigned char* data, size_t len, char* buf) {
+    for(size_t i = 0; i < len; i++){
+        sprintf(buf+i*2, "%02x", data[i]);
+    }
+}
+
 /**
  * @short Prepares the PUT
  *
@@ -1252,16 +1255,21 @@ static onion_connection_status prepare_PUT(onion_request * req) {
       return OCS_REQUEST_READY;
   }
 
-  char filename[32*2+1]; // str repr of sha256
+  const size_t hash_len = 32; // str repr of sha256
+  const size_t str_hash_len = hash_len*2+1;
+  char filename[str_hash_len];
+  int auth_len = 0;
 
   if ( req->connection.listen_point->att_hndl.auth){
-      int auth = req->connection.listen_point->att_hndl.auth(req, filename);
-      if (auth==-1){
+      auth_len = req->connection.listen_point->att_hndl.auth(req, filename);
+      if (auth_len==-1){
           return OCS_FORBIDDEN;
-      }else if(auth==0){
+      }else if(auth_len==0){
           return OCS_REQUEST_READY;
       }
   }
+
+  //todo: check for 0 auth
 
   int fd = -1;
   if (req->connection.listen_point->att_hndl.open){
@@ -1273,16 +1281,24 @@ static onion_connection_status prepare_PUT(onion_request * req) {
   }
 
   req->data = onion_block_new();
-  onion_block_add_str(req->data, filename);
-  ONION_DEBUG0("Creating PUT file %s (%lu bytes long)", filename,
-               cl);
+  if ((size_t)auth_len == str_hash_len){
+      onion_block_add_str(req->data, filename);
+  }else{
+      onion_block_add_data(req->data, filename, auth_len);
+  }
+  ONION_DEBUG0("Creating PUT file (%lu bytes long)", cl);
 
   if (!req->FILES) {
     req->FILES = onion_dict_new();
   }
-  {
+  if ((size_t)auth_len == str_hash_len){
     const char *filename = onion_block_data(req->data);
     onion_dict_add(req->FILES, "filename", filename, 0);
+  }else{
+    //convert bin hash to str hash
+    char str_filename[str_hash_len];
+    to_hex((const unsigned char*)filename, hash_len, str_filename);
+    onion_dict_add(req->FILES, "filename", str_filename, OD_DUP_VALUE);
   }
 
   if (req->connection.listen_point->init_hash_ctx)

@@ -768,3 +768,8 @@ void onion_request_get_hash(onion_request * req, unsigned char* value){
 #endif
   }
 }
+
+
+onion_listen_point* onion_request_get_listen_point(onion_request* req){
+  return req->connection.listen_point;
+}
