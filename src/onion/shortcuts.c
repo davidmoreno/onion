@@ -379,7 +379,7 @@ int onion_shortcut_rename(const char *orig, const char *dest) {
   if (ok != 0 && errno == EXDEV) {      // Ok, old way, open both, copy
     ONION_DEBUG0("Slow cp, as tmp is in another FS");
     ok = 0;
-    int fd_dest = open(dest, O_WRONLY | O_CREAT, 0666);
+    int fd_dest = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (fd_dest < 0) {
       ok = 1;
       ONION_ERROR("Could not open destination for writing (%s)",
