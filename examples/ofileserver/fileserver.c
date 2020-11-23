@@ -187,8 +187,8 @@ int fileserver_page(const char *basepath, onion_request * req,
      *       The top level handler (here: url_handler) can cut of
      *       parts of the url.
      */
-    printf("    PATH: %s\n", onion_request_get_path(req));
-    printf("FULLPATH: %s\n", onion_request_get_fullpath(req));
+    ONION_DEBUG("    PATH: %s", onion_request_get_path(req));
+    ONION_DEBUG("FULLPATH: %s", onion_request_get_fullpath(req));
 
     char dirname[256];
     snprintf(dirname, sizeof(dirname), "%s/%s", basepath, path);
