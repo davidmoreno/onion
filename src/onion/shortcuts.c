@@ -380,7 +380,7 @@ int onion_shortcut_rename(const char *orig, const char *dest) {
     ONION_DEBUG0("Slow cp, as tmp is in another FS");
     ok = 0;
     int fd_orig = open(orig, O_RDONLY);
-    if (fd_dest < 0) {
+    if (fd_orig < 0) {
       ok = 1;
       ONION_ERROR("Could not open orig for reading (%s)", strerror(errno));
     }
