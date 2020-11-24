@@ -31,4 +31,3 @@ msgstr "Größe"
 #: fileserver_html.c:95
 msgid "Owner"
 msgstr "Besitzer"
-
