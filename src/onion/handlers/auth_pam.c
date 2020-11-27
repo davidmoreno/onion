@@ -110,7 +110,7 @@ void onion_handler_auth_pam_delete(onion_handler_auth_pam_data * d) {
 }
 
 /**
- * @short Creates an path handler. If the path matches the regex, it reomves that from the regexp and goes to the inside_level.
+ * @short Creates an path handler. If the path matches the regex, it removes that from the regexp and goes to the inside_level.
  *
  * If on the inside level nobody answers, it just returns NULL, so ->next can answer.
  */
