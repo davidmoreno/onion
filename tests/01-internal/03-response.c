@@ -171,6 +171,33 @@ void t04_cookies() {
                     "key4=value4; domain=*.example.org; HttpOnly; path=/; Secure");
   FAIL_IF_NOT_EQUAL(ok, true);
 
+  onion_dict_remove(h, "Set-Cookie");
+  onion_response_add_cookie(res, "key5", "value5", -1, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE|OC_SAMESITE_STRICT);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key5=value5; path=/; domain=*.example.org; HttpOnly; Secure; SameSite=Strict");
+
+  onion_dict_remove(h, "Set-Cookie");
+  onion_response_add_cookie(res, "key6", "value6", -1, NULL, NULL, OC_SAMESITE_STRICT | OC_SAMESITE_LAX);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key6=value6");
+  onion_dict_remove(h, "Set-Cookie");
+  onion_response_add_cookie(res, "key6", "value6", -1, NULL, NULL, OC_SAMESITE_STRICT | OC_SAMESITE_NONE);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key6=value6");
+  onion_dict_remove(h, "Set-Cookie");
+  onion_response_add_cookie(res, "key6", "value6", -1, NULL, NULL, OC_SAMESITE_NONE | OC_SAMESITE_LAX);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key6=value6");
+  onion_dict_remove(h, "Set-Cookie");
+  onion_response_add_cookie(res, "key6", "value6", -1, NULL, NULL, OC_SAMESITE_STRICT | OC_SAMESITE_LAX | OC_SAMESITE_NONE);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key6=value6");
+
+  onion_dict_remove(h, "Set-Cookie");
+  onion_response_add_cookie(res, "key7", "value7", -1, NULL, NULL, OC_SAMESITE_STRICT);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key7=value7; SameSite=Strict");
+  onion_dict_remove(h, "Set-Cookie");
+  onion_response_add_cookie(res, "key7", "value7", -1, NULL, NULL, OC_SAMESITE_LAX);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key7=value7; SameSite=Lax");
+  onion_dict_remove(h, "Set-Cookie");
+  onion_response_add_cookie(res, "key7", "value7", -1, NULL, NULL, OC_SAMESITE_NONE);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key7=value7; SameSite=None");
+
   int i;
   int valid_expires = 0;
   char tmpdate[100];
