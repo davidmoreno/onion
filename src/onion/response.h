@@ -94,6 +94,9 @@ enum onion_response_flags_e{
 enum onion_response_cookie_flags_e{
 	OC_HTTP_ONLY=1, 				///< This cookie is not shown via javascript
 	OC_SECURE=2,						///< This cookie is sent only via https (info for the client, not the server).
+	OC_SAMESITE_NONE=0x10,				///< This cookie will be sent in all contexts, i.e. in responses to both first-party and cross-origin requests. When using this flag, OC_SECURE *MUST* also be used (or the cookie will be blocked by clients).
+	OC_SAMESITE_LAX=0x11,				///< This cookie won't be sent on normal cross-site subrequests (for example to load images or frames into a third party site), but are sent when a user is navigating to the origin site (i.e. when following a link). This is the default option to recent browser versions if none of these OC_SAMESITE_* flags are used.
+	OC_SAMESITE_STRICT=0x12,			///< This cookie will only be sent in a first-party context and not be sent along with requests initiated by third party websites.
 };
 typedef enum onion_response_flags_e onion_response_flags;
 

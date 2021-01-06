@@ -615,6 +615,20 @@ void onion_response_add_cookie(onion_response *res, const char *cookiename, cons
 	if (flags&OC_SECURE)
 		pos+=snprintf(data+pos, sizeof(data)-pos, "; Secure");
 
+	switch (flags & (OC_SAMESITE_NONE | OC_SAMESITE_LAX | OC_SAMESITE_STRICT)) {
+	case OC_SAMESITE_NONE:
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; SameSite=None");
+		break;
+	case OC_SAMESITE_LAX:
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; SameSite=Lax");
+		break;
+	case OC_SAMESITE_STRICT:
+		pos+=snprintf(data+pos, sizeof(data)-pos, "; SameSite=Strict");
+		break;
+	default:
+		break;
+	}
+
 	onion_response_set_header(res, "Set-Cookie",data);
 	ONION_DEBUG("Set cookie %s", data);
 }
