@@ -637,6 +637,20 @@ bool onion_response_add_cookie(onion_response * res, const char *cookiename,
   if (flags & OC_SECURE)
     pos += snprintf(data + pos, sizeof(data) - pos, "; Secure");
 
+  switch (flags & (OC_SAMESITE_NONE | OC_SAMESITE_LAX | OC_SAMESITE_STRICT)) {
+  case OC_SAMESITE_NONE:
+    pos+=snprintf(data+pos, sizeof(data)-pos, "; SameSite=None");
+    break;
+  case OC_SAMESITE_LAX:
+    pos+=snprintf(data+pos, sizeof(data)-pos, "; SameSite=Lax");
+    break;
+  case OC_SAMESITE_STRICT:
+    pos+=snprintf(data+pos, sizeof(data)-pos, "; SameSite=Strict");
+    break;
+  default:
+    break;
+  }
+
   if (pos >= sizeof(data)) {
     ONION_WARNING("Cookie too long to be constructed. Not added to response.");
     return false;

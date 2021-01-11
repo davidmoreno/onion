@@ -188,6 +188,46 @@ void t04_cookies() {
   }
   FAIL_IF_NOT(valid_expires);
 
+  onion_dict_remove(h, "Set-Cookie");
+  ok = onion_response_add_cookie(res, "key5", "value5", -1, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE|OC_SAMESITE_STRICT);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key5=value5; path=/; domain=*.example.org; HttpOnly; Secure; SameSite=Strict");
+  FAIL_IF_NOT_EQUAL(ok, true);
+
+  onion_dict_remove(h, "Set-Cookie");
+  ok = onion_response_add_cookie(res, "key6", "value6", -1, NULL, NULL, OC_SAMESITE_STRICT | OC_SAMESITE_LAX);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key6=value6");
+  FAIL_IF_NOT_EQUAL(ok, true);
+
+  onion_dict_remove(h, "Set-Cookie");
+  ok = onion_response_add_cookie(res, "key6", "value6", -1, NULL, NULL, OC_SAMESITE_STRICT | OC_SAMESITE_NONE);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key6=value6");
+  FAIL_IF_NOT_EQUAL(ok, true);
+
+  onion_dict_remove(h, "Set-Cookie");
+  ok = onion_response_add_cookie(res, "key6", "value6", -1, NULL, NULL, OC_SAMESITE_NONE | OC_SAMESITE_LAX);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key6=value6");
+  FAIL_IF_NOT_EQUAL(ok, true);
+
+  onion_dict_remove(h, "Set-Cookie");
+  ok = onion_response_add_cookie(res, "key6", "value6", -1, NULL, NULL, OC_SAMESITE_STRICT | OC_SAMESITE_LAX | OC_SAMESITE_NONE);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key6=value6");
+  FAIL_IF_NOT_EQUAL(ok, true);
+
+  onion_dict_remove(h, "Set-Cookie");
+  ok = onion_response_add_cookie(res, "key7", "value7", -1, NULL, NULL, OC_SAMESITE_STRICT);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key7=value7; SameSite=Strict");
+  FAIL_IF_NOT_EQUAL(ok, true);
+
+  onion_dict_remove(h, "Set-Cookie");
+  ok = onion_response_add_cookie(res, "key7", "value7", -1, NULL, NULL, OC_SAMESITE_LAX);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key7=value7; SameSite=Lax");
+  FAIL_IF_NOT_EQUAL(ok, true);
+
+  onion_dict_remove(h, "Set-Cookie");
+  ok = onion_response_add_cookie(res, "key7", "value7", -1, NULL, NULL, OC_SAMESITE_NONE);
+  FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key7=value7; SameSite=None");
+  FAIL_IF_NOT_EQUAL(ok, true);
+
   // cookie too long
   onion_dict_remove(h, "Set-Cookie");
   const int long_value_len = 1024 * 8;
