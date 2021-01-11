@@ -171,6 +171,23 @@ void t04_cookies() {
                     "key4=value4; domain=*.example.org; HttpOnly; path=/; Secure");
   FAIL_IF_NOT_EQUAL(ok, true);
 
+  int i;
+  int valid_expires = 0;
+  char tmpdate[100];
+  const char *setcookie = onion_dict_get(h, "Set-Cookie");
+  for (i = 59; i < 62; i++) {
+    struct tm *tmp;
+    time_t t = time(NULL) + i;
+    tmp = localtime(&t);
+    strftime(tmpdate, sizeof(tmpdate),
+             "key4=value4; expires=%a, %d %b %Y %H:%M:%S %Z; path=/; domain=*.example.org; HttpOnly; Secure",
+             tmp);
+    ONION_DEBUG("\ntest  %s =? \nonion %s", tmpdate, setcookie);
+    if (strcmp(tmpdate, setcookie) == 0)
+      valid_expires = 1;
+  }
+  FAIL_IF_NOT(valid_expires);
+
   onion_dict_remove(h, "Set-Cookie");
   ok = onion_response_add_cookie(res, "key5", "value5", -1, "/", "*.example.org", OC_HTTP_ONLY|OC_SECURE|OC_SAMESITE_STRICT);
   FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key5=value5; path=/; domain=*.example.org; HttpOnly; Secure; SameSite=Strict");
@@ -210,23 +227,6 @@ void t04_cookies() {
   ok = onion_response_add_cookie(res, "key7", "value7", -1, NULL, NULL, OC_SAMESITE_NONE);
   FAIL_IF_NOT_EQUAL_STR(onion_dict_get(h, "Set-Cookie"), "key7=value7; SameSite=None");
   FAIL_IF_NOT_EQUAL(ok, true);
-
-  int i;
-  int valid_expires = 0;
-  char tmpdate[100];
-  const char *setcookie = onion_dict_get(h, "Set-Cookie");
-  for (i = 59; i < 62; i++) {
-    struct tm *tmp;
-    time_t t = time(NULL) + i;
-    tmp = localtime(&t);
-    strftime(tmpdate, sizeof(tmpdate),
-             "key4=value4; expires=%a, %d %b %Y %H:%M:%S %Z; path=/; domain=*.example.org; HttpOnly; Secure",
-             tmp);
-    ONION_DEBUG("\ntest  %s =? \nonion %s", tmpdate, setcookie);
-    if (strcmp(tmpdate, setcookie) == 0)
-      valid_expires = 1;
-  }
-  FAIL_IF_NOT(valid_expires);
 
   // cookie too long
   onion_dict_remove(h, "Set-Cookie");
