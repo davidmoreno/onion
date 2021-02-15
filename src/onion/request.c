@@ -639,7 +639,7 @@ const char *onion_request_get_client_description(onion_request * req) {
  * @ingroup request
  *
  * @param req Request to get data from
- * @param client_len The lenght of the returned sockaddr_storage
+ * @param client_len The length of the returned sockaddr_storage
  * @returns Pointer to the stored sockaddr_storage.
  */
 struct sockaddr_storage *onion_request_get_sockadd_storage(onion_request * req,
