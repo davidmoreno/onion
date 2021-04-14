@@ -224,7 +224,7 @@ onion_connection_status onion_shortcut_response_file(const char *filename,
       if (*end)
         ends = atol(end);
       else
-        ends = length;
+        ends = length > 1 ? length - 1 : 0;
       starts = atol(start);
       length = ends - starts + 1;
       lseek(fd, starts, SEEK_SET);
