@@ -120,18 +120,20 @@ static onion_connection_status oterm_process(oterm_data * data, process * term,
 process *oterm_get_process(oterm_session * o, const char *id) {
   pthread_mutex_lock(&o->head_mutex);
   process *p = o->head;
+  process *return_p = NULL; 
   int pid = atoi(id);
   int i = 1;
   while (p) {
     if ((strcmp(p->uuid, id) == 0) || i == pid) {
-      pthread_mutex_unlock(&o->head_mutex);
-      return p;
+      //pthread_mutex_unlock(&o->head_mutex);
+      return_p = p; 
+      break; 
     }
     p = p->next;
     i++;
   }
   pthread_mutex_unlock(&o->head_mutex);
-  return NULL;
+  return return_p;
 }
 
 /// Returns the term from the list of known terms. FIXME, make this structure a tree or something faster than linear search.
