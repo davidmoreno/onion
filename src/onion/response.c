@@ -1,6 +1,6 @@
 /**
   Onion HTTP server library
-  Copyright (C) 2010-2018 David Moreno Montero and others
+  Copyright (C) 2010-2021 David Moreno Montero and others
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of, at your choice:
@@ -28,6 +28,7 @@
 #include <time.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <errno.h>
 
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
@@ -430,7 +431,9 @@ int onion_response_flush(onion_response * res) {
     char tmp[16];
     snprintf(tmp, sizeof(tmp), "%X\r\n", (unsigned int)res->buffer_pos);
     if ((w = write(req, tmp, strlen(tmp))) <= 0) {
-      ONION_WARNING("Error writing chunk encoding length. Aborting write.");
+      ONION_WARNING("Error writing chunk encoding length (%X) %s. Aborting write.",
+
+		    (unsigned int)res->buffer_pos, strerror(errno));
       return OCS_CLOSE_CONNECTION;
     }
     ONION_DEBUG0("Write %d-%d bytes", res->buffer_pos, w);
