@@ -62,19 +62,19 @@ Thanks to Ruediger Meier for helping for so long with the RPM packages.
 Manual compile and install:
 
 ```bash
-     $ git clone git@github.com:davidmoreno/onion.git
-     $ cd onion
-     $ mkdir build
-     $ cd build
-     $ cmake ..
-     $ make
-     $ sudo make install
+$ git clone git@github.com:davidmoreno/onion.git
+$ cd onion
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
+$ sudo make install
 ```
 
 To compile with debugging enabled, use
 
 ```bash
-    $ cmake -DCMAKE_BUILD_TYPE=Debug ..
+$ cmake -DCMAKE_BUILD_TYPE=Debug ..
 ```
 
 To run with some debug messages, set the ONION_DEBUG and/or
@@ -82,7 +82,7 @@ ONION_DEBUG0 environment variable containing some source file names,
 e.g.
 
 ```bash
-    $ export ONION_DEBUG0='request.c url.c'
+$ export ONION_DEBUG0='request.c url.c'
 ```
 
 ## Dependencies
