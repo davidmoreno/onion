@@ -203,25 +203,26 @@ program using Onion and Boehm's GC should first define a memory
 failure routine which should never return:
 
 ```C
-    /* the memory failure routine should never return! */
-    static void memory_failure(const char*msg) {
-      perror(msg);
-      exit(EXIT_FAILURE);
-    };
+/* the memory failure routine should never return! */
+static void memory_failure(const char*msg) {
+  perror(msg);
+  exit(EXIT_FAILURE);
+};
 ```
 
 Then, your program (using both onion and Boehm's GC) should initialize
 both memory routines and threads, like:
 
 ```C
-    onion_low_initialize_memory_allocation
-      (GC_malloc,  GC_malloc_atomic,  GC_calloc,
-       GC_realloc, GC_strdup, GC_free,
-       memory_failure);
-    onion_low_initialize_threads
-      (GC_pthread_create, GC_pthread_join,
-       GC_pthread_cancel, GC_pthread_detach,
-       GC_pthread_exit, GC_pthread_sigmask);
+onion_low_initialize_memory_allocation
+  (GC_malloc,  GC_malloc_atomic,  GC_calloc,
+   GC_realloc, GC_strdup, GC_free,
+   memory_failure);
+
+onion_low_initialize_threads
+  (GC_pthread_create, GC_pthread_join,
+   GC_pthread_cancel, GC_pthread_detach,
+   GC_pthread_exit, GC_pthread_sigmask);
 ```
 
 You might need to define your `GC_calloc` using `GC_malloc` and
@@ -239,10 +240,10 @@ wanted to name threads created by the onion library (using
 It can be cross compiled for ARM directly from cmake. Just do:
 
 ```bash
-	$ mkdir arm
-	$ cd arm
-	$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
-	$ make
+$ mkdir arm
+$ cd arm
+$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
+$ make
 ```
 
 It needs the current system opack and otemplate to compile some examples, so if you want to use
