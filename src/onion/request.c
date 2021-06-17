@@ -1,6 +1,6 @@
 /**
   Onion HTTP server library
-  Copyright (C) 2010-2018 David Moreno Montero and others
+  Copyright (C) 2010-2021 David Moreno Montero and others
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of, at your choice:
@@ -238,6 +238,17 @@ const char *onion_request_get_path(onion_request * req) {
 }
 
 /**
+ * @short Returns a pointer to some constant literal string containg the HTTP method name, or else NULL.
+ * @memberof onion_request_t
+ * @ingroup request
+ */
+const char *onion_request_get_method_name(onion_request * req) {
+  if (!req)
+    return NULL;
+  return onion_request_methods [req->flags & OR_METHODS];
+}
+
+/**
  * @short Returns a pointer to the string with the full path. Its a const and should not be trusted for long time.
  * @memberof onion_request_t
  * @ingroup request
@@ -245,6 +256,8 @@ const char *onion_request_get_path(onion_request * req) {
 const char *onion_request_get_fullpath(onion_request * req) {
   return req->fullpath;
 }
+
+
 
 /**
  * @short Gets the current flags, as in onion_request_flags_e

@@ -123,6 +123,9 @@ extern "C" {
 /// Gets session data
   const char *onion_request_get_session(onion_request * req, const char *query);
 
+/// Get as literal constant string -e.g. "GET" or "PUT"- the method name or else NULL
+  const char *onion_request_get_method_name(onion_request * req);
+
 /// Gets the header header data dict
   const onion_dict *onion_request_get_header_dict(onion_request * req);
 
