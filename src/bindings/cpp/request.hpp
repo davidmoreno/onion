@@ -1,6 +1,6 @@
 /**
   Onion HTTP server library
-  Copyright (C) 2010-2018 David Moreno Montero and others
+  Copyright (C) 2010-2021 David Moreno Montero and others
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of, at your choice:
@@ -211,6 +211,13 @@ namespace Onion {
 		 */ onion_request *c_handler() {
       return ptr;
     }
+    /**
+     * @short Gives a constant literal C string, such as "GET" or
+     * "POST", describing the HTTP method.
+     */
+    const char*methodName (void) const {
+      return onion_request_get_method_name (ptr);
+    };
   };
 }
 
