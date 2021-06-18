@@ -215,7 +215,7 @@ namespace Onion {
      * @short Gives a constant literal C string, such as "GET" or
      * "POST", describing the HTTP method.
      */
-    const char*Method_Name (void) const {
+    const char*methodName (void) const {
       return onion_request_get_method_name (ptr);
     };
   };
