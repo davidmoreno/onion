@@ -438,13 +438,15 @@ int onion_response_flush(onion_response * res) {
     }
     ONION_DEBUG0("Write %d-%d bytes", res->buffer_pos, w);
   }
+  int savederrno = errno;
+  errno = 0;
   while ((w =
           write(req, &res->buffer[pos], res->buffer_pos)) != res->buffer_pos) {
     if (w <= 0 || res->buffer_pos < 0) {
-      ONION_ERROR("Error writing %d bytes. Maybe closed connection. Code %d. ",
-                  res->buffer_pos, w);
-      perror("");
+      ONION_ERROR("Error writing %d bytes (%s). Maybe closed connection. Code %d. ",
+                  res->buffer_pos, strerror(errno), w);
       res->buffer_pos = 0;
+      errno = savederrno;
       return OCS_CLOSE_CONNECTION;
     }
     pos += w;
@@ -455,6 +457,7 @@ int onion_response_flush(onion_response * res) {
     write(req, "\r\n", 2);
   }
   res->buffer_pos = 0;
+  errno = savederrno;
   return 0;
 }
 
