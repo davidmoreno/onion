@@ -90,7 +90,7 @@ extern "C" {
           int (*f_auth)(onion_request*, char*),
           int (*f_open)(const char*, int, ...),
           ssize_t (*f_read)(const char*, void*, size_t, off_t),
-          ssize_t (*f_write)(const char*, const void*, size_t, off_t),
+          ssize_t (*f_write)(const char*, const void*, size_t, off_t, onion_request*),
           int (*f_close)(const char*),
           int (*f_unlink)(const char*));
 

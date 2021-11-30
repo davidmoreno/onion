@@ -179,7 +179,7 @@ extern "C" {
     int (*auth)(onion_request* req, char* hash);
     int (*open)(const char* hash, int flag, ...); // callback for creating
     ssize_t (*pread)(const char* hash, void *data, size_t len, off_t offset); // callback for reading data
-    ssize_t (*pwrite)(const char* hash, const void *data, size_t len, off_t offset); // callback for writing data
+    ssize_t (*pwrite)(const char* hash, const void *data, size_t len, off_t offset, onion_request* req); // callback for writing data
     int (*close)(const char* hash); // callback for closing
     int (*unlink)(const char* hash); // callback for unlinking
   };

@@ -354,10 +354,10 @@ static ssize_t onion_http_flush_att(onion_request* req, int* fd, const char* fil
     ssize_t res = 0;
     if (req->connection.listen_point->att_hndl.pwrite){
         if (*fd==0){
-            res = req->connection.listen_point->att_hndl.pwrite(filename, pos, len, offset);
+            res = req->connection.listen_point->att_hndl.pwrite(filename, pos, len, offset, req);
             //printf("flush s3 %ld at %ld \n", res, offset);
         }else{
-            res = req->connection.listen_point->att_hndl.pwrite((const char*)fd, pos, len, offset);
+            res = req->connection.listen_point->att_hndl.pwrite((const char*)fd, pos, len, offset, req);
             //printf("flush s3 %ld at %ld \n", res, offset);
         }
     }else{
