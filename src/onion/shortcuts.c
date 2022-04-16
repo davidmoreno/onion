@@ -224,8 +224,17 @@ onion_connection_status onion_shortcut_response_file(const char *filename,
       if (*end)
         ends = atol(end);
       else
-        ends = length;
+        ends = length - 1;
       starts = atol(start);
+      if (starts > ends || starts > length) {
+        ONION_DEBUG0("Range not satisfiable");
+        snprintf(tmp, sizeof(tmp), "bytes */%d", (unsigned int)length);
+        onion_response_set_header(res, "Content-Range", tmp);
+        onion_response_set_code(res, HTTP_RANGE_NOT_SATISFIABLE);
+        onion_response_write_headers(res);
+        close(fd);
+        return OCS_PROCESSED;
+      }
       length = ends - starts + 1;
       lseek(fd, starts, SEEK_SET);
       snprintf(tmp, sizeof(tmp), "bytes %d-%d/%d", (unsigned int)starts,
