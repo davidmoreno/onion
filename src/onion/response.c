@@ -572,6 +572,8 @@ const char *onion_response_code_description(int code) {
     return "Not Found";
   case HTTP_METHOD_NOT_ALLOWED:
     return "Method Not Allowed";
+  case HTTP_RANGE_NOT_SATISFIABLE:
+    return "Range Not Satisfiable";
 
   case HTTP_INTERNAL_ERROR:
     return "Internal Server Error";
