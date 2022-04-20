@@ -163,7 +163,7 @@ void do_request_set_threaded(float wait_s, float wait_c, int nrequests,
   params.n_requests = nrequests;
   params.close_at_n = close;
 
-  pthread_t *thread = malloc(sizeof(pthread_t *) * nthreads);
+  pthread_t *thread = malloc(sizeof(pthread_t) * nthreads);
   pthread_t listen_thread;
   int i;
   pthread_create(&listen_thread, NULL, (void *)do_listen, NULL);
@@ -397,7 +397,7 @@ void t06_timeouts() {
   sleep(1);
 
   int nthreads = 10;
-  pthread_t *thread = malloc(sizeof(pthread_t *) * nthreads);
+  pthread_t *thread = malloc(sizeof(pthread_t) * nthreads);
   int i;
   for (i = 0; i < nthreads; i++) {
     pthread_create(&thread[i], NULL, (void *)do_timeout_request, NULL);
