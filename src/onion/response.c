@@ -604,8 +604,8 @@ onion_dict *onion_response_get_headers(onion_response * res) {
  *
  * @param res Response object
  * @param cookiename Name for the cookie
- * @param cookievalue Value for the cookis
- * @param validity_t Seconds this cookie is valid (added to current datetime). -1 to do not expire, 0 to expire inmediatly.
+ * @param cookievalue Value for the cookies
+ * @param validity_t Seconds this cookie is valid (added to current datetime). -1 to do not expire, 0 to expire immediately.
  * @param path Cookie valid only for this path
  * @param Domain Cookie valid only for this domain (www.example.com, or *.example.com).
  * @param flags Flags from onion_cookie_flags_t, for example OC_SECURE or OC_HTTP_ONLY
