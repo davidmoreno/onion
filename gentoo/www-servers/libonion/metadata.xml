@@ -3,8 +3,8 @@
 <pkgmetadata>
   <herd>libonion</herd>
   <maintainer>
-    <email>dmoreno@coralbits.com</email>
-    <name>David Moreno Montero</name>
+    <email>martin.botka@somainline.org</email>
+    <name>Martin Botka</name>
   </maintainer>
   <longdescription>
     HTTP server library in C designed to be lightweight.
