@@ -62,19 +62,19 @@ Thanks to Ruediger Meier for helping for so long with the RPM packages.
 Manual compile and install:
 
 ```bash
-     $ git clone git@github.com:davidmoreno/onion.git
-     $ cd onion
-     $ mkdir build
-     $ cd build
-     $ cmake ..
-     $ make
-     $ sudo make install
+$ git clone git@github.com:davidmoreno/onion.git
+$ cd onion
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
+$ sudo make install
 ```
 
 To compile with debugging enabled, use
 
 ```bash
-    $ cmake -DCMAKE_BUILD_TYPE=Debug ..
+$ cmake -DCMAKE_BUILD_TYPE=Debug ..
 ```
 
 To run with some debug messages, set the ONION_DEBUG and/or
@@ -82,7 +82,7 @@ ONION_DEBUG0 environment variable containing some source file names,
 e.g.
 
 ```bash
-    $ export ONION_DEBUG0='request.c url.c'
+$ export ONION_DEBUG0='request.c url.c'
 ```
 
 ## Dependencies
@@ -203,25 +203,26 @@ program using Onion and Boehm's GC should first define a memory
 failure routine which should never return:
 
 ```C
-    /* the memory failure routine should never return! */
-    static void memory_failure(const char*msg) {
-      perror(msg);
-      exit(EXIT_FAILURE);
-    };
+/* the memory failure routine should never return! */
+static void memory_failure(const char*msg) {
+  perror(msg);
+  exit(EXIT_FAILURE);
+};
 ```
 
 Then, your program (using both onion and Boehm's GC) should initialize
 both memory routines and threads, like:
 
 ```C
-    onion_low_initialize_memory_allocation
-      (GC_malloc,  GC_malloc_atomic,  GC_calloc,
-       GC_realloc, GC_strdup, GC_free,
-       memory_failure);
-    onion_low_initialize_threads
-      (GC_pthread_create, GC_pthread_join,
-       GC_pthread_cancel, GC_pthread_detach,
-       GC_pthread_exit, GC_pthread_sigmask);
+onion_low_initialize_memory_allocation
+  (GC_malloc,  GC_malloc_atomic,  GC_calloc,
+   GC_realloc, GC_strdup, GC_free,
+   memory_failure);
+
+onion_low_initialize_threads
+  (GC_pthread_create, GC_pthread_join,
+   GC_pthread_cancel, GC_pthread_detach,
+   GC_pthread_exit, GC_pthread_sigmask);
 ```
 
 You might need to define your `GC_calloc` using `GC_malloc` and
@@ -239,10 +240,10 @@ wanted to name threads created by the onion library (using
 It can be cross compiled for ARM directly from cmake. Just do:
 
 ```bash
-	$ mkdir arm
-	$ cd arm
-	$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
-	$ make
+$ mkdir arm
+$ cd arm
+$ cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain/arm.txt
+$ make
 ```
 
 It needs the current system opack and otemplate to compile some examples, so if you want to use
