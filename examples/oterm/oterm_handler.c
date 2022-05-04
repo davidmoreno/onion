@@ -260,7 +260,7 @@ process *oterm_new(oterm_data * data, oterm_session * session,
     if (fd < 0) {
       const char random_chars[] = "0123456789abcdef-";
       for (i = 0; i < sizeof(oterm->uuid) - 1; i++) {
-        oterm->uuid[i] = random_chars[rand() % sizeof(random_chars)];
+        oterm->uuid[i] = random_chars[rand() % (sizeof(random_chars) - 1)];
       }
     }
     oterm->uuid[sizeof(oterm->uuid) - 1] = 0;
