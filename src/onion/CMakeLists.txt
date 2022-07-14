@@ -13,7 +13,14 @@ set(SOURCES onion.c codecs.c dict.c low.c request.c response.c handler.c log.c s
 	)
 
 set(LIBRARIES)
-LIST(APPEND LIBRARIES rt)
+
+# Link to librt on the platform supports it.
+find_library(RT_LIB rt)
+if (NOT ${RT_LIB} STREQUAL "RT_LIB-NOTFOUND")
+	LIST(APPEND LIBRARIES rt)
+else()
+	message("librt NOT found. Your target platform may just not supported it. Skipping.")
+endif()
 
 ## optional add sources and libraries depeding on features
 
@@ -36,13 +43,16 @@ endif (${ONION_POLLER} STREQUAL epoll)
 if (${SQLITE3_ENABLED})
 	LIST(APPEND SOURCES sessions_sqlite3.c)
 	LIST(APPEND INCLUDES sessions_sqlite3.h)
+	include_directories(${SQLITE3_INCLUDE_DIRS})
 endif(${SQLITE3_ENABLED})
 if (${REDIS_ENABLED})
-        LIST(APPEND SOURCES sessions_redis.c)
-        LIST(APPEND INCLUDES sessions_redis.h)
+	LIST(APPEND SOURCES sessions_redis.c)
+	LIST(APPEND INCLUDES sessions_redis.h)
+	include_directories(${HIREDIS_INCLUDE_DIR})
 endif(${REDIS_ENABLED})
 if (${GNUTLS_ENABLED})
 	MESSAGE(STATUS "Compiling HTTPS support")
+	include_directories(${GNUTLS_INCLUDE_DIR})
 	LIST(APPEND SOURCES https.c random-gnutls.c)
 else(${GNUTLS_ENABLED})
 	LIST(APPEND SOURCES random-default.c)
