@@ -42,6 +42,7 @@
 
 #include <stdlib.h>
 #include <signal.h>
+#include <pthread.h>
 
 #ifdef __cplusplus
 extern "C" {

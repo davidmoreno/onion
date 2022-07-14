@@ -7,6 +7,7 @@ if(PTHREADS_LIB)
 endif(PTHREADS_LIB)
 
 if(GNUTLS_ENABLED)
+	include_directories(${GNUTLS_INCLUDE_DIR})
 	target_link_libraries(opack ${GNUTLS_LIBRARIES})
 endif(GNUTLS_ENABLED)
 
