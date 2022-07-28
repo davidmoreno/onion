@@ -63,6 +63,7 @@ extern "C" {
     HTTP_NOT_FOUND = 404,
     HTTP_METHOD_NOT_ALLOWED = 405,
     HTTP_RANGE_NOT_SATISFIABLE = 416,
+    HTTP_IM_A_TEAPOT = 418,
 
     // Error codes
     HTTP_INTERNAL_ERROR = 500,
