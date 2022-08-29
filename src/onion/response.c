@@ -431,9 +431,32 @@ int onion_response_flush(onion_response * res) {
     char tmp[16];
     snprintf(tmp, sizeof(tmp), "%X\r\n", (unsigned int)res->buffer_pos);
     if ((w = write(req, tmp, strlen(tmp))) <= 0) {
-      ONION_WARNING("Error writing chunk encoding length (%X) %s. Aborting write.",
+      // Sorry for this monstrocity, gotta be cross-platform.
+      #if __STDC_VERSION__ >= 201112 && !defined(__STDC_NO_THREADS__)
+      static _Thread_local time_t last_write_error_time = 0;
+      static _Thread_local unsigned int write_errors_since = 0;
+      #elif defined(_WIN32) && ( \
+        defined(_MSC_VER) || \
+        defined(__ICL) || \
+        defined(__DMC__) || \
+        defined(__BORLANDC__))
+      static __declspec(thread) time_t last_write_error_time = 0;
+      static __declspec(thread) unsigned int write_errors_since = 0;
+      #else
+      static __thread time_t last_write_error_time = 0;
+      static __thread unsigned int write_errors_since = 0;
+      #endif
 
-		    (unsigned int)res->buffer_pos, strerror(errno));
+      if (time(NULL) - last_write_error_time >= 1)
+      {
+        ONION_WARNING("Error writing chunk encoding length (%X) %s. Aborting write. (x%u)",
+          (unsigned int)res->buffer_pos, strerror(errno), write_errors_since + 1);
+        write_errors_since = 0;
+        time(&last_write_error_time);
+      }
+      else
+        ++write_errors_since;
+      
       return OCS_CLOSE_CONNECTION;
     }
     ONION_DEBUG0("Write %d-%d bytes", res->buffer_pos, w);
