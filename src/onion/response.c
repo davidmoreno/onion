@@ -431,9 +431,9 @@ int onion_response_flush(onion_response * res) {
     char tmp[16];
     snprintf(tmp, sizeof(tmp), "%X\r\n", (unsigned int)res->buffer_pos);
     if ((w = write(req, tmp, strlen(tmp))) <= 0) {
-      ONION_WARNING("Error writing chunk encoding length (%X) %s. Aborting write.",
-
-		    (unsigned int)res->buffer_pos, strerror(errno));
+      ONION_CALL_MAX_ONCE_PER_T_COUNT(1, ONION_WARNING, "Error writing chunk encoding length (%X) %s. Aborting write. (x%u)",
+        (unsigned int)res->buffer_pos, strerror(errno));
+      
       return OCS_CLOSE_CONNECTION;
     }
     ONION_DEBUG0("Write %d-%d bytes", res->buffer_pos, w);
