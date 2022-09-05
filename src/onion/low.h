@@ -49,6 +49,66 @@ extern "C" {
 #endif
 
 /**
+  * @short A portable macro for declaring thread-local variables.
+  * @ingroup low
+  * @{
+  *
+  * This macro should be used instead of C11-and-newer's _Thread_local 
+  * and GCC's __thread for portability's sake.
+  */
+  #if __STDC_VERSION__ >= 201112 && !defined(__STDC_NO_THREADS__)
+  # define ONION_THREAD_LOCAL _Thread_local
+  #elif defined(_WIN32) && ( \
+   defined(_MSC_VER) || \
+   defined(__ICL) || \
+   defined(__DMC__) || \
+   defined(__BORLANDC__) \
+  )
+  # define ONION_THREAD_LOCAL __declspec(thread)
+  #elif defined(__TINYC__) || defined (__SDCC) || defined (__CC65__) || defined (__TenDRA__) /* Might apply to other compilers. From a brief glance PCC supports __thread. */
+  # error You are using an obsolete compiler that does not support thread-local variables. Onion will not compile. Consider using a different compiler.
+  #else
+  # define ONION_THREAD_LOCAL __thread
+  #endif
+/// @}
+
+/**
+ * @short MACROS FOR CALLING A FUNCTION ONCE AT MOST EVERY X SECONDS IN EACH THREAD.
+ * @{
+ * 
+ * This is especially useful for preventing log-spamming, and possible DoS attacks
+ * that can happen as a consequence of threads having to write out a massive log.
+ * To use them you MUST include <time.h>.
+ */
+/**
+ * @short Call a function once at most every X seconds in each thread - don't count or pass the calls that happened in between.
+ * @ingroup low
+ */
+#define ONION_CALL_MAX_ONCE_PER_T(seconds, func, ...) do { \
+  static ONION_THREAD_LOCAL time_t last_func_call = 0; \
+  if (difftime(time(0), last_func_call) >= seconds) { \
+    func(__VA_ARGS__); \
+    time(&last_func_call); \
+  } \
+} while (0)
+/**
+ * @short Call a function once at most every X seconds in each thread and pass the number of ignored calls + 1 as the last argument (an unsigned int).
+ * @ingroup low
+ */
+#define ONION_CALL_MAX_ONCE_PER_T_COUNT(seconds, func, ...) do { \
+  static ONION_THREAD_LOCAL time_t last_func_call = 0; \
+  static ONION_THREAD_LOCAL unsigned int func_calls_since = 0; \
+  if (difftime(time(0), last_func_call) >= seconds) { \
+    func(__VA_ARGS__, func_calls_since + 1); \
+    func_calls_since = 0; \
+    time(&last_func_call); \
+  } \
+  else \
+    ++func_calls_since; \
+} while (0)
+/// @}
+
+/**
  * @short NEVER FAILING MEMORY ALLOCATORS
  * @{
  *
