@@ -235,7 +235,7 @@ int onion_websocket_write(onion_websocket * ws, const char *buffer, size_t _len)
     tout[i & 1023] = buffer[i];
   }
 
-  return (*lpwriter) (ws->req, tout, len & 1023);
+  return (ret + (*lpwriter) (ws->req, tout, len & 1023));
 }
 
 /**
@@ -314,7 +314,11 @@ int onion_websocket_read(onion_websocket * ws, char *buffer, size_t len) {
   */
 int onion_websocket_vprintf(onion_websocket * ws, const char *fmt, va_list args) {
   char temp[512];
-  int l = vsnprintf(temp, sizeof(temp) - 1, fmt, args);
+  va_list argz; // required for second vsnprintf call
+  int l;
+  va_copy(argz, args);
+  l = vsnprintf(temp, sizeof(temp), fmt, argz);
+  va_end(argz);
   if (l < sizeof(temp))
     return onion_websocket_write(ws, temp, l);
   else {
@@ -326,7 +330,7 @@ int onion_websocket_vprintf(onion_websocket * ws, const char *fmt, va_list args)
       ONION_ERROR("Could not reserve %d bytes", l + 1);
       return -1;
     }
-    vsnprintf(buf, l, fmt, args);
+    l = vsnprintf(buf, l + 1, fmt, args);
     s = onion_websocket_write(ws, buf, l);
     onion_low_free(buf);
     return s;
