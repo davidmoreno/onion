@@ -441,7 +441,12 @@ int onion_poller_remove(onion_poller * poller, int fd) {
   pthread_mutex_lock(&poller->mutex);
   ONION_DEBUG0("Trying to remove fd %d (%d)", fd, poller->n);
   onion_poller_slot *el = poller->head;
-  if (el && el->fd == fd) {
+  if (el == NULL){
+    ONION_WARNING("Poller slots empty. Can not remove fd %d", fd);
+    pthread_mutex_unlock(&poller->mutex);
+    return 0;
+  }
+  if (el->fd == fd) {
     ONION_DEBUG0("Removed from head %p", el);
 
     poller->head = el->next;

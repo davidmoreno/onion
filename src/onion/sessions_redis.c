@@ -118,7 +118,7 @@ void onion_sessions_redis_save(onion_sessions * sessions,
   pthread_mutex_lock(&p->mutex);
 #endif
 
-  if (p == NULL) {
+  if (onion_dict_count(data) == 0 || bl == NULL) {
     redisReply *reply = redisCommand(p->context, "HDEL SESSIONS %b", session_id,
                                      strlen(session_id));
 
